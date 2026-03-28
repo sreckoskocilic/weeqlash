@@ -8,7 +8,7 @@ import { loadQuestions } from './game/questions.js';
 
 const app        = express();
 const httpServer = createServer(app);
-const io         = new Server(httpServer, { cors: { origin: '*' } });
+const io         = new Server(httpServer, { cors: { origin: 'https://sraz.nbastables.com' } });
 const PORT       = process.env.PORT || 3000;
 
 // Load questions once at startup
