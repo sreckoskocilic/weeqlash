@@ -66,9 +66,11 @@ export function removePlayerFromRoom(socketId) {
   room.players = room.players.filter(p => p.id !== socketId);
   socketToRoom.delete(socketId);
 
-  // Clean up empty rooms
+  // Clean up empty rooms after a delay to survive brief reconnects
   if (room.players.length === 0) {
-    rooms.delete(code);
+    setTimeout(() => {
+      if (rooms.get(code)?.players.length === 0) rooms.delete(code);
+    }, 15_000);
   }
 
   return { room, player };
