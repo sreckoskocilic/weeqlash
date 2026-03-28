@@ -188,6 +188,7 @@
     .peg:hover { transform: scale(1.18); }
     .peg.selected { border-color: white; animation: peg-pulse 1.2s ease-in-out infinite; }
     .peg.just-moved { animation: peg-arrive 0.32s cubic-bezier(0.2,0,0.4,1) forwards; }
+    .peg.can-move { box-shadow: 0 0 0 2px rgba(255,255,255,0.5); cursor: pointer; }
     .peg-rank-badge {
       position: absolute; top: -6px; right: -6px;
       width: calc(var(--ts) * 0.2); height: calc(var(--ts) * 0.2);
@@ -484,16 +485,23 @@
     showScreen('screen-game');
   });
 
-  socket.on('state:update', ({ state, gameOver, winner }) => {
+  socket.on('state:update', ({ state, gameOver, winner, validMoves }) => {
     if (spectatingQuestion) {
       spectatingQuestion = false;
       stopTimer();
       $('modal-overlay').classList.remove('visible');
     }
     gameState = state;
-    localPhase = null;
-    localSelectedPegId = null;
-    validMovesSet.clear();
+    // If server kept SELECT_TILE for same peg (movesRemaining > 0), restore local state
+    if (state.phase === PHASE.SELECT_TILE && state.selectedPegId && state.currentPlayerIdx === myPlayerIndex && validMoves) {
+      localPhase = PHASE.SELECT_TILE;
+      localSelectedPegId = state.selectedPegId;
+      validMovesSet = new Set(validMoves);
+    } else {
+      localPhase = null;
+      localSelectedPegId = null;
+      validMovesSet.clear();
+    }
     renderAll(state);
     if (gameOver) setTimeout(() => showGameOver(winner, state), 400);
   });
@@ -603,6 +611,7 @@
       pegEl.dataset.pegId = tile.pegId;
       if (tile.pegId === localSelectedPegId) pegEl.classList.add('selected');
       if (movedPegs.has(tile.pegId)) pegEl.classList.add('just-moved');
+      if (state.currentPlayerIdx === myPlayerIndex && state.pegsToMove?.includes(tile.pegId)) pegEl.classList.add('can-move');
       pegEl.style.background = player.color;
       const pegNum = (player?.pegIds?.indexOf(tile.pegId) ?? -1) + 1;
       pegEl.textContent = peg.rank > 0 ? '' : String(pegNum || '');
@@ -627,9 +636,13 @@
 
     const phase = localPhase ?? state.phase;
     let phaseText = '';
-    if (phase === PHASE.SELECT_PEG) phaseText = isMyTurn ? 'Select a peg' : `${cp?.name} is choosing…`;
-    else if (phase === PHASE.SELECT_TILE) phaseText = isMyTurn ? 'Select a tile to move' : `${cp?.name} is moving…`;
-    else if (phase === PHASE.GAME_OVER) phaseText = 'Game over';
+    if (phase === PHASE.SELECT_PEG) {
+      const left = state.pegsToMove?.length ?? 0;
+      phaseText = isMyTurn ? `Select a peg (${left} left)` : `${cp?.name} is choosing…`;
+    } else if (phase === PHASE.SELECT_TILE) {
+      const mr = state.movesRemaining;
+      phaseText = isMyTurn ? `Select a tile to move${mr > 1 ? ` (${mr} moves left)` : ''}` : `${cp?.name} is moving…`;
+    } else if (phase === PHASE.GAME_OVER) phaseText = 'Game over';
     $('turn-phase').textContent = phaseText;
 
     $('peg-counts').innerHTML = state.players.map(p =>
@@ -650,7 +663,15 @@
     if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) return;
     const myPlayer = gameState.players[myPlayerIndex];
     if (!myPlayer?.pegIds.includes(pegId)) return;
-    if (phase === PHASE.SELECT_TILE && pegId === localSelectedPegId) return;
+    if (!gameState.pegsToMove?.includes(pegId)) return;
+    // Deselect current peg (click it again to go back to peg selection)
+    if (phase === PHASE.SELECT_TILE && pegId === localSelectedPegId) {
+      localSelectedPegId = null;
+      localPhase = PHASE.SELECT_PEG;
+      validMovesSet.clear();
+      renderAll(gameState);
+      return;
+    }
 
     socket.emit('action:select_peg', { code: myRoom.code, pegId }, ({ ok, error, validMoves }) => {
       if (error || !ok) return;
@@ -746,10 +767,10 @@
   function onAnswer(chosenIdx, qIdx) {
     stopTimer();
     const q = pendingQuestions[qIdx];
+    const correct = chosenIdx === q.correctIdx;
     modalOptionBtns.forEach((btn, i) => {
       btn.disabled = true;
-      if (i === chosenIdx) btn.classList.add('chosen');
-      if (i === q.correctIdx) btn.classList.add('answer-correct');
+      if (i === chosenIdx) btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
     $('modal-continue-wrap').style.display = 'block';
@@ -785,10 +806,7 @@
       if (remaining <= 0) {
         stopTimer();
         const tq = pendingQuestions[qIdx];
-        modalOptionBtns.forEach((btn, i) => {
-          btn.disabled = true;
-          if (i === tq.correctIdx) btn.classList.add('answer-correct');
-        });
+        modalOptionBtns.forEach(btn => { btn.disabled = true; });
         pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
         $('modal-continue-wrap').style.display = 'block';
       }

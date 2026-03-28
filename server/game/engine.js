@@ -12,8 +12,8 @@ export const CATS = [
   'business','sport','religion','entertainment','general'
 ];
 
-const RANK_UP_THRESHOLD = 5;
-const COORD_BASE        = 100;
+const RANK_UP_THRESHOLD  = 5;
+export const COORD_BASE  = 100;
 const DIRS              = [[-1,0],[1,0],[0,-1],[0,1]];
 
 // ---------------------------------------------------------------------------
@@ -155,6 +155,30 @@ export function checkWinCondition(state) {
 }
 
 // ---------------------------------------------------------------------------
+// Turn helpers (match desktop game mechanics)
+// ---------------------------------------------------------------------------
+
+function getEligiblePegs(state) {
+  return state.players[state.currentPlayerIdx].pegIds.filter(
+    id => getValidMoves(state, id).length > 0
+  );
+}
+
+// Called after a peg finishes its moves (wrong answer, movesRemaining=0, or flag fail).
+// Removes peg from pegsToMove. Advances turn when set empties.
+function finishPegMove(state) {
+  state.pegsToMove.delete(state.selectedPegId);
+  state.selectedPegId = null;
+  state.movesRemaining = 0;
+  state.pendingTurn = null;
+  if (state.pegsToMove.size === 0) {
+    advanceTurn(state);
+  } else {
+    state.phase = PHASE.SELECT_PEG;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Question selection
 // ---------------------------------------------------------------------------
 
@@ -216,12 +240,15 @@ export function selectPeg(state, playerId, pegId) {
   const player = state.players[state.currentPlayerIdx];
   if (player.id !== playerId) return { error: 'Not your turn' };
   if (!player.pegIds.includes(pegId)) return { error: 'Not your peg' };
+  if (!state.pegsToMove.has(pegId)) return { error: 'Peg already moved this turn' };
 
   const moves = getValidMoves(state, pegId);
   if (moves.length === 0) return { error: 'No valid moves' };
 
+  const peg = state.pegs[pegId];
   state.pendingTurn = null;
   state.selectedPegId = pegId;
+  state.movesRemaining = peg.rank + 1;
   state.phase = PHASE.SELECT_TILE;
 
   return {
@@ -271,7 +298,15 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       peg.correct++;
       if (peg.correct >= RANK_UP_THRESHOLD) { rankUp(state, pegId); events.push({ type: 'rank_up', pegId }); }
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      state.movesRemaining--;
+      // If moves remain and peg can still move, keep SELECT_TILE for same peg
+      if (state.movesRemaining > 0 && getValidMoves(state, pegId).length > 0) {
+        state.phase = PHASE.SELECT_TILE;
+        return { ok: true, events, gameOver: false };
+      }
     }
+    // Wrong answer or no moves remaining: finish this peg
+    finishPegMove(state);
 
   } else if (moveType === 'combat') {
     if (checkAnswer(0) && checkAnswer(1)) {
@@ -290,6 +325,15 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       movePeg(state, pegId, targetR, targetC);
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
     }
+    // Combat always ends turn (win or lose)
+    const combatWinner = checkWinCondition(state);
+    if (combatWinner >= 0) {
+      state.phase  = PHASE.GAME_OVER;
+      state.winner = combatWinner;
+      return { ok: true, events, gameOver: true, winner: combatWinner };
+    }
+    advanceTurn(state);
+    return { ok: true, events, gameOver: false };
 
   } else if (moveType === 'flag') {
     const allCorrect = checkAnswer(0) && checkAnswer(1) && checkAnswer(2);
@@ -308,10 +352,11 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       } else {
         events.push({ type: 'rank_down', pegId });
       }
+      finishPegMove(state);
     }
   }
 
-  // Check elimination win condition
+  // Check elimination win (normal and flag paths)
   const winner = checkWinCondition(state);
   if (winner >= 0) {
     state.phase  = PHASE.GAME_OVER;
@@ -319,7 +364,6 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     return { ok: true, events, gameOver: true, winner };
   }
 
-  advanceTurn(state);
   return { ok: true, events, gameOver: false };
 }
 
@@ -338,6 +382,8 @@ function advanceTurn(state) {
   state.phase = PHASE.SELECT_PEG;
   state.selectedPegId = null;
   state.pendingTurn = null;
+  state.movesRemaining = 0;
+  state.pegsToMove = new Set(getEligiblePegs(state));
 }
 
 // ---------------------------------------------------------------------------
@@ -376,7 +422,7 @@ export function createGame(players, settings) {
     return { id: i, name: p.name, color: p.color, pegIds };
   });
 
-  return {
+  const state = {
     boardSize,
     board,
     pegs,
@@ -386,7 +432,11 @@ export function createGame(players, settings) {
     phase:            PHASE.SELECT_PEG,
     selectedPegId:    null,
     pendingTurn:      null,
+    movesRemaining:   0,
+    pegsToMove:       new Set(),
     winner:           null,
     usedQ:            Object.fromEntries(CATS.map(c => [c, new Set()])),
   };
+  state.pegsToMove = new Set(getEligiblePegs(state));
+  return state;
 }

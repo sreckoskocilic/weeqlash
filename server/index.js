@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 import { createRoom, joinRoom, getRoom, removePlayerFromRoom } from './game/rooms.js';
-import { createGame, selectPeg, planTurnQuestions, applyTurn, getValidMoves, PHASE } from './game/engine.js';
+import { createGame, selectPeg, planTurnQuestions, applyTurn, getValidMoves, PHASE, COORD_BASE } from './game/engine.js';
 import { loadQuestions } from './game/questions.js';
 
 const app        = express();
@@ -158,12 +158,18 @@ io.on('connection', (socket) => {
       return q ? { correctIdx: q.a } : null;
     }).filter(Boolean) : [];
 
+    // If same peg stays selected (movesRemaining > 0), send valid moves
+    const nextValidMoves = (room.state.phase === PHASE.SELECT_TILE && room.state.selectedPegId)
+      ? getValidMoves(room.state, room.state.selectedPegId).map(m => m.r * COORD_BASE + m.c)
+      : null;
+
     const payload = {
-      events:   result.events,
-      state:    publicState(room.state),
-      gameOver: result.gameOver,
-      winner:   result.winner ?? null,
+      events:     result.events,
+      state:      publicState(room.state),
+      gameOver:   result.gameOver,
+      winner:     result.winner ?? null,
       results,
+      validMoves: nextValidMoves,
     };
 
     // Broadcast updated state to all players
@@ -206,7 +212,8 @@ function publicState(state) {
     phase:            state.phase,
     selectedPegId:    state.selectedPegId,
     winner:           state.winner,
-    // usedQ and pendingTurn stay server-side
+    pegsToMove:       [...state.pegsToMove],
+    movesRemaining:   state.movesRemaining,
   };
 }
 
