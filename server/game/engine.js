@@ -211,7 +211,8 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
 // ---------------------------------------------------------------------------
 
 export function selectPeg(state, playerId, pegId) {
-  if (state.phase !== PHASE.SELECT_PEG) return { error: 'Wrong phase' };
+  if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE)
+    return { error: 'Wrong phase' };
   const player = state.players[state.currentPlayerIdx];
   if (player.id !== playerId) return { error: 'Not your turn' };
   if (!player.pegIds.includes(pegId)) return { error: 'Not your peg' };
@@ -219,6 +220,7 @@ export function selectPeg(state, playerId, pegId) {
   const moves = getValidMoves(state, pegId);
   if (moves.length === 0) return { error: 'No valid moves' };
 
+  state.pendingTurn = null;
   state.selectedPegId = pegId;
   state.phase = PHASE.SELECT_TILE;
 

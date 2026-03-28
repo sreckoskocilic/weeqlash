@@ -125,8 +125,19 @@ io.on('connection', (socket) => {
     const { moveType, questionIds } = planTurnQuestions(room.state, pegId, r, c, questionsDb);
     const questions = questionIds.map(id => {
       const q = questionsDb._byId?.[id];
-      return q ? { id: q.id, q: q.q, opts: q.opts, category: q.category } : null;
+      return q ? { id: q.id, q: q.q, opts: q.opts, category: q.category, correctIdx: q.a } : null;
     }).filter(Boolean);
+
+    // Broadcast question to other players (without correct answers)
+    const questionsPublic = questions.map(({ correctIdx, ...q }) => q);
+    const gamePlayer = room.state.players[player.index];
+    socket.to(code).emit('game:question_start', {
+      playerIdx: player.index,
+      playerColor: gamePlayer?.color,
+      moveType,
+      questions: questionsPublic,
+    });
+
     cb({ ok: true, moveType, questionIds, questions });
   });
 
@@ -137,14 +148,22 @@ io.on('connection', (socket) => {
     const player = room.players.find(p => p.id === socket.id);
     if (!player)   return cb({ error: 'Not in this room' });
 
+    const pending = room.state.pendingTurn;
     const result = applyTurn(room.state, player.index, submission, questionsDb);
     if (result.error) return cb(result);
+
+    // Build per-question results so all players can see correct answers
+    const results = pending ? (submission.answers || []).map((ans, i) => {
+      const q = questionsDb._byId?.[pending.questionIds[i]];
+      return q ? { correctIdx: q.a } : null;
+    }).filter(Boolean) : [];
 
     const payload = {
       events:   result.events,
       state:    publicState(room.state),
       gameOver: result.gameOver,
       winner:   result.winner ?? null,
+      results,
     };
 
     // Broadcast updated state to all players

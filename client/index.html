@@ -409,6 +409,7 @@
   let currentQIdx = 0;
   let timerInterval = null;
   let modalOptionBtns = [];
+  let spectatingQuestion = false;
 
   // ============================================================
   // SCREENS
@@ -484,12 +485,25 @@
   });
 
   socket.on('state:update', ({ state, gameOver, winner }) => {
+    if (spectatingQuestion) {
+      spectatingQuestion = false;
+      stopTimer();
+      $('modal-overlay').classList.remove('visible');
+    }
     gameState = state;
     localPhase = null;
     localSelectedPegId = null;
     validMovesSet.clear();
     renderAll(state);
     if (gameOver) setTimeout(() => showGameOver(winner, state), 400);
+  });
+
+  socket.on('game:question_start', ({ playerIdx, playerColor, moveType, questions }) => {
+    if (myPlayerIndex === playerIdx) return; // already showing own modal
+    spectatingQuestion = true;
+    pendingQuestions = questions;
+    currentQIdx = 0;
+    showQuestion(0);
   });
 
   // ============================================================
@@ -633,9 +647,10 @@
     if (!gameState || myPlayerIndex === null) return;
     if (gameState.currentPlayerIdx !== myPlayerIndex) return;
     const phase = localPhase ?? gameState.phase;
-    if (phase !== PHASE.SELECT_PEG) return;
+    if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) return;
     const myPlayer = gameState.players[myPlayerIndex];
     if (!myPlayer?.pegIds.includes(pegId)) return;
+    if (phase === PHASE.SELECT_TILE && pegId === localSelectedPegId) return;
 
     socket.emit('action:select_peg', { code: myRoom.code, pegId }, ({ ok, error, validMoves }) => {
       if (error || !ok) return;
@@ -709,7 +724,8 @@
       const btn = document.createElement('button');
       btn.className = 'modal-option';
       btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${opt}`;
-      btn.onclick = () => onAnswer(i, idx);
+      if (spectatingQuestion) btn.disabled = true;
+      else btn.onclick = () => onAnswer(i, idx);
       optContainer.appendChild(btn);
       modalOptionBtns.push(btn);
     });
@@ -717,8 +733,14 @@
     $('modal-continue-wrap').style.display = 'none';
     $('modal-overlay').classList.add('visible');
 
-    startTimer(idx);
-    modalOptionBtns[0]?.focus();
+    if (spectatingQuestion) {
+      $('timer-fill').style.display = 'none';
+      $('timer-text').textContent = '…';
+    } else {
+      $('timer-fill').style.display = '';
+      startTimer(idx);
+      modalOptionBtns[0]?.focus();
+    }
   }
 
   function onAnswer(chosenIdx, qIdx) {
@@ -727,6 +749,7 @@
     modalOptionBtns.forEach((btn, i) => {
       btn.disabled = true;
       if (i === chosenIdx) btn.classList.add('chosen');
+      if (i === q.correctIdx) btn.classList.add('answer-correct');
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
     $('modal-continue-wrap').style.display = 'block';
@@ -761,10 +784,13 @@
       else if (pct < 50) fill.className = 'timer-bar-fill warning';
       if (remaining <= 0) {
         stopTimer();
-        pendingAnswers.push({ questionId: pendingQuestions[qIdx].id, answerIdx: -1 });
-        const nextIdx = qIdx + 1;
-        if (nextIdx < pendingQuestions.length) { currentQIdx = nextIdx; showQuestion(nextIdx); }
-        else submitTurn();
+        const tq = pendingQuestions[qIdx];
+        modalOptionBtns.forEach((btn, i) => {
+          btn.disabled = true;
+          if (i === tq.correctIdx) btn.classList.add('answer-correct');
+        });
+        pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
+        $('modal-continue-wrap').style.display = 'block';
       }
     }, 100);
   }
