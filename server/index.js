@@ -123,7 +123,11 @@ io.on('connection', (socket) => {
     if (!validMoves.includes(r * 100 + c)) return cb({ error: 'Invalid move target' });
 
     const { moveType, questionIds } = planTurnQuestions(room.state, pegId, r, c, questionsDb);
-    cb({ ok: true, moveType, questionIds });
+    const questions = questionIds.map(id => {
+      const q = questionsDb._byId?.[id];
+      return q ? { id: q.id, q: q.q, opts: q.opts, category: q.category } : null;
+    }).filter(Boolean);
+    cb({ ok: true, moveType, questionIds, questions });
   });
 
   socket.on('turn:submit', ({ code, submission }, cb) => {

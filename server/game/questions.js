@@ -24,12 +24,12 @@ export function loadQuestions(encPath) {
   const raw  = fs.readFileSync(resolved, 'utf8');
   const data = JSON.parse(decrypt(raw));
 
-  // Build O(1) id lookup
+  // Build O(1) id lookup (include category for client display)
   data._byId = {};
-  for (const qs of Object.values(data)) {
+  for (const [cat, qs] of Object.entries(data)) {
     if (!Array.isArray(qs)) continue;
     for (const q of qs) {
-      if (q.id) data._byId[q.id] = q;
+      if (q.id) data._byId[q.id] = { ...q, category: cat };
     }
   }
 
