@@ -2,26 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://sraz.nbastables.com wss://sraz.nbastables.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'" />
   <title>Sraz — Multiplayer</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #1a1a2e;
-      --bg2: #16213e;
-      --bg3: #0f3460;
+      --bg:     #1a1a2e;
+      --bg2:    #16213e;
+      --bg3:    #0f3460;
       --accent: #e94560;
-      --text: #eaeaea;
-      --muted: #888;
+      --text:   #eaeaea;
+      --muted:  #888;
       --radius: 8px;
+      --bs: min(calc(100svh - 80px), calc(100svw - 24px));
     }
 
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Segoe UI', system-ui, sans-serif;
-      min-height: 100vh;
+      min-height: 100svh;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -29,15 +31,10 @@
       padding: 2rem;
     }
 
-    h1 {
-      font-size: 2.5rem;
-      letter-spacing: 0.1em;
-      color: var(--accent);
-      margin-bottom: 0.25rem;
-    }
-
+    h1 { font-size: 2.5rem; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 0.25rem; }
     .subtitle { color: var(--muted); margin-bottom: 2.5rem; font-size: 0.9rem; }
 
+    /* ===== CARDS (connect / lobby) ===== */
     .card {
       background: var(--bg2);
       border: 1px solid var(--bg3);
@@ -46,107 +43,230 @@
       width: 100%;
       max-width: 420px;
     }
-
-    .card h2 { font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--text); }
-
+    .card h2 { font-size: 1.1rem; margin-bottom: 1.25rem; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; }
-
     input, select {
-      width: 100%;
-      padding: 0.6rem 0.75rem;
-      background: var(--bg3);
-      border: 1px solid #ffffff18;
-      border-radius: var(--radius);
-      color: var(--text);
-      font-size: 0.95rem;
-      margin-bottom: 1rem;
-      outline: none;
+      width: 100%; padding: 0.6rem 0.75rem;
+      background: var(--bg3); border: 1px solid #ffffff18;
+      border-radius: var(--radius); color: var(--text);
+      font-size: 0.95rem; margin-bottom: 1rem; outline: none;
     }
-
     input:focus, select:focus { border-color: var(--accent); }
-
     button {
-      width: 100%;
-      padding: 0.7rem;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
+      width: 100%; padding: 0.7rem;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius);
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s;
     }
-
     button:hover { opacity: 0.85; }
     button:disabled { opacity: 0.4; cursor: default; }
     button.secondary { background: var(--bg3); }
-
     .divider {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.85rem;
-      margin: 1.25rem 0;
-      position: relative;
+      text-align: center; color: var(--muted);
+      font-size: 0.85rem; margin: 1.25rem 0; position: relative;
     }
     .divider::before, .divider::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      width: 42%;
-      height: 1px;
-      background: var(--bg3);
+      content: ''; position: absolute; top: 50%;
+      width: 42%; height: 1px; background: var(--bg3);
     }
-    .divider::before { left: 0; }
-    .divider::after { right: 0; }
-
+    .divider::before { left: 0; } .divider::after { right: 0; }
     .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
-
-    /* Lobby / waiting room */
-    #screen-lobby { display: none; }
     .player-list { list-style: none; margin-bottom: 1.5rem; }
     .player-list li {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #ffffff0a;
-      font-size: 0.95rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0; border-bottom: 1px solid #ffffff0a; font-size: 0.95rem;
     }
     .player-list li:last-child { border-bottom: none; }
-    .dot {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
     .badge {
-      font-size: 0.7rem;
-      padding: 0.15rem 0.4rem;
-      background: var(--bg3);
-      border-radius: 4px;
-      color: var(--muted);
-      margin-left: auto;
+      font-size: 0.7rem; padding: 0.15rem 0.4rem;
+      background: var(--bg3); border-radius: 4px; color: var(--muted); margin-left: auto;
     }
-
-    .room-code {
-      text-align: center;
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: 0.3em;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-    }
+    .room-code { text-align: center; font-size: 2rem; font-weight: 700; letter-spacing: 0.3em; color: var(--accent); margin-bottom: 0.5rem; }
     .room-code-label { text-align: center; color: var(--muted); font-size: 0.8rem; margin-bottom: 1.5rem; }
 
-    /* Game placeholder */
-    #screen-game { display: none; text-align: center; }
-    #screen-game p { color: var(--muted); margin-top: 1rem; }
+    /* ===== GAME SCREEN ===== */
+    #screen-game {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none; flex-direction: column;
+      align-items: center; padding: 10px; gap: 8px;
+      z-index: 10;
+    }
+
+    /* ===== TOP BAR ===== */
+    #top-bar { display: flex; align-items: center; gap: 12px; width: var(--bs); }
+    #turn-panel {
+      flex: 1; background: var(--bg2);
+      border-radius: var(--radius); padding: 8px 14px;
+      border: 2px solid var(--bg3); border-left: 4px solid #444;
+      display: flex; align-items: center; gap: 12px;
+      transition: border-left-color 0.2s;
+    }
+    #turn-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; background: #444; transition: background 0.2s; }
+    #turn-name { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+    #turn-phase { font-size: 0.75rem; color: var(--muted); }
+    #peg-counts { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .peg-count-item { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 700; }
+    .peg-count-swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* ===== BOARD ===== */
+    #board {
+      display: grid;
+      width: var(--bs);
+      gap: 3px;
+      background: #0a0a1a;
+      padding: 3px;
+      border-radius: 8px;
+      border: 2px solid var(--bg3);
+    }
+
+    /* ===== TILES ===== */
+    .tile {
+      aspect-ratio: 1; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; cursor: default;
+      transition: transform 0.1s, filter 0.1s;
+      user-select: none;
+    }
+    .tile.clickable { cursor: pointer; }
+    .tile.clickable:hover { filter: brightness(1.3); transform: scale(1.06); z-index: 2; }
+    .tile.valid-move {
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.7), 0 0 10px 2px rgba(255,255,255,0.2);
+      animation: pulse 1s infinite alternate; z-index: 1;
+    }
+    .tile.selected-peg-tile { box-shadow: 0 0 0 2px white, 0 0 10px 3px rgba(255,255,255,0.4); z-index: 3; }
+    .tile.dimmed { opacity: 0.35; pointer-events: none; }
+    .tile.flag-tile { background: #1a1a2e; border: 2px solid #555; flex-direction: column; }
+
+    @keyframes pulse {
+      from { opacity: 0.7; box-shadow: 0 0 0 2px rgba(255,255,255,0.5), 0 0 6px 1px rgba(255,255,255,0.1); }
+      to   { opacity: 1;   box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 0 14px 4px rgba(255,255,255,0.3); }
+    }
+    @keyframes peg-arrive {
+      0%   { transform: scale(0.55); opacity: 0.3; }
+      65%  { transform: scale(1.22); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    @keyframes rank-up   { 0% { box-shadow: 0 0 0 0 #ffd700; } 40% { box-shadow: 0 0 0 6px rgba(255,215,0,0.6); transform: scale(1.25); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); transform: scale(1); } }
+    @keyframes rank-down { 0% { box-shadow: 0 0 0 0 #e53935; } 35% { box-shadow: 0 0 0 6px rgba(229,57,53,0.6); transform: scale(0.82); } 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); transform: scale(1); } }
+    @keyframes peg-pulse { 0%,100% { box-shadow: 0 0 0 3px white, 0 0 8px 2px rgba(255,255,255,0.5); } 50% { box-shadow: 0 0 0 4px white, 0 0 14px 5px rgba(255,255,255,0.2); } }
+
+    .tile-cat-label {
+      position: absolute; bottom: 3px; left: 0; right: 0;
+      text-align: center; font-size: calc(var(--ts) * 0.12);
+      font-weight: 800; overflow: hidden; white-space: nowrap;
+      pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .flag-icon   { font-size: calc(var(--ts) * 0.45); line-height: 1; }
+    .flag-owner  { font-size: calc(var(--ts) * 0.14); font-weight: 700; text-align: center; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ===== CATEGORY COLORS ===== */
+    .cat-art           { background: #C62828; } .cat-art .tile-cat-label           { color: #FFD6D6; }
+    .cat-geography     { background: #2E7D32; } .cat-geography .tile-cat-label     { color: #C8F0CA; }
+    .cat-history       { background: #6D4C41; } .cat-history .tile-cat-label       { color: #FFE0C8; }
+    .cat-literature    { background: #6A1B9A; } .cat-literature .tile-cat-label    { color: #E8CCFF; }
+    .cat-science       { background: #00838F; } .cat-science .tile-cat-label       { color: #B2F0F5; }
+    .cat-business      { background: #E65100; } .cat-business .tile-cat-label      { color: #FFF0CC; }
+    .cat-sport         { background: #1565C0; } .cat-sport .tile-cat-label         { color: #C5DCFF; }
+    .cat-religion      { background: #F9A825; } .cat-religion .tile-cat-label      { color: #4A2800; }
+    .cat-entertainment { background: #AD1457; } .cat-entertainment .tile-cat-label { color: #FFD6E8; }
+    .cat-general       { background: #546E7A; } .cat-general .tile-cat-label       { color: #D6E8F0; }
+
+    /* ===== PEGS ===== */
+    .peg {
+      width: calc(var(--ts) * 0.44); height: calc(var(--ts) * 0.44);
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      font-size: calc(var(--ts) * 0.2); font-weight: 900; color: white;
+      border: 2.5px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25);
+      position: relative; z-index: 2;
+      transition: transform 0.15s; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      cursor: pointer;
+    }
+    .peg:hover { transform: scale(1.18); }
+    .peg.selected { border-color: white; animation: peg-pulse 1.2s ease-in-out infinite; }
+    .peg.just-moved { animation: peg-arrive 0.32s cubic-bezier(0.2,0,0.4,1) forwards; }
+    .peg-rank-badge {
+      position: absolute; top: -6px; right: -6px;
+      width: calc(var(--ts) * 0.2); height: calc(var(--ts) * 0.2);
+      border-radius: 50%; background: #ffd700;
+      border: 1.5px solid rgba(0,0,0,0.5);
+      font-size: calc(var(--ts) * 0.09);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; color: #222;
+    }
+
+    /* ===== QUESTION MODAL ===== */
+    #modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.62);
+      z-index: 200; display: flex;
+      align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #modal-overlay.visible { opacity: 1; pointer-events: auto; }
+    #modal {
+      background: var(--bg2); border: 2px solid var(--bg3);
+      border-top: 4px solid #444; border-radius: 12px;
+      padding: 28px; max-width: 520px; width: 90%;
+      max-height: 90svh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transform: scale(0.95); transition: transform 0.2s, border-top-color 0.2s;
+    }
+    #modal-overlay.visible #modal { transform: scale(1); }
+    .modal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    #modal-cat-badge {
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: white;
+    }
+    #modal-player-label { font-size: 0.85rem; color: var(--muted); }
+    #modal-combat-label { font-size: 0.8rem; font-weight: 700; letter-spacing: 1px; }
+    #modal-question { font-size: 1.05rem; line-height: 1.6; margin-bottom: 22px; }
+    .modal-options { display: flex; flex-direction: column; gap: 8px; }
+    .modal-option {
+      padding: 12px 16px; background: var(--bg3);
+      border: 2px solid transparent; border-radius: 8px;
+      color: var(--text); font-size: 0.9rem; cursor: pointer;
+      text-align: left; transition: background 0.15s, border-color 0.15s;
+      display: flex; gap: 12px; align-items: center; width: 100%;
+    }
+    .modal-option:hover:not(:disabled) { border-color: var(--accent); background: #1a2a50; }
+    .modal-option:disabled { cursor: not-allowed; opacity: 0.55; }
+    .modal-option.chosen { border-color: var(--accent) !important; background: #2a1a30 !important; }
+    .modal-option.answer-correct { border-color: #43A047 !important; background: #1b3a1c !important; opacity: 1 !important; }
+    .modal-option.answer-wrong   { border-color: var(--accent) !important; background: #2a1a30 !important; opacity: 1 !important; }
+    .option-key { font-weight: 900; font-size: 0.8rem; opacity: 0.75; flex-shrink: 0; }
+    .timer-bar-wrap { margin: 16px 0; }
+    .timer-bar-container { width: 100%; height: 8px; background: #0a1628; border-radius: 4px; overflow: hidden; }
+    .timer-bar-fill { height: 100%; border-radius: 4px; transition: width 0.1s linear, background-color 0.3s; }
+    .timer-bar-fill.safe    { background: #43A047; }
+    .timer-bar-fill.warning { background: #FB8C00; }
+    .timer-bar-fill.danger  { background: #E53935; animation: timer-pulse 0.5s ease-in-out infinite; }
+    @keyframes timer-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .timer-text { font-size: 0.85rem; font-weight: 700; text-align: center; margin-top: 6px; }
+    #modal-continue-wrap { margin-top: 16px; display: none; }
+    #modal-continue-btn { width: 100%; padding: 12px; letter-spacing: 1px; }
+
+    /* ===== GAME OVER ===== */
+    #screen-gameover {
+      position: fixed; inset: 0;
+      background: rgba(26,26,46,0.96);
+      z-index: 300; display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; gap: 1rem; padding: 2rem;
+    }
+    #screen-gameover h1 { font-size: 2.5rem; color: var(--accent); }
+    #winner-text { font-size: 1.5rem; font-weight: 700; color: #ffd700; }
+    #screen-gameover button { max-width: 240px; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
 
-<h1>SRAZ</h1>
-<p class="subtitle">multiplayer — early build</p>
+<h1 id="main-title">SRAZ</h1>
+<p class="subtitle" id="main-subtitle">multiplayer — early build</p>
 
 <!-- Connect screen -->
 <div class="card" id="screen-connect">
@@ -184,7 +304,7 @@
 </div>
 
 <!-- Lobby / waiting room -->
-<div class="card" id="screen-lobby">
+<div class="card" id="screen-lobby" style="display:none">
   <div class="room-code" id="lobby-code"></div>
   <div class="room-code-label">Share this code with other players</div>
   <h2>Players</h2>
@@ -193,32 +313,126 @@
   <button id="btn-start" disabled>Waiting for players…</button>
 </div>
 
-<!-- Game (placeholder) -->
-<div class="card" id="screen-game">
-  <h2>Game started!</h2>
-  <p>Game UI goes here. Players: <span id="game-players"></span></p>
+<!-- Game screen -->
+<div id="screen-game">
+  <div id="top-bar">
+    <div id="turn-panel">
+      <div id="turn-dot"></div>
+      <div>
+        <div id="turn-name">—</div>
+        <div id="turn-phase">—</div>
+      </div>
+      <div id="peg-counts"></div>
+    </div>
+  </div>
+  <div id="board-wrap">
+    <div id="board"></div>
+  </div>
+</div>
+
+<!-- Question modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div class="modal-header">
+      <span id="modal-cat-badge"></span>
+      <span id="modal-player-label"></span>
+      <span id="modal-combat-label" style="display:none"></span>
+    </div>
+    <div id="modal-question"></div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar-container"><div class="timer-bar-fill safe" id="timer-fill" style="width:100%"></div></div>
+      <div class="timer-text" id="timer-text">30s</div>
+    </div>
+    <div class="modal-options" id="modal-options"></div>
+    <div id="modal-continue-wrap">
+      <button id="modal-continue-btn" onclick="continueAfterQuestion()">CONTINUE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game over -->
+<div id="screen-gameover">
+  <h1>GAME OVER</h1>
+  <div id="winner-text"></div>
+  <button onclick="location.reload()">NEW GAME</button>
 </div>
 
 <script type="module">
   import { io } from '/socket.io/socket.io.esm.min.js';
 
-  const SERVER = window.location.origin;
-  const socket = io(SERVER, { transports: ['websocket'] });
-
-  // --- helpers ---
+  const socket = io(window.location.origin, { transports: ['websocket'] });
   const $ = id => document.getElementById(id);
+
+  // ============================================================
+  // CONSTANTS
+  // ============================================================
+  const PHASE = { SELECT_PEG: 'selectPeg', SELECT_TILE: 'selectTile', GAME_OVER: 'gameOver' };
+  const COORD_BASE = 100;
+  const RANK_NAMES = ['Kmet', 'Vojnik', 'Vitez'];
+  const RANK_BADGE = ['', '★', '★★'];
+  const OPTION_KEYS = ['A','B','C','D'];
+  const KEY_MAP = { a:0, b:1, c:2, d:3, '1':0, '2':1, '3':2, '4':3 };
+  const CAT_NAMES = {
+    art:'Art', geography:'Geography', history:'History', literature:'Literature',
+    science:'Science', business:'Business', sport:'Sports',
+    religion:'Religion', entertainment:'Entertainment', general:'General'
+  };
+  const CAT_COLORS = {
+    art:'#C62828', geography:'#2E7D32', history:'#6D4C41', literature:'#6A1B9A',
+    science:'#00838F', business:'#E65100', sport:'#1565C0', religion:'#F9A825',
+    entertainment:'#AD1457', general:'#546E7A'
+  };
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let myId = null;
+  let myRoom = null;
+  let isHost = false;
+  let myPlayerIndex = null;
+
+  // Game state (from server)
+  let gameState = null;
+  let timerDuration = 30;
+  let tileEls = [];        // [r][c]
+  let movedPegs = new Set();
+
+  // Turn interaction
+  let localPhase = null;
+  let localSelectedPegId = null;
+  let validMovesSet = new Set();
+
+  // Question
+  let pendingMove = null;
+  let pendingQuestions = [];
+  let pendingAnswers = [];
+  let currentQIdx = 0;
+  let timerInterval = null;
+  let modalOptionBtns = [];
+
+  // ============================================================
+  // SCREENS
+  // ============================================================
   function showScreen(id) {
-    ['screen-connect', 'screen-lobby', 'screen-game'].forEach(s => {
-      $(s).style.display = s === id ? 'block' : 'none';
+    const isGame = (id === 'screen-game');
+    $('main-title').style.display    = isGame ? 'none' : '';
+    $('main-subtitle').style.display = isGame ? 'none' : '';
+    ['screen-connect','screen-lobby','screen-game'].forEach(s => {
+      $(s).style.display = 'none';
     });
+    $(id).style.display = isGame ? 'flex' : 'block';
   }
+
   function showError(msg) {
     const el = $('connect-error');
     el.textContent = msg;
     el.style.display = msg ? 'block' : 'none';
   }
 
-  function renderPlayers(players, myId, totalSlots) {
+  // ============================================================
+  // LOBBY
+  // ============================================================
+  function renderPlayers(players, totalSlots) {
     const ul = $('player-list');
     ul.innerHTML = '';
     players.forEach(p => {
@@ -231,7 +445,6 @@
       `;
       ul.appendChild(li);
     });
-    // empty slots
     for (let i = players.length; i < totalSlots; i++) {
       const li = document.createElement('li');
       li.innerHTML = `<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>`;
@@ -239,46 +452,378 @@
     }
   }
 
-  // --- state ---
-  let myId = null;
-  let myRoom = null;
-  let isHost = false;
-
-  // --- connect events ---
+  // ============================================================
+  // SOCKET EVENTS
+  // ============================================================
   socket.on('connect', () => { myId = socket.id; });
 
   socket.on('room:player_joined', ({ players }) => {
-    renderPlayers(players, myId, myRoom.settings.playerCount);
+    renderPlayers(players, myRoom.settings.playerCount);
     $('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
   });
 
   socket.on('room:player_left', ({ playerName, players }) => {
-    renderPlayers(players, myId, myRoom.settings.playerCount);
-    $('lobby-status').textContent = `${playerName} left. ${players.length} / ${myRoom.settings.playerCount} players`;
+    renderPlayers(players, myRoom.settings.playerCount);
+    $('lobby-status').textContent = `${playerName} left`;
     $('btn-start').disabled = true;
     $('btn-start').textContent = 'Waiting for players…';
   });
 
   socket.on('room:full', ({ players }) => {
-    renderPlayers(players, myId, myRoom.settings.playerCount);
+    renderPlayers(players, myRoom.settings.playerCount);
     $('lobby-status').textContent = 'Room full — host can start the game';
-    if (isHost) {
-      $('btn-start').disabled = false;
-      $('btn-start').textContent = 'Start game';
-    }
+    if (isHost) { $('btn-start').disabled = false; $('btn-start').textContent = 'Start game'; }
   });
 
-  socket.on('game:start', ({ players, settings }) => {
+  socket.on('game:start', ({ players, settings, state }) => {
+    timerDuration = settings.timer ?? 30;
+    gameState = state;
+    initBoard(state, players);
+    renderAll(state);
     showScreen('screen-game');
-    $('game-players').textContent = players.map(p => p.name).join(', ');
   });
 
-  // --- actions ---
+  socket.on('state:update', ({ state, gameOver, winner }) => {
+    gameState = state;
+    localPhase = null;
+    localSelectedPegId = null;
+    validMovesSet.clear();
+    renderAll(state);
+    if (gameOver) setTimeout(() => showGameOver(winner, state), 400);
+  });
+
+  // ============================================================
+  // BOARD INIT
+  // ============================================================
+  function initBoard(state, players) {
+    const boardEl = $('board');
+    boardEl.innerHTML = '';
+    boardEl.style.gridTemplateColumns = `repeat(${state.boardSize}, 1fr)`;
+    const ts = `calc(var(--bs) / ${state.boardSize})`;
+    boardEl.style.setProperty('--ts', ts);
+    tileEls = [];
+
+    for (let r = 0; r < state.boardSize; r++) {
+      tileEls[r] = [];
+      for (let c = 0; c < state.boardSize; c++) {
+        const el = document.createElement('div');
+        el.dataset.r = r; el.dataset.c = c;
+        el.addEventListener('click', () => onTileClick(r, c));
+        boardEl.appendChild(el);
+        tileEls[r][c] = el;
+      }
+    }
+
+    // Board-level click delegation for peg clicks
+    boardEl.addEventListener('click', e => {
+      const pegEl = e.target.closest('.peg');
+      if (pegEl) { e.stopPropagation(); onPegClick(pegEl.dataset.pegId); }
+    }, true);
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  function renderAll(state) {
+    for (let r = 0; r < state.boardSize; r++)
+      for (let c = 0; c < state.boardSize; c++)
+        updateTile(r, c, state);
+    updateTurnUI(state);
+    movedPegs.clear();
+  }
+
+  function updateTile(r, c, state) {
+    const tile = state.board[r][c];
+    const el = tileEls[r][c];
+    if (!el) return;
+
+    // Base class
+    el.className = tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
+    el.innerHTML = '';
+
+    // Highlight states
+    const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
+    const phase = localPhase ?? state.phase;
+    const coord = r * COORD_BASE + c;
+    const isValidMove = validMovesSet.has(coord);
+    const isSelectedPeg = tile.pegId && tile.pegId === localSelectedPegId;
+
+    if (phase === PHASE.SELECT_PEG && isMyTurn) {
+      const myPlayer = state.players[myPlayerIndex];
+      if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) el.classList.add('clickable');
+    } else if (phase === PHASE.SELECT_TILE && isMyTurn) {
+      if (isValidMove) { el.classList.add('valid-move', 'clickable'); }
+      else if (!isSelectedPeg) { el.classList.add('dimmed'); }
+    }
+    if (isSelectedPeg) el.classList.add('selected-peg-tile');
+
+    // Tile content
+    if (tile.category === 'flag' && tile.cornerOwner !== null) {
+      const owner = state.players[tile.cornerOwner];
+      if (owner) {
+        const flagEl = document.createElement('div');
+        flagEl.className = 'flag-icon';
+        flagEl.textContent = '⚑';
+        flagEl.style.color = owner.color;
+        el.appendChild(flagEl);
+        const nameEl = document.createElement('div');
+        nameEl.className = 'flag-owner';
+        nameEl.style.color = owner.color;
+        nameEl.textContent = owner.name;
+        el.appendChild(nameEl);
+      }
+    } else {
+      const label = document.createElement('div');
+      label.className = 'tile-cat-label';
+      label.textContent = CAT_NAMES[tile.category] ?? tile.category;
+      el.appendChild(label);
+    }
+
+    // Peg
+    if (tile.pegId) {
+      const peg = state.pegs[tile.pegId];
+      if (!peg) return;
+      const player = state.players[peg.playerId];
+      const pegEl = document.createElement('div');
+      pegEl.className = 'peg';
+      pegEl.dataset.pegId = tile.pegId;
+      if (tile.pegId === localSelectedPegId) pegEl.classList.add('selected');
+      if (movedPegs.has(tile.pegId)) pegEl.classList.add('just-moved');
+      pegEl.style.background = player.color;
+      const pegNum = (player?.pegIds?.indexOf(tile.pegId) ?? -1) + 1;
+      pegEl.textContent = peg.rank > 0 ? '' : String(pegNum || '');
+      pegEl.title = `${player.name} — ${RANK_NAMES[peg.rank]}`;
+      if (peg.rank > 0) {
+        const badge = document.createElement('div');
+        badge.className = 'peg-rank-badge';
+        badge.textContent = RANK_BADGE[peg.rank];
+        pegEl.appendChild(badge);
+      }
+      el.appendChild(pegEl);
+    }
+  }
+
+  function updateTurnUI(state) {
+    const cp = state.players[state.currentPlayerIdx];
+    const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
+    $('turn-dot').style.background = cp?.color ?? '#444';
+    $('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
+    $('turn-name').textContent = isMyTurn ? 'Your turn' : `${cp?.name}'s turn`;
+    $('turn-name').style.color = cp?.color ?? '';
+
+    const phase = localPhase ?? state.phase;
+    let phaseText = '';
+    if (phase === PHASE.SELECT_PEG) phaseText = isMyTurn ? 'Select a peg' : `${cp?.name} is choosing…`;
+    else if (phase === PHASE.SELECT_TILE) phaseText = isMyTurn ? 'Select a tile to move' : `${cp?.name} is moving…`;
+    else if (phase === PHASE.GAME_OVER) phaseText = 'Game over';
+    $('turn-phase').textContent = phaseText;
+
+    $('peg-counts').innerHTML = state.players.map(p =>
+      `<span class="peg-count-item" style="opacity:${p.pegIds.length ? 1 : 0.4}">
+        <span class="peg-count-swatch" style="background:${p.color}"></span>
+        ${p.pegIds.length}
+      </span>`
+    ).join('');
+  }
+
+  // ============================================================
+  // INTERACTION
+  // ============================================================
+  function onPegClick(pegId) {
+    if (!gameState || myPlayerIndex === null) return;
+    if (gameState.currentPlayerIdx !== myPlayerIndex) return;
+    const phase = localPhase ?? gameState.phase;
+    if (phase !== PHASE.SELECT_PEG) return;
+    const myPlayer = gameState.players[myPlayerIndex];
+    if (!myPlayer?.pegIds.includes(pegId)) return;
+
+    socket.emit('action:select_peg', { code: myRoom.code, pegId }, ({ ok, error, validMoves }) => {
+      if (error || !ok) return;
+      localSelectedPegId = pegId;
+      localPhase = PHASE.SELECT_TILE;
+      validMovesSet = new Set(validMoves);
+      renderAll(gameState);
+    });
+  }
+
+  function onTileClick(r, c) {
+    if (!gameState || myPlayerIndex === null) return;
+    if (gameState.currentPlayerIdx !== myPlayerIndex) return;
+    const phase = localPhase ?? gameState.phase;
+    if (phase !== PHASE.SELECT_TILE) return;
+    if (!localSelectedPegId) return;
+    if (!validMovesSet.has(r * COORD_BASE + c)) return;
+
+    socket.emit('action:select_tile', { code: myRoom.code, pegId: localSelectedPegId, r, c }, ({ ok, error, moveType, questions }) => {
+      if (error || !ok) return;
+      localPhase = 'answering';
+      pendingMove = { pegId: localSelectedPegId, targetR: r, targetC: c, moveType };
+      pendingQuestions = questions;
+      pendingAnswers = [];
+      currentQIdx = 0;
+      showQuestion(0);
+    });
+  }
+
+  // ============================================================
+  // QUESTION MODAL
+  // ============================================================
+  function showQuestion(idx) {
+    const q = pendingQuestions[idx];
+    if (!q) return;
+
+    const player = gameState?.players[myPlayerIndex];
+    const catColor = CAT_COLORS[q.category] ?? '#0f3460';
+    const catName  = CAT_NAMES[q.category] ?? 'Question';
+    const moveType = pendingMove.moveType;
+
+    $('modal-cat-badge').textContent = catName;
+    $('modal-cat-badge').style.background = catColor;
+    $('modal').style.borderTopColor = player?.color ?? '#444';
+
+    const playerLabel  = $('modal-player-label');
+    const combatLabel  = $('modal-combat-label');
+    if (moveType === 'combat') {
+      combatLabel.style.display = '';
+      combatLabel.style.color   = player?.color ?? '';
+      combatLabel.textContent   = `⚔ COMBAT — ${player?.name} (Q${idx+1}/${pendingQuestions.length})`;
+      playerLabel.style.display = 'none';
+    } else if (moveType === 'flag') {
+      combatLabel.style.display = '';
+      combatLabel.style.color   = player?.color ?? '';
+      combatLabel.textContent   = `⚑ FLAG CAPTURE (Q${idx+1}/3)`;
+      playerLabel.style.display = 'none';
+    } else {
+      combatLabel.style.display = 'none';
+      playerLabel.style.display = '';
+      playerLabel.style.color   = player?.color ?? '';
+      playerLabel.textContent   = player?.name ?? '';
+    }
+
+    $('modal-question').textContent = q.q;
+
+    const optContainer = $('modal-options');
+    optContainer.innerHTML = '';
+    modalOptionBtns = [];
+    q.opts.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-option';
+      btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${opt}`;
+      btn.onclick = () => onAnswer(i, idx);
+      optContainer.appendChild(btn);
+      modalOptionBtns.push(btn);
+    });
+
+    $('modal-continue-wrap').style.display = 'none';
+    $('modal-overlay').classList.add('visible');
+
+    startTimer(idx);
+    modalOptionBtns[0]?.focus();
+  }
+
+  function onAnswer(chosenIdx, qIdx) {
+    stopTimer();
+    const q = pendingQuestions[qIdx];
+    modalOptionBtns.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === chosenIdx) btn.classList.add('chosen');
+    });
+    pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
+    $('modal-continue-wrap').style.display = 'block';
+  }
+
+  window.continueAfterQuestion = function() {
+    $('modal-overlay').classList.remove('visible');
+    const nextIdx = currentQIdx + 1;
+    if (nextIdx < pendingQuestions.length) {
+      currentQIdx = nextIdx;
+      showQuestion(nextIdx);
+    } else {
+      submitTurn();
+    }
+  };
+
+  function startTimer(qIdx) {
+    stopTimer();
+    const fill = $('timer-fill');
+    const text = $('timer-text');
+    let remaining = timerDuration;
+    fill.style.width = '100%';
+    fill.className = 'timer-bar-fill safe';
+    text.textContent = timerDuration + 's';
+
+    timerInterval = setInterval(() => {
+      remaining -= 0.1;
+      const pct = Math.max(0, remaining / timerDuration * 100);
+      fill.style.width = pct + '%';
+      text.textContent = Math.ceil(remaining) + 's';
+      if (pct < 25) fill.className = 'timer-bar-fill danger';
+      else if (pct < 50) fill.className = 'timer-bar-fill warning';
+      if (remaining <= 0) {
+        stopTimer();
+        pendingAnswers.push({ questionId: pendingQuestions[qIdx].id, answerIdx: -1 });
+        const nextIdx = qIdx + 1;
+        if (nextIdx < pendingQuestions.length) { currentQIdx = nextIdx; showQuestion(nextIdx); }
+        else submitTurn();
+      }
+    }, 100);
+  }
+
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  function submitTurn() {
+    stopTimer();
+    socket.emit('turn:submit', {
+      code: myRoom.code,
+      submission: {
+        pegId: pendingMove.pegId,
+        targetR: pendingMove.targetR,
+        targetC: pendingMove.targetC,
+        answers: pendingAnswers,
+      }
+    }, ({ ok, error }) => { if (error) console.error('submit:', error); });
+    localSelectedPegId = null;
+    validMovesSet.clear();
+    localPhase = null;
+    pendingMove = null;
+    pendingQuestions = [];
+    pendingAnswers = [];
+  }
+
+  // ============================================================
+  // GAME OVER
+  // ============================================================
+  function showGameOver(winnerIdx, state) {
+    const winner = state.players[winnerIdx];
+    $('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
+    $('winner-text').style.color = winner?.color ?? '#ffd700';
+    $('screen-gameover').style.display = 'flex';
+  }
+
+  // ============================================================
+  // KEYBOARD SHORTCUTS
+  // ============================================================
+  document.addEventListener('keydown', e => {
+    if (!$('modal-overlay').classList.contains('visible')) return;
+    const key = e.key.toLowerCase();
+    if (key in KEY_MAP) {
+      const idx = KEY_MAP[key];
+      if (modalOptionBtns[idx] && !modalOptionBtns[idx].disabled)
+        modalOptionBtns[idx].click();
+    }
+    if (e.key === 'Enter' && $('modal-continue-wrap').style.display !== 'none')
+      window.continueAfterQuestion();
+  });
+
+  // ============================================================
+  // LOBBY ACTIONS
+  // ============================================================
   function getPlayerName() {
     const name = $('player-name').value.trim();
     if (!name) { showError('Enter your name first.'); return null; }
-    showError('');
-    return name;
+    showError(''); return name;
   }
 
   $('btn-create').addEventListener('click', () => {
@@ -287,14 +832,15 @@
     socket.emit('room:create', {
       playerName,
       playerCount: parseInt($('player-count').value),
-      boardSize: parseInt($('board-size').value),
-      timer: parseInt($('timer').value)
+      boardSize:   parseInt($('board-size').value),
+      timer:       parseInt($('timer').value),
     }, ({ ok, error, code, players }) => {
       if (error) return showError(error);
-      myRoom = { code, settings: { playerCount: parseInt($('player-count').value) } };
+      myPlayerIndex = 0;
+      myRoom = { code, settings: { playerCount: parseInt($('player-count').value), timer: parseInt($('timer').value) } };
       isHost = true;
       $('lobby-code').textContent = code;
-      renderPlayers(players, myId, myRoom.settings.playerCount);
+      renderPlayers(players, myRoom.settings.playerCount);
       $('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
       showScreen('screen-lobby');
     });
@@ -307,10 +853,12 @@
     if (code.length !== 5) return showError('Room code must be 5 characters.');
     socket.emit('room:join', { code, playerName }, ({ ok, error, players, settings }) => {
       if (error) return showError(error);
+      const me = players.find(p => p.id === myId);
+      myPlayerIndex = me?.index ?? players.length - 1;
       myRoom = { code, settings };
       isHost = false;
       $('lobby-code').textContent = code;
-      renderPlayers(players, myId, settings.playerCount);
+      renderPlayers(players, settings.playerCount);
       $('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
       showScreen('screen-lobby');
     });
@@ -323,9 +871,7 @@
     });
   });
 
-  $('join-code').addEventListener('input', e => {
-    e.target.value = e.target.value.toUpperCase();
-  });
+  $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 </script>
 </body>
 </html>
