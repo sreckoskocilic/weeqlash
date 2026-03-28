@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://sraz.nbastables.com wss://sraz.nbastables.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'" />
+  <title>Sraz — Multiplayer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #0f3460;
+      --accent: #e94560;
+      --text: #eaeaea;
+      --muted: #888;
+      --radius: 8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle { color: var(--muted); margin-bottom: 2.5rem; font-size: 0.9rem; }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--bg3);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .card h2 { font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--text); }
+
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; }
+
+    input, select {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg3);
+      border: 1px solid #ffffff18;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      outline: none;
+    }
+
+    input:focus, select:focus { border-color: var(--accent); }
+
+    button {
+      width: 100%;
+      padding: 0.7rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    button.secondary { background: var(--bg3); }
+
+    .divider {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: 1.25rem 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 42%;
+      height: 1px;
+      background: var(--bg3);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
+
+    /* Lobby / waiting room */
+    #screen-lobby { display: none; }
+    .player-list { list-style: none; margin-bottom: 1.5rem; }
+    .player-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #ffffff0a;
+      font-size: 0.95rem;
+    }
+    .player-list li:last-child { border-bottom: none; }
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+      background: var(--bg3);
+      border-radius: 4px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .room-code {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .room-code-label { text-align: center; color: var(--muted); font-size: 0.8rem; margin-bottom: 1.5rem; }
+
+    /* Game placeholder */
+    #screen-game { display: none; text-align: center; }
+    #screen-game p { color: var(--muted); margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<h1>SRAZ</h1>
+<p class="subtitle">multiplayer — early build</p>
+
+<!-- Connect screen -->
+<div class="card" id="screen-connect">
+  <h2>Enter your name</h2>
+  <label for="player-name">Player name</label>
+  <input id="player-name" type="text" maxlength="16" placeholder="e.g. Kmet42" />
+  <div id="connect-error" class="error" style="display:none"></div>
+
+  <h2>Create a game</h2>
+  <label for="player-count">Players</label>
+  <select id="player-count">
+    <option value="2">2 players</option>
+    <option value="3">3 players</option>
+    <option value="4" selected>4 players</option>
+  </select>
+  <label for="board-size">Board size</label>
+  <select id="board-size">
+    <option value="5">5 × 5 (small)</option>
+    <option value="7" selected>7 × 7 (standard)</option>
+    <option value="9">9 × 9 (large)</option>
+  </select>
+  <label for="timer">Answer timer</label>
+  <select id="timer">
+    <option value="15">15 seconds</option>
+    <option value="30" selected>30 seconds</option>
+    <option value="45">45 seconds</option>
+  </select>
+  <button id="btn-create">Create game</button>
+
+  <div class="divider">or join an existing game</div>
+
+  <label for="join-code">Room code</label>
+  <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em" />
+  <button id="btn-join" class="secondary">Join game</button>
+</div>
+
+<!-- Lobby / waiting room -->
+<div class="card" id="screen-lobby">
+  <div class="room-code" id="lobby-code"></div>
+  <div class="room-code-label">Share this code with other players</div>
+  <h2>Players</h2>
+  <ul class="player-list" id="player-list"></ul>
+  <div id="lobby-status" style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;text-align:center"></div>
+  <button id="btn-start" disabled>Waiting for players…</button>
+</div>
+
+<!-- Game (placeholder) -->
+<div class="card" id="screen-game">
+  <h2>Game started!</h2>
+  <p>Game UI goes here. Players: <span id="game-players"></span></p>
+</div>
+
+<script type="module">
+  import { io } from 'http://localhost:3000/socket.io/socket.io.esm.min.js';
+
+  const SERVER = window.SRAZ_SERVER_URL || 'http://localhost:3000';
+  const socket = io(SERVER, { transports: ['websocket'] });
+
+  // --- helpers ---
+  const $ = id => document.getElementById(id);
+  function showScreen(id) {
+    ['screen-connect', 'screen-lobby', 'screen-game'].forEach(s => {
+      $(s).style.display = s === id ? 'block' : 'none';
+    });
+  }
+  function showError(msg) {
+    const el = $('connect-error');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  function renderPlayers(players, myId, totalSlots) {
+    const ul = $('player-list');
+    ul.innerHTML = '';
+    players.forEach(p => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="dot" style="background:${p.color}"></span>
+        <span>${p.name}</span>
+        ${p.isHost ? '<span class="badge">host</span>' : ''}
+        ${p.id === myId ? '<span class="badge">you</span>' : ''}
+      `;
+      ul.appendChild(li);
+    });
+    // empty slots
+    for (let i = players.length; i < totalSlots; i++) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>`;
+      ul.appendChild(li);
+    }
+  }
+
+  // --- state ---
+  let myId = null;
+  let myRoom = null;
+  let isHost = false;
+
+  // --- connect events ---
+  socket.on('connect', () => { myId = socket.id; });
+
+  socket.on('room:player_joined', ({ players }) => {
+    renderPlayers(players, myId, myRoom.settings.playerCount);
+    $('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
+  });
+
+  socket.on('room:player_left', ({ playerName, players }) => {
+    renderPlayers(players, myId, myRoom.settings.playerCount);
+    $('lobby-status').textContent = `${playerName} left. ${players.length} / ${myRoom.settings.playerCount} players`;
+    $('btn-start').disabled = true;
+    $('btn-start').textContent = 'Waiting for players…';
+  });
+
+  socket.on('room:full', ({ players }) => {
+    renderPlayers(players, myId, myRoom.settings.playerCount);
+    $('lobby-status').textContent = 'Room full — host can start the game';
+    if (isHost) {
+      $('btn-start').disabled = false;
+      $('btn-start').textContent = 'Start game';
+    }
+  });
+
+  socket.on('game:start', ({ players, settings }) => {
+    showScreen('screen-game');
+    $('game-players').textContent = players.map(p => p.name).join(', ');
+  });
+
+  // --- actions ---
+  function getPlayerName() {
+    const name = $('player-name').value.trim();
+    if (!name) { showError('Enter your name first.'); return null; }
+    showError('');
+    return name;
+  }
+
+  $('btn-create').addEventListener('click', () => {
+    const playerName = getPlayerName();
+    if (!playerName) return;
+    socket.emit('room:create', {
+      playerName,
+      playerCount: parseInt($('player-count').value),
+      boardSize: parseInt($('board-size').value),
+      timer: parseInt($('timer').value)
+    }, ({ ok, error, code, players }) => {
+      if (error) return showError(error);
+      myRoom = { code, settings: { playerCount: parseInt($('player-count').value) } };
+      isHost = true;
+      $('lobby-code').textContent = code;
+      renderPlayers(players, myId, myRoom.settings.playerCount);
+      $('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
+      showScreen('screen-lobby');
+    });
+  });
+
+  $('btn-join').addEventListener('click', () => {
+    const playerName = getPlayerName();
+    if (!playerName) return;
+    const code = $('join-code').value.trim().toUpperCase();
+    if (code.length !== 5) return showError('Room code must be 5 characters.');
+    socket.emit('room:join', { code, playerName }, ({ ok, error, players, settings }) => {
+      if (error) return showError(error);
+      myRoom = { code, settings };
+      isHost = false;
+      $('lobby-code').textContent = code;
+      renderPlayers(players, myId, settings.playerCount);
+      $('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
+      showScreen('screen-lobby');
+    });
+  });
+
+  $('btn-start').addEventListener('click', () => {
+    if (!isHost) return;
+    socket.emit('room:start', { code: myRoom.code }, ({ ok, error }) => {
+      if (error) showError(error);
+    });
+  });
+
+  $('join-code').addEventListener('input', e => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+</script>
+</body>
+</html>
