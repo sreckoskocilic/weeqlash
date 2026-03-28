@@ -15,7 +15,7 @@ function decrypt(base64) {
 
 export function loadQuestions(encPath) {
   const resolved = encPath || process.env.QUESTIONS_PATH ||
-    path.resolve(import.meta.dirname, '../../questions.enc');
+    path.resolve(import.meta.dirname, '../questions.enc');
 
   if (!fs.existsSync(resolved)) {
     throw new Error(`questions.enc not found at ${resolved}`);

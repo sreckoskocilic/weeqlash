@@ -7,3 +7,5 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
+    volumes:
+      - ./questions.enc:/app/questions.enc:ro
