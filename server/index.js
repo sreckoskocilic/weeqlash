@@ -152,10 +152,11 @@ io.on('connection', (socket) => {
     const result = applyTurn(room.state, player.index, submission, questionsDb);
     if (result.error) return cb(result);
 
-    // Build per-question results so all players can see correct answers
+    // Build per-question results for spectating players (no correct answer revealed when wrong)
     const results = pending ? (submission.answers || []).map((ans, i) => {
       const q = questionsDb._byId?.[pending.questionIds[i]];
-      return q ? { correctIdx: q.a } : null;
+      if (!q) return null;
+      return { chosenIdx: ans.answerIdx, correct: q.a === ans.answerIdx };
     }).filter(Boolean) : [];
 
     // If same peg stays selected (movesRemaining > 0), send valid moves
