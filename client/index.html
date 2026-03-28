@@ -200,9 +200,9 @@
 </div>
 
 <script type="module">
-  import { io } from 'http://localhost:3000/socket.io/socket.io.esm.min.js';
+  import { io } from '/socket.io/socket.io.esm.min.js';
 
-  const SERVER = window.SRAZ_SERVER_URL || 'http://localhost:3000';
+  const SERVER = window.location.origin;
   const socket = io(SERVER, { transports: ['websocket'] });
 
   // --- helpers ---
