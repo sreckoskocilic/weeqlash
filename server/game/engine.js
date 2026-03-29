@@ -12,7 +12,7 @@ export const CATS = [
   'business','sport','religion','entertainment','general'
 ];
 
-const RANK_UP_THRESHOLD  = 5;
+function getRankUpThreshold(boardSize) { return boardSize > 8 ? 5 : 3; }
 export const COORD_BASE  = 100;
 const DIRS              = [[-1,0],[1,0],[0,-1],[0,1]];
 
@@ -188,12 +188,17 @@ function pickQuestionIds(state, cat, count, questionsDb) {
   if (!pool?.length) return [];
 
   if (!state.usedQ[cat]) state.usedQ[cat] = new Set();
-  const usedSet = state.usedQ[cat];
+  const usedSet  = state.usedQ[cat];
+  const wrongSet = state.wrongQ;
 
-  let candidates = pool.filter(q => !usedSet.has(q.id));
+  let candidates = pool.filter(q => !usedSet.has(q.id) && !wrongSet.has(q.id));
   if (candidates.length < count) {
     usedSet.clear();
-    candidates = [...pool];
+    candidates = pool.filter(q => !wrongSet.has(q.id));
+  }
+  if (candidates.length < count) {
+    candidates = pool.filter(q => !usedSet.has(q.id));
+    if (candidates.length < count) { usedSet.clear(); candidates = [...pool]; }
   }
   candidates = shuffle(candidates);
 
@@ -288,6 +293,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     if (!q || ans === undefined) return false;
     const correct = q.a === ans.answerIdx;
     events.push({ type: 'answer', questionId: qId, correct });
+    if (!correct) state.wrongQ.add(qId);
     return correct;
   };
 
@@ -296,7 +302,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       const peg = state.pegs[pegId];
       movePeg(state, pegId, targetR, targetC);
       peg.correct++;
-      if (peg.correct >= RANK_UP_THRESHOLD) { rankUp(state, pegId); events.push({ type: 'rank_up', pegId }); }
+      if (peg.correct >= getRankUpThreshold(state.boardSize)) { rankUp(state, pegId); events.push({ type: 'rank_up', pegId }); }
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
       state.movesRemaining--;
       // If moves remain and peg can still move, keep SELECT_TILE for same peg
@@ -309,21 +315,30 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     finishPegMove(state);
 
   } else if (moveType === 'combat') {
-    if (checkAnswer(0) && checkAnswer(1)) {
+    const q1Correct = checkAnswer(0);
+    const q2Correct = checkAnswer(1);
+    if (q1Correct) {
       const defPegId = state.board[targetR][targetC].pegId;
-      rankUp(state, pegId);
-      events.push({ type: 'rank_up', pegId });
-      const wasElim = rankDown(state, defPegId);
-      if (wasElim) {
-        eliminatePeg(state, defPegId);
-        events.push({ type: 'peg_eliminated', pegId: defPegId });
-      } else {
-        pushPegAway(state, defPegId);
-        events.push({ type: 'peg_pushed', pegId: defPegId, r: state.pegs[defPegId]?.row, c: state.pegs[defPegId]?.col });
-        events.push({ type: 'rank_down', pegId: defPegId });
+      const defPeg   = state.pegs[defPegId];
+      const atkPeg   = state.pegs[pegId];
+      const rankWin  = atkPeg && defPeg && atkPeg.rank > defPeg.rank;
+      if (q2Correct) {
+        rankUp(state, pegId);
+        events.push({ type: 'rank_up', pegId });
       }
-      movePeg(state, pegId, targetR, targetC);
-      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      if (q2Correct || rankWin) {
+        const wasElim = rankDown(state, defPegId);
+        if (wasElim) {
+          eliminatePeg(state, defPegId);
+          events.push({ type: 'peg_eliminated', pegId: defPegId });
+        } else {
+          pushPegAway(state, defPegId);
+          events.push({ type: 'peg_pushed', pegId: defPegId, r: state.pegs[defPegId]?.row, c: state.pegs[defPegId]?.col });
+          events.push({ type: 'rank_down', pegId: defPegId });
+        }
+        movePeg(state, pegId, targetR, targetC);
+        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      }
     }
     // Combat always ends turn (win or lose)
     const combatWinner = checkWinCondition(state);
@@ -436,6 +451,7 @@ export function createGame(players, settings) {
     pegsToMove:       new Set(),
     winner:           null,
     usedQ:            Object.fromEntries(CATS.map(c => [c, new Set()])),
+    wrongQ:           new Set(),
   };
   state.pegsToMove = new Set(getEligiblePegs(state));
   return state;
