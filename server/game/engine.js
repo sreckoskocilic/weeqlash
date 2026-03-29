@@ -29,8 +29,9 @@ function shuffle(arr) {
   return a;
 }
 
-function randomCat() {
-  return CATS[Math.floor(Math.random() * CATS.length)];
+function randomCat(enabledCats) {
+  const cats = enabledCats?.length ? enabledCats : CATS;
+  return cats[Math.floor(Math.random() * cats.length)];
 }
 
 // ---------------------------------------------------------------------------
@@ -224,11 +225,11 @@ function getMoveType(state, pegId, r, c) {
 export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const tile     = state.board[targetR][targetC];
   const moveType = getMoveType(state, pegId, targetR, targetC);
-  const tileCat  = (tile.category === 'flag') ? randomCat() : tile.category;
+  const tileCat  = (tile.category === 'flag') ? randomCat(state.enabledCats) : tile.category;
 
   let questionIds;
   if (moveType === 'flag')   {questionIds = pickQuestionIds(state, tileCat, 3, questionsDb);}
-  else if (moveType === 'combat') {questionIds = pickQuestionIds(state, randomCat(), 2, questionsDb);}
+  else if (moveType === 'combat') {questionIds = pickQuestionIds(state, randomCat(state.enabledCats), 2, questionsDb);}
   else                       {questionIds = pickQuestionIds(state, tileCat, 1, questionsDb);}
 
   state.pendingTurn = { pegId, targetR, targetC, moveType, questionIds };
@@ -408,7 +409,8 @@ function advanceTurn(state) {
 // ---------------------------------------------------------------------------
 
 export function createGame(players, settings) {
-  const { boardSize = 7 } = settings;
+  const { boardSize = 7, enabledCats, maxRankStart = false } = settings;
+  const activeCats = enabledCats?.length ? enabledCats : CATS;
   const numPlayers  = players.length;
   const layoutMap   = generateLayoutMap(boardSize);
   const cornerMap   = getCornerOwnerMap(numPlayers, boardSize);
@@ -432,7 +434,7 @@ export function createGame(players, settings) {
     const pegIds = [];
     for (const pos of startPositions[i]) {
       const id = `p${i}_${pegIdx++}`;
-      pegs[id] = { id, playerId: i, row: pos.r, col: pos.c, rank: 0, correct: 0 };
+      pegs[id] = { id, playerId: i, row: pos.r, col: pos.c, rank: maxRankStart ? 2 : 0, correct: 0 };
       board[pos.r][pos.c].pegId = id;
       pegIds.push(id);
     }
@@ -452,6 +454,7 @@ export function createGame(players, settings) {
     movesRemaining:   0,
     pegsToMove:       new Set(),
     winner:           null,
+    enabledCats:      activeCats,
     usedQ:            Object.fromEntries(CATS.map(c => [c, new Set()])),
     wrongQ:           new Set(),
   };

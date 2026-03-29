@@ -31,8 +31,17 @@
       padding: 2rem;
     }
 
-    h1 { font-size: 2.5rem; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 0.25rem; }
-    .subtitle { color: var(--muted); margin-bottom: 2.5rem; font-size: 0.9rem; }
+    @keyframes shine { to { background-position: 200% center; } }
+    h1 {
+      font-size: 2.5rem; font-weight: 900; letter-spacing: 0.3em;
+      background: linear-gradient(135deg, var(--accent), #ff8a65, var(--accent));
+      background-size: 200% auto;
+      color: transparent;
+      -webkit-background-clip: text; background-clip: text;
+      animation: shine 3s linear infinite;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.85rem; letter-spacing: 5px; text-transform: uppercase; font-weight: 600; }
 
     /* ===== CARDS (connect / lobby) ===== */
     .card {
@@ -72,6 +81,29 @@
     }
     .divider::before { left: 0; } .divider::after { right: 0; }
     .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
+    .setup-section { margin-bottom: 0; }
+    .setup-section + .setup-section { padding-top: 14px; border-top: 1px solid #1e2d4a; margin-top: 4px; }
+    .setup-section h3 { font-size: 0.7rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+    .opt-btn-group { display: flex; gap: 8px; margin-bottom: 0; }
+    .opt-btn { flex: 1; padding: 8px; background: var(--bg3); border: 2px solid transparent; border-radius: 6px; color: var(--text); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; width: auto; }
+    .opt-btn.active { border-color: var(--accent); background: var(--bg); color: var(--accent); }
+    .opt-btn:hover:not(.active) { background: #0d2040; }
+    .setup-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .setup-actions button { flex: 1; padding: 8px; background: transparent; border: 2px solid var(--bg3); border-radius: 6px; color: var(--muted); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: border-color 0.15s, color 0.15s; width: auto; letter-spacing: 0.3px; }
+    .setup-actions button:hover, .setup-actions button.active { border-color: var(--accent); color: var(--accent); }
+    .cat-toggle-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+    .cat-toggle-btn { flex: 1 1 calc(20% - 5px); padding: 6px 4px; background: var(--bg3); border: 2px solid transparent; border-radius: 6px; color: var(--text); font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; text-align: center; letter-spacing: 0.3px; width: auto; }
+    .cat-toggle-btn.active { border-color: var(--accent); background: var(--bg); color: var(--accent); }
+    .cat-toggle-btn:hover:not(.active) { background: #0d2040; }
+    #help-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    #help-modal.show { display: flex; }
+    .help-content { background: var(--bg2); border: 2px solid var(--bg3); border-radius: 12px; max-width: 500px; max-height: 80svh; overflow-y: auto; padding: 24px; width: 100%; }
+    .help-content h2 { color: var(--accent); margin-bottom: 16px; font-size: 1.4rem; font-weight: 900; }
+    .help-content h3 { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin: 16px 0 8px; font-weight: 700; }
+    .help-content p, .help-content li { font-size: 0.9rem; line-height: 1.5; margin-bottom: 6px; }
+    .help-content ul { padding-left: 20px; }
+    .help-content button { margin-top: 16px; max-width: none; }
+    body.high-contrast { filter: contrast(1.3) brightness(1.05); }
     .player-list { list-style: none; margin-bottom: 1.5rem; }
     .player-list li {
       display: flex; align-items: center; gap: 0.6rem;
@@ -283,41 +315,109 @@
 <body>
 
 <h1 id="main-title">SRAZ</h1>
-<p class="subtitle" id="main-subtitle">multiplayer — early build</p>
+<p class="subtitle" id="main-subtitle">Multiplayer Trivia Battle</p>
 
 <!-- Connect screen -->
 <div class="card" id="screen-connect">
-  <h2>Enter your name</h2>
-  <label for="player-name">Player name</label>
-  <input id="player-name" type="text" maxlength="16" placeholder="e.g. Kmet42" />
-  <div id="connect-error" class="error" style="display:none"></div>
 
-  <h2>Create a game</h2>
-  <label for="player-count">Players</label>
-  <select id="player-count">
-    <option value="2">2 players</option>
-    <option value="3">3 players</option>
-    <option value="4" selected>4 players</option>
-  </select>
-  <label for="board-size">Board size</label>
-  <select id="board-size">
-    <option value="5">5 × 5 (small)</option>
-    <option value="7" selected>7 × 7 (standard)</option>
-    <option value="9">9 × 9 (large)</option>
-  </select>
-  <label for="timer">Answer timer</label>
-  <select id="timer">
-    <option value="15">15 seconds</option>
-    <option value="30" selected>30 seconds</option>
-    <option value="45">45 seconds</option>
-  </select>
-  <button id="btn-create">Create game</button>
+  <div class="setup-section">
+    <h3>Your Name</h3>
+    <input id="player-name" type="text" maxlength="16" placeholder="e.g. Kmet42" />
+    <div id="connect-error" class="error" style="display:none"></div>
+  </div>
+
+  <div class="setup-section">
+    <h3>Board Size</h3>
+    <div class="opt-btn-group" id="board-size-btns">
+      <button class="opt-btn" data-val="5">5×5</button>
+      <button class="opt-btn active" data-val="7">7×7</button>
+      <button class="opt-btn" data-val="9">9×9</button>
+    </div>
+  </div>
+
+  <div class="setup-section">
+    <h3>Question Timer</h3>
+    <div class="opt-btn-group" id="timer-btns">
+      <button class="opt-btn" data-val="15">15s</button>
+      <button class="opt-btn active" data-val="30">30s</button>
+      <button class="opt-btn" data-val="45">45s</button>
+    </div>
+  </div>
+
+  <div class="setup-section">
+    <button id="btn-create" style="margin-bottom:0">Create game</button>
+  </div>
+
+  <div class="setup-actions">
+    <button id="btn-help">How to Play</button>
+    <button id="btn-hc">High Contrast</button>
+    <button id="btn-advanced">Settings</button>
+  </div>
+
+  <div id="advanced-section" style="display:none">
+    <div class="setup-section" style="margin-top:14px">
+      <h3>Game Options</h3>
+      <div class="opt-btn-group">
+        <button class="opt-btn" id="btn-max-rank">Start as Vitez</button>
+      </div>
+    </div>
+    <div class="setup-section">
+      <h3>Categories</h3>
+      <div class="cat-toggle-btns" id="cat-toggle-btns">
+        <button class="cat-toggle-btn active" data-cat="art">Art</button>
+        <button class="cat-toggle-btn active" data-cat="geography">Geography</button>
+        <button class="cat-toggle-btn active" data-cat="history">History</button>
+        <button class="cat-toggle-btn active" data-cat="literature">Literature</button>
+        <button class="cat-toggle-btn active" data-cat="science">Science</button>
+        <button class="cat-toggle-btn active" data-cat="business">Business</button>
+        <button class="cat-toggle-btn active" data-cat="sport">Sports</button>
+        <button class="cat-toggle-btn active" data-cat="religion">Religion</button>
+        <button class="cat-toggle-btn active" data-cat="entertainment">Entertainment</button>
+        <button class="cat-toggle-btn active" data-cat="general">General</button>
+      </div>
+    </div>
+  </div>
 
   <div class="divider">or join an existing game</div>
 
-  <label for="join-code">Room code</label>
-  <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em" />
-  <button id="btn-join" class="secondary">Join game</button>
+  <div class="setup-section">
+    <h3>Room Code</h3>
+    <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em;margin-bottom:0.5rem" />
+    <button id="btn-join" class="secondary" style="margin-bottom:0">Join game</button>
+  </div>
+
+</div>
+
+<!-- Help modal -->
+<div id="help-modal">
+  <div class="help-content">
+    <h2>HOW TO PLAY</h2>
+    <h3>Gameplay</h3>
+    <p>Each turn, move one of your pegs to an adjacent tile. The tile's category determines your trivia question.</p>
+    <ul>
+      <li>Answer correctly to move your peg.</li>
+      <li>Answer wrong and your peg stays put.</li>
+    </ul>
+    <h3>Ranks</h3>
+    <p>Each peg has a rank: <strong>Kmet → Vojnik → Vitez</strong>. Rank up by answering questions correctly on the same peg (threshold: 3 on small boards, 5 on large).</p>
+    <h3>Combat</h3>
+    <p>Move onto a tile occupied by an enemy peg to attack. You get two questions.</p>
+    <ul>
+      <li>Answer Q1 correctly to win the combat.</li>
+      <li>You also win if your peg has a higher rank, even if you miss Q2.</li>
+      <li>Answer Q2 correctly to rank up your attacking peg.</li>
+      <li>The defeated peg is eliminated.</li>
+    </ul>
+    <h3>Flag Tiles</h3>
+    <p>Move onto a flag tile to attempt to capture it. Answer 3 questions correctly to claim the flag. Capture all flags to win!</p>
+    <h3>Keyboard Controls</h3>
+    <ul>
+      <li><strong>Arrow keys</strong> — navigate the board or cycle answer options</li>
+      <li><strong>A / B / C / D</strong> — pick an answer option</li>
+      <li><strong>Enter</strong> — select peg/tile or confirm answer</li>
+    </ul>
+    <button onclick="window.closeHelp()">GOT IT</button>
+  </div>
 </div>
 
 <!-- Lobby / waiting room -->
@@ -405,6 +505,7 @@
     science:'#00838F', business:'#E65100', sport:'#1565C0', religion:'#F9A825',
     entertainment:'#AD1457', general:'#546E7A'
   };
+  const CATS = Object.keys(CAT_NAMES);
 
   // ============================================================
   // STATE
@@ -440,6 +541,13 @@
   let pendingCombatDefenderIdx = null;
   let spectatingDefenderIdx = null;
   let navCursor = { row: 0, col: 0 };
+
+  // Setup screen state
+  const setupPlayerCount = 2;
+  let setupBoardSize = 7;
+  let setupTimer = 30;
+  let setupEnabledCats = [...CATS];
+  let setupMaxRankStart = false;
 
   // ============================================================
   // SCREENS
@@ -1035,18 +1143,72 @@
     showError(''); return name;
   }
 
+  // ============================================================
+  // SETUP SCREEN CONTROLS
+  // ============================================================
+  function initOptBtnGroup(groupId, setter) {
+    const group = $(groupId);
+    group.addEventListener('click', e => {
+      const btn = e.target.closest('.opt-btn');
+      if (!btn) {return;}
+      group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      setter(parseInt(btn.dataset.val));
+    });
+  }
+  initOptBtnGroup('board-size-btns',   v => { setupBoardSize = v; });
+  initOptBtnGroup('timer-btns',        v => { setupTimer = v; });
+
+  $('cat-toggle-btns').addEventListener('click', e => {
+    const btn = e.target.closest('.cat-toggle-btn');
+    if (!btn) {return;}
+    const cat = btn.dataset.cat;
+    if (setupEnabledCats.includes(cat)) {
+      if (setupEnabledCats.length <= 1) {return;}
+      setupEnabledCats = setupEnabledCats.filter(c => c !== cat);
+      btn.classList.remove('active');
+    } else {
+      setupEnabledCats.push(cat);
+      btn.classList.add('active');
+    }
+  });
+
+  $('btn-max-rank').addEventListener('click', () => {
+    setupMaxRankStart = !setupMaxRankStart;
+    $('btn-max-rank').classList.toggle('active', setupMaxRankStart);
+  });
+
+  $('btn-help').addEventListener('click', () => { $('help-modal').classList.add('show'); });
+  $('btn-hc').addEventListener('click', () => {
+    document.body.classList.toggle('high-contrast');
+    $('btn-hc').classList.toggle('active', document.body.classList.contains('high-contrast'));
+  });
+  $('btn-advanced').addEventListener('click', () => {
+    const sec = $('advanced-section');
+    const visible = sec.style.display !== 'none';
+    sec.style.display = visible ? 'none' : 'block';
+    $('btn-advanced').classList.toggle('active', !visible);
+  });
+
+  window.closeHelp = function() { $('help-modal').classList.remove('show'); };
+  $('help-modal').addEventListener('click', e => {
+    if (e.target === $('help-modal')) {window.closeHelp();}
+  });
+
   $('btn-create').addEventListener('click', () => {
     const playerName = getPlayerName();
     if (!playerName) {return;}
     socket.emit('room:create', {
       playerName,
-      playerCount: parseInt($('player-count').value),
-      boardSize:   parseInt($('board-size').value),
-      timer:       parseInt($('timer').value),
+      playerCount:  setupPlayerCount,
+      boardSize:    setupBoardSize,
+      timer:        setupTimer,
+      enabledCats:  setupEnabledCats,
+      maxRankStart: setupMaxRankStart,
     }, ({ error, code, players }) => {
       if (error) {return showError(error);}
       myPlayerIndex = 0;
-      myRoom = { code, settings: { playerCount: parseInt($('player-count').value), timer: parseInt($('timer').value) } };
+      myRoom = { code, settings: { playerCount: setupPlayerCount, timer: setupTimer } };
       isHost = true;
       $('lobby-code').textContent = code;
       renderPlayers(players, myRoom.settings.playerCount);

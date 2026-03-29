@@ -11,13 +11,14 @@ function generateCode() {
   return code;
 }
 
-export function createRoom({ playerCount = 2, boardSize = 7, timer = 30 } = {}) {
+export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabledCats, maxRankStart = false } = {}) {
+  playerCount = 2; // locked to 2-player mode
   let code;
   do { code = generateCode(); } while (rooms.has(code));
 
   const room = {
     code,
-    settings: { playerCount, boardSize, timer },
+    settings: { playerCount, boardSize, timer, enabledCats, maxRankStart },
     players: [],
     started: false,
     state: null

@@ -27,8 +27,8 @@ io.on('connection', (socket) => {
 
   // --- Lobby ---
 
-  socket.on('room:create', ({ playerName, playerCount, boardSize, timer }, cb) => {
-    const room   = createRoom({ playerCount, boardSize, timer });
+  socket.on('room:create', ({ playerName, playerCount, boardSize, timer, enabledCats, maxRankStart }, cb) => {
+    const room   = createRoom({ playerCount, boardSize, timer, enabledCats, maxRankStart });
     const player = joinRoom(room.code, socket.id, playerName);
     if (!player) {return cb({ error: 'Failed to create room' });}
     socket.join(room.code);
