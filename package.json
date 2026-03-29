@@ -9,9 +9,15 @@
   "scripts": {
     "server": "npm run dev --workspace=server",
     "client": "npm start --workspace=client",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "lint": "eslint server/ client/",
+    "lint:fix": "eslint server/ client/ --fix"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^9.0.0",
+    "eslint": "^10.1.0",
+    "eslint-plugin-html": "^8.1.4",
+    "globals": "^17.4.0"
   }
 }

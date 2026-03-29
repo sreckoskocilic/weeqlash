@@ -9,7 +9,7 @@ const KEY = Buffer.from('SraziqueQuestions2024', 'utf8');
 function decrypt(base64) {
   const enc = Buffer.from(base64, 'base64');
   const dec = Buffer.alloc(enc.length);
-  for (let i = 0; i < enc.length; i++) dec[i] = enc[i] ^ KEY[i % KEY.length];
+  for (let i = 0; i < enc.length; i++) {dec[i] = enc[i] ^ KEY[i % KEY.length];}
   return dec.toString('utf8');
 }
 
@@ -27,9 +27,9 @@ export function loadQuestions(encPath) {
   // Build O(1) id lookup (include category for client display)
   data._byId = {};
   for (const [cat, qs] of Object.entries(data)) {
-    if (!Array.isArray(qs)) continue;
+    if (!Array.isArray(qs)) {continue;}
     for (const q of qs) {
-      if (q.id) data._byId[q.id] = { ...q, category: cat };
+      if (q.id) {data._byId[q.id] = { ...q, category: cat };}
     }
   }
 

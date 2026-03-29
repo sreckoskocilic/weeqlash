@@ -107,9 +107,10 @@
     #turn-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; background: #444; transition: background 0.2s; }
     #turn-name { font-size: 1rem; font-weight: 700; line-height: 1.2; }
     #turn-phase { font-size: 0.75rem; color: var(--muted); }
-    #peg-counts { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-    .peg-count-item { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 700; }
-    .peg-count-swatch { width: 10px; height: 10px; border-radius: 2px; }
+    #player-stats { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+    .player-stat-item { display: flex; flex-direction: column; align-items: center; font-weight: 700; line-height: 1.2; }
+    .player-stat-ratio { font-size: 0.78rem; }
+    .player-stat-pct { font-size: 0.65rem; opacity: 0.8; }
 
     /* ===== BOARD ===== */
     #board {
@@ -251,6 +252,21 @@
     #modal-continue-wrap { margin-top: 16px; display: none; }
     #modal-continue-btn { width: 100%; padding: 12px; letter-spacing: 1px; }
 
+    /* ===== TURN ANNOUNCE ===== */
+    #turn-announce {
+      position: fixed; inset: 0;
+      background: rgba(10,15,30,0.85);
+      z-index: 400; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+    }
+    #turn-announce.visible { opacity: 1; pointer-events: all; }
+    #turn-announce-name { font-size: 2.8rem; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; }
+    #turn-announce-sub { font-size: 0.8rem; letter-spacing: 5px; color: var(--muted); margin-top: 6px; }
+
+    /* ===== NAV CURSOR ===== */
+    .tile.nav-highlight { outline: 2px solid rgba(255,255,255,0.8); outline-offset: -3px; z-index: 4; }
+
     /* ===== GAME OVER ===== */
     #screen-gameover {
       position: fixed; inset: 0;
@@ -323,7 +339,7 @@
         <div id="turn-name">—</div>
         <div id="turn-phase">—</div>
       </div>
-      <div id="peg-counts"></div>
+      <div id="player-stats"></div>
     </div>
   </div>
   <div id="board-wrap">
@@ -349,6 +365,12 @@
       <button id="modal-continue-btn" onclick="continueAfterQuestion()">CONTINUE</button>
     </div>
   </div>
+</div>
+
+<!-- Turn announce -->
+<div id="turn-announce">
+  <div id="turn-announce-name"></div>
+  <div id="turn-announce-sub">YOUR TURN</div>
 </div>
 
 <!-- Game over -->
@@ -396,7 +418,9 @@
   let gameState = null;
   let timerDuration = 30;
   let tileEls = [];        // [r][c]
-  let movedPegs = new Set();
+  const movedPegs = new Set();
+  const rankUpPegs = new Set();
+  const rankDownPegs = new Set();
 
   // Turn interaction
   let localPhase = null;
@@ -413,6 +437,9 @@
   let spectatingQuestion = false;
   let spectatingMoveType = null;
   let spectatingPlayerIdx = null;
+  let pendingCombatDefenderIdx = null;
+  let spectatingDefenderIdx = null;
+  let navCursor = { row: 0, col: 0 };
 
   // ============================================================
   // SCREENS
@@ -451,7 +478,7 @@
     });
     for (let i = players.length; i < totalSlots; i++) {
       const li = document.createElement('li');
-      li.innerHTML = `<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>`;
+      li.innerHTML = '<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>';
       ul.appendChild(li);
     }
   }
@@ -479,10 +506,11 @@
     if (isHost) { $('btn-start').disabled = false; $('btn-start').textContent = 'Start game'; }
   });
 
-  socket.on('game:start', ({ players, settings, state }) => {
+  socket.on('game:start', ({ settings, state }) => {
     timerDuration = settings.timer ?? 30;
     gameState = state;
-    initBoard(state, players);
+    initBoard(state);
+    if (state.currentPlayerIdx === myPlayerIndex) {initNavCursor(state);}
     renderAll(state);
     showScreen('screen-game');
   });
@@ -498,7 +526,7 @@
       currentQIdx = next;
       showQuestion(next);
       const r = results[next];
-      if (r?.chosenIdx >= 0) modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+      if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
       advanceSpectateResult(results, next);
     }, 1500);
   }
@@ -510,13 +538,26 @@
         currentQIdx = 0;
         showQuestion(0);
         const r = results[0];
-        if (r?.chosenIdx >= 0) modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
         advanceSpectateResult(results, 0);
       } else {
         spectatingQuestion = false;
         $('modal-overlay').classList.remove('visible');
       }
     }
+
+    // Detect rank changes before updating state
+    if (gameState) {
+      for (const [pegId, peg] of Object.entries(state.pegs)) {
+        const old = gameState.pegs[pegId];
+        if (old) {
+          if (peg.rank > old.rank) {rankUpPegs.add(pegId);}
+          else if (peg.rank < old.rank) {rankDownPegs.add(pegId);}
+        }
+      }
+    }
+
+    const prevPlayerIdx = gameState?.currentPlayerIdx;
     gameState = state;
     // If server kept SELECT_TILE for same peg (movesRemaining > 0), restore local state
     if (state.phase === PHASE.SELECT_TILE && state.selectedPegId && state.currentPlayerIdx === myPlayerIndex && validMoves) {
@@ -528,15 +569,22 @@
       localSelectedPegId = null;
       validMovesSet.clear();
     }
+    if (state.currentPlayerIdx === myPlayerIndex && state.phase === PHASE.SELECT_PEG) {initNavCursor(state);}
     renderAll(state);
-    if (gameOver) setTimeout(() => showGameOver(winner, state), 400);
+
+    if (!gameOver && prevPlayerIdx !== undefined && prevPlayerIdx !== state.currentPlayerIdx) {
+      const newPlayer = state.players[state.currentPlayerIdx];
+      if (newPlayer) {showTurnAnnounce(newPlayer, state.currentPlayerIdx === myPlayerIndex);}
+    }
+    if (gameOver) {setTimeout(() => showGameOver(winner, state), 400);}
   });
 
-  socket.on('game:question_start', ({ playerIdx, moveType, questions }) => {
-    if (myPlayerIndex === playerIdx) return;
+  socket.on('game:question_start', ({ playerIdx, moveType, questions, defenderPlayerIdx }) => {
+    if (myPlayerIndex === playerIdx) {return;}
     spectatingQuestion = true;
     spectatingMoveType = moveType;
     spectatingPlayerIdx = playerIdx;
+    spectatingDefenderIdx = defenderPlayerIdx ?? null;
     pendingQuestions = questions;
     currentQIdx = 0;
     showQuestion(0);
@@ -545,7 +593,7 @@
   // ============================================================
   // BOARD INIT
   // ============================================================
-  function initBoard(state, players) {
+  function initBoard(state) {
     const boardEl = $('board');
     boardEl.innerHTML = '';
     boardEl.style.gridTemplateColumns = `repeat(${state.boardSize}, 1fr)`;
@@ -576,16 +624,18 @@
   // ============================================================
   function renderAll(state) {
     for (let r = 0; r < state.boardSize; r++)
-      for (let c = 0; c < state.boardSize; c++)
-        updateTile(r, c, state);
+      {for (let c = 0; c < state.boardSize; c++)
+      {updateTile(r, c, state);}}
     updateTurnUI(state);
     movedPegs.clear();
+    rankUpPegs.clear();
+    rankDownPegs.clear();
   }
 
   function updateTile(r, c, state) {
     const tile = state.board[r][c];
     const el = tileEls[r][c];
-    if (!el) return;
+    if (!el) {return;}
 
     // Base class
     el.className = tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
@@ -600,17 +650,20 @@
 
     if (phase === PHASE.SELECT_PEG && isMyTurn) {
       const myPlayer = state.players[myPlayerIndex];
-      if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) el.classList.add('clickable');
+      if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) {el.classList.add('clickable');}
     } else if (phase === PHASE.SELECT_TILE && isMyTurn) {
       if (isValidMove) { el.classList.add('valid-move', 'clickable'); }
       else if (!isSelectedPeg) { el.classList.add('dimmed'); }
     }
-    if (isSelectedPeg) el.classList.add('selected-peg-tile');
+    if (isSelectedPeg) {el.classList.add('selected-peg-tile');}
+    if (navCursor.row === r && navCursor.col === c && isMyTurn &&
+        (phase === PHASE.SELECT_PEG || phase === PHASE.SELECT_TILE)) {el.classList.add('nav-highlight');}
 
     // Tile content
     if (tile.category === 'flag' && tile.cornerOwner !== null) {
       const owner = state.players[tile.cornerOwner];
       if (owner) {
+        el.style.borderColor = owner.color;
         const flagEl = document.createElement('div');
         flagEl.className = 'flag-icon';
         flagEl.textContent = '⚑';
@@ -632,18 +685,21 @@
     // Peg
     if (tile.pegId) {
       const peg = state.pegs[tile.pegId];
-      if (!peg) return;
+      if (!peg) {return;}
       const player = state.players[peg.playerId];
       const pegEl = document.createElement('div');
       pegEl.className = 'peg';
       pegEl.dataset.pegId = tile.pegId;
-      if (tile.pegId === localSelectedPegId) pegEl.classList.add('selected');
-      if (movedPegs.has(tile.pegId)) pegEl.classList.add('just-moved');
-      if (state.currentPlayerIdx === myPlayerIndex && state.pegsToMove?.includes(tile.pegId)) pegEl.classList.add('can-move');
+      if (tile.pegId === localSelectedPegId) {pegEl.classList.add('selected');}
+      if (movedPegs.has(tile.pegId)) {pegEl.classList.add('just-moved');}
+      if (rankUpPegs.has(tile.pegId)) {pegEl.style.animation = 'rank-up 0.6s ease-out';}
+      else if (rankDownPegs.has(tile.pegId)) {pegEl.style.animation = 'rank-down 0.5s ease-out';}
+      if (state.currentPlayerIdx === myPlayerIndex && state.pegsToMove?.includes(tile.pegId)) {pegEl.classList.add('can-move');}
       pegEl.style.background = player.color;
       const pegNum = (player?.pegIds?.indexOf(tile.pegId) ?? -1) + 1;
       pegEl.textContent = peg.rank > 0 ? '' : String(pegNum || '');
-      pegEl.title = `${player.name} — ${RANK_NAMES[peg.rank]}`;
+      const rankThreshold = gameState.boardSize > 8 ? 5 : 3;
+      pegEl.title = `${player.name} — ${RANK_NAMES[peg.rank]} (${peg.correct}/${rankThreshold})`;
       if (peg.rank > 0) {
         const badge = document.createElement('div');
         badge.className = 'peg-rank-badge';
@@ -658,6 +714,7 @@
     const cp = state.players[state.currentPlayerIdx];
     const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
     $('turn-dot').style.background = cp?.color ?? '#444';
+    $('turn-dot').style.boxShadow = cp?.color ? `0 0 8px 2px ${cp.color}66` : 'none';
     $('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
     $('turn-name').textContent = isMyTurn ? 'Your turn' : `${cp?.name}'s turn`;
     $('turn-name').style.color = cp?.color ?? '';
@@ -670,28 +727,30 @@
     } else if (phase === PHASE.SELECT_TILE) {
       const mr = state.movesRemaining;
       phaseText = isMyTurn ? `Select a tile to move${mr > 1 ? ` (${mr} moves left)` : ''}` : `${cp?.name} is moving…`;
-    } else if (phase === PHASE.GAME_OVER) phaseText = 'Game over';
+    } else if (phase === PHASE.GAME_OVER) {phaseText = 'Game over';}
     $('turn-phase').textContent = phaseText;
 
-    $('peg-counts').innerHTML = state.players.map(p =>
-      `<span class="peg-count-item" style="opacity:${p.pegIds.length ? 1 : 0.4}">
-        <span class="peg-count-swatch" style="background:${p.color}"></span>
-        ${p.pegIds.length}
-      </span>`
-    ).join('');
+    $('player-stats').innerHTML = state.players.map(p => {
+      const { attempts = 0, correct = 0 } = p.stats ?? {};
+      const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) + '%' : '—';
+      return `<span class="player-stat-item" style="color:${p.color};opacity:${p.pegIds.length ? 1 : 0.4}">
+        <span class="player-stat-ratio">${correct}/${attempts}</span>
+        <span class="player-stat-pct">${pct}</span>
+      </span>`;
+    }).join('');
   }
 
   // ============================================================
   // INTERACTION
   // ============================================================
   function onPegClick(pegId) {
-    if (!gameState || myPlayerIndex === null) return;
-    if (gameState.currentPlayerIdx !== myPlayerIndex) return;
+    if (!gameState || myPlayerIndex === null) {return;}
+    if (gameState.currentPlayerIdx !== myPlayerIndex) {return;}
     const phase = localPhase ?? gameState.phase;
-    if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) return;
+    if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) {return;}
     const myPlayer = gameState.players[myPlayerIndex];
-    if (!myPlayer?.pegIds.includes(pegId)) return;
-    if (!gameState.pegsToMove?.includes(pegId)) return;
+    if (!myPlayer?.pegIds.includes(pegId)) {return;}
+    if (!gameState.pegsToMove?.includes(pegId)) {return;}
     // Deselect current peg (click it again to go back to peg selection)
     if (phase === PHASE.SELECT_TILE && pegId === localSelectedPegId) {
       localSelectedPegId = null;
@@ -702,7 +761,7 @@
     }
 
     socket.emit('action:select_peg', { code: myRoom.code, pegId }, ({ ok, error, validMoves }) => {
-      if (error || !ok) return;
+      if (error || !ok) {return;}
       localSelectedPegId = pegId;
       localPhase = PHASE.SELECT_TILE;
       validMovesSet = new Set(validMoves);
@@ -711,15 +770,23 @@
   }
 
   function onTileClick(r, c) {
-    if (!gameState || myPlayerIndex === null) return;
-    if (gameState.currentPlayerIdx !== myPlayerIndex) return;
+    if (!gameState || myPlayerIndex === null) {return;}
+    if (gameState.currentPlayerIdx !== myPlayerIndex) {return;}
     const phase = localPhase ?? gameState.phase;
-    if (phase !== PHASE.SELECT_TILE) return;
-    if (!localSelectedPegId) return;
-    if (!validMovesSet.has(r * COORD_BASE + c)) return;
+    if (phase !== PHASE.SELECT_TILE) {return;}
+    if (!localSelectedPegId) {return;}
+    if (!validMovesSet.has(r * COORD_BASE + c)) {return;}
 
-    socket.emit('action:select_tile', { code: myRoom.code, pegId: localSelectedPegId, r, c }, ({ ok, error, moveType, questions }) => {
-      if (error || !ok) return;
+    const defPegId = gameState.board[r]?.[c]?.pegId;
+    if (defPegId && gameState.pegs[defPegId]?.playerId !== myPlayerIndex) {
+      pendingCombatDefenderIdx = gameState.pegs[defPegId].playerId;
+    } else {
+      pendingCombatDefenderIdx = null;
+    }
+
+    socket.emit('action:select_tile', { code: myRoom.code, pegId: localSelectedPegId, r, c }, ({ ok, error, moveType, questions, defenderPlayerIdx }) => {
+      if (error || !ok) {return;}
+      if (defenderPlayerIdx !== undefined) {pendingCombatDefenderIdx = defenderPlayerIdx;}
       localPhase = 'answering';
       pendingMove = { pegId: localSelectedPegId, targetR: r, targetC: c, moveType };
       pendingQuestions = questions;
@@ -734,7 +801,7 @@
   // ============================================================
   function showQuestion(idx) {
     const q = pendingQuestions[idx];
-    if (!q) return;
+    if (!q) {return;}
 
     const activeIdx = spectatingQuestion ? spectatingPlayerIdx : myPlayerIndex;
     const player    = gameState?.players[activeIdx];
@@ -749,14 +816,18 @@
     const playerLabel  = $('modal-player-label');
     const combatLabel  = $('modal-combat-label');
     if (moveType === 'combat') {
+      const defIdx = spectatingQuestion ? spectatingDefenderIdx : pendingCombatDefenderIdx;
+      const defPlayer = defIdx !== null ? gameState?.players[defIdx] : null;
       combatLabel.style.display = '';
       combatLabel.style.color   = player?.color ?? '';
-      combatLabel.textContent   = `⚔ COMBAT — ${player?.name} (Q${idx+1}/${pendingQuestions.length})`;
+      combatLabel.textContent   = idx === 0
+        ? `⚔ COMBAT — ${player?.name} attacks ${defPlayer?.name ?? '?'} (Q1/${pendingQuestions.length})`
+        : `⚔ COMBAT — ${player?.name} attacks (Q${idx+1}/${pendingQuestions.length})`;
       playerLabel.style.display = 'none';
     } else if (moveType === 'flag') {
       combatLabel.style.display = '';
       combatLabel.style.color   = player?.color ?? '';
-      combatLabel.textContent   = `⚑ FLAG CAPTURE (Q${idx+1}/3)`;
+      combatLabel.textContent   = `⚑ FLAG CAPTURE — ${player?.name} (Q${idx+1}/3)`;
       playerLabel.style.display = 'none';
     } else {
       combatLabel.style.display = 'none';
@@ -774,8 +845,8 @@
       const btn = document.createElement('button');
       btn.className = 'modal-option';
       btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${opt}`;
-      if (spectatingQuestion) btn.disabled = true;
-      else btn.onclick = () => onAnswer(i, idx);
+      if (spectatingQuestion) {btn.disabled = true;}
+      else {btn.onclick = () => onAnswer(i, idx);}
       optContainer.appendChild(btn);
       modalOptionBtns.push(btn);
     });
@@ -799,7 +870,7 @@
     const correct = chosenIdx === q.correctIdx;
     modalOptionBtns.forEach((btn, i) => {
       btn.disabled = true;
-      if (i === chosenIdx) btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
+      if (i === chosenIdx) {btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');}
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
     $('modal-continue-wrap').style.display = 'block';
@@ -830,8 +901,8 @@
       const pct = Math.max(0, remaining / timerDuration * 100);
       fill.style.width = pct + '%';
       text.textContent = Math.ceil(remaining) + 's';
-      if (pct < 25) fill.className = 'timer-bar-fill danger';
-      else if (pct < 50) fill.className = 'timer-bar-fill warning';
+      if (pct < 25) {fill.className = 'timer-bar-fill danger';}
+      else if (pct < 50) {fill.className = 'timer-bar-fill warning';}
       if (remaining <= 0) {
         stopTimer();
         const tq = pendingQuestions[qIdx];
@@ -856,7 +927,7 @@
         targetC: pendingMove.targetC,
         answers: pendingAnswers,
       }
-    }, ({ ok, error }) => { if (error) console.error('submit:', error); });
+    }, ({ error }) => { if (error) {console.error('submit:', error);} });
     localSelectedPegId = null;
     validMovesSet.clear();
     localPhase = null;
@@ -875,19 +946,84 @@
     $('screen-gameover').style.display = 'flex';
   }
 
+  function showTurnAnnounce(player, isMe) {
+    const el = $('turn-announce');
+    if (!el) {return;}
+    $('turn-announce-name').textContent = player.name;
+    $('turn-announce-name').style.color = player.color;
+    $('turn-announce-sub').textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 2000);
+  }
+
+  function initNavCursor(state) {
+    const firstPegId = state.pegsToMove?.[0];
+    if (firstPegId) {
+      const peg = state.pegs[firstPegId];
+      if (peg) {navCursor = { row: peg.row, col: peg.col };}
+    }
+  }
+
   // ============================================================
   // KEYBOARD SHORTCUTS
   // ============================================================
+  const NAV_DIRS = { ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1] };
+
   document.addEventListener('keydown', e => {
-    if (!$('modal-overlay').classList.contains('visible')) return;
-    const key = e.key.toLowerCase();
-    if (key in KEY_MAP) {
-      const idx = KEY_MAP[key];
-      if (modalOptionBtns[idx] && !modalOptionBtns[idx].disabled)
-        modalOptionBtns[idx].click();
+    const modalVisible = $('modal-overlay').classList.contains('visible');
+
+    if (modalVisible) {
+      const key = e.key.toLowerCase();
+      if (key in KEY_MAP) {
+        const idx = KEY_MAP[key];
+        if (modalOptionBtns[idx] && !modalOptionBtns[idx].disabled)
+          {modalOptionBtns[idx].click();}
+      }
+      if (e.key === 'Enter' && $('modal-continue-wrap').style.display !== 'none')
+        {window.continueAfterQuestion();}
+      // Arrow key option cycling (only when answering, not spectating)
+      if (!spectatingQuestion && (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        const enabledBtns = modalOptionBtns.filter(b => !b.disabled);
+        if (enabledBtns.length === 0) {return;}
+        const focused = document.activeElement;
+        const cur = enabledBtns.indexOf(focused);
+        const delta = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+        const next = (cur + delta + enabledBtns.length) % enabledBtns.length;
+        enabledBtns[next].focus();
+      }
+      return;
     }
-    if (e.key === 'Enter' && $('modal-continue-wrap').style.display !== 'none')
-      window.continueAfterQuestion();
+
+    // Board keyboard navigation (when it's my turn, no modal)
+    if (!gameState || myPlayerIndex === null) {return;}
+    if (gameState.currentPlayerIdx !== myPlayerIndex) {return;}
+    const phase = localPhase ?? gameState.phase;
+    if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) {return;}
+
+    if (e.key in NAV_DIRS) {
+      e.preventDefault();
+      const [dr, dc] = NAV_DIRS[e.key];
+      const newRow = Math.max(0, Math.min(gameState.boardSize - 1, navCursor.row + dr));
+      const newCol = Math.max(0, Math.min(gameState.boardSize - 1, navCursor.col + dc));
+      navCursor = { row: newRow, col: newCol };
+      renderAll(gameState);
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const { row, col } = navCursor;
+      const tile = gameState.board[row]?.[col];
+      if (!tile) {return;}
+      if (phase === PHASE.SELECT_PEG) {
+        if (tile.pegId) {onPegClick(tile.pegId);}
+      } else if (phase === PHASE.SELECT_TILE) {
+        const coord = row * COORD_BASE + col;
+        if (validMovesSet.has(coord)) {onTileClick(row, col);}
+        else if (tile.pegId) {onPegClick(tile.pegId);}
+      }
+    }
   });
 
   // ============================================================
@@ -901,14 +1037,14 @@
 
   $('btn-create').addEventListener('click', () => {
     const playerName = getPlayerName();
-    if (!playerName) return;
+    if (!playerName) {return;}
     socket.emit('room:create', {
       playerName,
       playerCount: parseInt($('player-count').value),
       boardSize:   parseInt($('board-size').value),
       timer:       parseInt($('timer').value),
-    }, ({ ok, error, code, players }) => {
-      if (error) return showError(error);
+    }, ({ error, code, players }) => {
+      if (error) {return showError(error);}
       myPlayerIndex = 0;
       myRoom = { code, settings: { playerCount: parseInt($('player-count').value), timer: parseInt($('timer').value) } };
       isHost = true;
@@ -921,11 +1057,11 @@
 
   $('btn-join').addEventListener('click', () => {
     const playerName = getPlayerName();
-    if (!playerName) return;
+    if (!playerName) {return;}
     const code = $('join-code').value.trim().toUpperCase();
-    if (code.length !== 5) return showError('Room code must be 5 characters.');
-    socket.emit('room:join', { code, playerName }, ({ ok, error, players, settings }) => {
-      if (error) return showError(error);
+    if (code.length !== 5) {return showError('Room code must be 5 characters.');}
+    socket.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
+      if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
       myPlayerIndex = me?.index ?? players.length - 1;
       myRoom = { code, settings };
@@ -938,9 +1074,9 @@
   });
 
   $('btn-start').addEventListener('click', () => {
-    if (!isHost) return;
-    socket.emit('room:start', { code: myRoom.code }, ({ ok, error }) => {
-      if (error) showError(error);
+    if (!isHost) {return;}
+    socket.emit('room:start', { code: myRoom.code }, ({ error }) => {
+      if (error) {showError(error);}
     });
   });
 

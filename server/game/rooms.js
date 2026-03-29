@@ -7,7 +7,7 @@ const socketToRoom = new Map(); // socketId -> roomCode
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 5; i++) {code += chars[Math.floor(Math.random() * chars.length)];}
   return code;
 }
 
@@ -28,10 +28,10 @@ export function createRoom({ playerCount = 2, boardSize = 7, timer = 30 } = {}) 
 
 export function joinRoom(code, socketId, playerName) {
   const room = rooms.get(code?.toUpperCase());
-  if (!room) return { error: 'Room not found' };
-  if (room.started) return { error: 'Game already started' };
-  if (room.players.length >= room.settings.playerCount) return { error: 'Room is full' };
-  if (room.players.find(p => p.name === playerName)) return { error: 'Name already taken' };
+  if (!room) {return { error: 'Room not found' };}
+  if (room.started) {return { error: 'Game already started' };}
+  if (room.players.length >= room.settings.playerCount) {return { error: 'Room is full' };}
+  if (room.players.find(p => p.name === playerName)) {return { error: 'Name already taken' };}
 
   const COLORS = ['#e94560', '#0f3460', '#533483', '#05c46b'];
   const player = {
@@ -58,9 +58,9 @@ export function getRoomBySocket(socketId) {
 
 export function removePlayerFromRoom(socketId) {
   const code = socketToRoom.get(socketId);
-  if (!code) return {};
+  if (!code) {return {};}
   const room = rooms.get(code);
-  if (!room) return {};
+  if (!room) {return {};}
 
   const player = room.players.find(p => p.id === socketId);
   room.players = room.players.filter(p => p.id !== socketId);
@@ -69,7 +69,7 @@ export function removePlayerFromRoom(socketId) {
   // Clean up empty rooms after a delay to survive brief reconnects
   if (room.players.length === 0) {
     setTimeout(() => {
-      if (rooms.get(code)?.players.length === 0) rooms.delete(code);
+      if (rooms.get(code)?.players.length === 0) {rooms.delete(code);}
     }, 15_000);
   }
 
