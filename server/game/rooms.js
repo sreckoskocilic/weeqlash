@@ -7,21 +7,30 @@ const socketToRoom = new Map(); // socketId -> roomCode
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let i = 0; i < 5; i++) {code += chars[Math.floor(Math.random() * chars.length)];}
+  for (let i = 0; i < 5; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
   return code;
 }
 
-export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabledCats, maxRankStart = false } = {}) {
-  playerCount = 2; // locked to 2-player mode
+export function createRoom({
+  boardSize = 7,
+  timer = 30,
+  enabledCats,
+  maxRankStart = false,
+} = {}) {
+  const playerCount = 2; // locked to 2-player mode
   let code;
-  do { code = generateCode(); } while (rooms.has(code));
+  do {
+    code = generateCode();
+  } while (rooms.has(code));
 
   const room = {
     code,
     settings: { playerCount, boardSize, timer, enabledCats, maxRankStart },
     players: [],
     started: false,
-    state: null
+    state: null,
   };
   rooms.set(code, room);
   return room;
@@ -29,19 +38,27 @@ export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabled
 
 export function joinRoom(code, socketId, playerName) {
   const room = rooms.get(code?.toUpperCase());
-  if (!room) {return { error: 'Room not found' };}
-  if (room.started) {return { error: 'Game already started' };}
-  if (room.players.length >= room.settings.playerCount) {return { error: 'Room is full' };}
-  if (room.players.find(p => p.name === playerName)) {return { error: 'Name already taken' };}
+  if (!room) {
+    return { error: 'Room not found' };
+  }
+  if (room.started) {
+    return { error: 'Game already started' };
+  }
+  if (room.players.length >= room.settings.playerCount) {
+    return { error: 'Room is full' };
+  }
+  if (room.players.find((p) => p.name === playerName)) {
+    return { error: 'Name already taken' };
+  }
 
   const COLORS = ['#e94560', '#0f3460', '#533483', '#05c46b'];
   const player = {
-    id:     socketId,
-    name:   playerName,
-    color:  COLORS[room.players.length],
-    index:  room.players.length,
+    id: socketId,
+    name: playerName,
+    color: COLORS[room.players.length],
+    index: room.players.length,
     isHost: room.players.length === 0,
-    token:  randomUUID(),   // reconnect token, sent only to this player
+    token: randomUUID(), // reconnect token, sent only to this player
   };
   room.players.push(player);
   socketToRoom.set(socketId, code.toUpperCase());
@@ -52,25 +69,26 @@ export function getRoom(code) {
   return rooms.get(code?.toUpperCase()) ?? null;
 }
 
-export function getRoomBySocket(socketId) {
-  const code = socketToRoom.get(socketId);
-  return code ? rooms.get(code) : null;
-}
-
 export function removePlayerFromRoom(socketId) {
   const code = socketToRoom.get(socketId);
-  if (!code) {return {};}
+  if (!code) {
+    return {};
+  }
   const room = rooms.get(code);
-  if (!room) {return {};}
+  if (!room) {
+    return {};
+  }
 
-  const player = room.players.find(p => p.id === socketId);
-  room.players = room.players.filter(p => p.id !== socketId);
+  const player = room.players.find((p) => p.id === socketId);
+  room.players = room.players.filter((p) => p.id !== socketId);
   socketToRoom.delete(socketId);
 
   // Clean up empty rooms after a delay to survive brief reconnects
   if (room.players.length === 0) {
     setTimeout(() => {
-      if (rooms.get(code)?.players.length === 0) {rooms.delete(code);}
+      if (rooms.get(code)?.players.length === 0) {
+        rooms.delete(code);
+      }
     }, 15_000);
   }
 

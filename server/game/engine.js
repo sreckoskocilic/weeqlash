@@ -1,23 +1,34 @@
 // Pure game logic — no DOM, no globals, all functions take state as first arg.
 // Extracted and adapted from srazique/index.clean.html
 
+/**
+ * PHASE enum - Server-side game phases
+ *
+ * Note: This is a simplified version compared to the original game (srazique/index.html).
+ * Original has: SELECT_PEG, SELECT_TILE, QUESTION, COMBAT_Q1, COMBAT_Q2, FLAG_Q, GAME_OVER
+ *
+ * We only need SELECT_PEG, SELECT_TILE, GAME_OVER on the server because:
+ * - QUESTION, COMBAT_Q1, COMBAT_Q2, FLAG_Q are client-side UI phases for displaying modals
+ * - Server just handles the final answer validation via applyTurn()
+ * - This keeps server logic cleaner and delegates UI state to client
+ */
 export const PHASE = {
-  SELECT_PEG: "selectPeg",
-  SELECT_TILE: "selectTile",
-  GAME_OVER: "gameOver",
+  SELECT_PEG: 'selectPeg',
+  SELECT_TILE: 'selectTile',
+  GAME_OVER: 'gameOver',
 };
 
 export const CATS = [
-  "art",
-  "geography",
-  "history",
-  "literature",
-  "science",
-  "business",
-  "sport",
-  "religion",
-  "entertainment",
-  "general",
+  'art',
+  'geography',
+  'history',
+  'literature',
+  'science',
+  'business',
+  'sport',
+  'religion',
+  'entertainment',
+  'general',
 ];
 
 function getRankUpThreshold(boardSize) {
@@ -68,7 +79,7 @@ export function getValidMoves(state, pegId) {
   return adjTiles(state, peg.row, peg.col).filter(({ r, c }) => {
     const tile = state.board[r][c];
     // Can't move back onto own flag corner
-    if (tile.category === "flag" && tile.cornerOwner === peg.playerId) {
+    if (tile.category === 'flag' && tile.cornerOwner === peg.playerId) {
       return false;
     }
     const occ = tile.pegId;
@@ -89,7 +100,7 @@ function generateLayoutMap(boardSize) {
   for (let r = 0; r < boardSize; r++) {
     for (let c = 0; c < boardSize; c++) {
       if (isCorner(r, c) && useFlagCorners) {
-        map[r][c] = "F";
+        map[r][c] = 'F';
       } else {
         nonCorner.push([r, c]);
       }
@@ -109,7 +120,7 @@ function getCornerOwnerMap(numPlayers, boardSize) {
     return {};
   }
   const S = boardSize - 1;
-  const map = { "0,0": 0 };
+  const map = { '0,0': 0 };
   if (numPlayers === 2) {
     map[`${S},${S}`] = 1;
   } else if (numPlayers === 3) {
@@ -210,15 +221,57 @@ function rankDown(state, pegId) {
   return true;
 }
 
-function pushPegAway(state, pegId) {
+function pushPegAway(state, pegId, pushDir = null) {
   const peg = state.pegs[pegId];
-  const free = adjTiles(state, peg.row, peg.col).filter(
-    (p) => state.board[p.r][p.c].pegId === null,
-  );
-  if (free.length === 0) {
+  if (!peg) {
+    return;
+  }
+
+  if (!pushDir || (pushDir[0] === 0 && pushDir[1] === 0)) {
     eliminatePeg(state, pegId);
-  } else {
-    movePeg(state, pegId, free[0].r, free[0].c);
+    return;
+  }
+
+  const [pushDr, pushDc] = pushDir;
+  const { row: pegR, col: pegC } = peg;
+
+  // Chain push: push all pegs in direction until empty space or off board
+  const pushedPegs = [pegId];
+  let curR = pegR + pushDr;
+  let curC = pegC + pushDc;
+
+  while (
+    curR >= 0 &&
+    curR < state.boardSize &&
+    curC >= 0 &&
+    curC < state.boardSize
+  ) {
+    const tile = state.board[curR][curC];
+    if (tile.pegId) {
+      pushedPegs.push(tile.pegId);
+      curR += pushDr;
+      curC += pushDc;
+    } else {
+      break;
+    }
+  }
+
+  // If final position is off board, eliminate the last peg
+  if (
+    curR < 0 ||
+    curR >= state.boardSize ||
+    curC < 0 ||
+    curC >= state.boardSize
+  ) {
+    const lastPegId = pushedPegs.pop();
+    eliminatePeg(state, lastPegId);
+  }
+
+  // Move all pushed pegs one step in direction
+  for (let i = pushedPegs.length - 1; i >= 0; i--) {
+    const pid = pushedPegs[i];
+    const p = state.pegs[pid];
+    movePeg(state, pid, p.row + pushDr, p.col + pushDc);
   }
 }
 
@@ -303,16 +356,16 @@ function pickQuestionIds(state, cat, count, questionsDb) {
 // Determine move type from board state
 function getMoveType(state, pegId, r, c) {
   const tile = state.board[r][c];
-  if (tile.category === "flag") {
-    return "flag";
+  if (tile.category === 'flag') {
+    return 'flag';
   }
   if (
     tile.pegId &&
     state.pegs[tile.pegId].playerId !== state.pegs[pegId].playerId
   ) {
-    return "combat";
+    return 'combat';
   }
-  return "normal";
+  return 'normal';
 }
 
 // ---------------------------------------------------------------------------
@@ -325,12 +378,12 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const tile = state.board[targetR][targetC];
   const moveType = getMoveType(state, pegId, targetR, targetC);
   const tileCat =
-    tile.category === "flag" ? randomCat(state.enabledCats) : tile.category;
+    tile.category === 'flag' ? randomCat(state.enabledCats) : tile.category;
 
   let questionIds;
-  if (moveType === "flag") {
+  if (moveType === 'flag') {
     questionIds = pickQuestionIds(state, tileCat, 3, questionsDb);
-  } else if (moveType === "combat") {
+  } else if (moveType === 'combat') {
     questionIds = pickQuestionIds(
       state,
       randomCat(state.enabledCats),
@@ -351,22 +404,22 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
 
 export function selectPeg(state, playerId, pegId) {
   if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
-    return { error: "Wrong phase" };
+    return { error: 'Wrong phase' };
   }
   const player = state.players[state.currentPlayerIdx];
   if (player.id !== playerId) {
-    return { error: "Not your turn" };
+    return { error: 'Not your turn' };
   }
   if (!player.pegIds.includes(pegId)) {
-    return { error: "Not your peg" };
+    return { error: 'Not your peg' };
   }
   if (!state.pegsToMove.has(pegId)) {
-    return { error: "Peg already moved this turn" };
+    return { error: 'Peg already moved this turn' };
   }
 
   const moves = getValidMoves(state, pegId);
   if (moves.length === 0) {
-    return { error: "No valid moves" };
+    return { error: 'No valid moves' };
   }
 
   const peg = state.pegs[pegId];
@@ -390,21 +443,21 @@ export function selectPeg(state, playerId, pegId) {
 export function applyTurn(state, playerId, submission, questionsDb) {
   const pending = state.pendingTurn;
   if (!pending) {
-    return { error: "No pending turn" };
+    return { error: 'No pending turn' };
   }
 
   const player = state.players[state.currentPlayerIdx];
   if (player.id !== playerId) {
-    return { error: "Not your turn" };
+    return { error: 'Not your turn' };
   }
 
   const { pegId, targetR, targetC, moveType, questionIds } = pending;
 
   if (submission.pegId !== pegId) {
-    return { error: "Peg mismatch" };
+    return { error: 'Peg mismatch' };
   }
   if (submission.targetR !== targetR || submission.targetC !== targetC) {
-    return { error: "Target mismatch" };
+    return { error: 'Target mismatch' };
   }
 
   state.pendingTurn = null;
@@ -419,7 +472,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       return false;
     }
     const correct = q.a === ans.answerIdx;
-    events.push({ type: "answer", questionId: qId, correct });
+    events.push({ type: 'answer', questionId: qId, correct });
     if (!correct) {
       state.wrongQ.add(qId);
     }
@@ -433,16 +486,16 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     return correct;
   };
 
-  if (moveType === "normal") {
+  if (moveType === 'normal') {
     if (checkAnswer(0)) {
       const peg = state.pegs[pegId];
       movePeg(state, pegId, targetR, targetC);
       peg.correct++;
       if (peg.correct >= getRankUpThreshold(state.boardSize)) {
         rankUp(state, pegId);
-        events.push({ type: "rank_up", pegId });
+        events.push({ type: 'rank_up', pegId });
       }
-      events.push({ type: "peg_moved", pegId, r: targetR, c: targetC });
+      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
       state.movesRemaining--;
       // If moves remain and peg can still move, keep SELECT_TILE for same peg
       if (state.movesRemaining > 0 && getValidMoves(state, pegId).length > 0) {
@@ -452,36 +505,41 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     }
     // Wrong answer or no moves remaining: finish this peg
     finishPegMove(state);
-  } else if (moveType === "combat") {
+  } else if (moveType === 'combat') {
+    const atkPeg = state.pegs[pegId];
+    const pushDir = atkPeg
+      ? [targetR - atkPeg.row, targetC - atkPeg.col]
+      : null;
+
     const q1Correct = checkAnswer(0);
     if (!q1Correct) {
       // Wrong answer to Q1 ends battle immediately
     } else {
       const q2Correct = checkAnswer(1);
-      const defPegId = state.board[targetR][targetC].pegId;
-      const defPeg = state.pegs[defPegId];
+      const defPegId = state.board[targetR]?.[targetC]?.pegId;
+      const defPeg = defPegId ? state.pegs[defPegId] : null;
       if (q2Correct) {
         rankUp(state, pegId);
-        events.push({ type: "rank_up", pegId });
+        events.push({ type: 'rank_up', pegId });
       }
       if (q2Correct && defPeg) {
         // Attacker wins only if both Q1 and Q2 are correct
         const wasElim = rankDown(state, defPegId);
         if (wasElim) {
           eliminatePeg(state, defPegId);
-          events.push({ type: "peg_eliminated", pegId: defPegId });
+          events.push({ type: 'peg_eliminated', pegId: defPegId });
         } else {
-          pushPegAway(state, defPegId);
+          pushPegAway(state, defPegId, pushDir);
           events.push({
-            type: "peg_pushed",
+            type: 'peg_pushed',
             pegId: defPegId,
             r: state.pegs[defPegId]?.row,
             c: state.pegs[defPegId]?.col,
           });
-          events.push({ type: "rank_down", pegId: defPegId });
+          events.push({ type: 'rank_down', pegId: defPegId });
         }
         movePeg(state, pegId, targetR, targetC);
-        events.push({ type: "peg_moved", pegId, r: targetR, c: targetC });
+        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
       }
     }
     // Combat always ends turn (win or lose)
@@ -493,12 +551,12 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     }
     advanceTurn(state);
     return { ok: true, events, gameOver: false };
-  } else if (moveType === "flag") {
+  } else if (moveType === 'flag') {
     const allCorrect = checkAnswer(0) && checkAnswer(1) && checkAnswer(2);
     if (allCorrect) {
       movePeg(state, pegId, targetR, targetC);
-      events.push({ type: "peg_moved", pegId, r: targetR, c: targetC });
-      events.push({ type: "flag_captured", pegId, playerId });
+      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      events.push({ type: 'flag_captured', pegId, playerId });
       state.phase = PHASE.GAME_OVER;
       state.winner = playerId;
       return { ok: true, events, gameOver: true, winner: playerId };
@@ -506,9 +564,9 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       const wasElim = rankDown(state, pegId);
       if (wasElim) {
         eliminatePeg(state, pegId);
-        events.push({ type: "peg_eliminated", pegId });
+        events.push({ type: 'peg_eliminated', pegId });
       } else {
-        events.push({ type: "rank_down", pegId });
+        events.push({ type: 'rank_down', pegId });
       }
       finishPegMove(state);
     }
@@ -548,7 +606,7 @@ function advanceTurn(state) {
 // Public: create initial game state
 // ---------------------------------------------------------------------------
 
-export function createGame(players, settings) {
+export function createGame(players, settings = {}) {
   const { boardSize = 7, enabledCats, maxRankStart = false } = settings;
   const activeCats = enabledCats?.length ? enabledCats : CATS;
   const numPlayers = players.length;
@@ -559,9 +617,9 @@ export function createGame(players, settings) {
     Array.from({ length: boardSize }, (_, c) => {
       const val = layoutMap[r][c];
       return {
-        category: val === "F" ? "flag" : CATS[val],
+        category: val === 'F' ? 'flag' : CATS[val],
         pegId: null,
-        cornerOwner: val === "F" ? cornerMap[`${r},${c}`] : null,
+        cornerOwner: val === 'F' ? cornerMap[`${r},${c}`] : null,
       };
     }),
   );
