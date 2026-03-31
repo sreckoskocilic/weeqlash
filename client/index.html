@@ -640,18 +640,17 @@
   }
 
   socket.on('state:update', ({ state, gameOver, winner, validMoves, results }) => {
-    if (spectatingQuestion) {
+    if (results?.length && pendingQuestions.length) {
       stopTimer();
-      if (results?.length && pendingQuestions.length) {
-        currentQIdx = 0;
-        showQuestion(0);
-        const r = results[0];
-        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
-        advanceSpectateResult(results, 0);
-      } else {
-        spectatingQuestion = false;
-        $('modal-overlay').classList.remove('visible');
-      }
+      currentQIdx = 0;
+      showQuestion(0);
+      const r = results[0];
+      if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+      advanceSpectateResult(results, 0);
+    } else if (spectatingQuestion) {
+      stopTimer();
+      spectatingQuestion = false;
+      $('modal-overlay').classList.remove('visible');
     }
 
     // Detect rank changes before updating state
