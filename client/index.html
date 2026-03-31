@@ -727,7 +727,22 @@
     boardEl.addEventListener('click', e => {
       // Check for peg first
       const pegEl = e.target.closest('.peg');
-      if (pegEl) { onPegClick(pegEl.dataset.pegId); return; }
+      if (pegEl) {
+        const pegId = pegEl.dataset.pegId;
+        const phase = localPhase ?? gameState?.phase;
+        const coord = (gameState?.board?.[+pegEl.parentElement.dataset.r]?.[+pegEl.parentElement.dataset.c]?.pegId === pegId)
+          ? (+pegEl.parentElement.dataset.r * COORD_BASE + +pegEl.parentElement.dataset.c)
+          : null;
+
+        // In SELECT_TILE phase, if clicking on enemy peg that's a valid move, treat as tile click
+        if (phase === PHASE.SELECT_TILE && coord !== null && validMovesSet.has(coord)) {
+          onTileClick(+pegEl.parentElement.dataset.r, +pegEl.parentElement.dataset.c);
+          return;
+        }
+
+        onPegClick(pegId);
+        return;
+      }
 
       // Find tile from target or ancestors
       let target = e.target;
