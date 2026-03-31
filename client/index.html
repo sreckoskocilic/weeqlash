@@ -725,11 +725,22 @@
 
     // Board-level click delegation
     boardEl.addEventListener('click', e => {
+      // Check for peg first
       const pegEl = e.target.closest('.peg');
       if (pegEl) { onPegClick(pegEl.dataset.pegId); return; }
-      const tileEl = e.target.closest('[data-r][data-c]');
-      if (tileEl) { onTileClick(+tileEl.dataset.r, +tileEl.dataset.c); }
-    });
+
+      // Find tile from target or ancestors
+      let target = e.target;
+      while (target && target !== boardEl) {
+        const r = target.dataset?.r;
+        const c = target.dataset?.c;
+        if (r !== undefined && c !== undefined) {
+          onTileClick(+r, +c);
+          return;
+        }
+        target = target.parentElement;
+      }
+    }, true);
   }
 
   // ============================================================
