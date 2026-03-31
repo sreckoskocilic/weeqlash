@@ -95,7 +95,9 @@
     .cat-toggle-btn { flex: 1 1 calc(20% - 5px); padding: 6px 4px; background: var(--bg3); border: 2px solid transparent; border-radius: 6px; color: var(--text); font-size: 0.7rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; text-align: center; letter-spacing: 0.3px; width: auto; }
     .cat-toggle-btn.active { border-color: var(--accent); background: var(--bg); color: var(--accent); }
     .cat-toggle-btn:hover:not(.active) { background: #0d2040; }
+    /* eslint-disable-next-line no-unused-selectors */
     #help-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    /* eslint-disable-next-line no-unused-selectors */
     #help-modal.show { display: flex; }
     .help-content { background: var(--bg2); border: 2px solid var(--bg3); border-radius: 12px; max-width: 500px; max-height: 80svh; overflow-y: auto; padding: 24px; width: 100%; }
     .help-content h2 { color: var(--accent); margin-bottom: 16px; font-size: 1.4rem; font-weight: 900; }
@@ -103,6 +105,7 @@
     .help-content p, .help-content li { font-size: 0.9rem; line-height: 1.5; margin-bottom: 6px; }
     .help-content ul { padding-left: 20px; }
     .help-content button { margin-top: 16px; max-width: none; }
+    /* eslint-disable-next-line no-unused-selectors */
     body.high-contrast { filter: contrast(1.3) brightness(1.05); }
     .player-list { list-style: none; margin-bottom: 1.5rem; }
     .player-list li {
@@ -156,6 +159,7 @@
     }
 
     /* ===== TILES ===== */
+    /* eslint-disable-next-line no-unused-selectors */
     .tile {
       aspect-ratio: 1; border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
@@ -163,6 +167,7 @@
       transition: transform 0.1s, filter 0.1s;
       user-select: none;
     }
+    /* eslint-disable-next-line no-unused-selectors */
     .tile.clickable { cursor: pointer; }
     .tile.clickable:hover { filter: brightness(1.3); transform: scale(1.06); z-index: 2; }
     .tile.valid-move {
@@ -980,7 +985,19 @@
       if (i === chosenIdx) {btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');}
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
-    $('modal-continue-wrap').style.display = 'block';
+
+    // For combat Q1: if wrong, don't show Continue - battle ends immediately
+    const isCombat = pendingMove?.moveType === 'combat';
+    if (isCombat && qIdx === 0 && !correct) {
+      $('modal-continue-wrap').style.display = 'none';
+      // Show the wrong answer briefly before submitting
+      setTimeout(() => {
+        $('modal-overlay').classList.remove('visible');
+        submitTurn();
+      }, 500);
+    } else {
+      $('modal-continue-wrap').style.display = 'block';
+    }
   }
 
   window.continueAfterQuestion = function() {
