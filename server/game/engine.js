@@ -151,13 +151,6 @@ function getStartPositions(numPlayers, boardSize) {
     }
     return corners;
   }
-  // 5x5: place pegs adjacent for immediate combat testing
-  if (boardSize === 5 && numPlayers === 2) {
-    return [
-      [{ r: 2, c: 1 }], // P1 in middle-left
-      [{ r: 2, c: 3 }], // P2 in middle-right (adjacent)
-    ];
-  }
   const all = [
     [
       { r: 1, c: 0 },
