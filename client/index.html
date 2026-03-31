@@ -718,19 +718,17 @@
       for (let c = 0; c < state.boardSize; c++) {
         const el = document.createElement('div');
         el.dataset.r = r; el.dataset.c = c;
-        el.addEventListener('click', (e) => {
-          if (e.target.closest('.peg')) { return; }  // Let peg click handler deal with it
-          onTileClick(r, c);
-        });
         boardEl.appendChild(el);
         tileEls[r][c] = el;
       }
     }
 
-    // Board-level click delegation for peg clicks
+    // Board-level click delegation
     boardEl.addEventListener('click', e => {
       const pegEl = e.target.closest('.peg');
-      if (pegEl) { onPegClick(pegEl.dataset.pegId); }
+      if (pegEl) { onPegClick(pegEl.dataset.pegId); return; }
+      const tileEl = e.target.closest('[data-r][data-c]');
+      if (tileEl) { onTileClick(+tileEl.dataset.r, +tileEl.dataset.c); }
     });
   }
 
