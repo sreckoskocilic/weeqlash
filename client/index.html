@@ -718,7 +718,10 @@
       for (let c = 0; c < state.boardSize; c++) {
         const el = document.createElement('div');
         el.dataset.r = r; el.dataset.c = c;
-        el.addEventListener('click', () => onTileClick(r, c));
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.peg')) { return; }  // Let peg click handler deal with it
+          onTileClick(r, c);
+        });
         boardEl.appendChild(el);
         tileEls[r][c] = el;
       }
@@ -727,8 +730,8 @@
     // Board-level click delegation for peg clicks
     boardEl.addEventListener('click', e => {
       const pegEl = e.target.closest('.peg');
-      if (pegEl) { e.stopPropagation(); onPegClick(pegEl.dataset.pegId); }
-    }, true);
+      if (pegEl) { onPegClick(pegEl.dataset.pegId); }
+    });
   }
 
   // ============================================================
@@ -887,7 +890,9 @@
     const phase = localPhase ?? gameState.phase;
     if (phase !== PHASE.SELECT_TILE) {return;}
     if (!localSelectedPegId) {return;}
-    if (!validMovesSet.has(r * COORD_BASE + c)) {return;}
+    const coord = r * COORD_BASE + c;
+    if (!validMovesSet.has(coord)) {return;}
+    // Combat is allowed - proceed
 
     const defPegId = gameState.board[r]?.[c]?.pegId;
     if (defPegId && gameState.pegs[defPegId]?.playerId !== myPlayerIndex) {
