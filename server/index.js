@@ -275,14 +275,6 @@ io.on('connection', (socket) => {
     }
     answerTimestamps.set(socket.id, now);
 
-    // Validate answer indices are within bounds (0-3)
-    const answers = submission.answers || [];
-    for (const ans of answers) {
-      if (ans.answerIdx < 0 || ans.answerIdx > 3) {
-        return cb({ error: 'Invalid answer index' });
-      }
-    }
-
     const pending = room.state.pendingTurn;
     const numSubmitted = (submission.answers || []).length;
 
