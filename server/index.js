@@ -334,7 +334,7 @@ io.on('connection', (socket) => {
         }
         // Include this result only if: no wrong answer yet OR it's the first result (Q1)
         if (!hasWrongAnswer || i === 0) {
-          results.push({ chosenIdx: answers[i].answerIdx, correct });
+          results.push({ chosenIdx: answers[i].answerIdx, correct, correctIdx: q.a });
         }
         // For combat: if Q1 wrong, stop processing further answers
         if (isCombat && hasWrongAnswer) {

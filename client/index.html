@@ -687,7 +687,12 @@
         currentQIdx = next;
         showQuestion(next);
         const r = results[next];
-        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+        if (r?.chosenIdx >= 0) {
+          modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+          if (!r.correct && r.correctIdx !== undefined) {
+            modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
+          }
+        }
         advanceSpectateResult(results, next, moreQuestionsInProgress);
         return;
       }
@@ -708,14 +713,24 @@
       if (spectatingQuestion) {
         // Spectator: highlight the answer on whichever question is currently shown
         const r = results[currentQIdx] ?? results[results.length - 1];
-        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+        if (r?.chosenIdx >= 0) {
+          modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+          if (!r.correct && r.correctIdx !== undefined) {
+            modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
+          }
+        }
         advanceSpectateResult(results, currentQIdx, moreQuestionsInProgress);
       } else {
         // Attacker: reset to Q1 and walk through results
         currentQIdx = 0;
         showQuestion(0);
         const r = results[0];
-        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+        if (r?.chosenIdx >= 0) {
+          modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+          if (!r.correct && r.correctIdx !== undefined) {
+            modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
+          }
+        }
         advanceSpectateResult(results, 0, moreQuestionsInProgress);
       }
     } else if (spectatingQuestion) {
