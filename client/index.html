@@ -690,6 +690,8 @@
       }
       // No more questions - close modal
       spectatingQuestion = false;
+      pendingQuestions = [];
+      pendingAnswers = [];
       $('modal-overlay').classList.remove('visible');
     }, TIMING.RESULT_DISPLAY_MS);
   }
@@ -724,13 +726,12 @@
     // If more questions in progress and we have next question from server, feed it to attacker only
     // Spectators get Q2 shown via advanceSpectateResult after the result delay
     if (moreQuestionsInProgress && nextQuestion && !spectatingQuestion) {
-      // Set up pendingQuestions with next question
-      pendingQuestions = [nextQuestion];
-      pendingAnswers = [];
-      currentQIdx = 0;
+      // Append next question to pendingQuestions
+      pendingQuestions.push(nextQuestion);
+      currentQIdx = pendingQuestions.length - 1;
       // Show the next question after results are done showing
       setTimeout(() => {
-        showQuestion(0);
+        showQuestion(currentQIdx);
       }, TIMING.NEXT_QUESTION_DELAY_MS);
     }
 
@@ -749,11 +750,14 @@
     // This prevents stale questions from previous turn showing up
     const prevPlayerIdx = gameState?.currentPlayerIdx;
     if (prevPlayerIdx !== state.currentPlayerIdx) {
-      pendingQuestions = [];
-      pendingAnswers = [];
-      spectatingQuestion = false;
-      stopTimer();
-      $('modal-overlay').classList.remove('visible');
+      // If we are showing results, let advanceSpectateResult handle closing the modal
+      if (!shouldShowResults) {
+        pendingQuestions = [];
+        pendingAnswers = [];
+        spectatingQuestion = false;
+        stopTimer();
+        $('modal-overlay').classList.remove('visible');
+      }
     }
 
     gameState = state;
@@ -1067,6 +1071,7 @@
 
     const optContainer = $('modal-options');
     optContainer.innerHTML = '';
+    delete optContainer.dataset.submitting;
     modalOptionBtns = [];
     q.opts.forEach((opt, i) => {
       const btn = document.createElement('button');

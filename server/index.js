@@ -343,6 +343,7 @@ io.on('connection', (socket) => {
           q: q.q,
           opts: q.opts,
           category: q.category,
+          correctIdx: q.a,
         };
       }
     }
