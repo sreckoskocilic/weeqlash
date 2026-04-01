@@ -1134,11 +1134,13 @@
     // Highlight correct answer for everyone
     modalOptionBtns.forEach((btn, i) => {
       btn.disabled = true;
-      if (i === q.correctIdx) {
+      // Only show correct answer to spectators, not the active player
+      if (i === q.correctIdx && spectatingQuestion) {
         btn.classList.add('answer-correct');
       }
-      if (i === chosenIdx && !correct) {
-        btn.classList.add('answer-wrong');
+      // Always show the active player's selection outcome
+      if (i === chosenIdx) {
+        btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
       }
     });
 
