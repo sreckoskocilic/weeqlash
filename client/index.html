@@ -526,6 +526,16 @@
   };
   const CATS = Object.keys(CAT_NAMES);
 
+  // Timing constants
+  const TIMING = {
+    RESULT_DISPLAY_MS: 1500,
+    NEXT_QUESTION_DELAY_MS: 1600,
+    WRONG_ANSWER_DELAY_MS: 500,
+    TICK_INTERVAL_MS: 100,
+    TIMER_WARNING_PCT: 50,
+    TIMER_DANGER_PCT: 25,
+  };
+
   // ============================================================
   // STATE
   // ============================================================
@@ -664,8 +674,8 @@
       showQuestion(next);
       const r = results[next];
       if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
-      advanceSpectateResult(results, next, moreQuestionsInProgress);
-    }, 1500);
+        advanceSpectateResult(results, next, moreQuestionsInProgress);
+    }, TIMING.RESULT_DISPLAY_MS);
   }
 
   socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress, nextQuestion }) => {
@@ -691,7 +701,7 @@
       // Show the next question after results are done showing
       setTimeout(() => {
         showQuestion(0);
-      }, 1600);
+      }, TIMING.NEXT_QUESTION_DELAY_MS);
     }
 
     // Detect rank changes before updating state
@@ -1042,6 +1052,18 @@
   }
 
   function onAnswer(chosenIdx, qIdx) {
+    // Validate answer index to prevent invalid submissions
+    if (chosenIdx < 0 || chosenIdx > 3) {
+      console.error('Invalid answer index:', chosenIdx);
+      return;
+    }
+
+    // Debounce: prevent double-submit
+    if ($('modal-options')?.dataset?.submitting === 'true') {
+      return;
+    }
+    $('modal-options').dataset.submitting = 'true';
+
     stopTimer();
     const q = pendingQuestions[qIdx];
     const correct = chosenIdx === q.correctIdx;
@@ -1060,7 +1082,7 @@
       setTimeout(() => {
         $('modal-overlay').classList.remove('visible');
         submitTurn();
-      }, 500);
+      }, TIMING.WRONG_ANSWER_DELAY_MS);
     } else if (isCombat && !isLastQuestion) {
       // Combat with more questions: submit now, wait for results to be shown before getting next Q
       $('modal-continue-wrap').style.display = 'none';
@@ -1095,8 +1117,8 @@
       const pct = Math.max(0, remaining / timerDuration * 100);
       fill.style.width = pct + '%';
       text.textContent = Math.ceil(remaining) + 's';
-      if (pct < 25) {fill.className = 'timer-bar-fill danger';}
-      else if (pct < 50) {fill.className = 'timer-bar-fill warning';}
+      if (pct < TIMING.TIMER_DANGER_PCT) {fill.className = 'timer-bar-fill danger';}
+      else if (pct < TIMING.TIMER_WARNING_PCT) {fill.className = 'timer-bar-fill warning';}
       if (remaining <= 0) {
         stopTimer();
         const tq = pendingQuestions[qIdx];
@@ -1104,7 +1126,7 @@
         pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
         $('modal-continue-wrap').style.display = 'block';
       }
-    }, 100);
+    }, TIMING.TICK_INTERVAL_MS);
   }
 
   function stopTimer() {

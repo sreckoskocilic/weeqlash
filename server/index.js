@@ -277,6 +277,15 @@ io.on('connection', (socket) => {
 
     const pending = room.state.pendingTurn;
     const numSubmitted = (submission.answers || []).length;
+
+    // Validate answer indices are within bounds (0-3)
+    const answers = submission.answers || [];
+    for (const ans of answers) {
+      if (ans.answerIdx < 0 || ans.answerIdx > 3) {
+        return cb({ error: 'Invalid answer index' });
+      }
+    }
+
     const result = applyTurn(room.state, player.index, submission, questionsDb);
     if (result.error) {
       return cb(result);
@@ -287,21 +296,27 @@ io.on('connection', (socket) => {
     const isCombat = pending?.moveType === 'combat';
     const isSequential = pending && numSubmitted < pending.questionIds.length;
     let hasWrongAnswer = false;
-    const results = pending
-      ? (submission.answers || [])
-          .map((ans, i) => {
-            const q = questionsDb._byId?.[pending.questionIds[i]];
-            if (!q) {
-              return null;
-            }
-            const correct = q.a === ans.answerIdx;
-            if (isCombat && i === 0 && !correct) {
-              hasWrongAnswer = true;
-            }
-            return { chosenIdx: ans.answerIdx, correct };
-          })
-          .filter((r, i) => !hasWrongAnswer || i === 0)
-      : [];
+    const results = [];
+    if (pending) {
+      for (let i = 0; i < answers.length; i++) {
+        const q = questionsDb._byId?.[pending.questionIds[i]];
+        if (!q) {
+          continue;
+        }
+        const correct = q.a === answers[i].answerIdx;
+        if (isCombat && i === 0 && !correct) {
+          hasWrongAnswer = true;
+        }
+        // Include this result only if: no wrong answer yet OR it's the first result (Q1)
+        if (!hasWrongAnswer || i === 0) {
+          results.push({ chosenIdx: answers[i].answerIdx, correct });
+        }
+        // For combat: if Q1 wrong, stop processing further answers
+        if (isCombat && hasWrongAnswer) {
+          break;
+        }
+      }
+    }
 
     // If same peg stays selected (movesRemaining > 0), send valid moves
     const nextValidMoves =
