@@ -77,7 +77,7 @@ export function joinRoom(code, socketId, playerName) {
   if (!name || name.length > 16) {
     return { error: 'Name must be 1-16 characters' };
   }
-  
+
   // Auto-resolve name collisions by appending a number
   let finalName = name;
   let counter = 1;

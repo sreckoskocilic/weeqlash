@@ -699,7 +699,7 @@
     }, TIMING.RESULT_DISPLAY_MS);
   }
 
-  socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress, nextQuestion }) => {
+  socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress }) => {
     // Show results if this player has pending questions (attacker or spectator)
     const shouldShowResults = results?.length && pendingQuestions.length > 0;
 
@@ -1388,7 +1388,7 @@
     }, ({ error, code, players }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
-      if (me) $('player-name').value = me.name;
+      if (me) {$('player-name').value = me.name;}
       myPlayerIndex = 0;
       myRoom = { code, settings: { playerCount: setupPlayerCount, timer: setupTimer } };
       isHost = true;
@@ -1407,7 +1407,7 @@
     socket.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
-      if (me) $('player-name').value = me.name;
+      if (me) {$('player-name').value = me.name;}
       myPlayerIndex = me?.index ?? players.length - 1;
       myRoom = { code, settings };
       isHost = false;
@@ -1425,7 +1425,7 @@
   });
 
   $('btn-copy-code').addEventListener('click', () => {
-    if (!myRoom?.code) return;
+    if (!myRoom?.code) {return;}
     navigator.clipboard.writeText(myRoom.code).then(() => {
       const btn = $('btn-copy-code');
       const originalText = btn.textContent;
@@ -1434,7 +1434,6 @@
     }).catch(err => {
       console.error('Failed to copy code: ', err);
     });
-  });
   });
 
   $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });

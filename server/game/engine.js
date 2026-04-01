@@ -625,7 +625,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
  * @param {Object} questionsDb - Database containing question definitions.
  * @returns {Array<{questionId:string,answerIdx:number}>} Answer submissions.
  */
-function botSelectAnswers(questionIds, questionsDb) {
+export function botSelectAnswers(questionIds, questionsDb) {
   return questionIds.map(qid => {
     const q = questionsDb?._byId?.[qid];
     // In our test fixtures the correct answer is always at index 0.
@@ -649,7 +649,7 @@ function resetTurnState(state) {
 
   // Clear question-tracking collections
   for (const cat of state.enabledCats) {
-    if (state.usedQ[cat]) state.usedQ[cat].clear();
+    if (state.usedQ[cat]) {state.usedQ[cat].clear();}
     state.wrongQ.clear();
   }
 
