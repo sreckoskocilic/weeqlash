@@ -710,10 +710,12 @@
 
     if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
+      console.log('DEBUG: shouldShowResults', results, currentQIdx, modalOptionBtns);
       if (spectatingQuestion) {
         // Spectator: highlight the answer on whichever question is currently shown
         const r = results[currentQIdx] ?? results[results.length - 1];
         if (r?.chosenIdx >= 0) {
+          console.log('DEBUG: highlighting', r, modalOptionBtns[r.chosenIdx]);
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
           if (!r.correct && r.correctIdx !== undefined) {
             modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
@@ -1128,6 +1130,17 @@
     const isCombat = pendingMove?.moveType === 'combat';
     const isFlag = pendingMove?.moveType === 'flag';
     const isLastQuestion = qIdx === pendingQuestions.length - 1;
+
+    // Highlight correct answer for everyone
+    modalOptionBtns.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === q.correctIdx) {
+        btn.classList.add('answer-correct');
+      }
+      if (i === chosenIdx && !correct) {
+        btn.classList.add('answer-wrong');
+      }
+    });
 
     if (isCombat || isFlag) {
       $('modal-continue-wrap').style.display = 'none';
