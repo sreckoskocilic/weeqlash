@@ -294,7 +294,6 @@ io.on('connection', (socket) => {
     // Build per-question results for spectating players (no correct answer revealed when wrong)
     // For combat: if Q1 is wrong, battle ends immediately - include Q1 result for display
     const isCombat = pending?.moveType === 'combat';
-    const isSequential = pending && numSubmitted < pending.questionIds.length;
     let hasWrongAnswer = false;
     const results = [];
     if (pending) {
@@ -317,6 +316,9 @@ io.on('connection', (socket) => {
         }
       }
     }
+
+    // Only sequential if: partial answers AND no wrong answers (battle not ended)
+    const isSequential = pending && !hasWrongAnswer && numSubmitted < pending.questionIds.length;
 
     // If same peg stays selected (movesRemaining > 0), send valid moves
     const nextValidMoves =

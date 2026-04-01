@@ -508,8 +508,8 @@ export function applyTurn(state, playerId, submission, questionsDb) {
   };
 
   if (moveType === 'normal') {
+    const peg = state.pegs[pegId];
     if (checkAnswer(0)) {
-      const peg = state.pegs[pegId];
       movePeg(state, pegId, targetR, targetC);
       peg.correct++;
       if (peg.correct >= getRankUpThreshold(state.boardSize)) {
@@ -517,14 +517,14 @@ export function applyTurn(state, playerId, submission, questionsDb) {
         events.push({ type: 'rank_up', pegId });
       }
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-      state.movesRemaining--;
-      // If moves remain and peg can still move, keep SELECT_TILE for same peg
-      if (state.movesRemaining > 0 && getValidMoves(state, pegId).length > 0) {
-        state.phase = PHASE.SELECT_TILE;
-        return { ok: true, events, gameOver: false };
-      }
     }
-    // Wrong answer or no moves remaining: finish this peg
+    // Always decrement movesRemaining (srazique behavior)
+    state.movesRemaining--;
+    if (state.movesRemaining > 0 && getValidMoves(state, pegId).length > 0) {
+      state.phase = PHASE.SELECT_TILE;
+      return { ok: true, events, gameOver: false };
+    }
+    // No moves remaining: finish this peg
     finishPegMove(state);
   } else if (moveType === 'combat') {
     const atkPeg = state.pegs[pegId];
