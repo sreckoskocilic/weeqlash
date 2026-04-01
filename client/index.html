@@ -714,6 +714,7 @@
       // Not showing results - close spectating modal (turn ended)
       stopTimer();
       spectatingQuestion = false;
+      pendingQuestions = []; // Clear questions when turn ends
       $('modal-overlay').classList.remove('visible');
     }
 
@@ -1182,6 +1183,7 @@
       // Only clear local interaction state, keep pendingMove for next question
       localPhase = null;
       // Do NOT clear pendingMove - attacker needs it to submit next answer
+      // Keep pendingQuestions too - will be replaced by nextQuestion
       return;
     }
 
