@@ -116,8 +116,8 @@ function generateLayoutMap(boardSize) {
 }
 
 function getCornerOwnerMap(numPlayers, boardSize) {
-  if (boardSize === 4) {
-    return {};
+  if (boardSize === 4 || boardSize === 2) {
+    return [];
   }
   const S = boardSize - 1;
   const map = { '0,0': 0 };

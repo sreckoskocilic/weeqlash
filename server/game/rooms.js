@@ -33,7 +33,7 @@ export function createRoom({
     boardSize = 7;
   }
 
-  // For testing: use 1x2 if boardSize is 1 or 2
+  // For testing: use 2x2 if boardSize is 1 or 2
   if (boardSize === 1 || boardSize === 2) {
     boardSize = 2;
   }
@@ -85,7 +85,7 @@ export function joinRoom(code, socketId, playerName) {
   const player = {
     id: socketId,
     name: name,
-    color: COLORS[room.players.length],
+    color: COLORS[room.players.length % COLORS.length],
     index: room.players.length,
     isHost: room.players.length === 0,
     token: randomUUID(), // reconnect token, sent only to this player
