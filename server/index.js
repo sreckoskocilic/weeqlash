@@ -247,6 +247,15 @@ io.on('connection', (socket) => {
     cb({ ok: true, moveType, questionIds, questions, defenderPlayerIdx });
   });
 
+  socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }) => {
+    const room = getRoom(code);
+    if (!room?.state) return;
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player || room.state.currentPlayerIdx !== player.index) return;
+    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) return;
+    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx });
+  });
+
   socket.on('turn:submit', ({ code, submission }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {

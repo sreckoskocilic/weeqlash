@@ -800,6 +800,11 @@
     showQuestion(0);
   });
 
+  socket.on('game:answer_preview', ({ questionIdx, answerIdx }) => {
+    if (!spectatingQuestion || currentQIdx !== questionIdx) {return;}
+    modalOptionBtns[answerIdx]?.classList.add('chosen');
+  });
+
   // ============================================================
   // BOARD INIT
   // ============================================================
@@ -1125,6 +1130,7 @@
       if (i === chosenIdx) {btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');}
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
+    socket.emit('turn:answer_preview', { code: myRoom.code, questionIdx: qIdx, answerIdx: chosenIdx });
 
     // For combat and flag: auto-submit without showing Continue button
     const isCombat = pendingMove?.moveType === 'combat';
