@@ -88,7 +88,7 @@ export function getValidMoves(state, pegId) {
   });
 }
 
-function generateLayoutMap(boardSize) {
+function generateLayoutMap(boardSize, enabledCats) {
   const isCorner = (r, c) =>
     (r === 0 || r === boardSize - 1) && (c === 0 || c === boardSize - 1);
   const useFlagCorners = boardSize > 4;
@@ -107,7 +107,7 @@ function generateLayoutMap(boardSize) {
     }
   }
   const pool = shuffle(
-    Array.from({ length: nonCorner.length }, (_, i) => i % CATS.length),
+    Array.from({ length: nonCorner.length }, (_, i) => i % enabledCats.length),
   );
   nonCorner.forEach(([r, c], i) => {
     map[r][c] = pool[i];
@@ -391,12 +391,13 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   if (moveType === 'flag') {
     questionIds = pickQuestionIds(state, tileCat, 3, questionsDb);
   } else if (moveType === 'combat') {
-    questionIds = pickQuestionIds(
-      state,
-      randomCat(state.enabledCats),
-      2,
-      questionsDb,
-    );
+    // Q1 uses the tile's category (matching srazique tileCat), Q2 uses random category
+    const combatQ1Cat = tile.category === 'flag' ? 'general' : tile.category;
+    const combatQ2Cat = randomCat(state.enabledCats);
+    questionIds = [
+      ...pickQuestionIds(state, combatQ1Cat, 1, questionsDb),
+      ...pickQuestionIds(state, combatQ2Cat, 1, questionsDb),
+    ];
   } else {
     questionIds = pickQuestionIds(state, tileCat, 1, questionsDb);
   }
@@ -539,10 +540,6 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       const q2Correct = checkAnswer(1);
       const defPegId = state.board[targetR]?.[targetC]?.pegId;
       const defPeg = defPegId ? state.pegs[defPegId] : null;
-      if (q2Correct) {
-        rankUp(state, pegId);
-        events.push({ type: 'rank_up', pegId });
-      }
       if (q2Correct && defPeg) {
         // Attacker wins only if both Q1 and Q2 are correct
         const wasElim = rankDown(state, defPegId);
@@ -631,14 +628,14 @@ export function createGame(players, settings = {}) {
   const { boardSize = 7, enabledCats, maxRankStart = false } = settings;
   const activeCats = enabledCats?.length ? enabledCats : CATS;
   const numPlayers = players.length;
-  const layoutMap = generateLayoutMap(boardSize);
+  const layoutMap = generateLayoutMap(boardSize, activeCats);
   const cornerMap = getCornerOwnerMap(numPlayers, boardSize);
 
   const board = Array.from({ length: boardSize }, (_, r) =>
     Array.from({ length: boardSize }, (_, c) => {
       const val = layoutMap[r][c];
       return {
-        category: val === 'F' ? 'flag' : CATS[val],
+        category: val === 'F' ? 'flag' : activeCats[val],
         pegId: null,
         cornerOwner: val === 'F' ? cornerMap[`${r},${c}`] : null,
       };
