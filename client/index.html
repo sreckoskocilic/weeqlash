@@ -723,18 +723,6 @@
       $('modal-overlay').classList.remove('visible');
     }
 
-    // If more questions in progress and we have next question from server, feed it to attacker only
-    // Spectators get Q2 shown via advanceSpectateResult after the result delay
-    if (moreQuestionsInProgress && nextQuestion && !spectatingQuestion) {
-      // Append next question to pendingQuestions
-      pendingQuestions.push(nextQuestion);
-      currentQIdx = pendingQuestions.length - 1;
-      // Show the next question after results are done showing
-      setTimeout(() => {
-        showQuestion(currentQIdx);
-      }, TIMING.NEXT_QUESTION_DELAY_MS);
-    }
-
     // Detect rank changes before updating state
     if (gameState) {
       for (const [pegId, peg] of Object.entries(state.pegs)) {
@@ -1118,23 +1106,33 @@
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
 
-    // For combat: if wrong, don't show Continue - battle ends immediately
+    // For combat and flag: auto-submit without showing Continue button
     const isCombat = pendingMove?.moveType === 'combat';
+    const isFlag = pendingMove?.moveType === 'flag';
     const isLastQuestion = qIdx === pendingQuestions.length - 1;
-    if (isCombat && qIdx === 0 && !correct) {
+
+    if (isCombat || isFlag) {
       $('modal-continue-wrap').style.display = 'none';
-      // Show the wrong answer briefly before submitting
-      setTimeout(() => {
-        $('modal-overlay').classList.remove('visible');
-        submitTurn();
-      }, TIMING.WRONG_ANSWER_DELAY_MS);
-    } else if (isCombat && !isLastQuestion) {
-      // Combat with more questions: wait 2s for defender to see answer, then submit
-      $('modal-continue-wrap').style.display = 'none';
-      setTimeout(() => {
-        submitTurn();
-      }, TIMING.ANSWER_DELAY_MS);
+      if (!correct) {
+        // Wrong answer ends combat/flag immediately
+        setTimeout(() => {
+          $('modal-overlay').classList.remove('visible');
+          submitTurn();
+        }, TIMING.WRONG_ANSWER_DELAY_MS);
+      } else if (!isLastQuestion) {
+        // Correct answer, more questions coming: wait 2s for defender to see answer, then submit
+        setTimeout(() => {
+          submitTurn();
+        }, TIMING.ANSWER_DELAY_MS);
+      } else {
+        // Correct answer, last question: wait 2s then submit and close
+        setTimeout(() => {
+          $('modal-overlay').classList.remove('visible');
+          submitTurn();
+        }, TIMING.ANSWER_DELAY_MS);
+      }
     } else {
+      // Normal move
       $('modal-continue-wrap').style.display = 'block';
     }
   }
