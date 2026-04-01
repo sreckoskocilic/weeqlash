@@ -696,7 +696,14 @@
   }
 
   socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress, nextQuestion }) => {
-    if (results?.length && pendingQuestions.length) {
+    // Only show results if:
+    // 1. It's the current player's own results (attacker), OR
+    // 2. More questions are in progress (sequential mode), OR
+    // 3. No results (normal move completed)
+    const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
+    const shouldShowResults = results?.length && (isMyTurn || moreQuestionsInProgress);
+
+    if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
       currentQIdx = 0;
       showQuestion(0);
@@ -704,6 +711,7 @@
       if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
       advanceSpectateResult(results, 0, moreQuestionsInProgress);
     } else if (spectatingQuestion) {
+      // Not showing results - close spectating modal (turn ended)
       stopTimer();
       spectatingQuestion = false;
       $('modal-overlay').classList.remove('visible');
