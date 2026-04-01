@@ -360,17 +360,22 @@ function pickQuestionIds(state, cat, count, questionsDb) {
   return selected.map((q) => q.id);
 }
 
-// Determine move type from board state
+// Determine move type from board state.
+// Priority matches srazique: combat (enemy peg) is checked BEFORE flag capture.
 function getMoveType(state, pegId, r, c) {
   const tile = state.board[r][c];
-  if (tile.category === 'flag') {
-    return 'flag';
-  }
   if (
     tile.pegId &&
     state.pegs[tile.pegId].playerId !== state.pegs[pegId].playerId
   ) {
     return 'combat';
+  }
+  if (
+    tile.category === 'flag' &&
+    tile.cornerOwner !== null &&
+    tile.cornerOwner !== state.pegs[pegId].playerId
+  ) {
+    return 'flag';
   }
   return 'normal';
 }
@@ -384,12 +389,18 @@ function getMoveType(state, pegId, r, c) {
 export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const tile = state.board[targetR][targetC];
   const moveType = getMoveType(state, pegId, targetR, targetC);
+  // tileCat matches srazique's tileCat(): flag tiles use 'general' for normal moves
   const tileCat =
-    tile.category === 'flag' ? randomCat(state.enabledCats) : tile.category;
+    tile.category === 'flag' ? 'general' : tile.category;
 
   let questionIds;
   if (moveType === 'flag') {
-    questionIds = pickQuestionIds(state, tileCat, 3, questionsDb);
+    // Each of the 3 flag capture questions uses a fresh randomCat() — matches srazique
+    questionIds = [
+      ...pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb),
+      ...pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb),
+      ...pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb),
+    ];
   } else if (moveType === 'combat') {
     // Q1 uses the tile's category (matching srazique tileCat), Q2 uses random category
     const combatQ1Cat = tile.category === 'flag' ? 'general' : tile.category;
