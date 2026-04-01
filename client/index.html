@@ -1150,12 +1150,11 @@
       }
     }, ({ error }) => { if (error) {console.error('submit:', error);} });
 
-    // If more questions coming, keep local state to show next question when it arrives
+    // If more questions coming, keep pendingMove for next question
     if (willHaveMoreQuestions) {
-      // Clear modal but keep pendingMove for next question
+      // Only clear local interaction state, keep pendingMove for next question
       localPhase = null;
-      pendingMove = null;
-      // pendingQuestions and pendingAnswers will be replaced when next question arrives
+      // Do NOT clear pendingMove - attacker needs it to submit next answer
       return;
     }
 
