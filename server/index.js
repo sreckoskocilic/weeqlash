@@ -276,6 +276,16 @@ io.on('connection', (socket) => {
     answerTimestamps.set(socket.id, now);
 
     const pending = room.state.pendingTurn;
+    if (!pending) {
+      return cb({ error: 'No pending turn' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+    if (submission.pegId !== pending.pegId) {
+      return cb({ error: 'Peg mismatch' });
+    }
+
     const numSubmitted = (submission.answers || []).length;
 
     // Validate answer indices are within bounds (0-3)
@@ -286,9 +296,25 @@ io.on('connection', (socket) => {
       }
     }
 
-    const result = applyTurn(room.state, player.index, submission, questionsDb);
-    if (result.error) {
-      return cb(result);
+    // Check if the latest answer is wrong
+    let latestWrong = false;
+    if (numSubmitted > 0) {
+      const latestAns = answers[numSubmitted - 1];
+      const q = questionsDb._byId?.[pending.questionIds[numSubmitted - 1]];
+      if (q && latestAns.answerIdx !== q.a) {
+        latestWrong = true;
+      }
+    }
+
+    const hasMoreQuestions = numSubmitted < pending.questionIds.length;
+    const shouldApplyTurn = !hasMoreQuestions || latestWrong;
+
+    let result = { events: [], gameOver: false };
+    if (shouldApplyTurn) {
+      result = applyTurn(room.state, player.index, submission, questionsDb);
+      if (result.error) {
+        return cb(result);
+      }
     }
 
     // Build per-question results for spectating players (no correct answer revealed when wrong)
