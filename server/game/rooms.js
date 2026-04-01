@@ -77,14 +77,19 @@ export function joinRoom(code, socketId, playerName) {
   if (!name || name.length > 16) {
     return { error: 'Name must be 1-16 characters' };
   }
-  if (room.players.find((p) => p.name === name)) {
-    return { error: 'Name already taken' };
+  
+  // Auto-resolve name collisions by appending a number
+  let finalName = name;
+  let counter = 1;
+  while (room.players.find((p) => p.name === finalName)) {
+    finalName = `${name} ${counter}`;
+    counter++;
   }
 
   const COLORS = ['#FF4444', '#1E88E5', '#43A047', '#FB8C00'];
   const player = {
     id: socketId,
-    name: name,
+    name: finalName,
     color: COLORS[room.players.length % COLORS.length],
     index: room.players.length,
     isHost: room.players.length === 0,

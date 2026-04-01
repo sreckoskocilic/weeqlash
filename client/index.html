@@ -431,7 +431,10 @@
 
 <!-- Lobby / waiting room -->
 <div class="card" id="screen-lobby" style="display:none">
-  <div class="room-code" id="lobby-code"></div>
+  <div class="room-code-container" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 0.5rem;">
+    <div class="room-code" id="lobby-code" style="margin-bottom: 0;"></div>
+    <button id="btn-copy-code" title="Copy Code" style="padding: 0.5rem; font-size: 1.2rem; background: transparent; border: 1px solid var(--border); color: var(--text); width: auto; border-radius: 6px; cursor: pointer; transition: all 0.2s;">📋</button>
+  </div>
   <div class="room-code-label">Share this code with other players</div>
   <h2>Players</h2>
   <ul class="player-list" id="player-list"></ul>
@@ -1306,7 +1309,7 @@
   // LOBBY ACTIONS
   // ============================================================
   // Predefined names for when player doesn't enter one
-  const RANDOM_NAMES = ['Qwizakk', 'PacMoan', 'EE-TEE', 'Issous', 'Sihirator', 'Bogamber'];
+  const RANDOM_NAMES = ['Qwizakk', 'PacMoan', 'EE-TEE', 'Issous', 'Sihirator', 'Bogamber', 'Dandalf', 'Burim', 'Kesko', 'Lepi', 'Aliya', 'Pcheko', 'Dnepr', 'nasmirglAna'];
   function getRandomName() {
     return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
   }
@@ -1384,6 +1387,8 @@
       maxRankStart: setupMaxRankStart,
     }, ({ error, code, players }) => {
       if (error) {return showError(error);}
+      const me = players.find(p => p.id === myId);
+      if (me) $('player-name').value = me.name;
       myPlayerIndex = 0;
       myRoom = { code, settings: { playerCount: setupPlayerCount, timer: setupTimer } };
       isHost = true;
@@ -1402,6 +1407,7 @@
     socket.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
+      if (me) $('player-name').value = me.name;
       myPlayerIndex = me?.index ?? players.length - 1;
       myRoom = { code, settings };
       isHost = false;
@@ -1413,10 +1419,22 @@
   });
 
   $('btn-start').addEventListener('click', () => {
-    if (!isHost) {return;}
     socket.emit('room:start', { code: myRoom.code }, ({ error }) => {
       if (error) {showError(error);}
     });
+  });
+
+  $('btn-copy-code').addEventListener('click', () => {
+    if (!myRoom?.code) return;
+    navigator.clipboard.writeText(myRoom.code).then(() => {
+      const btn = $('btn-copy-code');
+      const originalText = btn.textContent;
+      btn.textContent = '✅';
+      setTimeout(() => { btn.textContent = originalText; }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy code: ', err);
+    });
+  });
   });
 
   $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
