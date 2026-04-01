@@ -741,6 +741,16 @@
       }
     }
 
+    // Always clear pending questions when receiving new state (turn transition)
+    // This prevents stale questions from previous turn showing up
+    if (prevPlayerIdx !== state.currentPlayerIdx) {
+      pendingQuestions = [];
+      pendingAnswers = [];
+      spectatingQuestion = false;
+      stopTimer();
+      $('modal-overlay').classList.remove('visible');
+    }
+
     const prevPlayerIdx = gameState?.currentPlayerIdx;
     gameState = state;
     // If server kept SELECT_TILE for same peg (movesRemaining > 0), restore local state
