@@ -255,8 +255,8 @@ io.on('connection', (socket) => {
     if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) return;
     const pending = room.state.pendingTurn;
     const qId = pending?.questionIds?.[questionIdx];
-    const correctIdx = qId ? (questionsDb._byId?.[qId]?.a ?? null) : null;
-    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correctIdx });
+    const correct = qId ? (questionsDb._byId?.[qId]?.a === answerIdx) : null;
+    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correct });
   });
 
   socket.on('turn:submit', ({ code, submission }, cb) => {

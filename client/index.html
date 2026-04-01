@@ -800,13 +800,9 @@
     showQuestion(0);
   });
 
-  socket.on('game:answer_preview', ({ questionIdx, answerIdx, correctIdx }) => {
+  socket.on('game:answer_preview', ({ questionIdx, answerIdx, correct }) => {
     if (!spectatingQuestion || currentQIdx !== questionIdx) {return;}
-    const correct = correctIdx !== null && answerIdx === correctIdx;
     modalOptionBtns[answerIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
-    if (!correct && correctIdx !== null) {
-      modalOptionBtns[correctIdx]?.classList.add('answer-correct');
-    }
   });
 
   // ============================================================
