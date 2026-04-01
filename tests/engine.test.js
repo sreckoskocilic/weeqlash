@@ -201,13 +201,19 @@ describe('Engine: Combat - Bug Fix Validation', () => {
     state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
 
     selectPeg(state, 0, p1PegId);
+    const questionsDb = createQuestionsDb();
     planTurnQuestions(
       state,
       p1PegId,
       p2Peg.row,
       p2Peg.col,
-      createQuestionsDb(),
+      questionsDb,
     );
+
+    const q1Id = state.pendingTurn.questionIds[0];
+    const q2Id = state.pendingTurn.questionIds[1];
+    const a1 = questionsDb._byId[q1Id].a;
+    const wrongA1 = (a1 + 1) % 4; // Ensure it's wrong
 
     const result = applyTurn(
       state,
@@ -217,11 +223,11 @@ describe('Engine: Combat - Bug Fix Validation', () => {
         targetR: p2Peg.row,
         targetC: p2Peg.col,
         answers: [
-          { questionId: state.pendingTurn.questionIds[0], answerIdx: 1 }, // Wrong
-          { questionId: state.pendingTurn.questionIds[1], answerIdx: 0 },
+          { questionId: q1Id, answerIdx: wrongA1 }, // Wrong
+          { questionId: q2Id, answerIdx: 0 },
         ],
       },
-      createQuestionsDb(),
+      questionsDb,
     );
 
     expect(result.ok).toBe(true);
@@ -243,13 +249,20 @@ describe('Engine: Combat - Bug Fix Validation', () => {
     state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
 
     selectPeg(state, 0, p1PegId);
+    const questionsDb = createQuestionsDb();
     planTurnQuestions(
       state,
       p1PegId,
       p2Peg.row,
       p2Peg.col,
-      createQuestionsDb(),
+      questionsDb,
     );
+
+    const q1Id = state.pendingTurn.questionIds[0];
+    const q2Id = state.pendingTurn.questionIds[1];
+    const a1 = questionsDb._byId[q1Id].a;
+    const a2 = questionsDb._byId[q2Id].a;
+    const wrongA2 = (a2 + 1) % 4; // Ensure it's wrong
 
     const result = applyTurn(
       state,
@@ -259,11 +272,11 @@ describe('Engine: Combat - Bug Fix Validation', () => {
         targetR: p2Peg.row,
         targetC: p2Peg.col,
         answers: [
-          { questionId: state.pendingTurn.questionIds[0], answerIdx: 0 }, // Correct
-          { questionId: state.pendingTurn.questionIds[1], answerIdx: 0 }, // Wrong (correct is 1)
+          { questionId: q1Id, answerIdx: a1 }, // Correct
+          { questionId: q2Id, answerIdx: wrongA2 }, // Wrong
         ],
       },
-      createQuestionsDb(),
+      questionsDb,
     );
 
     expect(result.ok).toBe(true);

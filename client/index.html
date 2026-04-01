@@ -672,44 +672,47 @@
   function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
     setTimeout(() => {
       const next = idx + 1;
-      // If more questions in progress, don't close modal - wait for attacker to answer next question
-      if (moreQuestionsInProgress && next < results.length) {
+      // More questions still in progress (attacker hasn't answered Q2 yet) - show Q2 for spectator
+      if (moreQuestionsInProgress && next < pendingQuestions.length) {
+        currentQIdx = next;
+        showQuestion(next);
+        // Q2 result not available yet - spectator waits for next state:update
+        return;
+      }
+      // We have the next result already (all answers submitted at once) - show it
+      if (next < results.length && next < pendingQuestions.length) {
         currentQIdx = next;
         showQuestion(next);
         const r = results[next];
         if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
-        // Continue showing results, but keep modal open for next question
-        return;
-      }
-      // No more questions or not sequential - close modal
-      if (next >= results.length || next >= pendingQuestions.length) {
-        spectatingQuestion = false;
-        $('modal-overlay').classList.remove('visible');
-        return;
-      }
-      currentQIdx = next;
-      showQuestion(next);
-      const r = results[next];
-      if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
         advanceSpectateResult(results, next, moreQuestionsInProgress);
+        return;
+      }
+      // No more questions - close modal
+      spectatingQuestion = false;
+      $('modal-overlay').classList.remove('visible');
     }, TIMING.RESULT_DISPLAY_MS);
   }
 
   socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress, nextQuestion }) => {
-    // Only show results if:
-    // 1. It's the current player's own results (attacker), OR
-    // 2. More questions are in progress (sequential mode), OR
-    // 3. No results (normal move completed)
-    const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
-    const shouldShowResults = results?.length && (isMyTurn || moreQuestionsInProgress);
+    // Show results if this player has pending questions (attacker or spectator)
+    const shouldShowResults = results?.length && pendingQuestions.length > 0;
 
     if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
-      currentQIdx = 0;
-      showQuestion(0);
-      const r = results[0];
-      if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
-      advanceSpectateResult(results, 0, moreQuestionsInProgress);
+      if (spectatingQuestion) {
+        // Spectator: highlight the answer on whichever question is currently shown
+        const r = results[currentQIdx] ?? results[results.length - 1];
+        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+        advanceSpectateResult(results, currentQIdx, moreQuestionsInProgress);
+      } else {
+        // Attacker: reset to Q1 and walk through results
+        currentQIdx = 0;
+        showQuestion(0);
+        const r = results[0];
+        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+        advanceSpectateResult(results, 0, moreQuestionsInProgress);
+      }
     } else if (spectatingQuestion) {
       // Not showing results - close spectating modal (turn ended)
       stopTimer();
@@ -718,8 +721,9 @@
       $('modal-overlay').classList.remove('visible');
     }
 
-    // If more questions in progress and we have next question from server, get it
-    if (moreQuestionsInProgress && nextQuestion) {
+    // If more questions in progress and we have next question from server, feed it to attacker only
+    // Spectators get Q2 shown via advanceSpectateResult after the result delay
+    if (moreQuestionsInProgress && nextQuestion && !spectatingQuestion) {
       // Set up pendingQuestions with next question
       pendingQuestions = [nextQuestion];
       pendingAnswers = [];

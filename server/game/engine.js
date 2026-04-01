@@ -614,7 +614,9 @@ export function applyTurn(state, playerId, submission, questionsDb) {
 
 // ---------------------------------------------------------------------------
 // Turn management
-// ---------------------------------------------------------------------------/**
+// ---------------------------------------------------------------------------
+
+/**
  * Generate answer submissions for a bot.
  * Always selects answer index 0 (the first answer) for each question.
  * Used by the bot opponent in tests.
@@ -653,7 +655,9 @@ function resetTurnState(state) {
 
   // Reset phase to SELECT_PEG
   state.phase = PHASE.SELECT_PEG;
-}\n\nfunction advanceTurn(state) {
+}
+
+function advanceTurn(state) {
   let next = (state.currentPlayerIdx + 1) % state.numPlayers;
   let tries = 0;
   while (state.players[next].pegIds.length === 0 && tries < state.numPlayers) {
