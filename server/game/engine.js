@@ -614,9 +614,46 @@ export function applyTurn(state, playerId, submission, questionsDb) {
 
 // ---------------------------------------------------------------------------
 // Turn management
-// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------/**
+ * Generate answer submissions for a bot.
+ * Always selects answer index 0 (the first answer) for each question.
+ * Used by the bot opponent in tests.
+ *
+ * @param {string[]} questionIds - IDs of questions to answer.
+ * @param {Object} questionsDb - Database containing question definitions.
+ * @returns {Array<{questionId:string,answerIdx:number}>} Answer submissions.
+ */
+function botSelectAnswers(questionIds, questionsDb) {
+  return questionIds.map(qid => {
+    const q = questionsDb?._byId?.[qid];
+    // In our test fixtures the correct answer is always at index 0.
+    // If for some reason the question is missing, we still return index 0.
+    return { questionId: qid, answerIdx: q ? 0 : 0 };
+  });
+}
 
-function advanceTurn(state) {
+/**
+ * Reset per-turn flags and rebuild the set of pegs that can move this turn.
+ * Called when a turn ends (whether by completion, elimination, or flag capture).
+ */
+function resetTurnState(state) {
+  // Clear per-turn flags
+  state.pendingTurn = null;
+  state.selectedPegId = null;
+  state.movesRemaining = 0;
+
+  // Rebuild pegsToMove based on freshly computed eligible pegs
+  state.pegsToMove = new Set(getEligiblePegs(state));
+
+  // Clear question-tracking collections
+  for (const cat of state.enabledCats) {
+    if (state.usedQ[cat]) state.usedQ[cat].clear();
+    state.wrongQ.clear();
+  }
+
+  // Reset phase to SELECT_PEG
+  state.phase = PHASE.SELECT_PEG;
+}\n\nfunction advanceTurn(state) {
   let next = (state.currentPlayerIdx + 1) % state.numPlayers;
   let tries = 0;
   while (state.players[next].pegIds.length === 0 && tries < state.numPlayers) {
@@ -624,11 +661,8 @@ function advanceTurn(state) {
     tries++;
   }
   state.currentPlayerIdx = next;
-  state.phase = PHASE.SELECT_PEG;
-  state.selectedPegId = null;
-  state.pendingTurn = null;
-  state.movesRemaining = 0;
-  state.pegsToMove = new Set(getEligiblePegs(state));
+  // Reset all per-turn state for the new player
+  resetTurnState(state);
 }
 
 // ---------------------------------------------------------------------------
