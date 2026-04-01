@@ -1,6 +1,8 @@
 # Sraz Multiplayer
 
-Real-time multiplayer trivia board game. Players move pegs across a category-colored board, answering trivia questions to advance, battle enemies, and capture flag tiles.
+Srazique multiplayer mode.
+
+___Must be identical to desktop app!!!___
 
 ## How to play
 

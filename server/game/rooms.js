@@ -14,12 +14,25 @@ function generateCode() {
 }
 
 export function createRoom({
+  playerCount: playerCountInput,
   boardSize = 7,
   timer = 30,
   enabledCats,
   maxRankStart = false,
 } = {}) {
-  const playerCount = 2; // locked to 2-player mode
+  // Validate and normalize player count
+  const VALID_PLAYER_COUNTS = [2, 3, 4];
+  let playerCount = 2; // default
+  if (VALID_PLAYER_COUNTS.includes(playerCountInput)) {
+    playerCount = playerCountInput;
+  }
+
+  // Validate board size - only accept valid sizes from UI
+  const VALID_SIZES = [4, 5, 6, 7, 8, 10];
+  if (!VALID_SIZES.includes(boardSize)) {
+    boardSize = 7;
+  }
+
   let code;
   do {
     code = generateCode();
@@ -37,7 +50,13 @@ export function createRoom({
 }
 
 export function joinRoom(code, socketId, playerName) {
-  const room = rooms.get(code?.toUpperCase());
+  const normalizedCode = code?.toUpperCase();
+  // Validate room code format
+  if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
+    return { error: 'Invalid room code' };
+  }
+
+  const room = rooms.get(normalizedCode);
   if (!room) {
     return { error: 'Room not found' };
   }
@@ -47,26 +66,36 @@ export function joinRoom(code, socketId, playerName) {
   if (room.players.length >= room.settings.playerCount) {
     return { error: 'Room is full' };
   }
-  if (room.players.find((p) => p.name === playerName)) {
+
+  // Server-side name validation (client also has maxlength="16")
+  const name = playerName?.trim();
+  if (!name || name.length > 16) {
+    return { error: 'Name must be 1-16 characters' };
+  }
+  if (room.players.find((p) => p.name === name)) {
     return { error: 'Name already taken' };
   }
 
-  const COLORS = ['#e94560', '#0f3460', '#533483', '#05c46b'];
+  const COLORS = ['#FF4444', '#1E88E5', '#43A047', '#FB8C00'];
   const player = {
     id: socketId,
-    name: playerName,
+    name: name,
     color: COLORS[room.players.length],
     index: room.players.length,
     isHost: room.players.length === 0,
     token: randomUUID(), // reconnect token, sent only to this player
   };
   room.players.push(player);
-  socketToRoom.set(socketId, code.toUpperCase());
+  socketToRoom.set(socketId, normalizedCode);
   return player;
 }
 
 export function getRoom(code) {
-  return rooms.get(code?.toUpperCase()) ?? null;
+  const normalizedCode = code?.toUpperCase();
+  if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
+    return null;
+  }
+  return rooms.get(normalizedCode) ?? null;
 }
 
 export function removePlayerFromRoom(socketId) {

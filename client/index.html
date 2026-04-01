@@ -327,16 +327,19 @@
 
   <div class="setup-section">
     <h3>Your Name</h3>
-    <input id="player-name" type="text" maxlength="16" placeholder="e.g. Kmet42" />
+    <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" />
     <div id="connect-error" class="error" style="display:none"></div>
   </div>
 
   <div class="setup-section">
     <h3>Board Size</h3>
     <div class="opt-btn-group" id="board-size-btns">
+      <button class="opt-btn" data-val="4">4×4</button>
       <button class="opt-btn" data-val="5">5×5</button>
-      <button class="opt-btn active" data-val="7">7×7</button>
-      <button class="opt-btn" data-val="9">9×9</button>
+      <button class="opt-btn" data-val="6">6×6</button>
+      <button class="opt-btn" data-val="7">7×7</button>
+      <button class="opt-btn active" data-val="8">8×8</button>
+      <button class="opt-btn" data-val="10">10×10</button>
     </div>
   </div>
 
@@ -492,6 +495,17 @@
   const $ = id => document.getElementById(id);
 
   // ============================================================
+  // UTILITIES
+  // ============================================================
+
+  // Sanitize user input to prevent XSS
+  function sanitize(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ============================================================
   // CONSTANTS
   // ============================================================
   const PHASE = { SELECT_PEG: 'selectPeg', SELECT_TILE: 'selectTile', GAME_OVER: 'gameOver' };
@@ -549,7 +563,7 @@
 
   // Setup screen state
   const setupPlayerCount = 2;
-  let setupBoardSize = 7;
+  let setupBoardSize = 8;
   let setupTimer = 30;
   let setupEnabledCats = [...CATS];
   let setupMaxRankStart = false;
@@ -582,8 +596,8 @@
     players.forEach(p => {
       const li = document.createElement('li');
       li.innerHTML = `
-        <span class="dot" style="background:${p.color}"></span>
-        <span>${p.name}</span>
+        <span class="dot" style="background:${sanitize(p.color)}"></span>
+        <span>${sanitize(p.name)}</span>
         ${p.isHost ? '<span class="badge">host</span>' : ''}
         ${p.id === myId ? '<span class="badge">you</span>' : ''}
       `;
@@ -838,7 +852,7 @@
       const pegNum = (player?.pegIds?.indexOf(tile.pegId) ?? -1) + 1;
       pegEl.textContent = peg.rank > 0 ? '' : String(pegNum || '');
       const rankThreshold = gameState.boardSize > 8 ? 5 : 3;
-      pegEl.title = `${player.name} — ${RANK_NAMES[peg.rank]} (${peg.correct}/${rankThreshold})`;
+      pegEl.title = `${sanitize(player.name)} — ${RANK_NAMES[peg.rank]} (${peg.correct}/${rankThreshold})`;
       if (peg.rank > 0) {
         const badge = document.createElement('div');
         badge.className = 'peg-rank-badge';
@@ -1182,10 +1196,19 @@
   // ============================================================
   // LOBBY ACTIONS
   // ============================================================
+  // Predefined names for when player doesn't enter one
+  const RANDOM_NAMES = ['Qwizakk', 'PacMoan', 'EE-TEE', 'Issous', 'Sihirator', 'Bogamber'];
+  function getRandomName() {
+    return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
+  }
+
   function getPlayerName() {
-    const name = $('player-name').value.trim();
-    if (!name) { showError('Enter your name first.'); return null; }
-    showError(''); return name;
+    let name = $('player-name').value.trim();
+    if (!name) { name = getRandomName(); }
+    // Update input to show the assigned name
+    $('player-name').value = name;
+    showError('');
+    return name;
   }
 
   // ============================================================
@@ -1265,7 +1288,7 @@
   $('btn-join').addEventListener('click', () => {
     const playerName = getPlayerName();
     if (!playerName) {return;}
-    const code = $('join-code').value.trim().toUpperCase();
+    const code = $('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length !== 5) {return showError('Room code must be 5 characters.');}
     socket.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
       if (error) {return showError(error);}

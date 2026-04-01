@@ -21,13 +21,28 @@ import { loadQuestions } from './game/questions.js';
 
 const app = express();
 const httpServer = createServer(app);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://sraz.nbastables.com';
 const io = new Server(httpServer, {
-  cors: { origin: 'https://sraz.nbastables.com' },
+  cors: { origin: CORS_ORIGIN },
 });
 const PORT = process.env.PORT || 3000;
 
 // Minimum delay before accepting answers to ensure other players see the question
 const MIN_ANSWER_DELAY_MS = 300;
+
+// Rate limiting: throttle answer submissions per socket
+const answerTimestamps = new Map(); // socketId -> lastAnswerTime
+const RATE_LIMIT_MS = 500;
+
+// Periodic cleanup of stale rate limit entries (every 30s)
+setInterval(() => {
+  const now = Date.now();
+  for (const [socketId, time] of answerTimestamps) {
+    if (now - time > 60_000) {
+      answerTimestamps.delete(socketId);
+    }
+  }
+}, 30_000);
 
 // Load questions once at startup
 const questionsDb = loadQuestions();
@@ -251,6 +266,14 @@ io.on('connection', (socket) => {
           'Answering too quickly. Wait for other players to see the question.',
       });
     }
+
+    // Rate limiting: prevent answer spam
+    const now = Date.now();
+    const lastAnswer = answerTimestamps.get(socket.id) || 0;
+    if (now - lastAnswer < RATE_LIMIT_MS) {
+      return cb({ error: 'Too many requests. Please slow down.' });
+    }
+    answerTimestamps.set(socket.id, now);
 
     const pending = room.state.pendingTurn;
     const result = applyTurn(room.state, player.index, submission, questionsDb);
