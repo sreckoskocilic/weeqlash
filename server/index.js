@@ -276,6 +276,7 @@ io.on('connection', (socket) => {
     answerTimestamps.set(socket.id, now);
 
     const pending = room.state.pendingTurn;
+    const numSubmitted = (submission.answers || []).length;
     const result = applyTurn(room.state, player.index, submission, questionsDb);
     if (result.error) {
       return cb(result);
@@ -284,6 +285,7 @@ io.on('connection', (socket) => {
     // Build per-question results for spectating players (no correct answer revealed when wrong)
     // For combat: if Q1 is wrong, battle ends immediately - include Q1 result for display
     const isCombat = pending?.moveType === 'combat';
+    const isSequential = pending && numSubmitted < pending.questionIds.length;
     let hasWrongAnswer = false;
     const results = pending
       ? (submission.answers || [])
@@ -309,6 +311,25 @@ io.on('connection', (socket) => {
           )
         : null;
 
+    // Check if there are more questions to answer (sequential mode)
+    const moreQuestionsInProgress = isSequential && !result.gameOver;
+
+    // Include next question in response to attacker if more questions in progress
+    let nextQuestion = null;
+    if (moreQuestionsInProgress && pending) {
+      const nextQIdx = numSubmitted;
+      const nextQId = pending.questionIds[nextQIdx];
+      const q = questionsDb._byId?.[nextQId];
+      if (q) {
+        nextQuestion = {
+          id: q.id,
+          q: q.q,
+          opts: q.opts,
+          category: q.category,
+        };
+      }
+    }
+
     const payload = {
       events: result.events,
       state: publicState(room.state),
@@ -316,6 +337,8 @@ io.on('connection', (socket) => {
       winner: result.winner ?? null,
       results,
       validMoves: nextValidMoves,
+      moreQuestionsInProgress,
+      nextQuestion,
     };
 
     // Broadcast updated state to all players

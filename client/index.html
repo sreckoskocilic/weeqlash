@@ -642,9 +642,19 @@
     showScreen('screen-game');
   });
 
-  function advanceSpectateResult(results, idx) {
+  function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
     setTimeout(() => {
       const next = idx + 1;
+      // If more questions in progress, don't close modal - wait for attacker to answer next question
+      if (moreQuestionsInProgress && next < results.length) {
+        currentQIdx = next;
+        showQuestion(next);
+        const r = results[next];
+        if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
+        // Continue showing results, but keep modal open for next question
+        return;
+      }
+      // No more questions or not sequential - close modal
       if (next >= results.length || next >= pendingQuestions.length) {
         spectatingQuestion = false;
         $('modal-overlay').classList.remove('visible');
@@ -654,22 +664,34 @@
       showQuestion(next);
       const r = results[next];
       if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
-      advanceSpectateResult(results, next);
+      advanceSpectateResult(results, next, moreQuestionsInProgress);
     }, 1500);
   }
 
-  socket.on('state:update', ({ state, gameOver, winner, validMoves, results }) => {
+  socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress, nextQuestion }) => {
     if (results?.length && pendingQuestions.length) {
       stopTimer();
       currentQIdx = 0;
       showQuestion(0);
       const r = results[0];
       if (r?.chosenIdx >= 0) {modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');}
-      advanceSpectateResult(results, 0);
+      advanceSpectateResult(results, 0, moreQuestionsInProgress);
     } else if (spectatingQuestion) {
       stopTimer();
       spectatingQuestion = false;
       $('modal-overlay').classList.remove('visible');
+    }
+
+    // If more questions in progress and we have next question from server, get it
+    if (moreQuestionsInProgress && nextQuestion) {
+      // Set up pendingQuestions with next question
+      pendingQuestions = [nextQuestion];
+      pendingAnswers = [];
+      currentQIdx = 0;
+      // Show the next question after results are done showing
+      setTimeout(() => {
+        showQuestion(0);
+      }, 1600);
     }
 
     // Detect rank changes before updating state
@@ -1029,8 +1051,9 @@
     });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
 
-    // For combat Q1: if wrong, don't show Continue - battle ends immediately
+    // For combat: if wrong, don't show Continue - battle ends immediately
     const isCombat = pendingMove?.moveType === 'combat';
+    const isLastQuestion = qIdx === pendingQuestions.length - 1;
     if (isCombat && qIdx === 0 && !correct) {
       $('modal-continue-wrap').style.display = 'none';
       // Show the wrong answer briefly before submitting
@@ -1038,6 +1061,10 @@
         $('modal-overlay').classList.remove('visible');
         submitTurn();
       }, 500);
+    } else if (isCombat && !isLastQuestion) {
+      // Combat with more questions: submit now, wait for results to be shown before getting next Q
+      $('modal-continue-wrap').style.display = 'none';
+      submitTurn();
     } else {
       $('modal-continue-wrap').style.display = 'block';
     }
@@ -1086,6 +1113,11 @@
 
   function submitTurn() {
     stopTimer();
+    // Check if this is a combat move with more questions to come
+    const isCombat = pendingMove?.moveType === 'combat';
+    const isLastAnswer = pendingAnswers.length >= pendingQuestions.length;
+    const willHaveMoreQuestions = isCombat && !isLastAnswer;
+
     socket.emit('turn:submit', {
       code: myRoom.code,
       submission: {
@@ -1095,6 +1127,16 @@
         answers: pendingAnswers,
       }
     }, ({ error }) => { if (error) {console.error('submit:', error);} });
+
+    // If more questions coming, keep local state to show next question when it arrives
+    if (willHaveMoreQuestions) {
+      // Clear modal but keep pendingMove for next question
+      localPhase = null;
+      pendingMove = null;
+      // pendingQuestions and pendingAnswers will be replaced when next question arrives
+      return;
+    }
+
     localSelectedPegId = null;
     validMovesSet.clear();
     localPhase = null;

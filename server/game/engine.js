@@ -151,6 +151,13 @@ function getStartPositions(numPlayers, boardSize) {
     }
     return corners;
   }
+  // For 2x2 test board
+  if (boardSize === 2) {
+    return [
+      [{ r: 0, c: 0 }],
+      [{ r: 1, c: 1 }],
+    ];
+  }
   const all = [
     [
       { r: 1, c: 0 },
@@ -460,11 +467,25 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     return { error: 'Target mismatch' };
   }
 
-  state.pendingTurn = null;
+  // For combat with sequential questions: if only Q1 submitted, keep pendingTurn for Q2
   const answers = submission.answers || [];
+  const numSubmitted = answers.length;
+  const totalQuestions = questionIds.length;
+  const hasMoreQuestions = numSubmitted < totalQuestions && numSubmitted > 0;
+
+  // General rule: if more questions remain and only partial answers submitted, wait for results
+  // Don't clear pendingTurn so player can answer remaining questions after results are shown
+  if (!hasMoreQuestions) {
+    state.pendingTurn = null;
+  }
+
   const events = [];
 
   const checkAnswer = (idx) => {
+    // Don't process answers that haven't been submitted yet
+    if (idx >= numSubmitted) {
+      return false;
+    }
     const qId = questionIds[idx];
     const q = questionsDb._byId?.[qId];
     const ans = answers[idx];
