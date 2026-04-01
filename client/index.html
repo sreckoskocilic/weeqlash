@@ -800,9 +800,13 @@
     showQuestion(0);
   });
 
-  socket.on('game:answer_preview', ({ questionIdx, answerIdx }) => {
+  socket.on('game:answer_preview', ({ questionIdx, answerIdx, correctIdx }) => {
     if (!spectatingQuestion || currentQIdx !== questionIdx) {return;}
-    modalOptionBtns[answerIdx]?.classList.add('chosen');
+    const correct = correctIdx !== null && answerIdx === correctIdx;
+    modalOptionBtns[answerIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
+    if (!correct && correctIdx !== null) {
+      modalOptionBtns[correctIdx]?.classList.add('answer-correct');
+    }
   });
 
   // ============================================================

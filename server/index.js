@@ -253,7 +253,10 @@ io.on('connection', (socket) => {
     const player = room.players.find((p) => p.id === socket.id);
     if (!player || room.state.currentPlayerIdx !== player.index) return;
     if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) return;
-    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx });
+    const pending = room.state.pendingTurn;
+    const qId = pending?.questionIds?.[questionIdx];
+    const correctIdx = qId ? (questionsDb._byId?.[qId]?.a ?? null) : null;
+    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correctIdx });
   });
 
   socket.on('turn:submit', ({ code, submission }, cb) => {
