@@ -411,10 +411,8 @@
     <h3>Combat</h3>
     <p>Move onto a tile occupied by an enemy peg to attack. You get two questions.</p>
     <ul>
-      <li>Answer Q1 correctly to win the combat.</li>
-      <li>You also win if your peg has a higher rank, even if you miss Q2.</li>
-      <li>Answer Q2 correctly to rank up your attacking peg.</li>
-      <li>The defeated peg is eliminated.</li>
+      <li>Answer both Q1 and Q2 correctly to win: the enemy peg loses a rank (or is eliminated) and you move in.</li>
+      <li>Miss either question and the attack fails — your peg stays put.</li>
     </ul>
     <h3>Flag Tiles</h3>
     <p>Move onto a flag tile to attempt to capture it. Answer 3 questions correctly to claim the flag. Capture all flags to win!</p>
@@ -688,8 +686,9 @@
         const r = results[next];
         if (r?.chosenIdx >= 0) {
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
-          if (!r.correct && r.correctIdx !== undefined) {
-            modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
+          const correctIdx = pendingQuestions[next]?.correctIdx;
+          if (!r.correct && correctIdx !== undefined) {
+            modalOptionBtns[correctIdx]?.classList.add('answer-correct');
           }
         }
         advanceSpectateResult(results, next, moreQuestionsInProgress);
@@ -709,15 +708,14 @@
 
     if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
-      console.log('DEBUG: shouldShowResults', results, currentQIdx, modalOptionBtns);
       if (spectatingQuestion) {
         // Spectator: highlight the answer on whichever question is currently shown
         const r = results[currentQIdx] ?? results[results.length - 1];
         if (r?.chosenIdx >= 0) {
-          console.log('DEBUG: highlighting', r, modalOptionBtns[r.chosenIdx]);
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
-          if (!r.correct && r.correctIdx !== undefined) {
-            modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
+          const correctIdx = pendingQuestions[currentQIdx]?.correctIdx;
+          if (!r.correct && correctIdx !== undefined) {
+            modalOptionBtns[correctIdx]?.classList.add('answer-correct');
           }
         }
         advanceSpectateResult(results, currentQIdx, moreQuestionsInProgress);
@@ -728,8 +726,9 @@
         const r = results[0];
         if (r?.chosenIdx >= 0) {
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
-          if (!r.correct && r.correctIdx !== undefined) {
-            modalOptionBtns[r.correctIdx]?.classList.add('answer-correct');
+          const correctIdx = pendingQuestions[0]?.correctIdx;
+          if (!r.correct && correctIdx !== undefined) {
+            modalOptionBtns[correctIdx]?.classList.add('answer-correct');
           }
         }
         advanceSpectateResult(results, 0, moreQuestionsInProgress);
@@ -1088,7 +1087,7 @@
     q.opts.forEach((opt, i) => {
       const btn = document.createElement('button');
       btn.className = 'modal-option';
-      btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${opt}`;
+      btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${sanitize(opt)}`;
       if (spectatingQuestion) {btn.disabled = true;}
       else {btn.onclick = () => onAnswer(i, idx);}
       optContainer.appendChild(btn);

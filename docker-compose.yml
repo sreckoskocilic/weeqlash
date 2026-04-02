@@ -7,5 +7,6 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
+      - CORS_ORIGIN=https://sraz.nbastables.com
     volumes:
       - ./questions.enc:/app/questions.enc:ro

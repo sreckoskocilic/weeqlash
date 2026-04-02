@@ -17,11 +17,12 @@ export function loadQuestions(encPath) {
   const resolved = encPath || process.env.QUESTIONS_PATH ||
     path.resolve(import.meta.dirname, '../questions.enc');
 
-  if (!fs.existsSync(resolved)) {
+  let raw;
+  try {
+    raw = fs.readFileSync(resolved, 'utf8');
+  } catch {
     throw new Error(`questions.enc not found at ${resolved}`);
   }
-
-  const raw  = fs.readFileSync(resolved, 'utf8');
   const data = JSON.parse(decrypt(raw));
 
   // Build O(1) id lookup (include category for client display)

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { CATS } from './engine.js';
 
 // In-memory room store. Each room holds settings, player list, and game state.
 const rooms = new Map(); // code -> room
@@ -21,16 +22,27 @@ export function createRoom({
   maxRankStart = false,
 } = {}) {
   // Validate and normalize player count
-  const VALID_PLAYER_COUNTS = [2, 3, 4];
-  let playerCount = 2; // default
-  if (VALID_PLAYER_COUNTS.includes(playerCountInput)) {
-    playerCount = playerCountInput;
-  }
+  // Only 2-player rooms are supported
+  const playerCount = 2;
 
   // Validate board size - only accept valid sizes from UI
   const VALID_SIZES = [4, 5, 6, 7, 8, 10];
   if (!VALID_SIZES.includes(boardSize)) {
     boardSize = 7;
+  }
+
+  // Validate timer
+  const VALID_TIMERS = [15, 30, 45];
+  if (!VALID_TIMERS.includes(timer)) {
+    timer = 30;
+  }
+
+  // Validate enabledCats — filter out any values not in the known category list
+  if (Array.isArray(enabledCats)) {
+    enabledCats = enabledCats.filter((c) => CATS.includes(c));
+    if (enabledCats.length === 0) enabledCats = undefined;
+  } else {
+    enabledCats = undefined;
   }
 
   let code;
@@ -127,4 +139,9 @@ export function removePlayerFromRoom(socketId) {
   }
 
   return { room, player };
+}
+
+export function reattachSocket(oldSocketId, newSocketId, code) {
+  socketToRoom.delete(oldSocketId);
+  socketToRoom.set(newSocketId, code);
 }

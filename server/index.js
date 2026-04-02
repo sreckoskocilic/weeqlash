@@ -7,6 +7,7 @@ import {
   joinRoom,
   getRoom,
   removePlayerFromRoom,
+  reattachSocket,
 } from './game/rooms.js';
 import {
   createGame,
@@ -84,7 +85,7 @@ io.on('connection', (socket) => {
         ok: true,
         code: room.code,
         playerId: socket.id,
-        players: room.players,
+        players: room.players.map(publicPlayer),
         token,
       });
     },
@@ -97,17 +98,17 @@ io.on('connection', (socket) => {
     }
     const room = getRoom(code);
     socket.join(code);
-    socket.to(code).emit('room:player_joined', { players: room.players });
+    socket.to(code).emit('room:player_joined', { players: room.players.map(publicPlayer) });
     const token = room.players.find((p) => p.id === socket.id)?.token;
     cb({
       ok: true,
       playerId: socket.id,
-      players: room.players,
+      players: room.players.map(publicPlayer),
       settings: room.settings,
       token,
     });
     if (room.players.length === room.settings.playerCount) {
-      io.to(code).emit('room:full', { players: room.players });
+      io.to(code).emit('room:full', { players: room.players.map(publicPlayer) });
     }
   });
 
@@ -152,7 +153,9 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid session token' });
     }
 
+    const oldSocketId = player.id;
     player.id = socket.id; // re-attach new socket id
+    reattachSocket(oldSocketId, socket.id, code);
     socket.join(code);
     console.log(`[reconnect] ${player.name} re-joined ${code}`);
     cb({
@@ -195,11 +198,19 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not in this room' });
     }
 
+    // Validate it's the current player's turn and they own the selected peg
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+    if (pegId !== room.state.selectedPegId) {
+      return cb({ error: 'Peg not selected' });
+    }
+
     // Validate it's a legal move before planning questions
     const validMoves = getValidMoves(room.state, pegId).map(
-      (m) => m.r * 100 + m.c,
+      (m) => m.r * COORD_BASE + m.c,
     );
-    if (!validMoves.includes(r * 100 + c)) {
+    if (!validMoves.includes(r * COORD_BASE + c)) {
       return cb({ error: 'Invalid move target' });
     }
 
@@ -300,10 +311,10 @@ io.on('connection', (socket) => {
 
     const numSubmitted = (submission.answers || []).length;
 
-    // Validate answer indices are within bounds (0-3)
+    // Validate answer indices: 0-3 are valid choices, -1 means timeout (treated as wrong)
     const answers = submission.answers || [];
     for (const ans of answers) {
-      if (ans.answerIdx < 0 || ans.answerIdx > 3) {
+      if (ans.answerIdx < -1 || ans.answerIdx > 3) {
         return cb({ error: 'Invalid answer index' });
       }
     }
@@ -346,7 +357,7 @@ io.on('connection', (socket) => {
         }
         // Include this result only if: no wrong answer yet OR it's the first result (Q1)
         if (!hasWrongAnswer || i === 0) {
-          results.push({ chosenIdx: answers[i].answerIdx, correct, correctIdx: q.a });
+          results.push({ chosenIdx: answers[i].answerIdx, correct });
         }
         // For combat: if Q1 wrong, stop processing further answers
         if (isCombat && hasWrongAnswer) {
@@ -376,13 +387,7 @@ io.on('connection', (socket) => {
       const nextQId = pending.questionIds[nextQIdx];
       const q = questionsDb._byId?.[nextQId];
       if (q) {
-        nextQuestion = {
-          id: q.id,
-          q: q.q,
-          opts: q.opts,
-          category: q.category,
-          correctIdx: q.a,
-        };
+        nextQuestion = { id: q.id };
       }
     }
 
@@ -424,6 +429,11 @@ io.on('connection', (socket) => {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// Strip server-only fields (token, socket id) before broadcasting player list
+function publicPlayer({ id: _id, token: _token, ...rest }) {
+  return rest;
+}
 
 // Strip server-only fields before sending state to clients
 function publicState(state) {

@@ -623,7 +623,7 @@ export function botSelectAnswers(questionIds, questionsDb) {
     const q = questionsDb?._byId?.[qid];
     // In our test fixtures the correct answer is always at index 0.
     // If for some reason the question is missing, we still return index 0.
-    return { questionId: qid, answerIdx: q ? 0 : 0 };
+    return { questionId: qid, answerIdx: q?.a ?? 0 };
   });
 }
 
@@ -641,10 +641,10 @@ function resetTurnState(state) {
   state.pegsToMove = new Set(getEligiblePegs(state));
 
   // Clear question-tracking collections
-  for (const cat of state.enabledCats) {
-    if (state.usedQ[cat]) {state.usedQ[cat].clear();}
-    state.wrongQ.clear();
+  for (const cat of Object.keys(state.usedQ)) {
+    state.usedQ[cat].clear();
   }
+  state.wrongQ.clear();
 
   // Reset phase to SELECT_PEG
   state.phase = PHASE.SELECT_PEG;
