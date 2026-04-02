@@ -10,3 +10,4 @@ services:
       - CORS_ORIGIN=https://sraz.nbastables.com
     volumes:
       - ./questions.enc:/app/questions.enc:ro
+      - ./data:/app/data

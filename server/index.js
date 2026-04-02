@@ -19,6 +19,7 @@ import {
   COORD_BASE,
 } from './game/engine.js';
 import { loadQuestions } from './game/questions.js';
+import { initDb, getTop10, insertScore, checkQualifiesTop10 } from './game/leaderboard.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -35,6 +36,9 @@ const MIN_ANSWER_DELAY_MS = 300;
 const answerTimestamps = new Map(); // socketId -> lastAnswerTime
 const RATE_LIMIT_MS = 500;
 
+// Quiz session tracking
+const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
+
 // Periodic cleanup of stale rate limit entries (every 30s)
 setInterval(() => {
   const now = Date.now();
@@ -47,6 +51,7 @@ setInterval(() => {
 
 // Load questions once at startup
 const questionsDb = loadQuestions();
+initDb();
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -411,10 +416,109 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Quiz ---
+
+  socket.on('quiz:start', (cb) => {
+    const allQuestions = Object.values(questionsDb)
+      .filter(Array.isArray)
+      .flat()
+      .filter(q => q.id);
+
+    if (allQuestions.length === 0) {
+      return cb({ error: 'No questions available' });
+    }
+
+    const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    const run = {
+      startedAt: Date.now(),
+      questionIds: [randomQ.id],
+      answers: 0,
+    };
+    quizRuns.set(socket.id, run);
+
+    cb({
+      ok: true,
+      questionIds: [randomQ.id],
+      id: randomQ.id,
+      q: randomQ.q,
+      opts: randomQ.opts,
+      category: randomQ.category,
+    });
+  });
+
+  socket.on('quiz:answer', ({ answerIdx }, cb) => {
+    const run = quizRuns.get(socket.id);
+    if (!run) return cb({ error: 'Quiz not started' });
+
+    const qId = run.questionIds[run.answers];
+    const q = questionsDb._byId[qId];
+    if (!q) return cb({ error: 'Question not found' });
+
+    const correct = q.a === answerIdx;
+
+    if (!correct) {
+      const timeSec = (Date.now() - run.startedAt) / 1000;
+      const qualifies = checkQualifiesTop10(run.answers, Date.now() - run.startedAt);
+      return cb({
+        ok: true,
+        correct: false,
+        correctIdx: q.a,
+        gameOver: true,
+        answers: run.answers,
+        timeSec: Math.round(timeSec * 10) / 10,
+        qualifies,
+      });
+    }
+
+    run.answers++;
+    cb({
+      ok: true,
+      correct: true,
+      correctIdx: q.a,
+    });
+  });
+
+  socket.on('quiz:next', (cb) => {
+    const run = quizRuns.get(socket.id);
+    if (!run) return cb({ error: 'Quiz not started' });
+
+    const allQuestions = Object.values(questionsDb)
+      .filter(Array.isArray)
+      .flat()
+      .filter(q => q.id);
+
+    const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    run.questionIds.push(randomQ.id);
+
+    cb({
+      ok: true,
+      id: randomQ.id,
+      q: randomQ.q,
+      opts: randomQ.opts,
+      category: randomQ.category,
+    });
+  });
+
+  socket.on('quiz:submit_score', ({ name }, cb) => {
+    const run = quizRuns.get(socket.id);
+    if (!run) return cb({ error: 'No completed run' });
+
+    const timeMs = Date.now() - run.startedAt;
+    const top10 = insertScore(name, run.answers, timeMs);
+    quizRuns.delete(socket.id);
+
+    cb({ ok: true, top10 });
+  });
+
+  socket.on('quiz:leaderboard', (cb) => {
+    cb({ ok: true, top10: getTop10() });
+  });
+
   // --- Disconnect ---
 
   socket.on('disconnect', () => {
     console.log(`[-] ${socket.id}`);
+    quizRuns.delete(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {
       io.to(room.code).emit('room:player_left', {

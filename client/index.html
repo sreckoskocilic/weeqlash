@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://sraz.nbastables.com wss://sraz.nbastables.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'" />
   <title>Sraz — Multiplayer</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -315,6 +316,196 @@
     #screen-gameover h1 { font-size: 2.5rem; color: var(--accent); }
     #winner-text { font-size: 1.5rem; font-weight: 700; color: #ffd700; }
     #screen-gameover button { max-width: 240px; margin-top: 0.5rem; }
+
+    /* ===== QUIZ ===== */
+    #screen-quiz {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 10;
+    }
+    #screen-quiz.show { display: flex; }
+
+    .quiz-header {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .quiz-streak {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* ===== LEADERBOARD ===== */
+    #screen-leaderboard {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    #screen-leaderboard.show { display: flex; }
+
+    .leaderboard-panel {
+      background: var(--bg2);
+      border: 1px solid var(--bg3);
+      border-radius: 8px;
+      padding: 28px 22px;
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .leaderboard-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.5;
+    }
+
+    .lb-heading {
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-shadow: 0 0 18px rgba(233, 69, 96, 0.35);
+    }
+
+    .lb-heading span { color: var(--accent); }
+
+    .lb-divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent), var(--bg3), transparent);
+      margin-bottom: 18px;
+      opacity: 0.6;
+    }
+
+    .lb-thead {
+      display: grid;
+      grid-template-columns: 30px 1fr 58px 50px;
+      padding: 0 0 6px 0;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--bg3);
+      border-bottom: 1px solid var(--bg3);
+      margin-bottom: 2px;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 30px 1fr 58px 50px;
+      padding: 8px 0;
+      font-size: 0.97rem;
+      border-bottom: 1px solid rgba(15, 52, 96, 0.4);
+      align-items: center;
+      color: var(--muted);
+    }
+
+    .lb-row:last-child { border-bottom: none; }
+
+    .lb-rk {
+      font-size: 0.78rem;
+      color: var(--bg3);
+      font-weight: 600;
+    }
+
+    .lb-row:nth-child(1) .lb-rk { color: #c9a227; }
+    .lb-row:nth-child(2) .lb-rk { color: #888; }
+    .lb-row:nth-child(3) .lb-rk { color: #7a4a2a; }
+
+    .lb-row.new {
+      color: var(--text);
+      background: rgba(233, 69, 96, 0.06);
+      margin: 0 -22px;
+      padding: 8px 22px;
+      border-left: 2px solid var(--accent);
+      border-bottom: 1px solid rgba(233, 69, 96, 0.15);
+    }
+
+    .lb-row.new .lb-rk { color: var(--accent); }
+
+    .lb-inp-wrap {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .lb-inp-wrap input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--accent);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.93rem;
+      outline: none;
+      padding: 1px 0;
+      caret-color: var(--accent);
+    }
+
+    .lb-inp-wrap input::placeholder { color: #334; }
+
+    .lb-inp-wrap button {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      border-radius: 3px;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .lb-inp-wrap button:hover { background: var(--accent); color: #fff; }
+
+    .lb-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .lb-actions button {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--bg3);
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      padding: 8px 10px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      border-radius: 4px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .lb-actions button.primary {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .lb-actions button:hover { border-color: var(--text); color: var(--text); }
   </style>
 </head>
 <body>
@@ -394,6 +585,11 @@
     <button id="btn-join" class="secondary" style="margin-bottom:0">Join game</button>
   </div>
 
+</div>
+
+<div class="card" style="margin-top: 20px;">
+  <h2>Quick Quiz</h2>
+  <button id="btn-quiz-start" style="width: 100%; padding: 0.7rem; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer;">Start Quiz</button>
 </div>
 
 <!-- Help modal -->
@@ -1471,6 +1667,182 @@
   });
 
   $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+
+  // Quiz handlers
+  const quizState = { run: null, timerInterval: null };
+
+  document.getElementById('btn-quiz-start').addEventListener('click', () => {
+    document.getElementById('screen-connect').style.display = 'none';
+    document.getElementById('screen-lobby').style.display = 'none';
+    document.getElementById('screen-game').style.display = 'none';
+    document.getElementById('screen-quiz').classList.add('show');
+
+    socket.emit('quiz:start', (res) => {
+      if (res.error) {
+        console.error(res.error);
+        return;
+      }
+      quizState.run = { answers: 0, startedAt: Date.now() };
+      showQuizQuestion(res);
+      startQuizTimer();
+    });
+  });
+
+  function showQuizQuestion(q) {
+    document.getElementById('quiz-streak').textContent = `Streak: ${quizState.run.answers}`;
+    document.getElementById('quiz-question-modal').innerHTML = `
+      <div style="max-width: 300px; text-align: center;">
+        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">${q.category}</div>
+        <div style="font-size: 1.1rem; margin-bottom: 20px; color: var(--text);">${q.q}</div>
+        <div id="quiz-options" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+    `;
+
+    const container = document.getElementById('quiz-options');
+    q.opts.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.textContent = opt;
+      btn.style.cssText = 'padding: 10px; background: var(--bg2); border: 1px solid var(--bg3); color: var(--text); border-radius: 6px; cursor: pointer;';
+      btn.addEventListener('click', () => submitQuizAnswer(idx));
+      container.appendChild(btn);
+    });
+
+    document.getElementById('quiz-question-modal').style.display = 'block';
+    document.getElementById('quiz-continue').style.display = 'none';
+  }
+
+  function submitQuizAnswer(answerIdx) {
+    clearInterval(quizState.timerInterval);
+    socket.emit('quiz:answer', { answerIdx }, (res) => {
+      if (res.error) return;
+
+      // Show correct answer highlight
+      const options = document.querySelectorAll('#quiz-options button');
+      options.forEach((btn, idx) => {
+        if (idx === res.correctIdx) btn.style.background = '#2d5a2d';
+        else btn.style.background = 'var(--bg2)';
+      });
+
+      if (res.correct) {
+        document.getElementById('quiz-continue').style.display = 'block';
+        document.getElementById('quiz-continue').onclick = () => {
+          socket.emit('quiz:next', (nextQ) => {
+            if (nextQ.ok) showQuizQuestion(nextQ);
+          });
+        };
+      } else {
+        setTimeout(() => showLeaderboard(res), 1500);
+      }
+    });
+  }
+
+  function startQuizTimer() {
+    let secs = 10;
+    document.getElementById('quiz-timer').textContent = `${secs}s`;
+    quizState.timerInterval = setInterval(() => {
+      secs--;
+      document.getElementById('quiz-timer').textContent = `${secs}s`;
+      if (secs === 0) {
+        clearInterval(quizState.timerInterval);
+        const options = document.querySelectorAll('#quiz-options button');
+        socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
+          options.forEach(btn => btn.disabled = true);
+          setTimeout(() => showLeaderboard(res), 1500);
+        });
+      }
+    }, 1000);
+  }
+
+  function showLeaderboard(result) {
+    document.getElementById('screen-quiz').classList.remove('show');
+    document.getElementById('screen-leaderboard').classList.add('show');
+
+    socket.emit('quiz:leaderboard', (res) => {
+      const container = document.getElementById('lb-rows');
+      container.innerHTML = '';
+
+      res.top10.forEach((entry, i) => {
+        const row = document.createElement('div');
+        row.className = 'lb-row';
+        row.innerHTML = `
+          <div class="lb-rk">${String(i + 1).padStart(2, '0')}</div>
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.name}</div>
+          <div style="text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${entry.answers}</div>
+          <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(entry.time_ms / 1000)}s</div>
+        `;
+        container.appendChild(row);
+      });
+
+      if (result.qualifies) {
+        const newRow = document.createElement('div');
+        newRow.className = 'lb-row new';
+        newRow.innerHTML = `
+          <div class="lb-rk">${String(result.answers < res.top10.length ? result.answers + 1 : 10).padStart(2, '0')}</div>
+          <div class="lb-inp-wrap">
+            <input id="lb-name-input" placeholder="your name" maxlength="16" autofocus/>
+            <button onclick="submitQuizScore()">OK</button>
+          </div>
+          <div style="text-align: right; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums;">${result.answers}</div>
+          <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(result.timeSec)}s</div>
+        `;
+        const insertPos = Math.min(result.answers, res.top10.length);
+        container.insertBefore(newRow, container.children[insertPos]);
+      }
+    });
+
+    document.getElementById('lb-play-again').onclick = () => {
+      document.getElementById('screen-leaderboard').classList.remove('show');
+      document.getElementById('screen-quiz').classList.add('show');
+      socket.emit('quiz:start', (res) => {
+        if (res.ok) {
+          quizState.run = { answers: 0, startedAt: Date.now() };
+          showQuizQuestion(res);
+          startQuizTimer();
+        }
+      });
+    };
+
+    document.getElementById('lb-back').onclick = () => {
+      document.getElementById('screen-leaderboard').classList.remove('show');
+      document.getElementById('screen-lobby').style.display = 'flex';
+    };
+  }
+
+  function submitQuizScore() {
+    const name = document.getElementById('lb-name-input').value.trim();
+    if (!name) return;
+    socket.emit('quiz:submit_score', { name }, () => {
+      showLeaderboard({ qualifies: false });
+    });
+  }
 </script>
+
+<!-- Quiz Screen -->
+<div id="screen-quiz">
+  <div class="quiz-header">DEM QWIZZACKS</div>
+  <div class="quiz-streak" id="quiz-streak">Streak: 0</div>
+  <div style="font-size: 0.9rem; color: var(--accent);" id="quiz-timer">10s</div>
+  <div id="quiz-question-modal" style="display: none;">
+    <!-- Will be reused from main question modal -->
+  </div>
+  <button id="quiz-continue" style="display: none; padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer;">Continue</button>
+</div>
+
+<!-- Leaderboard Screen -->
+<div id="screen-leaderboard">
+  <div class="leaderboard-panel">
+    <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
+    <div class="lb-divider"></div>
+    <div class="lb-thead">
+      <div>#</div><div>NAME</div><div style="text-align:right">STREAK</div><div style="text-align:right">TIME</div>
+    </div>
+    <div id="lb-rows"></div>
+    <div class="lb-actions">
+      <button class="primary" id="lb-play-again">[ play again ]</button>
+      <button id="lb-back">[ back to lobby ]</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
