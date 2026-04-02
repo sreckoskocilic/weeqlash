@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createGame, applyTurn, botSelectAnswers } from '../server/game/engine.js';
 
 describe('Bot opponent – turn flow and state handling', () => {
-  const baseConfig = { boardSize: 2, enabledCats: ['general'] };
+  const baseConfig = { boardSize: 4, enabledCats: ['general'] };
   function getStartState() {
     const s = createGame(
       [{ name: 'Player 1' }, { name: 'Player 2' }],
@@ -25,8 +25,8 @@ describe('Bot opponent – turn flow and state handling', () => {
   };
   const baseSubmission = {
     pegId: pegId0,
-    targetR: 1,
-    targetC: 1,
+    targetR: 3,
+    targetC: 3,
     moveType: 'combat',
     questionIds: ['q1', 'q2'],
   };
@@ -49,7 +49,7 @@ describe('Bot opponent – turn flow and state handling', () => {
     expect(after.pendingTurn).toBeNull();
   });
 
-  it('ends the game when combat eliminates the opponent on 2x2 board', () => {
+  it('ends the game when combat eliminates the opponent on 4x4 board', () => {
     const correctSubmission = {
       ...baseSubmission,
       answers: [
@@ -65,7 +65,7 @@ describe('Bot opponent – turn flow and state handling', () => {
       correctSubmission
     );
 
-    // On 2x2 with 1 peg per player, combat that eliminates opponent ends game
+    // On 4x4 with 1 peg per player, combat that eliminates opponent ends game
     expect(result.gameOver).toBe(true);
     expect(result.winner).toBe(0);
     expect(after.pendingTurn).toBeNull();

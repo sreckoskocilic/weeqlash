@@ -116,7 +116,7 @@ function generateLayoutMap(boardSize, enabledCats) {
 }
 
 function getCornerOwnerMap(numPlayers, boardSize) {
-  if (boardSize === 4 || boardSize === 2) {
+  if (boardSize === 4) {
     return [];
   }
   const S = boardSize - 1;
@@ -150,13 +150,6 @@ function getStartPositions(numPlayers, boardSize) {
       return [corners[0], corners[1], corners[3]];
     }
     return corners;
-  }
-  // For 2x2 test board
-  if (boardSize === 2) {
-    return [
-      [{ r: 0, c: 0 }],
-      [{ r: 1, c: 1 }],
-    ];
   }
   const all = [
     [

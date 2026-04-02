@@ -28,14 +28,9 @@ export function createRoom({
   }
 
   // Validate board size - only accept valid sizes from UI
-  const VALID_SIZES = [1, 2, 4, 5, 6, 7, 8, 10];
+  const VALID_SIZES = [4, 5, 6, 7, 8, 10];
   if (!VALID_SIZES.includes(boardSize)) {
     boardSize = 7;
-  }
-
-  // For testing: use 2x2 if boardSize is 1 or 2
-  if (boardSize === 1 || boardSize === 2) {
-    boardSize = 2;
   }
 
   let code;
