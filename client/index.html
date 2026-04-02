@@ -1690,25 +1690,26 @@
 
   function showQuizQuestion(q) {
     document.getElementById('quiz-streak').textContent = `Streak: ${quizState.run.answers}`;
-    document.getElementById('quiz-question-modal').innerHTML = `
-      <div style="max-width: 300px; text-align: center;">
-        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">${q.category}</div>
-        <div style="font-size: 1.1rem; margin-bottom: 20px; color: var(--text);">${q.q}</div>
-        <div id="quiz-options" style="display: flex; flex-direction: column; gap: 8px;"></div>
-      </div>
-    `;
 
-    const container = document.getElementById('quiz-options');
+    // Use existing modal from main game
+    document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('modal-cat-badge').textContent = q.category.toUpperCase();
+    document.getElementById('modal-player-label').textContent = 'QUICK QUIZ';
+    document.getElementById('modal-question').textContent = q.q;
+
+    const optionsContainer = document.getElementById('modal-options');
+    optionsContainer.innerHTML = '';
     q.opts.forEach((opt, idx) => {
       const btn = document.createElement('button');
+      btn.className = 'modal-opt-btn';
       btn.textContent = opt;
-      btn.style.cssText = 'padding: 10px; background: var(--bg2); border: 1px solid var(--bg3); color: var(--text); border-radius: 6px; cursor: pointer;';
+      btn.dataset.idx = idx;
       btn.addEventListener('click', () => submitQuizAnswer(idx));
-      container.appendChild(btn);
+      optionsContainer.appendChild(btn);
     });
 
-    document.getElementById('quiz-question-modal').style.display = 'block';
-    document.getElementById('quiz-continue').style.display = 'none';
+    document.getElementById('modal-continue-wrap').style.display = 'none';
+    startQuizTimer();
   }
 
   function submitQuizAnswer(answerIdx) {
@@ -1717,37 +1718,65 @@
       if (res.error) return;
 
       // Show correct answer highlight
-      const options = document.querySelectorAll('#quiz-options button');
+      const options = document.querySelectorAll('.modal-opt-btn');
       options.forEach((btn, idx) => {
-        if (idx === res.correctIdx) btn.style.background = '#2d5a2d';
-        else btn.style.background = 'var(--bg2)';
+        if (idx === res.correctIdx) {
+          btn.style.background = 'rgba(45, 90, 45, 0.8)';
+          btn.style.color = '#4CAF50';
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = '0.4';
+        }
       });
 
       if (res.correct) {
-        document.getElementById('quiz-continue').style.display = 'block';
-        document.getElementById('quiz-continue').onclick = () => {
+        document.getElementById('modal-continue-wrap').style.display = 'flex';
+        document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
+        document.getElementById('modal-continue-btn').onclick = () => {
           socket.emit('quiz:next', (nextQ) => {
             if (nextQ.ok) showQuizQuestion(nextQ);
           });
         };
       } else {
-        setTimeout(() => showLeaderboard(res), 1500);
+        document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
+        document.getElementById('modal-continue-btn').onclick = () => {
+          document.getElementById('modal-overlay').style.display = 'none';
+          setTimeout(() => showLeaderboard(res), 300);
+        };
+        document.getElementById('modal-continue-wrap').style.display = 'flex';
       }
     });
   }
 
   function startQuizTimer() {
     let secs = 10;
-    document.getElementById('quiz-timer').textContent = `${secs}s`;
+    document.getElementById('timer-text').textContent = `${secs}s`;
+    const timerFill = document.getElementById('timer-fill');
+
     quizState.timerInterval = setInterval(() => {
       secs--;
-      document.getElementById('quiz-timer').textContent = `${secs}s`;
+      document.getElementById('timer-text').textContent = `${secs}s`;
+      const percent = (secs / 10) * 100;
+      timerFill.style.width = percent + '%';
+
       if (secs === 0) {
         clearInterval(quizState.timerInterval);
-        const options = document.querySelectorAll('#quiz-options button');
+        const options = document.querySelectorAll('.modal-opt-btn');
+        options.forEach(btn => btn.disabled = true);
         socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
-          options.forEach(btn => btn.disabled = true);
-          setTimeout(() => showLeaderboard(res), 1500);
+          const optionsContainer = document.getElementById('modal-options');
+          optionsContainer.querySelectorAll('button').forEach((btn, idx) => {
+            if (idx === res.correctIdx) {
+              btn.style.background = 'rgba(45, 90, 45, 0.8)';
+              btn.style.color = '#4CAF50';
+            }
+          });
+          document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
+          document.getElementById('modal-continue-btn').onclick = () => {
+            document.getElementById('modal-overlay').style.display = 'none';
+            setTimeout(() => showLeaderboard(res), 300);
+          };
+          document.getElementById('modal-continue-wrap').style.display = 'flex';
         });
       }
     }, 1000);
@@ -1817,15 +1846,10 @@
   }
 </script>
 
-<!-- Quiz Screen -->
-<div id="screen-quiz">
-  <div class="quiz-header">DEM QWIZZACKS</div>
-  <div class="quiz-streak" id="quiz-streak">Streak: 0</div>
-  <div style="font-size: 0.9rem; color: var(--accent);" id="quiz-timer">10s</div>
-  <div id="quiz-question-modal" style="display: none;">
-    <!-- Will be reused from main question modal -->
-  </div>
-  <button id="quiz-continue" style="display: none; padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer;">Continue</button>
+<!-- Quiz Screen (overlay) -->
+<div id="screen-quiz" style="position: fixed; top: 20px; left: 20px; display: none; z-index: 5;">
+  <div class="quiz-header" style="font-size: 1rem; margin-bottom: 6px;">DEM QWIZZACKS</div>
+  <div class="quiz-streak" id="quiz-streak" style="font-size: 0.8rem;">Streak: 0</div>
 </div>
 
 <!-- Leaderboard Screen -->
