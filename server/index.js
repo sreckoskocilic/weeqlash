@@ -265,10 +265,10 @@ io.on('connection', (socket) => {
 
   socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }) => {
     const room = getRoom(code);
-    if (!room?.state) return;
+    if (!room?.state) {return;}
     const player = room.players.find((p) => p.id === socket.id);
-    if (!player || room.state.currentPlayerIdx !== player.index) return;
-    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) return;
+    if (!player || room.state.currentPlayerIdx !== player.index) {return;}
+    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {return;}
     const pending = room.state.pendingTurn;
     const qId = pending?.questionIds?.[questionIdx];
     const correct = qId ? (questionsDb._byId?.[qId]?.a === answerIdx) : null;
@@ -448,11 +448,11 @@ io.on('connection', (socket) => {
 
   socket.on('quiz:answer', ({ answerIdx }, cb) => {
     const run = quizRuns.get(socket.id);
-    if (!run) return cb({ error: 'Quiz not started' });
+    if (!run) {return cb({ error: 'Quiz not started' });}
 
     const qId = run.questionIds[run.answers];
     const q = questionsDb._byId[qId];
-    if (!q) return cb({ error: 'Question not found' });
+    if (!q) {return cb({ error: 'Question not found' });}
 
     const correct = q.a === answerIdx;
 
@@ -480,7 +480,7 @@ io.on('connection', (socket) => {
 
   socket.on('quiz:next', (cb) => {
     const run = quizRuns.get(socket.id);
-    if (!run) return cb({ error: 'Quiz not started' });
+    if (!run) {return cb({ error: 'Quiz not started' });}
 
     const allQuestions = Object.values(questionsDb)
       .filter(Array.isArray)
@@ -501,7 +501,7 @@ io.on('connection', (socket) => {
 
   socket.on('quiz:submit_score', ({ name }, cb) => {
     const run = quizRuns.get(socket.id);
-    if (!run) return cb({ error: 'No completed run' });
+    if (!run) {return cb({ error: 'No completed run' });}
 
     const timeMs = Date.now() - run.startedAt;
     const top10 = insertScore(name, run.answers, timeMs);

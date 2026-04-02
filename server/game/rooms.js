@@ -15,7 +15,7 @@ function generateCode() {
 }
 
 export function createRoom({
-  playerCount: playerCountInput,
+
   boardSize = 7,
   timer = 30,
   enabledCats,
@@ -40,7 +40,7 @@ export function createRoom({
   // Validate enabledCats — filter out any values not in the known category list
   if (Array.isArray(enabledCats)) {
     enabledCats = enabledCats.filter((c) => CATS.includes(c));
-    if (enabledCats.length === 0) enabledCats = undefined;
+    if (enabledCats.length === 0) {enabledCats = undefined;}
   } else {
     enabledCats = undefined;
   }

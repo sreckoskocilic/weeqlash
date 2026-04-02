@@ -12,7 +12,7 @@ function createWindow() {
       contextIsolation: true,
       sandbox: false, // needed for socket.io-client in renderer
       nodeIntegration: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.mjs')
     }
   });
 

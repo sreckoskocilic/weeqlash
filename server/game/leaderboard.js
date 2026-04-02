@@ -49,7 +49,7 @@ export function insertScore(name, answers, timeMs) {
 
 export function checkQualifiesTop10(answers, timeMs) {
   const top10 = getTop10();
-  if (top10.length < 10) return true;
+  if (top10.length < 10) {return true;}
   const wouldPlace = top10.findIndex(e => answers > e.answers || (answers === e.answers && timeMs < e.time_ms));
   return wouldPlace !== -1;
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://sraz.nbastables.com wss://sraz.nbastables.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://sraz.nbastables.com wss://sraz.nbastables.com http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-inline' https://sraz.nbastables.com http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com" />
   <title>Sraz — Multiplayer</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
@@ -465,6 +465,7 @@
     .lb-inp-wrap input::placeholder { color: #334; }
 
     .lb-inp-wrap button {
+      width: auto;
       background: transparent;
       border: 1px solid var(--accent);
       color: var(--accent);
@@ -585,11 +586,12 @@
     <button id="btn-join" class="secondary" style="margin-bottom:0">Join game</button>
   </div>
 
-</div>
+  <div class="divider">or play solo</div>
 
-<div class="card" style="margin-top: 20px;">
-  <h2>Quick Quiz</h2>
-  <button id="btn-quiz-start" style="width: 100%; padding: 0.7rem; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer;">Start Quiz</button>
+  <div class="setup-section" style="margin-bottom:0">
+    <button id="btn-quiz-start" style="width:100%;padding:0.85rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:1.05rem;font-weight:700;cursor:pointer;letter-spacing:0.04em;">Start Trivianderdome</button>
+  </div>
+
 </div>
 
 <!-- Help modal -->
@@ -686,9 +688,10 @@
 </div>
 
 <script type="module">
-  import { io } from '/socket.io/socket.io.esm.min.js';
+  const serverUrl = window.SRAZ_SERVER_URL || (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
+  const { io } = await import(`${serverUrl}/socket.io/socket.io.esm.min.js`);
 
-  const socket = io(window.location.origin, { transports: ['websocket'] });
+  const socket = io(serverUrl, { transports: ['websocket'] });
   const $ = id => document.getElementById(id);
 
   // Socket.IO error handling
@@ -1675,37 +1678,39 @@
     document.getElementById('screen-connect').style.display = 'none';
     document.getElementById('screen-lobby').style.display = 'none';
     document.getElementById('screen-game').style.display = 'none';
-    document.getElementById('screen-quiz').classList.add('show');
 
     socket.emit('quiz:start', (res) => {
       if (res.error) {
-        console.error(res.error);
+        console.error('Quiz start error:', res.error);
+        alert('Quiz error: ' + res.error);
         return;
       }
       quizState.run = { answers: 0, startedAt: Date.now() };
       showQuizQuestion(res);
-      startQuizTimer();
     });
   });
 
   function showQuizQuestion(q) {
-    document.getElementById('quiz-streak').textContent = `Streak: ${quizState.run.answers}`;
+    // Use exact same modal as game
+    document.getElementById('modal-overlay').classList.add('visible');
+    document.getElementById('modal-cat-badge').textContent = q.category ? CAT_NAMES[q.category] || q.category : 'QUESTION';
+    document.getElementById('modal-cat-badge').style.background = q.category ? (CAT_COLORS[q.category] || '#0f3460') : '#0f3460';
+    const streak = quizState.run.answers;
+    document.getElementById('modal-player-label').textContent = streak > 0 ? `Trivianderdome · Streak ${streak}` : 'Trivianderdome';
+    document.getElementById('modal-combat-label').style.display = 'none';
+    document.getElementById('modal-question').textContent = q.q;
 
-    // Use existing modal from main game
-    document.getElementById('modal-overlay').style.display = 'flex';
-    document.getElementById('modal-cat-badge').textContent = (q.category || 'QUESTION').toUpperCase();
-    document.getElementById('modal-player-label').textContent = 'QUICK QUIZ';
-    document.getElementById('modal-question').textContent = q.q || '';
-
-    const optionsContainer = document.getElementById('modal-options');
-    optionsContainer.innerHTML = '';
-    q.opts.forEach((opt, idx) => {
+    const optContainer = document.getElementById('modal-options');
+    optContainer.innerHTML = '';
+    optContainer.dataset.submitting = '';
+    modalOptionBtns = [];
+    q.opts.forEach((opt, i) => {
       const btn = document.createElement('button');
-      btn.className = 'modal-opt-btn';
-      btn.textContent = opt;
-      btn.dataset.idx = idx;
-      btn.addEventListener('click', () => submitQuizAnswer(idx));
-      optionsContainer.appendChild(btn);
+      btn.className = 'modal-option';
+      btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${opt}`;
+      btn.onclick = () => submitQuizAnswer(i);
+      optContainer.appendChild(btn);
+      modalOptionBtns.push(btn);
     });
 
     document.getElementById('modal-continue-wrap').style.display = 'none';
@@ -1713,20 +1718,17 @@
   }
 
   function submitQuizAnswer(answerIdx) {
+    if (document.getElementById('modal-options')?.dataset?.submitting === 'true') {return;}
+    document.getElementById('modal-options').dataset.submitting = 'true';
     clearInterval(quizState.timerInterval);
     socket.emit('quiz:answer', { answerIdx }, (res) => {
-      if (res.error) return;
+      if (res.error) {return;}
 
-      // Show correct answer highlight
-      const options = document.querySelectorAll('.modal-opt-btn');
-      options.forEach((btn, idx) => {
-        if (idx === res.correctIdx) {
-          btn.style.background = 'rgba(45, 90, 45, 0.8)';
-          btn.style.color = '#4CAF50';
-        } else {
-          btn.disabled = true;
-          btn.style.opacity = '0.4';
-        }
+      // Highlight using same CSS classes as the game
+      modalOptionBtns.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === answerIdx) {btn.classList.add(res.correct ? 'answer-correct' : 'answer-wrong');}
+        if (i === res.correctIdx && !res.correct) {btn.classList.add('answer-correct');}
       });
 
       if (res.correct) {
@@ -1734,13 +1736,13 @@
         document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
         document.getElementById('modal-continue-btn').onclick = () => {
           socket.emit('quiz:next', (nextQ) => {
-            if (nextQ.ok) showQuizQuestion(nextQ);
+            if (nextQ.ok) {showQuizQuestion(nextQ);}
           });
         };
       } else {
         document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
         document.getElementById('modal-continue-btn').onclick = () => {
-          document.getElementById('modal-overlay').style.display = 'none';
+          document.getElementById('modal-overlay').classList.remove('visible');
           setTimeout(() => showLeaderboard(res), 300);
         };
         document.getElementById('modal-continue-wrap').style.display = 'flex';
@@ -1761,19 +1763,15 @@
 
       if (secs === 0) {
         clearInterval(quizState.timerInterval);
-        const options = document.querySelectorAll('.modal-opt-btn');
-        options.forEach(btn => btn.disabled = true);
+        document.getElementById('modal-options').dataset.submitting = 'true';
+        modalOptionBtns.forEach(btn => btn.disabled = true);
         socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
-          const optionsContainer = document.getElementById('modal-options');
-          optionsContainer.querySelectorAll('button').forEach((btn, idx) => {
-            if (idx === res.correctIdx) {
-              btn.style.background = 'rgba(45, 90, 45, 0.8)';
-              btn.style.color = '#4CAF50';
-            }
+          modalOptionBtns.forEach((btn, i) => {
+            if (i === res.correctIdx) {btn.classList.add('answer-correct');}
           });
           document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
           document.getElementById('modal-continue-btn').onclick = () => {
-            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('modal-overlay').classList.remove('visible');
             setTimeout(() => showLeaderboard(res), 300);
           };
           document.getElementById('modal-continue-wrap').style.display = 'flex';
@@ -1783,7 +1781,6 @@
   }
 
   function showLeaderboard(result) {
-    document.getElementById('screen-quiz').classList.remove('show');
     document.getElementById('screen-leaderboard').classList.add('show');
 
     socket.emit('quiz:leaderboard', (res) => {
@@ -1821,37 +1818,30 @@
 
     document.getElementById('lb-play-again').onclick = () => {
       document.getElementById('screen-leaderboard').classList.remove('show');
-      document.getElementById('screen-quiz').classList.add('show');
       socket.emit('quiz:start', (res) => {
         if (res.ok) {
           quizState.run = { answers: 0, startedAt: Date.now() };
           showQuizQuestion(res);
-          startQuizTimer();
         }
       });
     };
 
     document.getElementById('lb-back').onclick = () => {
       document.getElementById('screen-leaderboard').classList.remove('show');
-      document.getElementById('screen-lobby').style.display = 'flex';
+      document.getElementById('screen-connect').style.display = '';
     };
   }
 
-  function submitQuizScore() {
+  window.submitQuizScore = function submitQuizScore() {
     const name = document.getElementById('lb-name-input').value.trim();
-    if (!name) return;
+    if (!name) {return;}
     socket.emit('quiz:submit_score', { name }, () => {
       showLeaderboard({ qualifies: false });
     });
-  }
+  };
 </script>
 
 <!-- Quiz Screen (overlay) -->
-<div id="screen-quiz" style="position: fixed; top: 20px; left: 20px; display: none; z-index: 5;">
-  <div class="quiz-header" style="font-size: 1rem; margin-bottom: 6px;">DEM QWIZZACKS</div>
-  <div class="quiz-streak" id="quiz-streak" style="font-size: 0.8rem;">Streak: 0</div>
-</div>
-
 <!-- Leaderboard Screen -->
 <div id="screen-leaderboard">
   <div class="leaderboard-panel">
