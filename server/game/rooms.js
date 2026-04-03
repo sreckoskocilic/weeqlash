@@ -15,15 +15,13 @@ function generateCode() {
 }
 
 export function createRoom({
-
   boardSize = 7,
   timer = 30,
   enabledCats,
   maxRankStart = false,
 } = {}) {
-  // Validate and normalize player count
   // Only 2-player rooms are supported
-  const playerCount = 2;
+  const PLAYER_COUNT = 2;
 
   // Validate board size - only accept valid sizes from UI
   const VALID_SIZES = [4, 5, 6, 7, 8, 10];
@@ -52,7 +50,7 @@ export function createRoom({
 
   const room = {
     code,
-    settings: { playerCount, boardSize, timer, enabledCats, maxRankStart },
+    settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats, maxRankStart },
     players: [],
     started: false,
     state: null,

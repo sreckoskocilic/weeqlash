@@ -40,7 +40,7 @@ const RATE_LIMIT_MS = 500;
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
 
 // Periodic cleanup of stale rate limit entries (every 30s)
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [socketId, time] of answerTimestamps) {
     if (now - time > 60_000) {
@@ -48,6 +48,19 @@ setInterval(() => {
     }
   }
 }, 30_000);
+
+// Graceful shutdown - clear intervals and close server
+function gracefulShutdown(signal) {
+  console.log(`\n[${signal}] Shutting down...`);
+  clearInterval(cleanupInterval);
+  httpServer.close(() => {
+    console.log('[shutdown] HTTP server closed');
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Load questions once at startup
 const questionsDb = loadQuestions();
@@ -449,6 +462,11 @@ io.on('connection', (socket) => {
   socket.on('quiz:answer', ({ answerIdx }, cb) => {
     const run = quizRuns.get(socket.id);
     if (!run) {return cb({ error: 'Quiz not started' });}
+
+    // Validate answer index: 0-3 valid choices, -1 means timeout (treated as wrong)
+    if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
+      return cb({ error: 'Invalid answer index' });
+    }
 
     const qId = run.questionIds[run.answers];
     const q = questionsDb._byId[qId];

@@ -29,27 +29,42 @@ export function initDb() {
 }
 
 export function getTop10() {
-  const stmt = db.prepare(`
-    SELECT id, name, answers, time_ms, created_at
-    FROM leaderboard
-    ORDER BY answers DESC, time_ms ASC
-    LIMIT 10
-  `);
-  return stmt.all();
+  try {
+    const stmt = db.prepare(`
+      SELECT id, name, answers, time_ms, created_at
+      FROM leaderboard
+      ORDER BY answers DESC, time_ms ASC
+      LIMIT 10
+    `);
+    return stmt.all();
+  } catch (err) {
+    console.error('[leaderboard] getTop10 failed:', err.message);
+    return [];
+  }
 }
 
 export function insertScore(name, answers, timeMs) {
-  const stmt = db.prepare(`
-    INSERT INTO leaderboard (name, answers, time_ms, created_at)
-    VALUES (?, ?, ?, ?)
-  `);
-  stmt.run(name, answers, timeMs, Date.now());
-  return getTop10();
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO leaderboard (name, answers, time_ms, created_at)
+      VALUES (?, ?, ?, ?)
+    `);
+    stmt.run(name, answers, timeMs, Date.now());
+    return getTop10();
+  } catch (err) {
+    console.error('[leaderboard] insertScore failed:', err.message);
+    return [];
+  }
 }
 
 export function checkQualifiesTop10(answers, timeMs) {
-  const top10 = getTop10();
-  if (top10.length < 10) {return true;}
-  const wouldPlace = top10.findIndex(e => answers > e.answers || (answers === e.answers && timeMs < e.time_ms));
-  return wouldPlace !== -1;
+  try {
+    const top10 = getTop10();
+    if (top10.length < 10) {return true;}
+    const wouldPlace = top10.findIndex(e => answers > e.answers || (answers === e.answers && timeMs < e.time_ms));
+    return wouldPlace !== -1;
+  } catch (err) {
+    console.error('[leaderboard] checkQualifiesTop10 failed:', err.message);
+    return false;
+  }
 }

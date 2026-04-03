@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const KEY = Buffer.from('SraziqueQuestions2024', 'utf8');
+const KEY = Buffer.from(process.env.QUESTIONS_KEY || 'SraziqueQuestions2024', 'utf8');
 
 function decrypt(base64) {
   const enc = Buffer.from(base64, 'base64');
@@ -20,8 +20,12 @@ export function loadQuestions(encPath) {
   let raw;
   try {
     raw = fs.readFileSync(resolved, 'utf8');
-  } catch {
-    throw new Error(`questions.enc not found at ${resolved}`);
+  } catch (err) {
+    throw new Error(
+      `questions.enc not found at ${resolved}. ` +
+      'Set QUESTIONS_PATH env var or place file in server/questions.enc: ' +
+      err.message
+    );
   }
   const data = JSON.parse(decrypt(raw));
 
