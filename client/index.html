@@ -235,16 +235,15 @@
     .flag-owner  { font-size: calc(var(--ts) * 0.14); font-weight: 700; text-align: center; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* ===== CATEGORY COLORS ===== */
-    .cat-art           { background: #C62828; } .cat-art .tile-cat-label           { color: #FFD6D6; }
-    .cat-geography     { background: #2E7D32; } .cat-geography .tile-cat-label     { color: #C8F0CA; }
-    .cat-history       { background: #6D4C41; } .cat-history .tile-cat-label       { color: #FFE0C8; }
-    .cat-literature    { background: #6A1B9A; } .cat-literature .tile-cat-label    { color: #E8CCFF; }
-    .cat-science       { background: #00838F; } .cat-science .tile-cat-label       { color: #B2F0F5; }
-    .cat-business      { background: #E65100; } .cat-business .tile-cat-label      { color: #FFF0CC; }
-    .cat-sport         { background: #1565C0; } .cat-sport .tile-cat-label         { color: #C5DCFF; }
-    .cat-religion      { background: #F9A825; } .cat-religion .tile-cat-label      { color: #4A2800; }
-    .cat-entertainment { background: #AD1457; } .cat-entertainment .tile-cat-label { color: #FFD6E8; }
-    .cat-general       { background: #546E7A; } .cat-general .tile-cat-label       { color: #D6E8F0; }
+    .cat-visual_arts     { background: #C62828; } .cat-visual_arts .tile-cat-label     { color: #FFD6D6; }
+    .cat-music          { background: #6A1B9A; } .cat-music .tile-cat-label          { color: #E8CCFF; }
+    .cat-film_tv        { background: #E65100; } .cat-film_tv .tile-cat-label        { color: #FFF0CC; }
+    .cat-books           { background: #1565C0; } .cat-books .tile-cat-label           { color: #C5DCFF; }
+    .cat-science        { background: #2E7D32; } .cat-science .tile-cat-label        { color: #C8F0CA; }
+    .cat-history        { background: #6D4C41; } .cat-history .tile-cat-label        { color: #FFE0C8; }
+    .cat-geography      { background: #2E7D32; } .cat-geography .tile-cat-label      { color: #C8F0CA; }
+    .cat-sports         { background: #AD1457; } .cat-sports .tile-cat-label         { color: #FFD6E8; }
+    .cat-other          { background: #546E7A; } .cat-other .tile-cat-label          { color: #D6E8F0; }
 
     /* ===== PEGS ===== */
     .peg {
@@ -574,16 +573,15 @@
       <div class="setup-section">
         <h3>Categories</h3>
         <div class="cat-toggle-btns" id="cat-toggle-btns">
-          <button class="cat-toggle-btn active" data-cat="art">Art</button>
+          <button class="cat-toggle-btn active" data-cat="visual_arts">Visual Arts</button>
           <button class="cat-toggle-btn active" data-cat="geography">Geography</button>
           <button class="cat-toggle-btn active" data-cat="history">History</button>
-          <button class="cat-toggle-btn active" data-cat="literature">Literature</button>
+          <button class="cat-toggle-btn active" data-cat="books">Books</button>
           <button class="cat-toggle-btn active" data-cat="science">Science</button>
-          <button class="cat-toggle-btn active" data-cat="business">Business</button>
-          <button class="cat-toggle-btn active" data-cat="sport">Sports</button>
-          <button class="cat-toggle-btn active" data-cat="religion">Religion</button>
-          <button class="cat-toggle-btn active" data-cat="entertainment">Entertainment</button>
-          <button class="cat-toggle-btn active" data-cat="general">General</button>
+          <button class="cat-toggle-btn active" data-cat="music">Music</button>
+          <button class="cat-toggle-btn active" data-cat="film_tv">Film & TV</button>
+          <button class="cat-toggle-btn active" data-cat="sports">Sports</button>
+          <button class="cat-toggle-btn active" data-cat="other">Other</button>
         </div>
       </div>
     </div>
@@ -748,16 +746,14 @@
   const RANK_BADGE = ['', '★', '★★'];
   const OPTION_KEYS = ['A','B','C','D'];
   const KEY_MAP = { a:0, b:1, c:2, d:3, '1':0, '2':1, '3':2, '4':3 };
-  const CAT_NAMES = {
-    art:'Art', geography:'Geography', history:'History', literature:'Literature',
-    science:'Science', business:'Business', sport:'Sports',
-    religion:'Religion', entertainment:'Entertainment', general:'General'
-  };
-  const CAT_COLORS = {
-    art:'#C62828', geography:'#2E7D32', history:'#6D4C41', literature:'#6A1B9A',
-    science:'#00838F', business:'#E65100', sport:'#1565C0', religion:'#F9A825',
-    entertainment:'#AD1457', general:'#546E7A'
-  };
+const CAT_NAMES = {
+  visual_arts:'Visual Arts', music:'Music', film_tv:'Film & TV', books:'Books', science:'Science',
+  history:'History', geography:'Geography', sports:'Sports', other:'Other'
+};
+const CAT_COLORS = {
+  visual_arts:'#C62828', geography:'#2E7D32', history:'#6D4C41', books:'#6A1B9A',
+  science:'#2E7D32', music:'#6A1B9A', film_tv:'#E65100', sports:'#AD1457', other:'#546E7A'
+};
   const CATS = Object.keys(CAT_NAMES);
 
   // Timing constants

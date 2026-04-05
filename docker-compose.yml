@@ -9,5 +9,5 @@ services:
       - NODE_ENV=production
       - CORS_ORIGIN=https://sraz.nbastables.com
     volumes:
-      - ./questions.enc:/app/questions.enc:ro
+      - ./server/questions.enc:/app/questions.enc:ro
       - ./data:/app/data

@@ -19,16 +19,15 @@ export const PHASE = {
 };
 
 export const CATS = [
-  'art',
-  'geography',
-  'history',
-  'literature',
+  'visual_arts',
+  'music',
+  'film_tv',
+  'books',
   'science',
-  'business',
-  'sport',
-  'religion',
-  'entertainment',
-  'general',
+  'history',
+  'geography',
+  'sports',
+  'other',
 ];
 
 function getRankUpThreshold(boardSize) {
@@ -382,9 +381,9 @@ function getMoveType(state, pegId, r, c) {
 export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const tile = state.board[targetR][targetC];
   const moveType = getMoveType(state, pegId, targetR, targetC);
-  // tileCat matches srazique's tileCat(): flag tiles use 'general' for normal moves
+  // tileCat matches srazique's tileCat(): flag tiles use 'other' for normal moves
   const tileCat =
-    tile.category === 'flag' ? 'general' : tile.category;
+    tile.category === 'flag' ? 'other' : tile.category;
 
   let questionIds;
   if (moveType === 'flag') {
@@ -396,7 +395,7 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
     ];
   } else if (moveType === 'combat') {
     // Q1 uses the tile's category (matching srazique tileCat), Q2 uses random category
-    const combatQ1Cat = tile.category === 'flag' ? 'general' : tile.category;
+    const combatQ1Cat = tile.category === 'flag' ? 'other' : tile.category;
     const combatQ2Cat = randomCat(state.enabledCats);
     questionIds = [
       ...pickQuestionIds(state, combatQ1Cat, 1, questionsDb),
