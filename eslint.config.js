@@ -12,6 +12,8 @@ const sharedRules = {
   "no-trailing-spaces": "error",
   semi: "error",
   quotes: ["error", "single", { avoidEscape: true }],
+  "no-shadow": "error",
+  "no-shadow-restricted-names": "error",
 };
 
 export default [

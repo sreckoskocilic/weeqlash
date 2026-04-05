@@ -835,9 +835,9 @@
   }
 
   function showError(msg) {
-    const el = el('connect-error');
-    el.textContent = msg;
-    el.style.display = msg ? 'block' : 'none';
+    const errEl = el('connect-error');
+    errEl.textContent = msg;
+    errEl.style.display = msg ? 'block' : 'none';
   }
 
   // ============================================================
@@ -1061,10 +1061,10 @@
     for (let r = 0; r < state.boardSize; r++) {
       tileEls[r] = [];
       for (let c = 0; c < state.boardSize; c++) {
-        const el = document.createElement('div');
-        el.dataset.r = r; el.dataset.c = c;
-        boardEl.appendChild(el);
-        tileEls[r][c] = el;
+        const tile = document.createElement('div');
+        tile.dataset.r = r; tile.dataset.c = c;
+        boardEl.appendChild(tile);
+        tileEls[r][c] = tile;
       }
     }
 
@@ -1182,12 +1182,12 @@
 
   function updateTile(r, c, state) {
     const tile = state.board[r][c];
-    const el = tileEls[r][c];
-    if (!el) {return;}
+    const tileEl = tileEls[r][c];
+    if (!tileEl) {return;}
 
     // Base class
-    el.className = tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
-    el.innerHTML = '';
+    tileEl.className = tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
+    tileEl.innerHTML = '';
 
     // Highlight states
     const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
@@ -1198,36 +1198,36 @@
 
     if (phase === PHASE.SELECT_PEG && isMyTurn) {
       const myPlayer = state.players[myPlayerIndex];
-      if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) {el.classList.add('clickable');}
+      if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) {tileEl.classList.add('clickable');}
     } else if (phase === PHASE.SELECT_TILE && isMyTurn) {
-      if (isValidMove) { el.classList.add('valid-move', 'clickable'); }
-      else if (!isSelectedPeg) { el.classList.add('dimmed'); }
+      if (isValidMove) { tileEl.classList.add('valid-move', 'clickable'); }
+      else if (!isSelectedPeg) { tileEl.classList.add('dimmed'); }
     }
-    if (isSelectedPeg) {el.classList.add('selected-peg-tile');}
+    if (isSelectedPeg) {tileEl.classList.add('selected-peg-tile');}
     if (navCursor.row === r && navCursor.col === c && isMyTurn &&
-        (phase === PHASE.SELECT_PEG || phase === PHASE.SELECT_TILE)) {el.classList.add('nav-highlight');}
+        (phase === PHASE.SELECT_PEG || phase === PHASE.SELECT_TILE)) {tileEl.classList.add('nav-highlight');}
 
     // Tile content
     if (tile.category === 'flag' && tile.cornerOwner !== null) {
       const owner = state.players[tile.cornerOwner];
       if (owner) {
-        el.style.borderColor = owner.color;
+        tileEl.style.borderColor = owner.color;
         const flagEl = document.createElement('div');
         flagEl.className = 'flag-icon';
         flagEl.textContent = '⚑';
         flagEl.style.color = owner.color;
-        el.appendChild(flagEl);
+        tileEl.appendChild(flagEl);
         const nameEl = document.createElement('div');
         nameEl.className = 'flag-owner';
         nameEl.style.color = owner.color;
         nameEl.textContent = owner.name;
-        el.appendChild(nameEl);
+        tileEl.appendChild(nameEl);
       }
     } else {
       const label = document.createElement('div');
       label.className = 'tile-cat-label';
       label.textContent = CAT_NAMES[tile.category] ?? tile.category;
-      el.appendChild(label);
+      tileEl.appendChild(label);
     }
 
     // Peg
@@ -1254,7 +1254,7 @@
         badge.textContent = RANK_BADGE[peg.rank];
         pegEl.appendChild(badge);
       }
-      el.appendChild(pegEl);
+      tileEl.appendChild(pegEl);
     }
   }
 
@@ -1592,13 +1592,15 @@
   }
 
   function showTurnAnnounce(player, isMe) {
-    const el = el('turn-announce');
-    if (!el) {return;}
-    el('turn-announce-name').textContent = player.name;
-    el('turn-announce-name').style.color = player.color;
-    el('turn-announce-sub').textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
-    el.classList.add('visible');
-    setTimeout(() => el.classList.remove('visible'), 2000);
+    const container = el('turn-announce');
+    if (!container) {return;}
+    const nameEl = el('turn-announce-name');
+    const subEl = el('turn-announce-sub');
+    nameEl.textContent = player.name;
+    nameEl.style.color = player.color;
+    subEl.textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
+    container.classList.add('visible');
+    setTimeout(() => container.classList.remove('visible'), 2000);
   }
 
   function initNavCursor(state) {
@@ -1810,14 +1812,14 @@
   let gameTimerStart = 0;
   function startGameTimer() {
     gameTimerStart = Date.now();
-    const el = document.getElementById('modal-game-timer');
-    el.style.display = '';
+    const timerEl = document.getElementById('modal-game-timer');
+    timerEl.style.display = '';
     clearInterval(quizState.gameTimerInterval);
     quizState.gameTimerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - gameTimerStart) / 1000);
       const m = Math.floor(elapsed / 60);
       const s = elapsed % 60;
-      el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+      timerEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
     }, 500);
   }
   function stopGameTimer() {

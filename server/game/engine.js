@@ -677,13 +677,13 @@ export function createGame(players, settings = {}) {
   const layoutMap = generateLayoutMap(boardSize, activeCats);
   const cornerMap = getCornerOwnerMap(numPlayers, boardSize);
 
-  const board = Array.from({ length: boardSize }, (_, r) =>
-    Array.from({ length: boardSize }, (_, c) => {
-      const val = layoutMap[r][c];
+  const board = Array.from({ length: boardSize }, (_outer, rowIdx) =>
+    Array.from({ length: boardSize }, (_inner, colIdx) => {
+      const val = layoutMap[rowIdx][colIdx];
       return {
         category: val === 'F' ? 'flag' : activeCats[val],
         pegId: null,
-        cornerOwner: val === 'F' ? cornerMap[`${r},${c}`] : null,
+        cornerOwner: val === 'F' ? cornerMap[`${rowIdx},${colIdx}`] : null,
       };
     }),
   );
