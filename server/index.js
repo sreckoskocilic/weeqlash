@@ -1,6 +1,10 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import {
   createRoom,
@@ -8,6 +12,8 @@ import {
   getRoom,
   removePlayerFromRoom,
   reattachSocket,
+  cleanupStaleRooms,
+  isInActiveGame,
 } from './game/rooms.js';
 import {
   createGame,
@@ -18,12 +24,17 @@ import {
   PHASE,
   COORD_BASE,
 } from './game/engine.js';
-import { loadQuestions } from './game/questions.js';
-import { initDb, getTop10, insertScore, checkQualifiesTop10 } from './game/leaderboard.js';
+import { loadQuestions, getAllQuestions } from './game/questions.js';
+import { initDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
 
 const app = express();
 const httpServer = createServer(app);
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://sraz.nbastables.com';
+
+// Serve client files for browser access
+app.use(express.static(path.join(__dirname, '../client')));
+const CORS_ORIGIN = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['https://sraz.nbastables.com', 'http://localhost:3000', 'http://127.0.0.1:3000'];
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN },
 });
@@ -31,10 +42,24 @@ const PORT = process.env.PORT || 3000;
 
 // Minimum delay before accepting answers to ensure other players see the question
 const MIN_ANSWER_DELAY_MS = 300;
+// Maximum time allowed to answer a question (server-side timer)
+const MAX_ANSWER_TIME_MS = 60_000;
 
 // Rate limiting: throttle answer submissions per socket
 const answerTimestamps = new Map(); // socketId -> lastAnswerTime
 const RATE_LIMIT_MS = 500;
+
+// Rate limiting: throttle lobby actions per socket
+const lobbyTimestamps = new Map(); // socketId -> lastLobbyActionTime
+const LOBBY_RATE_LIMIT_MS = 1000;
+
+// Rate limiting: throttle answer preview broadcasts per socket
+const previewTimestamps = new Map(); // socketId -> lastPreviewTime
+const PREVIEW_RATE_LIMIT_MS = 200;
+
+// Rate limiting: throttle quiz starts per socket
+const quizTimestamps = new Map(); // socketId -> lastQuizStartTime
+const QUIZ_RATE_LIMIT_MS = 2000;
 
 // Quiz session tracking
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
@@ -47,16 +72,61 @@ const cleanupInterval = setInterval(() => {
       answerTimestamps.delete(socketId);
     }
   }
+  for (const [socketId, time] of lobbyTimestamps) {
+    if (now - time > 60_000) {
+      lobbyTimestamps.delete(socketId);
+    }
+  }
+  for (const [socketId, time] of previewTimestamps) {
+    if (now - time > 60_000) {
+      previewTimestamps.delete(socketId);
+    }
+  }
+  for (const [socketId, time] of quizTimestamps) {
+    if (now - time > 60_000) {
+      quizTimestamps.delete(socketId);
+    }
+  }
 }, 30_000);
+cleanupInterval.unref();
+
+// Periodic cleanup of orphaned rooms (every 60s)
+const roomCleanupInterval = setInterval(() => {
+  const removed = cleanupStaleRooms();
+  if (removed > 0) {
+    console.log(`[rooms] cleaned up ${removed} stale room(s)`);
+  }
+}, 60_000);
+roomCleanupInterval.unref();
+
+// Periodic leaderboard pruning (every 5 minutes)
+const leaderboardPruneInterval = setInterval(() => {
+  pruneLeaderboard();
+}, 5 * 60_000);
+leaderboardPruneInterval.unref();
 
 // Graceful shutdown - clear intervals and close server
 function gracefulShutdown(signal) {
   console.log(`\n[${signal}] Shutting down...`);
   clearInterval(cleanupInterval);
+  clearInterval(roomCleanupInterval);
+  clearInterval(leaderboardPruneInterval);
   httpServer.close(() => {
     console.log('[shutdown] HTTP server closed');
     process.exit(0);
   });
+}
+
+// Enforce lobby action rate limit. Returns true if throttled.
+function checkLobbyRateLimit(socketId, cb) {
+  const now = Date.now();
+  const last = lobbyTimestamps.get(socketId) || 0;
+  if (now - last < LOBBY_RATE_LIMIT_MS) {
+    cb?.({ error: 'Please wait before trying again.' });
+    return true;
+  }
+  lobbyTimestamps.set(socketId, now);
+  return false;
 }
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
@@ -65,10 +135,6 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 // Load questions once at startup
 const questionsDb = loadQuestions();
 initDb();
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Connection
@@ -85,6 +151,9 @@ io.on('connection', (socket) => {
       { playerName, playerCount, boardSize, timer, enabledCats, maxRankStart },
       cb,
     ) => {
+      if (checkLobbyRateLimit(socket.id, cb)) {return;}
+      // Clean up any lingering quiz session when joining a room game
+      quizRuns.delete(socket.id);
       const room = createRoom({
         playerCount,
         boardSize,
@@ -110,6 +179,9 @@ io.on('connection', (socket) => {
   );
 
   socket.on('room:join', ({ code, playerName }, cb) => {
+    if (checkLobbyRateLimit(socket.id, cb)) {return;}
+    // Clean up any lingering quiz session when joining a room game
+    quizRuns.delete(socket.id);
     const result = joinRoom(code, socket.id, playerName);
     if (result.error) {
       return cb(result);
@@ -131,11 +203,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('room:start', ({ code }, cb) => {
+    if (checkLobbyRateLimit(socket.id, cb)) {return;}
     const room = getRoom(code);
     if (!room) {
       return cb({ error: 'Room not found' });
     }
-    if (room.players[0].id !== socket.id) {
+    const host = room.players.find((p) => p.isHost);
+    if (!host || host.id !== socket.id) {
       return cb({ error: 'Only host can start' });
     }
     if (room.players.length < 2) {
@@ -145,8 +219,23 @@ io.on('connection', (socket) => {
       return cb({ error: 'Already started' });
     }
 
+    // Create game state first — only mark room as started if it succeeds
+    let gameState;
+    try {
+      gameState = createGame(room.players, room.settings);
+    } catch (err) {
+      console.error(`[game] ${code} failed to create game:`, err.message);
+      return cb({ error: 'Failed to start game' });
+    }
+
     room.started = true;
-    room.state = createGame(room.players, room.settings);
+    room.state = gameState;
+
+    // Clean up any lingering quiz sessions for players starting a Sraz game
+    for (const player of room.players) {
+      quizRuns.delete(player.id);
+    }
+
     console.log(
       `[game] ${code} started (${room.players.length}p, board ${room.settings.boardSize})`,
     );
@@ -162,6 +251,7 @@ io.on('connection', (socket) => {
   // --- Reconnect ---
 
   socket.on('session:resume', ({ token, code }, cb) => {
+    if (checkLobbyRateLimit(socket.id, cb)) {return;}
     const room = getRoom(code);
     if (!room || !room.started) {
       return cb({ error: 'Room not found or not started' });
@@ -171,16 +261,23 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid session token' });
     }
 
+    // Clean up any lingering quiz session on reconnect
+    quizRuns.delete(socket.id);
+
     const oldSocketId = player.id;
     player.id = socket.id; // re-attach new socket id
     reattachSocket(oldSocketId, socket.id, code);
     socket.join(code);
     console.log(`[reconnect] ${player.name} re-joined ${code}`);
+    // Notify other players that someone reconnected
+    socket.to(code).emit('room:player_reconnected', {
+      players: room.players.map(publicPlayer),
+    });
     cb({
       ok: true,
       playerId: socket.id,
       state: publicState(room.state),
-      players: room.players,
+      players: room.players.map(publicPlayer),
     });
   });
 
@@ -276,22 +373,39 @@ io.on('connection', (socket) => {
     cb({ ok: true, moveType, questionIds, questions, defenderPlayerIdx });
   });
 
-  socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }) => {
+  socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }, cb) => {
     const room = getRoom(code);
-    if (!room?.state) {return;}
+    if (!room?.state) {return cb?.({ error: 'No active game' });}
     const player = room.players.find((p) => p.id === socket.id);
-    if (!player || room.state.currentPlayerIdx !== player.index) {return;}
-    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {return;}
+    if (!player || room.state.currentPlayerIdx !== player.index) {return cb?.({ error: 'Not your turn' });}
+    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {return cb?.({ error: 'Invalid answer index' });}
+    if (typeof questionIdx !== 'number' || questionIdx < 0) {return cb?.({ error: 'Invalid question index' });}
+
+    // Rate limit answer preview broadcasts to prevent spectator flooding
+    const now = Date.now();
+    const lastPreview = previewTimestamps.get(socket.id) || 0;
+    if (now - lastPreview < PREVIEW_RATE_LIMIT_MS) {return cb?.({ error: 'Too fast' });}
+    previewTimestamps.set(socket.id, now);
+
     const pending = room.state.pendingTurn;
     const qId = pending?.questionIds?.[questionIdx];
-    const correct = qId ? (questionsDb._byId?.[qId]?.a === answerIdx) : null;
-    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correct });
+    const isCorrect = qId ? (questionsDb._byId?.[qId]?.a === answerIdx) : null;
+    // Only broadcast correct answer to spectators — hide wrong answers
+    if (isCorrect) {
+      socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correct: true });
+    } else {
+      socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx });
+    }
+    cb?.({ ok: true });
   });
 
   socket.on('turn:submit', ({ code, submission }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {
       return cb({ error: 'No active game' });
+    }
+    if (room.state.phase === PHASE.GAME_OVER) {
+      return cb({ error: 'Game over' });
     }
 
     const player = room.players.find((p) => p.id === socket.id);
@@ -306,6 +420,10 @@ io.on('connection', (socket) => {
         error:
           'Answering too quickly. Wait for other players to see the question.',
       });
+    }
+    // Enforce maximum answer time (server-side timer)
+    if (timeSinceQuestionStart > MAX_ANSWER_TIME_MS) {
+      return cb({ error: 'Answer expired. Time ran out.' });
     }
 
     // Rate limiting: prevent answer spam
@@ -326,6 +444,9 @@ io.on('connection', (socket) => {
     if (submission.pegId !== pending.pegId) {
       return cb({ error: 'Peg mismatch' });
     }
+    if (submission.targetR !== pending.targetR || submission.targetC !== pending.targetC) {
+      return cb({ error: 'Target mismatch' });
+    }
 
     const numSubmitted = (submission.answers || []).length;
 
@@ -337,11 +458,16 @@ io.on('connection', (socket) => {
       }
     }
 
+    // Cache question lookups once to avoid repeated _byId access
+    const cachedQuestions = pending.questionIds.map(
+      (id) => questionsDb._byId?.[id],
+    );
+
     // Check if the latest answer is wrong
     let latestWrong = false;
     if (numSubmitted > 0) {
       const latestAns = answers[numSubmitted - 1];
-      const q = questionsDb._byId?.[pending.questionIds[numSubmitted - 1]];
+      const q = cachedQuestions[numSubmitted - 1];
       if (q && latestAns.answerIdx !== q.a) {
         latestWrong = true;
       }
@@ -365,7 +491,7 @@ io.on('connection', (socket) => {
     const results = [];
     if (pending) {
       for (let i = 0; i < answers.length; i++) {
-        const q = questionsDb._byId?.[pending.questionIds[i]];
+        const q = cachedQuestions[i];
         if (!q) {
           continue;
         }
@@ -401,9 +527,7 @@ io.on('connection', (socket) => {
     // Include next question in response to attacker if more questions in progress
     let nextQuestion = null;
     if (moreQuestionsInProgress && pending) {
-      const nextQIdx = numSubmitted;
-      const nextQId = pending.questionIds[nextQIdx];
-      const q = questionsDb._byId?.[nextQId];
+      const q = cachedQuestions[numSubmitted];
       if (q) {
         nextQuestion = { id: q.id };
       }
@@ -432,10 +556,20 @@ io.on('connection', (socket) => {
   // --- Quiz ---
 
   socket.on('quiz:start', (cb) => {
-    const allQuestions = Object.values(questionsDb)
-      .filter(Array.isArray)
-      .flat()
-      .filter(q => q.id);
+    // Rate limit: one quiz start per 2 seconds
+    const now = Date.now();
+    const lastQuiz = quizTimestamps.get(socket.id) || 0;
+    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+      return cb({ error: 'Please wait before starting another quiz.' });
+    }
+    quizTimestamps.set(socket.id, now);
+
+    // Prevent starting quiz while in an active Sraz game
+    if (isInActiveGame(socket.id)) {
+      return cb({ error: 'Cannot play quiz during an active game.' });
+    }
+
+    const allQuestions = getAllQuestions(questionsDb);
 
     if (allQuestions.length === 0) {
       return cb({ error: 'No questions available' });
@@ -500,12 +634,22 @@ io.on('connection', (socket) => {
     const run = quizRuns.get(socket.id);
     if (!run) {return cb({ error: 'Quiz not started' });}
 
-    const allQuestions = Object.values(questionsDb)
-      .filter(Array.isArray)
-      .flat()
-      .filter(q => q.id);
+    const allQuestions = getAllQuestions(questionsDb);
+    const usedIds = new Set(run.questionIds);
 
-    const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    // Find a question not yet used in this run
+    let randomQ;
+    let attempts = 0;
+    do {
+      randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+      attempts++;
+    } while (usedIds.has(randomQ.id) && attempts < allQuestions.length);
+
+    // If all questions exhausted, allow duplicates
+    if (!randomQ) {
+      randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    }
+
     run.questionIds.push(randomQ.id);
 
     cb({
@@ -521,8 +665,14 @@ io.on('connection', (socket) => {
     const run = quizRuns.get(socket.id);
     if (!run) {return cb({ error: 'No completed run' });}
 
+    // Validate name: 1-16 characters, trimmed
+    const sanitizedName = name?.trim();
+    if (!sanitizedName || sanitizedName.length > 16) {
+      return cb({ error: 'Name must be 1-16 characters' });
+    }
+
     const timeMs = Date.now() - run.startedAt;
-    const top10 = insertScore(name, run.answers, timeMs);
+    const top10 = insertScore(sanitizedName, run.answers, timeMs);
     quizRuns.delete(socket.id);
 
     cb({ ok: true, top10 });
@@ -539,11 +689,33 @@ io.on('connection', (socket) => {
     quizRuns.delete(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {
-      io.to(room.code).emit('room:player_left', {
-        playerId: socket.id,
-        playerName: player.name,
-        players: room.players,
-      });
+      // If game was in progress, notify remaining players and end the game
+      if (room.started && room.state) {
+        io.to(room.code).emit('game:player_disconnected', {
+          playerId: socket.id,
+          playerName: player.name,
+        });
+        // If only one player remains, declare them the winner
+        if (room.players.length === 1) {
+          const winner = room.players[0];
+          room.state.phase = PHASE.GAME_OVER;
+          room.state.winner = winner.index;
+          io.to(room.code).emit('state:update', {
+            events: [{ type: 'player_disconnected', playerId: socket.id }],
+            state: publicState(room.state),
+            gameOver: true,
+            winner: winner.index,
+          });
+          console.log(`[game] ${room.code} ended — ${player.name} disconnected, ${winner.name} wins`);
+        }
+      } else {
+        // Lobby: just broadcast player left
+        io.to(room.code).emit('room:player_left', {
+          playerId: socket.id,
+          playerName: player.name,
+          players: room.players.map(publicPlayer),
+        });
+      }
     }
   });
 });

@@ -14,7 +14,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint server/ client/ tests/",
-    "lint:fix": "eslint server/ client/ tests/ --fix"
+    "lint:fix": "eslint server/ client/ tests/ --fix",
+    "lint:css": "node scripts/check-unused-selectors.js",
+    "lint:all": "npm run lint && npm run lint:css"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

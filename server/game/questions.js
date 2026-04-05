@@ -14,6 +14,9 @@ function decrypt(base64) {
 }
 
 export function loadQuestions(encPath) {
+  // Invalidate cached flat array so stale references aren't returned
+  _allCache = null;
+
   const resolved = encPath || process.env.QUESTIONS_PATH ||
     path.resolve(import.meta.dirname, '../questions.enc');
 
@@ -44,4 +47,17 @@ export function loadQuestions(encPath) {
 
   console.log(`[questions] loaded ${total} questions`);
   return data;
+}
+
+// Lazy flat array for quiz mode — computed once on first access, not at startup.
+// Avoids the OOM crash that eager _all[] caused with 8642 questions.
+let _allCache = null;
+export function getAllQuestions(db) {
+  if (!_allCache) {
+    _allCache = Object.values(db)
+      .filter(Array.isArray)
+      .flat()
+      .filter(q => q.id);
+  }
+  return _allCache;
 }

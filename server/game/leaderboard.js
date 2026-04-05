@@ -59,12 +59,25 @@ export function insertScore(name, answers, timeMs) {
 
 export function checkQualifiesTop10(answers, timeMs) {
   try {
-    const top10 = getTop10();
-    if (top10.length < 10) {return true;}
-    const wouldPlace = top10.findIndex(e => answers > e.answers || (answers === e.answers && timeMs < e.time_ms));
-    return wouldPlace !== -1;
+    // Single query: count entries better than this score.
+    // If fewer than 10 are better, the new score qualifies for top 10.
+    const better = db.prepare(
+      'SELECT COUNT(*) as cnt FROM leaderboard WHERE answers > ? OR (answers = ? AND time_ms < ?)'
+    ).get(answers, answers, timeMs);
+
+    return better.cnt < 10;
   } catch (err) {
     console.error('[leaderboard] checkQualifiesTop10 failed:', err.message);
     return false;
+  }
+}
+
+// Prune entries beyond the top 100 to prevent unbounded DB growth.
+// Keeps a buffer above the top 10 so new scores can still qualify.
+export function pruneLeaderboard() {
+  try {
+    db.prepare('DELETE FROM leaderboard WHERE id NOT IN (SELECT id FROM leaderboard ORDER BY answers DESC, time_ms ASC LIMIT 100)').run();
+  } catch (err) {
+    console.error('[leaderboard] pruneLeaderboard failed:', err.message);
   }
 }

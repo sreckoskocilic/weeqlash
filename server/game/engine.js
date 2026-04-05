@@ -284,7 +284,7 @@ export function checkWinCondition(state) {
     living = 0;
   for (const p of state.players) {
     if (p.pegIds.length > 0) {
-      survivor = p.id;
+      survivor = p.id; // Note: p.id is the player index (integer), not a UUID
       living++;
     }
   }
@@ -574,7 +574,11 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     advanceTurn(state);
     return { ok: true, events, gameOver: false };
   } else if (moveType === 'flag') {
-    const allCorrect = checkAnswer(0) && checkAnswer(1) && checkAnswer(2);
+    // Check all 3 answers individually — don't short-circuit so each is recorded in state.wrongQ
+    const a0 = checkAnswer(0);
+    const a1 = checkAnswer(1);
+    const a2 = checkAnswer(2);
+    const allCorrect = a0 && a1 && a2;
     if (allCorrect) {
       movePeg(state, pegId, targetR, targetC);
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });

@@ -18,6 +18,7 @@
       --muted: #a4b2a0;
       --radius: 8px;
       --bs: min(calc(100svh - 80px), calc(100svw - 24px));
+      --ts: 40px;
     }
 
     body {
@@ -116,10 +117,6 @@
     .divider {
       text-align: center; color: var(--muted);
       font-size: 0.85rem; margin: 1.25rem 0; position: relative;
-    }
-    .divider::before, .divider::after {
-      content: ''; position: absolute; top: 50%;
-      width: 42%; height: 1px; background: var(--bg3);
     }
     .divider::before { left: 0; } .divider::after { right: 0; }
     .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
@@ -312,7 +309,6 @@
     }
     .modal-option:hover:not(:disabled) { border-color: var(--accent); background: #1a2a50; }
     .modal-option:disabled { cursor: not-allowed; opacity: 0.55; }
-    .modal-option.chosen { border-color: var(--accent) !important; background: #2a1a30 !important; }
     .modal-option.answer-correct { border-color: #43A047 !important; background: #1b3a1c !important; opacity: 1 !important; }
     .modal-option.answer-wrong   { border-color: var(--accent) !important; background: #2a1a30 !important; opacity: 1 !important; }
     .option-key { font-weight: 900; font-size: 0.8rem; opacity: 0.75; flex-shrink: 0; }
@@ -532,8 +528,8 @@
   <!-- LEFT COLUMN: Sraz Multiplayer -->
   <div class="card">
     <div class="setup-section">
-      <h3>Your Name</h3>
-      <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" />
+      <h3 id="label-player-name">Your Name</h3>
+      <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" aria-labelledby="label-player-name" />
       <div id="connect-error" class="error" style="display:none"></div>
     </div>
 
@@ -595,8 +591,8 @@
     <div class="divider">or join an existing game</div>
 
     <div class="setup-section" style="margin-bottom:0">
-      <h3>Room Code</h3>
-      <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em;margin-bottom:0.5rem" />
+      <h3 id="label-join-code">Room Code</h3>
+      <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em;margin-bottom:0.5rem" aria-labelledby="label-join-code" />
       <button id="btn-join" style="margin-bottom:0">Join game</button>
     </div>
   </div>
@@ -650,7 +646,7 @@
 <div class="card" id="screen-lobby" style="display:none">
   <div class="room-code-container" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 0.5rem;">
     <div class="room-code" id="lobby-code" style="margin-bottom: 0;"></div>
-    <button id="btn-copy-code" title="Copy Code" style="padding: 0.5rem; font-size: 1.2rem; background: transparent; border: 1px solid var(--border); color: var(--text); width: auto; border-radius: 6px; cursor: pointer; transition: all 0.2s;">📋</button>
+    <button id="btn-copy-code" title="Copy Code" style="padding: 0.5rem; font-size: 1.2rem; background: transparent; border: 1px solid var(--bg3); color: var(--text); width: auto; border-radius: 6px; cursor: pointer; transition: all 0.2s;">📋</button>
   </div>
   <div class="room-code-label">Share this code with other players</div>
   <h2>Players</h2>
@@ -715,7 +711,7 @@
   const { io } = await import(`${serverUrl}/socket.io/socket.io.esm.min.js`);
 
   const socket = io(serverUrl, { transports: ['websocket'] });
-  const $ = id => document.getElementById(id);
+  const el = id => document.getElementById(id);
 
   // Socket.IO error handling
   socket.io.on('error', (err) => {
@@ -823,22 +819,23 @@
   function showScreen(id) {
     const isGame = (id === 'screen-game');
     const isConnect = (id === 'screen-connect');
-    $('main-title').style.display    = isGame ? 'none' : '';
-    $('main-subtitle').style.display = isGame ? 'none' : '';
-    ['screen-connect','screen-lobby','screen-game'].forEach(s => {
-      $(s).style.display = 'none';
+    el('main-title').style.display    = isGame ? 'none' : '';
+    el('main-subtitle').style.display = isGame ? 'none' : '';
+    ['screen-connect','screen-lobby','screen-game','screen-gameover','screen-leaderboard'].forEach(s => {
+      el(s).style.display = 'none';
+      el(s).classList.remove('show');
     });
     if (isGame) {
-      $(id).style.display = 'flex';
+      el(id).style.display = 'flex';
     } else if (isConnect) {
-      $(id).style.display = 'grid';
+      el(id).style.display = 'grid';
     } else {
-      $(id).style.display = 'block';
+      el(id).style.display = 'block';
     }
   }
 
   function showError(msg) {
-    const el = $('connect-error');
+    const el = el('connect-error');
     el.textContent = msg;
     el.style.display = msg ? 'block' : 'none';
   }
@@ -847,7 +844,7 @@
   // LOBBY
   // ============================================================
   function renderPlayers(players, totalSlots) {
-    const ul = $('player-list');
+    const ul = el('player-list');
     ul.innerHTML = '';
     players.forEach(p => {
       const li = document.createElement('li');
@@ -873,20 +870,39 @@
 
   socket.on('room:player_joined', ({ players }) => {
     renderPlayers(players, myRoom.settings.playerCount);
-    $('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
+    el('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
+    // Recover start button if room is full again after a player left
+    if (players.length === myRoom.settings.playerCount && isHost) {
+      el('btn-start').disabled = false;
+      el('btn-start').textContent = 'Start game';
+    }
+  });
+
+  socket.on('game:player_disconnected', ({ playerName }) => {
+    showError(`${playerName} disconnected.`);
+    // Reset local turn state so UI isn't stuck
+    localPhase = null;
+    localSelectedPegId = null;
+    validMovesSet.clear();
+    pendingMove = null;
+    pendingQuestions = [];
+    pendingAnswers = [];
+    spectatingQuestion = false;
+    stopTimer();
+    el('modal-overlay').classList.remove('visible');
   });
 
   socket.on('room:player_left', ({ playerName, players }) => {
     renderPlayers(players, myRoom.settings.playerCount);
-    $('lobby-status').textContent = `${playerName} left`;
-    $('btn-start').disabled = true;
-    $('btn-start').textContent = 'Waiting for players…';
+    el('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players — ${playerName} left`;
+    el('btn-start').disabled = true;
+    el('btn-start').textContent = 'Waiting for players…';
   });
 
   socket.on('room:full', ({ players }) => {
     renderPlayers(players, myRoom.settings.playerCount);
-    $('lobby-status').textContent = 'Room full — host can start the game';
-    if (isHost) { $('btn-start').disabled = false; $('btn-start').textContent = 'Start game'; }
+    el('lobby-status').textContent = 'Room full — host can start the game';
+    if (isHost) { el('btn-start').disabled = false; el('btn-start').textContent = 'Start game'; }
   });
 
   socket.on('game:start', ({ settings, state }) => {
@@ -900,6 +916,8 @@
 
   function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
     setTimeout(() => {
+      // Guard: pendingQuestions may have been cleared by a concurrent state:update
+      if (!pendingQuestions.length) {return;}
       const next = idx + 1;
       // More questions still in progress (attacker hasn't answered Q2 yet) - show Q2 for spectator
       if (moreQuestionsInProgress && next < pendingQuestions.length) {
@@ -915,10 +933,6 @@
         const r = results[next];
         if (r?.chosenIdx >= 0) {
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
-          const correctIdx = pendingQuestions[next]?.correctIdx;
-          if (!r.correct && correctIdx !== undefined) {
-            modalOptionBtns[correctIdx]?.classList.add('answer-correct');
-          }
         }
         advanceSpectateResult(results, next, moreQuestionsInProgress);
         return;
@@ -927,7 +941,7 @@
       spectatingQuestion = false;
       pendingQuestions = [];
       pendingAnswers = [];
-      $('modal-overlay').classList.remove('visible');
+      el('modal-overlay').classList.remove('visible');
     }, TIMING.RESULT_DISPLAY_MS);
   }
 
@@ -938,14 +952,10 @@
     if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
       if (spectatingQuestion) {
-        // Spectator: highlight the answer on whichever question is currently shown
+        // Spectator: highlight the chosen answer only
         const r = results[currentQIdx] ?? results[results.length - 1];
         if (r?.chosenIdx >= 0) {
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
-          const correctIdx = pendingQuestions[currentQIdx]?.correctIdx;
-          if (!r.correct && correctIdx !== undefined) {
-            modalOptionBtns[correctIdx]?.classList.add('answer-correct');
-          }
         }
         advanceSpectateResult(results, currentQIdx, moreQuestionsInProgress);
       } else {
@@ -955,10 +965,6 @@
         const r = results[0];
         if (r?.chosenIdx >= 0) {
           modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
-          const correctIdx = pendingQuestions[0]?.correctIdx;
-          if (!r.correct && correctIdx !== undefined) {
-            modalOptionBtns[correctIdx]?.classList.add('answer-correct');
-          }
         }
         advanceSpectateResult(results, 0, moreQuestionsInProgress);
       }
@@ -967,7 +973,7 @@
       stopTimer();
       spectatingQuestion = false;
       pendingQuestions = []; // Clear questions when turn ends
-      $('modal-overlay').classList.remove('visible');
+      el('modal-overlay').classList.remove('visible');
     }
 
     // Detect rank changes before updating state
@@ -991,10 +997,11 @@
         pendingAnswers = [];
         spectatingQuestion = false;
         stopTimer();
-        $('modal-overlay').classList.remove('visible');
+        el('modal-overlay').classList.remove('visible');
       }
     }
 
+    const oldState = gameState;
     gameState = state;
     // If server kept SELECT_TILE for same peg (movesRemaining > 0), restore local state
     if (state.phase === PHASE.SELECT_TILE && state.selectedPegId && state.currentPlayerIdx === myPlayerIndex && validMoves) {
@@ -1007,7 +1014,13 @@
       validMovesSet.clear();
     }
     if (state.currentPlayerIdx === myPlayerIndex && state.phase === PHASE.SELECT_PEG) {initNavCursor(state);}
-    renderAll(state);
+
+    // Diff-based board update: only re-render tiles that changed
+    if (oldState && oldState.board) {
+      renderChangedTiles(oldState, state);
+    } else {
+      renderAll(state);
+    }
 
     if (!gameOver && prevPlayerIdx !== undefined && prevPlayerIdx !== state.currentPlayerIdx) {
       const newPlayer = state.players[state.currentPlayerIdx];
@@ -1029,14 +1042,16 @@
 
   socket.on('game:answer_preview', ({ questionIdx, answerIdx, correct }) => {
     if (!spectatingQuestion || currentQIdx !== questionIdx) {return;}
-    modalOptionBtns[answerIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
+    if (correct === true) {
+      modalOptionBtns[answerIdx]?.classList.add('answer-correct');
+    }
   });
 
   // ============================================================
   // BOARD INIT
   // ============================================================
   function initBoard(state) {
-    const boardEl = $('board');
+    const boardEl = el('board');
     boardEl.innerHTML = '';
     boardEl.style.gridTemplateColumns = `repeat(${state.boardSize}, 1fr)`;
     const ts = `calc(var(--bs) / ${state.boardSize})`;
@@ -1096,6 +1111,70 @@
       {for (let c = 0; c < state.boardSize; c++)
       {updateTile(r, c, state);}}
     updateTurnUI(state);
+    movedPegs.clear();
+    rankUpPegs.clear();
+    rankDownPegs.clear();
+  }
+
+  // Diff-based tile update: only re-render tiles where something changed
+  function renderChangedTiles(oldState, newState) {
+    const changedTiles = new Set();
+
+    // Track peg movements
+    for (const [pegId, newPeg] of Object.entries(newState.pegs)) {
+      const oldPeg = oldState.pegs[pegId];
+      if (!oldPeg) {
+        // New peg appeared
+        changedTiles.add(`${newPeg.row},${newPeg.col}`);
+        continue;
+      }
+      if (oldPeg.row !== newPeg.row || oldPeg.col !== newPeg.col) {
+        // Peg moved — mark both old and new positions
+        changedTiles.add(`${oldPeg.row},${oldPeg.col}`);
+        changedTiles.add(`${newPeg.row},${newPeg.col}`);
+      }
+      if (oldPeg.rank !== newPeg.rank) {
+        changedTiles.add(`${newPeg.row},${newPeg.col}`);
+      }
+    }
+
+    // Check for eliminated pegs (in old but not in new)
+    for (const pegId of Object.keys(oldState.pegs)) {
+      if (!newState.pegs[pegId]) {
+        const oldPeg = oldState.pegs[pegId];
+        changedTiles.add(`${oldPeg.row},${oldPeg.col}`);
+      }
+    }
+
+    // Phase changes affect all tiles (valid moves, dimming, etc.)
+    if (oldState.phase !== newState.phase ||
+        oldState.currentPlayerIdx !== newState.currentPlayerIdx ||
+        oldState.selectedPegId !== newState.selectedPegId) {
+      renderAll(newState);
+      return;
+    }
+
+    // Flag capture changes
+    for (let r = 0; r < newState.boardSize; r++) {
+      for (let c = 0; c < newState.boardSize; c++) {
+        const oldTile = oldState.board[r][c];
+        const newTile = newState.board[r][c];
+        if (oldTile.cornerOwner !== newTile.cornerOwner) {
+          changedTiles.add(`${r},${c}`);
+        }
+      }
+    }
+
+    // Render only changed tiles
+    for (const key of changedTiles) {
+      const [r, c] = key.split(',').map(Number);
+      if (r >= 0 && r < newState.boardSize && c >= 0 && c < newState.boardSize) {
+        updateTile(r, c, newState);
+      }
+    }
+
+    // Always update turn UI
+    updateTurnUI(newState);
     movedPegs.clear();
     rankUpPegs.clear();
     rankDownPegs.clear();
@@ -1167,7 +1246,7 @@
       pegEl.style.background = player.color;
       const pegNum = (player?.pegIds?.indexOf(tile.pegId) ?? -1) + 1;
       pegEl.textContent = peg.rank > 0 ? '' : String(pegNum || '');
-      const rankThreshold = gameState.boardSize > 8 ? 5 : 3;
+      const rankThreshold = state.boardSize > 8 ? 5 : 3;
       pegEl.title = `${sanitize(player.name)} — ${RANK_NAMES[peg.rank]} (${peg.correct}/${rankThreshold})`;
       if (peg.rank > 0) {
         const badge = document.createElement('div');
@@ -1182,11 +1261,11 @@
   function updateTurnUI(state) {
     const cp = state.players[state.currentPlayerIdx];
     const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
-    $('turn-dot').style.background = cp?.color ?? '#444';
-    $('turn-dot').style.boxShadow = cp?.color ? `0 0 8px 2px ${cp.color}66` : 'none';
-    $('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
-    $('turn-name').textContent = isMyTurn ? 'Your turn' : `${cp?.name}'s turn`;
-    $('turn-name').style.color = cp?.color ?? '';
+    el('turn-dot').style.background = cp?.color ?? '#444';
+    el('turn-dot').style.boxShadow = cp?.color ? `0 0 8px 2px ${cp.color}66` : 'none';
+    el('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
+    el('turn-name').textContent = isMyTurn ? 'Your turn' : `${cp?.name}'s turn`;
+    el('turn-name').style.color = cp?.color ?? '';
 
     const phase = localPhase ?? state.phase;
     let phaseText = '';
@@ -1197,9 +1276,9 @@
       const mr = state.movesRemaining;
       phaseText = isMyTurn ? `Select a tile to move${mr > 1 ? ` (${mr} moves left)` : ''}` : `${cp?.name} is moving…`;
     } else if (phase === PHASE.GAME_OVER) {phaseText = 'Game over';}
-    $('turn-phase').textContent = phaseText;
+    el('turn-phase').textContent = phaseText;
 
-    $('player-stats').innerHTML = state.players.map(p => {
+    el('player-stats').innerHTML = state.players.map(p => {
       const { attempts = 0, correct = 0 } = p.stats ?? {};
       const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) + '%' : '—';
       return `<span class="player-stat-item" style="color:${p.color};opacity:${p.pegIds.length ? 1 : 0.4}">
@@ -1280,12 +1359,12 @@
     const catName   = CAT_NAMES[q.category] ?? 'Question';
     const moveType  = spectatingQuestion ? spectatingMoveType : pendingMove?.moveType;
 
-    $('modal-cat-badge').textContent = catName;
-    $('modal-cat-badge').style.background = catColor;
-    $('modal').style.borderTopColor = player?.color ?? '#444';
+    el('modal-cat-badge').textContent = catName;
+    el('modal-cat-badge').style.background = catColor;
+    el('modal').style.borderTopColor = player?.color ?? '#444';
 
-    const playerLabel  = $('modal-player-label');
-    const combatLabel  = $('modal-combat-label');
+    const playerLabel  = el('modal-player-label');
+    const combatLabel  = el('modal-combat-label');
     if (moveType === 'combat') {
       const defIdx = spectatingQuestion ? spectatingDefenderIdx : pendingCombatDefenderIdx;
       const defPlayer = defIdx !== null ? gameState?.players[defIdx] : null;
@@ -1307,9 +1386,9 @@
       playerLabel.textContent   = player?.name ?? '';
     }
 
-    $('modal-question').textContent = q.q;
+    el('modal-question').textContent = q.q;
 
-    const optContainer = $('modal-options');
+    const optContainer = el('modal-options');
     optContainer.innerHTML = '';
     delete optContainer.dataset.submitting;
     modalOptionBtns = [];
@@ -1323,14 +1402,15 @@
       modalOptionBtns.push(btn);
     });
 
-    $('modal-continue-wrap').style.display = 'none';
-    $('modal-overlay').classList.add('visible');
+    el('modal-continue-wrap').style.display = 'none';
+    el('modal-continue-btn').textContent = 'CONTINUE';
+    el('modal-overlay').classList.add('visible');
 
     if (spectatingQuestion) {
-      $('timer-fill').style.display = 'none';
-      $('timer-text').textContent = '…';
+      el('timer-fill').style.display = 'none';
+      el('timer-text').textContent = '…';
     } else {
-      $('timer-fill').style.display = '';
+      el('timer-fill').style.display = '';
       startTimer(idx);
       modalOptionBtns[0]?.focus();
     }
@@ -1344,18 +1424,18 @@
     }
 
     // Debounce: prevent double-submit
-    if ($('modal-options')?.dataset?.submitting === 'true') {
+    if (el('modal-options')?.dataset?.submitting === 'true') {
       return;
     }
-    $('modal-options').dataset.submitting = 'true';
+    el('modal-options').dataset.submitting = 'true';
 
     stopTimer();
     const q = pendingQuestions[qIdx];
+    if (!q) {
+      console.error('Question not found at index:', qIdx);
+      return;
+    }
     const correct = chosenIdx === q.correctIdx;
-    modalOptionBtns.forEach((btn, i) => {
-      btn.disabled = true;
-      if (i === chosenIdx) {btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');}
-    });
     pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
     socket.emit('turn:answer_preview', { code: myRoom.code, questionIdx: qIdx, answerIdx: chosenIdx });
 
@@ -1364,25 +1444,18 @@
     const isFlag = pendingMove?.moveType === 'flag';
     const isLastQuestion = qIdx === pendingQuestions.length - 1;
 
-    // Highlight correct answer for everyone
+    // Highlight answers: show player's choice outcome only (no correct reveal to spectators)
     modalOptionBtns.forEach((btn, i) => {
       btn.disabled = true;
-      // Only show correct answer to spectators, not the active player
-      if (i === q.correctIdx && spectatingQuestion) {
-        btn.classList.add('answer-correct');
-      }
-      // Always show the active player's selection outcome
-      if (i === chosenIdx) {
-        btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
-      }
+      if (i === chosenIdx) {btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');}
     });
 
     if (isCombat || isFlag) {
-      $('modal-continue-wrap').style.display = 'none';
+      el('modal-continue-wrap').style.display = 'none';
       if (!correct) {
         // Wrong answer ends combat/flag immediately
         setTimeout(() => {
-          $('modal-overlay').classList.remove('visible');
+          el('modal-overlay').classList.remove('visible');
           submitTurn();
         }, TIMING.WRONG_ANSWER_DELAY_MS);
       } else if (!isLastQuestion) {
@@ -1393,18 +1466,19 @@
       } else {
         // Correct answer, last question: wait 2s then submit and close
         setTimeout(() => {
-          $('modal-overlay').classList.remove('visible');
+          el('modal-overlay').classList.remove('visible');
           submitTurn();
         }, TIMING.ANSWER_DELAY_MS);
       }
     } else {
       // Normal move
-      $('modal-continue-wrap').style.display = 'block';
+      el('modal-continue-wrap').style.display = 'block';
     }
   }
 
   window.continueAfterQuestion = function() {
-    $('modal-overlay').classList.remove('visible');
+    if (!pendingMove) {return;}
+    el('modal-overlay').classList.remove('visible');
     const nextIdx = currentQIdx + 1;
     if (nextIdx < pendingQuestions.length) {
       currentQIdx = nextIdx;
@@ -1416,8 +1490,8 @@
 
   function startTimer(qIdx) {
     stopTimer();
-    const fill = $('timer-fill');
-    const text = $('timer-text');
+    const fill = el('timer-fill');
+    const text = el('timer-text');
     let remaining = timerDuration;
     fill.style.width = '100%';
     fill.className = 'timer-bar-fill safe';
@@ -1435,7 +1509,12 @@
         const tq = pendingQuestions[qIdx];
         modalOptionBtns.forEach(btn => { btn.disabled = true; });
         pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
-        $('modal-continue-wrap').style.display = 'block';
+        // Auto-submit on timeout instead of leaving the move abandoned
+        if (pendingMove?.moveType === 'combat' || pendingMove?.moveType === 'flag') {
+          submitTurn();
+        } else {
+          el('modal-continue-wrap').style.display = 'block';
+        }
       }
     }, TIMING.TICK_INTERVAL_MS);
   }
@@ -1459,7 +1538,21 @@
         targetC: pendingMove.targetC,
         answers: pendingAnswers,
       }
-    }, ({ error }) => { if (error) {console.error('submit:', error);} });
+    }, ({ error }) => {
+      if (error) {
+        console.error('submit:', error);
+        showError(error);
+        // Recover UI state so player isn't stuck
+        localPhase = null;
+        localSelectedPegId = null;
+        validMovesSet.clear();
+        pendingMove = null;
+        pendingQuestions = [];
+        pendingAnswers = [];
+        stopTimer();
+        el('modal-overlay').classList.remove('visible');
+      }
+    });
 
     // If more questions coming, keep pendingMove for next question
     if (willHaveMoreQuestions) {
@@ -1483,17 +1576,27 @@
   // ============================================================
   function showGameOver(winnerIdx, state) {
     const winner = state.players[winnerIdx];
-    $('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
-    $('winner-text').style.color = winner?.color ?? '#ffd700';
-    $('screen-gameover').style.display = 'flex';
+    el('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
+    el('winner-text').style.color = winner?.color ?? '#ffd700';
+    el('screen-gameover').style.display = 'flex';
+    // Reset local turn state so UI isn't stuck
+    localPhase = null;
+    localSelectedPegId = null;
+    validMovesSet.clear();
+    pendingMove = null;
+    pendingQuestions = [];
+    pendingAnswers = [];
+    spectatingQuestion = false;
+    stopTimer();
+    el('modal-overlay').classList.remove('visible');
   }
 
   function showTurnAnnounce(player, isMe) {
-    const el = $('turn-announce');
+    const el = el('turn-announce');
     if (!el) {return;}
-    $('turn-announce-name').textContent = player.name;
-    $('turn-announce-name').style.color = player.color;
-    $('turn-announce-sub').textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
+    el('turn-announce-name').textContent = player.name;
+    el('turn-announce-name').style.color = player.color;
+    el('turn-announce-sub').textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
     el.classList.add('visible');
     setTimeout(() => el.classList.remove('visible'), 2000);
   }
@@ -1512,7 +1615,7 @@
   const NAV_DIRS = { ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1] };
 
   document.addEventListener('keydown', e => {
-    const modalVisible = $('modal-overlay').classList.contains('visible');
+    const modalVisible = el('modal-overlay').classList.contains('visible');
 
     if (modalVisible) {
       const key = e.key.toLowerCase();
@@ -1521,7 +1624,7 @@
         if (modalOptionBtns[idx] && !modalOptionBtns[idx].disabled)
           {modalOptionBtns[idx].click();}
       }
-      if (e.key === 'Enter' && $('modal-continue-wrap').style.display !== 'none')
+      if (e.key === 'Enter' && el('modal-continue-wrap').style.display !== 'none')
         {window.continueAfterQuestion();}
       // Arrow key option cycling (only when answering, not spectating)
       if (!spectatingQuestion && (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft')) {
@@ -1578,10 +1681,10 @@
   }
 
   function getPlayerName() {
-    let name = $('player-name').value.trim();
+    let name = el('player-name').value.trim();
     if (!name) { name = getRandomName(); }
     // Update input to show the assigned name
-    $('player-name').value = name;
+    el('player-name').value = name;
     showError('');
     return name;
   }
@@ -1590,7 +1693,7 @@
   // SETUP SCREEN CONTROLS
   // ============================================================
   function initOptBtnGroup(groupId, setter) {
-    const group = $(groupId);
+    const group = el(groupId);
     group.addEventListener('click', e => {
       const btn = e.target.closest('.opt-btn');
       if (!btn) {return;}
@@ -1602,7 +1705,7 @@
   initOptBtnGroup('board-size-btns',   v => { setupBoardSize = v; });
   initOptBtnGroup('timer-btns',        v => { setupTimer = v; });
 
-  $('cat-toggle-btns').addEventListener('click', e => {
+  el('cat-toggle-btns').addEventListener('click', e => {
     const btn = e.target.closest('.cat-toggle-btn');
     if (!btn) {return;}
     const cat = btn.dataset.cat;
@@ -1616,29 +1719,29 @@
     }
   });
 
-  $('btn-max-rank').addEventListener('click', () => {
+  el('btn-max-rank').addEventListener('click', () => {
     setupMaxRankStart = !setupMaxRankStart;
-    $('btn-max-rank').classList.toggle('active', setupMaxRankStart);
+    el('btn-max-rank').classList.toggle('active', setupMaxRankStart);
   });
 
-  $('btn-help').addEventListener('click', () => { $('help-modal').classList.add('show'); });
-  $('btn-hc').addEventListener('click', () => {
+  el('btn-help').addEventListener('click', () => { el('help-modal').classList.add('show'); });
+  el('btn-hc').addEventListener('click', () => {
     document.body.classList.toggle('high-contrast');
-    $('btn-hc').classList.toggle('active', document.body.classList.contains('high-contrast'));
+    el('btn-hc').classList.toggle('active', document.body.classList.contains('high-contrast'));
   });
-  $('btn-advanced').addEventListener('click', () => {
-    const sec = $('advanced-section');
+  el('btn-advanced').addEventListener('click', () => {
+    const sec = el('advanced-section');
     const visible = sec.style.display !== 'none';
     sec.style.display = visible ? 'none' : 'block';
-    $('btn-advanced').classList.toggle('active', !visible);
+    el('btn-advanced').classList.toggle('active', !visible);
   });
 
-  window.closeHelp = function() { $('help-modal').classList.remove('show'); };
-  $('help-modal').addEventListener('click', e => {
-    if (e.target === $('help-modal')) {window.closeHelp();}
+  window.closeHelp = function() { el('help-modal').classList.remove('show'); };
+  el('help-modal').addEventListener('click', e => {
+    if (e.target === el('help-modal')) {window.closeHelp();}
   });
 
-  $('btn-create').addEventListener('click', () => {
+  el('btn-create').addEventListener('click', () => {
     const playerName = getPlayerName();
     if (!playerName) {return;}
     socket.emit('room:create', {
@@ -1651,46 +1754,46 @@
     }, ({ error, code, players }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
-      if (me) {$('player-name').value = me.name;}
+      if (me) {el('player-name').value = me.name;}
       myPlayerIndex = 0;
       myRoom = { code, settings: { playerCount: setupPlayerCount, timer: setupTimer } };
       isHost = true;
-      $('lobby-code').textContent = code;
+      el('lobby-code').textContent = code;
       renderPlayers(players, myRoom.settings.playerCount);
-      $('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
+      el('lobby-status').textContent = `${players.length} / ${myRoom.settings.playerCount} players`;
       showScreen('screen-lobby');
     });
   });
 
-  $('btn-join').addEventListener('click', () => {
+  el('btn-join').addEventListener('click', () => {
     const playerName = getPlayerName();
     if (!playerName) {return;}
-    const code = $('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const code = el('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length !== 5) {return showError('Room code must be 5 characters.');}
     socket.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
-      if (me) {$('player-name').value = me.name;}
+      if (me) {el('player-name').value = me.name;}
       myPlayerIndex = me?.index ?? players.length - 1;
       myRoom = { code, settings };
       isHost = false;
-      $('lobby-code').textContent = code;
+      el('lobby-code').textContent = code;
       renderPlayers(players, settings.playerCount);
-      $('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
+      el('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
       showScreen('screen-lobby');
     });
   });
 
-  $('btn-start').addEventListener('click', () => {
+  el('btn-start').addEventListener('click', () => {
     socket.emit('room:start', { code: myRoom.code }, ({ error }) => {
       if (error) {showError(error);}
     });
   });
 
-  $('btn-copy-code').addEventListener('click', () => {
+  el('btn-copy-code').addEventListener('click', () => {
     if (!myRoom?.code) {return;}
     navigator.clipboard.writeText(myRoom.code).then(() => {
-      const btn = $('btn-copy-code');
+      const btn = el('btn-copy-code');
       const originalText = btn.textContent;
       btn.textContent = '✅';
       setTimeout(() => { btn.textContent = originalText; }, 2000);
@@ -1699,7 +1802,7 @@
     });
   });
 
-  $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+  el('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 
   // Quiz handlers
   const quizState = { run: null, timerInterval: null, gameTimerInterval: null };
@@ -1723,7 +1826,10 @@
   }
 
   // Populate main-screen leaderboard
+  let leaderboardLoaded = false;
   function loadMainLeaderboard() {
+    if (leaderboardLoaded) {return;}
+    leaderboardLoaded = true;
     socket.emit('quiz:leaderboard', (res) => {
       const container = document.getElementById('triv-lb-rows');
       if (!container) { return; }
@@ -1735,7 +1841,7 @@
         row.className = 'lb-row';
         row.innerHTML = `
           <div class="lb-rk">${String(i + 1)}</div>
-          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry ? entry.name : 'TestPlayer 0'}</div>
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry ? sanitize(entry.name) : 'TestPlayer 0'}</div>
           <div style="text-align: center; font-weight: 600; font-variant-numeric: tabular-nums;">${entry ? entry.answers : '0'}</div>
           <div style="text-align: right; font-size: 0.85rem; color: #5ebb52; font-variant-numeric: tabular-nums;">${entry ? Math.round(entry.time_ms / 1000) : '0'}s</div>
         `;
@@ -1751,10 +1857,16 @@
     document.getElementById('screen-lobby').style.display = 'none';
     document.getElementById('screen-game').style.display = 'none';
 
+    // Clean up any lingering timers before starting fresh
+    clearInterval(quizState.timerInterval);
+    clearInterval(quizState.gameTimerInterval);
+    quizState.timerInterval = null;
+    quizState.gameTimerInterval = null;
+
     socket.emit('quiz:start', (res) => {
       if (res.error) {
         console.error('Quiz start error:', res.error);
-        alert('Quiz error: ' + res.error);
+        showError('Quiz error: ' + res.error);
         return;
       }
       quizState.run = { answers: 0, startedAt: Date.now() };
@@ -1780,13 +1892,14 @@
     q.opts.forEach((opt, i) => {
       const btn = document.createElement('button');
       btn.className = 'modal-option';
-      btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${opt}`;
+      btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${sanitize(opt)}`;
       btn.onclick = () => submitQuizAnswer(i);
       optContainer.appendChild(btn);
       modalOptionBtns.push(btn);
     });
 
     document.getElementById('modal-continue-wrap').style.display = 'none';
+    document.getElementById('modal-continue-btn').textContent = 'CONTINUE';
     startQuizTimer();
   }
 
@@ -1797,11 +1910,10 @@
     socket.emit('quiz:answer', { answerIdx }, (res) => {
       if (res.error) {return;}
 
-      // Highlight using same CSS classes as the game
+      // Highlight chosen answer
       modalOptionBtns.forEach((btn, i) => {
         btn.disabled = true;
         if (i === answerIdx) {btn.classList.add(res.correct ? 'answer-correct' : 'answer-wrong');}
-        if (i === res.correctIdx && !res.correct) {btn.classList.add('answer-correct');}
       });
 
       if (res.correct) {
@@ -1841,9 +1953,6 @@
         document.getElementById('modal-options').dataset.submitting = 'true';
         modalOptionBtns.forEach(btn => btn.disabled = true);
         socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
-          modalOptionBtns.forEach((btn, i) => {
-            if (i === res.correctIdx) {btn.classList.add('answer-correct');}
-          });
           document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
           document.getElementById('modal-continue-btn').onclick = () => {
             document.getElementById('modal-overlay').classList.remove('visible');
@@ -1867,7 +1976,7 @@
         row.className = 'lb-row';
         row.innerHTML = `
           <div class="lb-rk">${String(i + 1).padStart(2, '0')}</div>
-          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.name}</div>
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(entry.name)}</div>
           <div style="text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${entry.answers}</div>
           <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(entry.time_ms / 1000)}s</div>
         `;
@@ -1893,6 +2002,11 @@
 
     document.getElementById('lb-play-again').onclick = () => {
       document.getElementById('screen-leaderboard').classList.remove('show');
+      // Clean up any lingering timers before starting fresh
+      clearInterval(quizState.timerInterval);
+      clearInterval(quizState.gameTimerInterval);
+      quizState.timerInterval = null;
+      quizState.gameTimerInterval = null;
       socket.emit('quiz:start', (res) => {
         if (res.ok) {
           quizState.run = { answers: 0, startedAt: Date.now() };
@@ -1904,6 +2018,15 @@
     document.getElementById('lb-back').onclick = () => {
       document.getElementById('screen-leaderboard').classList.remove('show');
       document.getElementById('screen-connect').style.display = '';
+      // Reset leaderboard flag so it reloads fresh data
+      leaderboardLoaded = false;
+      loadMainLeaderboard();
+      // Clean up quiz state when navigating away
+      quizState.run = null;
+      clearInterval(quizState.timerInterval);
+      clearInterval(quizState.gameTimerInterval);
+      quizState.timerInterval = null;
+      quizState.gameTimerInterval = null;
     };
   }
 

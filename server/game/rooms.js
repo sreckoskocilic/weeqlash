@@ -15,13 +15,14 @@ function generateCode() {
 }
 
 export function createRoom({
+  playerCount = 2,
   boardSize = 7,
   timer = 30,
   enabledCats,
   maxRankStart = false,
 } = {}) {
-  // Only 2-player rooms are supported
-  const PLAYER_COUNT = 2;
+  // Validate player count (engine supports 2-4)
+  const PLAYER_COUNT = Math.max(2, Math.min(4, playerCount));
 
   // Validate board size - only accept valid sizes from UI
   const VALID_SIZES = [4, 5, 6, 7, 8, 10];
@@ -142,4 +143,42 @@ export function removePlayerFromRoom(socketId) {
 export function reattachSocket(oldSocketId, newSocketId, code) {
   socketToRoom.delete(oldSocketId);
   socketToRoom.set(newSocketId, code);
+}
+
+// Periodic cleanup of orphaned rooms (empty lobby rooms, abandoned games).
+// Returns the number of rooms removed.
+export function cleanupStaleRooms() {
+  let removed = 0;
+  const toDelete = [];
+
+  for (const [code, room] of rooms) {
+    // Empty rooms — always safe to remove
+    if (room.players.length === 0) {
+      toDelete.push(code);
+      continue;
+    }
+
+    // Abandoned games: all players disconnected but room still has stale state
+    const hasActiveSocket = room.players.some((p) => socketToRoom.has(p.id));
+    if (room.started && !hasActiveSocket) {
+      toDelete.push(code);
+    }
+  }
+
+  for (const code of toDelete) {
+    rooms.delete(code);
+    removed++;
+  }
+
+  return removed;
+}
+
+// Check if a socket ID belongs to a player in an active (started) game.
+export function isInActiveGame(socketId) {
+  for (const room of rooms.values()) {
+    if (room.started && room.players.some((p) => p.id === socketId)) {
+      return true;
+    }
+  }
+  return false;
 }
