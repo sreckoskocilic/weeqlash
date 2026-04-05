@@ -18,3 +18,5 @@ A multiplayer trivia board game — the online version of Srazique.
 | Question timer | 15s / 30s / 45s | 30s |
 | Start as Vitez | on / off | off |
 | Categories | any subset of 10 | all |
+
+*Note: A 2×2 board size is available for testing purposes by uncommenting the button in client/index.html*

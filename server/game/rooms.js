@@ -25,7 +25,7 @@ export function createRoom({
   const PLAYER_COUNT = Math.max(2, Math.min(4, playerCount));
 
   // Validate board size - only accept valid sizes from UI
-  const VALID_SIZES = [4, 5, 6, 7, 8, 10];
+  const VALID_SIZES = [2, 4, 5, 6, 7, 8, 10];
   if (!VALID_SIZES.includes(boardSize)) {
     boardSize = 7;
   }

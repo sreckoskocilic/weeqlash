@@ -38,6 +38,11 @@ describe('Rooms: createRoom', () => {
     expect(room.settings.boardSize).toBe(7);
   });
 
+  it('accepts valid 2x2 board size', () => {
+    const room = createRoom({ boardSize: 2 });
+    expect(room.settings.boardSize).toBe(2);
+  });
+
   it('validates timer - defaults to 30 for invalid', () => {
     const room = createRoom({ timer: 99 });
     expect(room.settings.timer).toBe(30);

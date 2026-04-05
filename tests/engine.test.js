@@ -54,6 +54,131 @@ describe('Engine: Game Creation', () => {
     expect(state.numPlayers).toBe(4);
   });
 
+  it('creates 2x2 board with 1 peg per player', () => {
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 2 }
+    );
+    expect(state.boardSize).toBe(2);
+    expect(state.numPlayers).toBe(2);
+    expect(state.players[0].pegIds).toHaveLength(1);
+    expect(state.players[1].pegIds).toHaveLength(1);
+  });
+
+  it('2x2 board: peg movement and combat', () => {
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 2 }
+    );
+    
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    
+    // Verify starting positions are diagonal (opposite corners)
+    const p1Peg = state.pegs[p1PegId];
+    const p2Peg = state.pegs[p2PegId];
+    
+    // In 2x2, player 1 should be at (0,0), player 2 at (1,1)
+    expect(p1Peg.row).toBe(0);
+    expect(p1Peg.col).toBe(0);
+    expect(p2Peg.row).toBe(1);
+    expect(p2Peg.col).toBe(1);
+    
+    // Select P1's peg
+    const result = selectPeg(state, 0, p1PegId);
+    expect(result.ok).toBe(true);
+    expect(result.validMoves).toBeDefined();
+    
+    // P1 should have 2 valid moves: (0,1) and (1,0)
+    const moves = result.validMoves.map((m) => ({
+      r: Math.floor(m / 100),
+      c: m % 100,
+    }));
+    expect(moves).toHaveLength(2);
+    expect(moves).toContainEqual({ r: 0, c: 1 });
+    expect(moves).toContainEqual({ r: 1, c: 0 });
+  });
+
+  it('2x2 board: complete turn with combat', () => {
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 2 }
+    );
+    
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
+    
+    // Manually position P1 next to P2 for combat
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
+    state.board[p2Peg.row][p2Peg.col].pegId = p2PegId;
+    
+    // Select P1's peg
+    const selectResult = selectPeg(state, 0, p1PegId);
+    expect(selectResult.ok).toBe(true);
+    
+    // Plan combat move
+    const questionsDb = createQuestionsDb();
+    const planResult = planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+    expect(planResult.moveType).toBe('combat');
+    expect(planResult.questionIds).toHaveLength(2);
+    
+    // Apply turn with correct answers
+    const q1Id = planResult.questionIds[0];
+    const q2Id = planResult.questionIds[1];
+    const a1 = questionsDb._byId[q1Id].a;
+    const a2 = questionsDb._byId[q2Id].a;
+    
+    const turnResult = applyTurn(
+      state,
+      0,
+      {
+        pegId: p1PegId,
+        targetR: p2Peg.row,
+        targetC: p2Peg.col,
+        answers: [
+          { questionId: q1Id, answerIdx: a1 },
+          { questionId: q2Id, answerIdx: a2 },
+        ],
+      },
+      questionsDb,
+    );
+    
+    expect(turnResult.ok).toBe(true);
+    expect(turnResult.events).toContainEqual({ type: 'peg_moved', pegId: p1PegId, r: p2Peg.row, c: p2Peg.col });
+    
+    // In 2x2 board, when attacker wins combat, defender should be eliminated
+    // because they're at rank 0 and there's no space to push them
+    
+    // P2 should be eliminated from player's peg list and from the board
+    expect(state.players[1].pegIds).not.toContain(p2PegId);
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).not.toBe(p2PegId);
+    
+    // P1 should now be at the target position
+    expect(state.pegs[p1PegId].row).toBe(p2Peg.row);
+    expect(state.pegs[p1PegId].col).toBe(p2Peg.col);
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p1PegId);
+    
+    // Should have elimination event
+    expect(turnResult.events).toContainEqual({ type: 'peg_eliminated', pegId: p2PegId });
+    
+    // Game should be over since P2 has no pegs left
+    expect(turnResult.gameOver).toBe(true);
+    expect(turnResult.winner).toBe(0);
+    expect(state.phase).toBe(PHASE.GAME_OVER);
+  });
+
   it('initializes pegs for each player', () => {
     const state = createGame([
       { name: 'P1', color: '#f00' },

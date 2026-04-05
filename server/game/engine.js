@@ -115,7 +115,7 @@ function generateLayoutMap(boardSize, enabledCats) {
 }
 
 function getCornerOwnerMap(numPlayers, boardSize) {
-  if (boardSize === 4) {
+  if (boardSize === 4 || boardSize === 2) {
     return [];
   }
   const S = boardSize - 1;
@@ -135,6 +135,22 @@ function getCornerOwnerMap(numPlayers, boardSize) {
 
 function getStartPositions(numPlayers, boardSize) {
   const S = boardSize - 1;
+  if (boardSize === 2) {
+    // For 2x2 board, only 1 peg per player
+    const corners = [
+      [{ r: 0, c: 0 }],
+      [{ r: 0, c: S }],
+      [{ r: S, c: 0 }],
+      [{ r: S, c: S }],
+    ];
+    if (numPlayers === 2) {
+      return [corners[0], corners[3]];
+    }
+    if (numPlayers === 3) {
+      return [corners[0], corners[1], corners[3]];
+    }
+    return corners;
+  }
   if (boardSize === 4) {
     const corners = [
       [{ r: 0, c: 0 }],
