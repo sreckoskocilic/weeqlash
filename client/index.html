@@ -1974,34 +1974,16 @@ let quizModalOptionBtns = [];
         document.getElementById('modal-continue-wrap').style.display = 'flex';
         document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
         document.getElementById('modal-continue-btn').onclick = () => {
-          // Freeze for 2 seconds to allow all players to see the selection and outcome
-          document.getElementById('modal-continue-btn').disabled = true;
-          document.getElementById('modal-continue-btn').textContent = 'SHOWING RESULTS...';
-
-          setTimeout(() => {
-            socket.emit('quiz:next', (nextQ) => {
-              if (nextQ.ok) {showQuizQuestion(nextQ);}
-            });
-            // Re-enable button for potential future use
-            document.getElementById('modal-continue-btn').disabled = false;
-            document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
-          }, 2000);
+          socket.emit('quiz:next', (nextQ) => {
+            if (nextQ.ok) {showQuizQuestion(nextQ);}
+          });
         };
       } else {
         stopGameTimer();
         document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
         document.getElementById('modal-continue-btn').onclick = () => {
-          // Freeze for 2 seconds to allow all players to see the selection and outcome
-          document.getElementById('modal-continue-btn').disabled = true;
-          document.getElementById('modal-continue-btn').textContent = 'SHOWING RESULTS...';
-
-          setTimeout(() => {
-            document.getElementById('modal-overlay').classList.remove('visible');
-            setTimeout(() => showLeaderboard(res), 300);
-            // Re-enable button for potential future use
-            document.getElementById('modal-continue-btn').disabled = false;
-            document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
-          }, 2000);
+          document.getElementById('modal-overlay').classList.remove('visible');
+          setTimeout(() => showLeaderboard(res), 300);
         };
         document.getElementById('modal-continue-wrap').style.display = 'flex';
       }
@@ -2027,17 +2009,8 @@ let quizModalOptionBtns = [];
         socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
           document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
           document.getElementById('modal-continue-btn').onclick = () => {
-            // Freeze for 2 seconds to allow all players to see the selection and outcome
-            document.getElementById('modal-continue-btn').disabled = true;
-            document.getElementById('modal-continue-btn').textContent = 'SHOWING RESULTS...';
-
-            setTimeout(() => {
-              document.getElementById('modal-overlay').classList.remove('visible');
-              setTimeout(() => showLeaderboard(res), 300);
-              // Re-enable button for potential future use
-              document.getElementById('modal-continue-btn').disabled = false;
-              document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
-            }, 2000);
+            document.getElementById('modal-overlay').classList.remove('visible');
+            setTimeout(() => showLeaderboard(res), 300);
           };
           document.getElementById('modal-continue-wrap').style.display = 'flex';
         });
