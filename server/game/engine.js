@@ -21,6 +21,7 @@ export const PHASE = {
 export const CATS = [
   'visual_arts',
   'music',
+  'death_metal',
   'film_tv',
   'books',
   'science',

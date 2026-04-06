@@ -237,6 +237,7 @@
     /* ===== CATEGORY COLORS ===== */
     .cat-visual_arts     { background: #C62828; } .cat-visual_arts .tile-cat-label     { color: #FFD6D6; }
     .cat-music          { background: #6A1B9A; } .cat-music .tile-cat-label          { color: #E8CCFF; }
+    .cat-death_metal    { background: #ED6C02; } .cat-death_metal .tile-cat-label    { color: #FFF1D6; }
     .cat-film_tv        { background: #E65100; } .cat-film_tv .tile-cat-label        { color: #FFF0CC; }
     .cat-books           { background: #1565C0; } .cat-books .tile-cat-label           { color: #C5DCFF; }
     .cat-science        { background: #2E7D32; } .cat-science .tile-cat-label        { color: #C8F0CA; }
@@ -587,9 +588,14 @@
           <button class="cat-toggle-btn active" data-cat="books">Books</button>
           <button class="cat-toggle-btn active" data-cat="science">Science</button>
           <button class="cat-toggle-btn active" data-cat="music">Music</button>
+          <button class="cat-toggle-btn active" data-cat="death_metal">Death Metal</button>
           <button class="cat-toggle-btn active" data-cat="film_tv">Film & TV</button>
           <button class="cat-toggle-btn active" data-cat="sports">Sports</button>
           <button class="cat-toggle-btn active" data-cat="other">Other</button>
+        </div>
+        <div class="setup-actions">
+          <button id="btn-cats-all" class="active">All</button>
+          <button id="btn-cats-none">None</button>
         </div>
       </div>
     </div>
@@ -767,12 +773,12 @@
   const OPTION_KEYS = ['A','B','C','D'];
   const KEY_MAP = { a:0, b:1, c:2, d:3, '1':0, '2':1, '3':2, '4':3 };
 const CAT_NAMES = {
-  visual_arts:'Visual Arts', music:'Music', film_tv:'Film & TV', books:'Books', science:'Science',
+  visual_arts:'Visual Arts', music:'Music', death_metal:'Death Metal', film_tv:'Film & TV', books:'Books', science:'Science',
   history:'History', geography:'Geography', sports:'Sports', other:'Other'
 };
 const CAT_COLORS = {
   visual_arts:'#C62828', geography:'#00695C', history:'#6D4C41', books:'#1565C0',
-  science:'#2E7D32', music:'#6A1B9A', film_tv:'#E65100', sports:'#AD1457', other:'#546E7A'
+  science:'#2E7D32', music:'#6A1B9A', death_metal:'#ED6C02', film_tv:'#E65100', sports:'#AD1457', other:'#546E7A'
 };
   const CATS = Object.keys(CAT_NAMES);
 
@@ -823,6 +829,8 @@ let quizModalOptionBtns = [];
   let pendingCombatDefenderIdx = null;
   let spectatingDefenderIdx = null;
   let navCursor = { row: 0, col: 0 };
+  let lastSubmittedPegId = null;
+  let lastSubmittedMoveType = null;
   
   // Setup screen state
   const setupPlayerCount = 2;
@@ -966,8 +974,17 @@ let quizModalOptionBtns = [];
   socket.on('state:update', ({ state, events, gameOver, winner, validMoves, results, moreQuestionsInProgress }) => {
     // Show results if this player has pending questions (attacker or spectator)
     const shouldShowResults = results?.length && pendingQuestions.length > 0;
+    const isNormalAttackerFlow = !spectatingQuestion && lastSubmittedMoveType === 'normal';
+    const isNormalSpectatorFlow = spectatingQuestion && spectatingMoveType === 'normal';
 
-    if (shouldShowResults && pendingQuestions.length) {
+    if (shouldShowResults && pendingQuestions.length && (isNormalAttackerFlow || isNormalSpectatorFlow)) {
+      stopTimer();
+      spectatingQuestion = false;
+      pendingQuestions = [];
+      pendingAnswers = [];
+      lastSubmittedMoveType = null;
+      el('modal-overlay').classList.remove('visible');
+    } else if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
       if (spectatingQuestion) {
         // Spectator: highlight the chosen answer only
@@ -1026,21 +1043,47 @@ let quizModalOptionBtns = [];
     }
 
     const oldState = gameState;
+    const prevNavRow = navCursor.row;
+    const prevNavCol = navCursor.col;
     gameState = state;
     // If server kept SELECT_TILE for same peg (movesRemaining > 0), restore local state
     if (state.phase === PHASE.SELECT_TILE && state.selectedPegId && state.currentPlayerIdx === myPlayerIndex && validMoves) {
-      localPhase = PHASE.SELECT_TILE;
-      localSelectedPegId = state.selectedPegId;
-      validMovesSet = new Set(validMoves);
+      if (lastSubmittedPegId && state.selectedPegId === lastSubmittedPegId) {
+        localPhase = PHASE.SELECT_PEG;
+        localSelectedPegId = null;
+        validMovesSet.clear();
+        setNavCursorToPeg(state, state.selectedPegId);
+      } else {
+        localPhase = PHASE.SELECT_TILE;
+        localSelectedPegId = state.selectedPegId;
+        validMovesSet = new Set(validMoves);
+      }
     } else {
       localPhase = null;
       localSelectedPegId = null;
       validMovesSet.clear();
     }
-    if (state.currentPlayerIdx === myPlayerIndex && state.phase === PHASE.SELECT_PEG) {initNavCursor(state);}
+    if (state.currentPlayerIdx === myPlayerIndex && state.phase === PHASE.SELECT_PEG) {
+      const preferredPegId =
+        lastSubmittedPegId &&
+        state.pegs[lastSubmittedPegId] &&
+        state.pegs[lastSubmittedPegId].playerId === myPlayerIndex &&
+        state.pegsToMove?.includes(lastSubmittedPegId)
+          ? lastSubmittedPegId
+          : null;
+      if (preferredPegId) {setNavCursorToPeg(state, preferredPegId);}
+      else {initNavCursor(state);}
+    }
+    if (prevPlayerIdx !== state.currentPlayerIdx || state.currentPlayerIdx !== myPlayerIndex) {
+      lastSubmittedPegId = null;
+      lastSubmittedMoveType = null;
+    }
+    const navCursorChanged = prevNavRow !== navCursor.row || prevNavCol !== navCursor.col;
 
     // Diff-based board update: only re-render tiles that changed
-    if (oldState && oldState.board) {
+    if (navCursorChanged) {
+      renderAll(state);
+    } else if (oldState && oldState.board) {
       renderChangedTiles(oldState, state, events);
     } else {
       renderAll(state);
@@ -1427,6 +1470,7 @@ let quizModalOptionBtns = [];
     });
 
     el('modal-continue-wrap').style.display = 'none';
+    el('modal-continue-btn').disabled = false;
     el('modal-continue-btn').textContent = 'CONTINUE';
     el('modal-overlay').classList.add('visible');
 
@@ -1517,25 +1561,14 @@ let quizModalOptionBtns = [];
 
   window.continueAfterQuestion = function() {
     if (!pendingMove) {return;}
-
-    // Freeze for 2 seconds to allow all players to see the selection and outcome
-    // (Everyone already sees the outcome immediately after answering - matching desktop game)
     el('modal-continue-btn').disabled = true;
-    el('modal-continue-btn').textContent = 'CONTINUING...';
-
-    setTimeout(() => {
-      const nextIdx = currentQIdx + 1;
-      if (nextIdx < pendingQuestions.length) {
-        currentQIdx = nextIdx;
-        showQuestion(nextIdx);
-      } else {
-        // Keep modal open — state:update will show result then close it
-        submitTurn();
-      }
-      // Re-enable button for potential future use
-      el('modal-continue-btn').disabled = false;
-      el('modal-continue-btn').textContent = 'CONTINUE';
-    }, 2000);
+    lastSubmittedPegId = pendingMove?.pegId ?? null;
+    localSelectedPegId = null;
+    localPhase = 'answering';
+    validMovesSet.clear();
+    el('modal-overlay').classList.remove('visible');
+    renderAll(gameState);
+    submitTurn();
   };
 
   function startTimer(qIdx) {
@@ -1579,6 +1612,8 @@ let quizModalOptionBtns = [];
     const isCombat = pendingMove?.moveType === 'combat';
     const isLastAnswer = pendingAnswers.length >= pendingQuestions.length;
     const willHaveMoreQuestions = isCombat && !isLastAnswer;
+    lastSubmittedPegId = pendingMove?.pegId ?? lastSubmittedPegId;
+    lastSubmittedMoveType = pendingMove?.moveType ?? lastSubmittedMoveType;
 
     socket.emit('turn:submit', {
       code: myRoom.code,
@@ -1607,7 +1642,7 @@ let quizModalOptionBtns = [];
     // If more questions coming, keep pendingMove for next question
     if (willHaveMoreQuestions) {
       // Only clear local interaction state, keep pendingMove for next question
-      localPhase = null;
+      localPhase = 'answering';
       // Do NOT clear pendingMove - attacker needs it to submit next answer
       // Keep pendingQuestions too - will be replaced by nextQuestion
       return;
@@ -1615,7 +1650,7 @@ let quizModalOptionBtns = [];
 
     localSelectedPegId = null;
     validMovesSet.clear();
-    localPhase = null;
+    localPhase = 'answering';
     pendingMove = null;
     // pendingQuestions and pendingAnswers intentionally NOT cleared here.
     // state:update → advanceSpectateResult will show the results then close the modal.
@@ -1659,6 +1694,14 @@ let quizModalOptionBtns = [];
       const peg = state.pegs[firstPegId];
       if (peg) {navCursor = { row: peg.row, col: peg.col };}
     }
+  }
+
+  function setNavCursorToPeg(state, pegId) {
+    const peg = pegId ? state.pegs?.[pegId] : null;
+    if (!peg) {return false;}
+    const changed = navCursor.row !== peg.row || navCursor.col !== peg.col;
+    navCursor = { row: peg.row, col: peg.col };
+    return changed;
   }
 
   // ============================================================
@@ -1771,6 +1814,20 @@ let quizModalOptionBtns = [];
     }
   });
 
+  el('btn-cats-all').addEventListener('click', () => {
+    setupEnabledCats = [...CATS];
+    document.querySelectorAll('#cat-toggle-btns .cat-toggle-btn').forEach(btn => {
+      btn.classList.add('active');
+    });
+  });
+
+  el('btn-cats-none').addEventListener('click', () => {
+    setupEnabledCats = [];
+    document.querySelectorAll('#cat-toggle-btns .cat-toggle-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+  });
+
   el('btn-max-rank').addEventListener('click', () => {
     setupMaxRankStart = !setupMaxRankStart;
     el('btn-max-rank').classList.toggle('active', setupMaxRankStart);
@@ -1796,6 +1853,9 @@ let quizModalOptionBtns = [];
   el('btn-create').addEventListener('click', () => {
     const playerName = getPlayerName();
     if (!playerName) {return;}
+    if (setupEnabledCats.length === 0) {
+      return showError('Select at least one category.');
+    }
     socket.emit('room:create', {
       playerName,
       playerCount:  setupPlayerCount,
