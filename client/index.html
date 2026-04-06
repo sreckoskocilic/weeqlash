@@ -515,6 +515,85 @@
     }
 
     .lb-actions button:hover { border-color: var(--text); color: var(--text); }
+
+    /* ===== FOOTER ===== */
+    #site-footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      opacity: 0.6;
+      letter-spacing: 0.05em;
+    }
+    #site-footer a {
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      cursor: pointer;
+    }
+    #site-footer a:hover { color: var(--text); border-bottom-color: var(--text); }
+    #site-footer .sep { margin: 0 0.5rem; opacity: 0.4; }
+
+    /* ===== LEGAL MODALS ===== */
+    .legal-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .legal-modal.open { display: flex; }
+    .legal-content {
+      background: var(--bg2);
+      border: 1px solid var(--bg3);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80svh;
+      overflow-y: auto;
+      color: var(--text);
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+    .legal-content h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+    }
+    .legal-content h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text);
+      text-transform: uppercase;
+      margin: 1rem 0 0.4rem;
+    }
+    .legal-content p { color: var(--muted); margin-bottom: 0.5rem; }
+    .legal-content ul { color: var(--muted); padding-left: 1.2rem; margin-bottom: 0.5rem; }
+    .legal-content li { margin-bottom: 0.25rem; }
+    .legal-close {
+      display: block;
+      margin-top: 1.5rem;
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--bg3);
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .legal-close:hover { border-color: var(--text); color: var(--text); }
   </style>
 </head>
 <body>
@@ -622,6 +701,95 @@
     <button id="btn-quiz-start" class="btn-triviandom" style="margin-top:1rem">Start Triviandom</button>
   </div>
 
+</div>
+
+<!-- Footer -->
+<footer id="site-footer">
+  <span>&copy; 2025 Sraz</span>
+  <span class="sep">|</span>
+  <a onclick="openLegal('privacy')">Privacy Policy</a>
+  <span class="sep">|</span>
+  <a onclick="openLegal('cookies')">Cookie Policy</a>
+  <span class="sep">|</span>
+  <a onclick="openLegal('terms')">Terms of Service</a>
+</footer>
+
+<!-- Legal: Privacy Policy -->
+<div class="legal-modal" id="modal-privacy">
+  <div class="legal-content">
+    <h2>Privacy Policy</h2>
+    <p>Last updated: April 2025</p>
+    <h3>What we collect</h3>
+    <p>When you play Sraz, we collect only what is needed to run the game:</p>
+    <ul>
+      <li><strong>Player name</strong> — entered by you, used only for your current game session. Never stored on our servers after the session ends.</li>
+      <li><strong>Leaderboard entries</strong> — if you choose to submit a score, your chosen display name and score are stored in the public leaderboard.</li>
+    </ul>
+    <h3>What we do NOT collect</h3>
+    <ul>
+      <li>Email addresses, passwords, or account information</li>
+      <li>IP addresses or device identifiers beyond what is technically required for a WebSocket connection</li>
+      <li>Behavioural tracking or analytics data</li>
+      <li>Any data from minors knowingly</li>
+    </ul>
+    <h3>Data sharing</h3>
+    <p>We do not sell, rent, or share your data with third parties. Leaderboard scores are public by design — do not use your real name if you prefer anonymity.</p>
+    <h3>Data retention</h3>
+    <p>Game session data is discarded when the session ends. Leaderboard entries are kept until reset.</p>
+    <h3>Contact</h3>
+    <p>Questions? Reach out via the project repository.</p>
+    <button class="legal-close" onclick="closeLegal('privacy')">[ close ]</button>
+  </div>
+</div>
+
+<!-- Legal: Cookie Policy -->
+<div class="legal-modal" id="modal-cookies">
+  <div class="legal-content">
+    <h2>Cookie Policy</h2>
+    <p>Last updated: April 2025</p>
+    <h3>Cookies used</h3>
+    <p>Sraz uses only the minimum browser storage required to function:</p>
+    <ul>
+      <li><strong>localStorage</strong> — your last-used player name and UI preferences (board size, timer, categories, high-contrast mode) are saved locally in your browser so you don't have to re-enter them each visit. This data never leaves your device.</li>
+    </ul>
+    <h3>No tracking cookies</h3>
+    <p>We do not use advertising cookies, analytics cookies, or any third-party tracking technologies. There are no fingerprinting scripts, pixel trackers, or cross-site identifiers.</p>
+    <h3>Third-party content</h3>
+    <p>Fonts are loaded from Google Fonts (fonts.googleapis.com). Google may set its own cookies in accordance with their <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">privacy policy</a>.</p>
+    <h3>Controlling storage</h3>
+    <p>You can clear localStorage at any time via your browser's developer tools or settings. Doing so will reset your saved preferences.</p>
+    <button class="legal-close" onclick="closeLegal('cookies')">[ close ]</button>
+  </div>
+</div>
+
+<!-- Legal: Terms of Service -->
+<div class="legal-modal" id="modal-terms">
+  <div class="legal-content">
+    <h2>Terms of Service</h2>
+    <p>Last updated: April 2025</p>
+    <h3>Acceptance</h3>
+    <p>By playing Sraz you agree to these terms. If you do not agree, please do not use the service.</p>
+    <h3>Use of the service</h3>
+    <p>Sraz is a free multiplayer trivia game provided for entertainment. You may:</p>
+    <ul>
+      <li>Play games with other users</li>
+      <li>Submit scores to the public leaderboard using a display name of your choosing</li>
+    </ul>
+    <p>You must not:</p>
+    <ul>
+      <li>Attempt to exploit, cheat, or disrupt the service or other players' experience</li>
+      <li>Submit offensive, hateful, or impersonating display names</li>
+      <li>Use automated scripts or bots to interact with the service</li>
+      <li>Attempt to reverse-engineer or tamper with the server</li>
+    </ul>
+    <h3>Leaderboard</h3>
+    <p>Leaderboard entries are public. Display names are chosen by you — do not use personal information you wish to keep private. We reserve the right to remove any entry at our discretion.</p>
+    <h3>Disclaimer</h3>
+    <p>The service is provided "as is" without warranties of any kind. We are not liable for any damages arising from use of the service. Trivia questions are for entertainment — answers may occasionally be imperfect.</p>
+    <h3>Changes</h3>
+    <p>We may update these terms at any time. Continued use of the service constitutes acceptance of the updated terms.</p>
+    <button class="legal-close" onclick="closeLegal('terms')">[ close ]</button>
+  </div>
 </div>
 
 <!-- Help modal -->
@@ -847,6 +1015,7 @@ let quizModalOptionBtns = [];
     const isConnect = (id === 'screen-connect');
     el('main-title').style.display    = isGame ? 'none' : '';
     el('main-subtitle').style.display = isGame ? 'none' : '';
+    el('site-footer').style.display   = isConnect ? '' : 'none';
     ['screen-connect','screen-lobby','screen-game','screen-gameover','screen-leaderboard'].forEach(s => {
       el(s).style.display = 'none';
       el(s).classList.remove('show');
@@ -1848,6 +2017,18 @@ let quizModalOptionBtns = [];
   window.closeHelp = function() { el('help-modal').classList.remove('show'); };
   el('help-modal').addEventListener('click', e => {
     if (e.target === el('help-modal')) {window.closeHelp();}
+  });
+
+  window.openLegal = function(page) {
+    document.getElementById('modal-' + page).classList.add('open');
+  };
+  window.closeLegal = function(page) {
+    document.getElementById('modal-' + page).classList.remove('open');
+  };
+  ['privacy', 'cookies', 'terms'].forEach(page => {
+    document.getElementById('modal-' + page).addEventListener('click', e => {
+      if (e.target === document.getElementById('modal-' + page)) { window.closeLegal(page); }
+    });
   });
 
   el('btn-create').addEventListener('click', () => {
