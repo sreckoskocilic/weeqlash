@@ -28,6 +28,20 @@ function createQuestionsDb() {
   return q;
 }
 
+function createSparseQuestionsDb(overrides = {}) {
+  const q = Object.fromEntries(CATS.map((cat) => [cat, []]));
+  for (const [cat, questions] of Object.entries(overrides)) {
+    q[cat] = questions;
+  }
+  q._byId = {};
+  for (const cat of CATS) {
+    for (const qq of q[cat]) {
+      q._byId[qq.id] = qq;
+    }
+  }
+  return q;
+}
+
 describe('Engine: Game Creation', () => {
   it('creates 2 player game', () => {
     const state = createGame(
@@ -301,6 +315,69 @@ describe('Engine: Normal Move', () => {
 
     expect(turnResult.ok).toBe(true);
     expect(state.phase).toBe(PHASE.SELECT_PEG);
+  });
+});
+
+describe('Engine: Question Selection', () => {
+  it('falls back to any available question when the target category is empty', () => {
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 4, enabledCats: ['history'] },
+    );
+    const questionsDb = createSparseQuestionsDb({
+      science: [
+        { id: 'science_1', a: 0, q: 'Fallback?', opts: ['A', 'B', 'C', 'D'] },
+      ],
+    });
+    const pegId = state.players[0].pegIds[0];
+
+    const result = selectPeg(state, 0, pegId);
+    expect(result.ok).toBe(true);
+
+    const target = result.validMoves
+      .map((m) => ({ r: Math.floor(m / 100), c: m % 100 }))
+      .find(({ r, c }) => state.board[r][c].category === 'history');
+
+    expect(target).toBeDefined();
+
+    const planResult = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+
+    expect(planResult.questionIds).toEqual(['science_1']);
+    expect(state.pendingTurn.questionIds).toEqual(['science_1']);
+  });
+
+  it('reuses questions instead of returning fewer ids once a category is consumed', () => {
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 4, enabledCats: ['history'] },
+    );
+    const questionsDb = createSparseQuestionsDb({
+      history: [
+        { id: 'history_1', a: 0, q: 'Only one?', opts: ['A', 'B', 'C', 'D'] },
+      ],
+    });
+    const pegId = state.players[0].pegIds[0];
+
+    const result = selectPeg(state, 0, pegId);
+    expect(result.ok).toBe(true);
+
+    const target = result.validMoves
+      .map((m) => ({ r: Math.floor(m / 100), c: m % 100 }))
+      .find(({ r, c }) => state.board[r][c].category === 'history');
+
+    expect(target).toBeDefined();
+
+    const first = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+    const second = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+
+    expect(first.questionIds).toEqual(['history_1']);
+    expect(second.questionIds).toEqual(['history_1']);
   });
 });
 

@@ -624,20 +624,13 @@ io.on('connection', (socket) => {
     if (!run) {return cb({ error: 'Quiz not started' });}
 
     const allQuestions = getAllQuestions(questionsDb);
-    const usedIds = new Set(run.questionIds);
-
-    // Find a question not yet used in this run
-    let randomQ;
-    let attempts = 0;
-    do {
-      randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
-      attempts++;
-    } while (usedIds.has(randomQ.id) && attempts < allQuestions.length);
-
-    // If all questions exhausted, allow duplicates
-    if (!randomQ) {
-      randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    if (allQuestions.length === 0) {
+      return cb({ error: 'No questions available' });
     }
+    const usedIds = new Set(run.questionIds);
+    const availableQuestions = allQuestions.filter((q) => !usedIds.has(q.id));
+    const pool = availableQuestions.length > 0 ? availableQuestions : allQuestions;
+    const randomQ = pool[Math.floor(Math.random() * pool.length)];
 
     run.questionIds.push(randomQ.id);
 

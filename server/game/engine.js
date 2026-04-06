@@ -336,37 +336,92 @@ function finishPegMove(state) {
 // ---------------------------------------------------------------------------
 
 // Pick `count` question IDs from `cat`, tracking used ones per state.
-function pickQuestionIds(state, cat, count, questionsDb) {
-  const pool = questionsDb[cat];
-  if (!pool?.length) {
+function ensureQuestionTrackingSet(state, key) {
+  if (!state.usedQ[key]) {
+    state.usedQ[key] = new Set();
+  }
+  return state.usedQ[key];
+}
+
+function getAllQuestionPool(questionsDb) {
+  return Object.values(questionsDb)
+    .filter(Array.isArray)
+    .flat()
+    .filter((q) => q?.id);
+}
+
+function takeQuestions(pool, usedSet, wrongSet, count, excludedIds = new Set()) {
+  if (!pool?.length || count <= 0) {
     return [];
   }
 
-  if (!state.usedQ[cat]) {
-    state.usedQ[cat] = new Set();
-  }
-  const usedSet = state.usedQ[cat];
-  const wrongSet = state.wrongQ;
+  const selected = [];
+  const reservedIds = new Set(excludedIds);
 
-  let candidates = pool.filter(
-    (q) => !usedSet.has(q.id) && !wrongSet.has(q.id),
-  );
-  if (candidates.length < count) {
-    usedSet.clear();
-    candidates = pool.filter((q) => !wrongSet.has(q.id));
-  }
-  if (candidates.length < count) {
-    candidates = pool.filter((q) => !usedSet.has(q.id));
-    if (candidates.length < count) {
+  const phases = [
+    () => pool.filter((q) => !usedSet.has(q.id) && !wrongSet.has(q.id) && !reservedIds.has(q.id)),
+    () => {
       usedSet.clear();
-      candidates = [...pool];
+      return pool.filter((q) => !wrongSet.has(q.id) && !reservedIds.has(q.id));
+    },
+    () => pool.filter((q) => !usedSet.has(q.id) && !reservedIds.has(q.id)),
+    () => {
+      usedSet.clear();
+      return pool.filter((q) => !reservedIds.has(q.id));
+    },
+  ];
+
+  for (const phase of phases) {
+    if (selected.length >= count) {break;}
+    const candidates = shuffle(phase());
+    for (const q of candidates) {
+      if (selected.length >= count) {break;}
+      selected.push(q);
+      reservedIds.add(q.id);
     }
   }
-  candidates = shuffle(candidates);
 
-  const selected = candidates.slice(0, count);
+  if (selected.length < count) {
+    const repeats = shuffle(pool);
+    let idx = 0;
+    while (selected.length < count && repeats.length > 0) {
+      selected.push(repeats[idx % repeats.length]);
+      idx++;
+    }
+  }
+
   selected.forEach((q) => usedSet.add(q.id));
-  return selected.map((q) => q.id);
+  return selected;
+}
+
+function pickQuestionIds(state, cat, count, questionsDb, excludedIds = new Set()) {
+  const wrongSet = state.wrongQ;
+  const primaryPool = questionsDb[cat];
+  const primaryUsedSet = ensureQuestionTrackingSet(state, cat);
+
+  const selected = takeQuestions(
+    primaryPool,
+    primaryUsedSet,
+    wrongSet,
+    count,
+    excludedIds,
+  );
+
+  if (selected.length >= count) {
+    return selected.map((q) => q.id);
+  }
+
+  const fallbackPool = getAllQuestionPool(questionsDb);
+  const fallbackUsedSet = ensureQuestionTrackingSet(state, '__all__');
+  const fallbackSelected = takeQuestions(
+    fallbackPool,
+    fallbackUsedSet,
+    wrongSet,
+    count - selected.length,
+    new Set([...excludedIds, ...selected.map((q) => q.id)]),
+  );
+
+  return [...selected, ...fallbackSelected].map((q) => q.id);
 }
 
 // Determine move type from board state.
@@ -401,25 +456,31 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   // tileCat matches srazique's tileCat(): flag tiles use 'other' for normal moves
   const tileCat =
     tile.category === 'flag' ? 'other' : tile.category;
+  const selectedIds = new Set();
+  const take = (cat, count = 1) => {
+    const ids = pickQuestionIds(state, cat, count, questionsDb, selectedIds);
+    ids.forEach((id) => selectedIds.add(id));
+    return ids;
+  };
 
   let questionIds;
   if (moveType === 'flag') {
     // Each of the 3 flag capture questions uses a fresh randomCat() — matches srazique
     questionIds = [
-      ...pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb),
-      ...pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb),
-      ...pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb),
+      ...take(randomCat(state.enabledCats), 1),
+      ...take(randomCat(state.enabledCats), 1),
+      ...take(randomCat(state.enabledCats), 1),
     ];
   } else if (moveType === 'combat') {
     // Q1 uses the tile's category (matching srazique tileCat), Q2 uses random category
     const combatQ1Cat = tile.category === 'flag' ? 'other' : tile.category;
     const combatQ2Cat = randomCat(state.enabledCats);
     questionIds = [
-      ...pickQuestionIds(state, combatQ1Cat, 1, questionsDb),
-      ...pickQuestionIds(state, combatQ2Cat, 1, questionsDb),
+      ...take(combatQ1Cat, 1),
+      ...take(combatQ2Cat, 1),
     ];
   } else {
-    questionIds = pickQuestionIds(state, tileCat, 1, questionsDb);
+    questionIds = take(tileCat, 1);
   }
 
   state.pendingTurn = { pegId, targetR, targetC, moveType, questionIds };
