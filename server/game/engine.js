@@ -553,9 +553,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       : null;
 
     const q1Correct = checkAnswer(0);
-    if (!q1Correct) {
-      // Wrong answer to Q1 ends battle immediately
-    } else {
+    if (q1Correct) {
       const q2Correct = checkAnswer(1);
       const defPegId = state.board[targetR]?.[targetC]?.pegId;
       const defPeg = defPegId ? state.pegs[defPegId] : null;

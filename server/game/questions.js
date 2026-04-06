@@ -14,9 +14,6 @@ function decrypt(base64) {
 }
 
 export function loadQuestions(encPath) {
-  // Invalidate cached flat array so stale references aren't returned
-  _allCache = null;
-
   const resolved = encPath || process.env.QUESTIONS_PATH ||
     path.resolve(import.meta.dirname, '../questions.enc');
 
@@ -49,15 +46,13 @@ export function loadQuestions(encPath) {
   return data;
 }
 
-// Lazy flat array for quiz mode — computed once on first access, not at startup.
+// Lazy flat array for quiz mode — computed once per db object on first access, not at startup.
 // Avoids the OOM crash that eager _all[] caused with 8642 questions.
-let _allCache = null;
+// WeakMap keyed on db object so tests that call loadQuestions() per-test get a fresh cache.
+const _allCacheByDb = new WeakMap();
 export function getAllQuestions(db) {
-  if (!_allCache) {
-    _allCache = Object.values(db)
-      .filter(Array.isArray)
-      .flat()
-      .filter(q => q.id);
+  if (!_allCacheByDb.has(db)) {
+    _allCacheByDb.set(db, Object.values(db).filter(Array.isArray).flat().filter(q => q.id));
   }
-  return _allCache;
+  return _allCacheByDb.get(db);
 }

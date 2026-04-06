@@ -65,26 +65,14 @@ const QUIZ_RATE_LIMIT_MS = 2000;
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
 
 // Periodic cleanup of stale rate limit entries (every 30s)
+const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
-  for (const [socketId, time] of answerTimestamps) {
-    if (now - time > 60_000) {
-      answerTimestamps.delete(socketId);
-    }
-  }
-  for (const [socketId, time] of lobbyTimestamps) {
-    if (now - time > 60_000) {
-      lobbyTimestamps.delete(socketId);
-    }
-  }
-  for (const [socketId, time] of previewTimestamps) {
-    if (now - time > 60_000) {
-      previewTimestamps.delete(socketId);
-    }
-  }
-  for (const [socketId, time] of quizTimestamps) {
-    if (now - time > 60_000) {
-      quizTimestamps.delete(socketId);
+  for (const map of rateLimitMaps) {
+    for (const [socketId, time] of map) {
+      if (now - time > 60_000) {
+        map.delete(socketId);
+      }
     }
   }
 }, 30_000);
@@ -363,7 +351,7 @@ io.on('connection', (socket) => {
       playerIdx: player.index,
       playerColor: gamePlayer?.color,
       moveType,
-      questions: questionsPublic,
+      questions: questionsPublic, // Strip correctIdx so spectators can't see answers
       defenderPlayerIdx,
     });
 
@@ -495,12 +483,13 @@ io.on('connection', (socket) => {
         if (!q) {
           continue;
         }
-        const correct = q.a === answers[i].answerIdx;
-        if (isCombat && i === 0 && !correct) {
-          hasWrongAnswer = true;
-        }
         // Include this result only if: no wrong answer yet OR it's the first result (Q1)
         if (!hasWrongAnswer || i === 0) {
+          const correct = q.a === answers[i].answerIdx;
+          if (isCombat && i === 0 && !correct) {
+            hasWrongAnswer = true;
+          }
+          // Always send correctness - client will hide correct answer from spectators when attacker is wrong
           results.push({ chosenIdx: answers[i].answerIdx, correct });
         }
         // For combat: if Q1 wrong, stop processing further answers
@@ -695,7 +684,9 @@ io.on('connection', (socket) => {
           playerId: socket.id,
           playerName: player.name,
         });
-        // If only one player remains, declare them the winner
+        // If only one player remains, declare them the winner.
+        // Intentional: mutates state directly here instead of via engine because
+        // the game is ending due to a disconnection, not a valid turn outcome.
         if (room.players.length === 1) {
           const winner = room.players[0];
           room.state.phase = PHASE.GAME_OVER;

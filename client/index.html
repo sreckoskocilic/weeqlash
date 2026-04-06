@@ -241,7 +241,7 @@
     .cat-books           { background: #1565C0; } .cat-books .tile-cat-label           { color: #C5DCFF; }
     .cat-science        { background: #2E7D32; } .cat-science .tile-cat-label        { color: #C8F0CA; }
     .cat-history        { background: #6D4C41; } .cat-history .tile-cat-label        { color: #FFE0C8; }
-    .cat-geography      { background: #2E7D32; } .cat-geography .tile-cat-label      { color: #C8F0CA; }
+    .cat-geography      { background: #00695C; } .cat-geography .tile-cat-label      { color: #B2DFDB; }
     .cat-sports         { background: #AD1457; } .cat-sports .tile-cat-label         { color: #FFD6E8; }
     .cat-other          { background: #546E7A; } .cat-other .tile-cat-label          { color: #D6E8F0; }
 
@@ -731,7 +731,19 @@
 
   socket.io.on('reconnect', () => {
     console.warn('Reconnected');
-    showError(''); // Clear any error
+    showError('');
+    if (myToken && myRoom?.code) {
+      socket.emit('session:resume', { token: myToken, code: myRoom.code }, (res) => {
+        if (res.error) {
+          console.warn('Session resume failed:', res.error);
+          return;
+        }
+        if (res.state) {
+          gameState = res.state;
+          renderAll(gameState);
+        }
+      });
+    }
   });
 
   // ============================================================
@@ -759,7 +771,7 @@ const CAT_NAMES = {
   history:'History', geography:'Geography', sports:'Sports', other:'Other'
 };
 const CAT_COLORS = {
-  visual_arts:'#C62828', geography:'#2E7D32', history:'#6D4C41', books:'#6A1B9A',
+  visual_arts:'#C62828', geography:'#00695C', history:'#6D4C41', books:'#1565C0',
   science:'#2E7D32', music:'#6A1B9A', film_tv:'#E65100', sports:'#AD1457', other:'#546E7A'
 };
   const CATS = Object.keys(CAT_NAMES);
@@ -779,6 +791,7 @@ const CAT_COLORS = {
   // STATE
   // ============================================================
   let myId = null;
+  let myToken = null;
   let myRoom = null;
   let isHost = false;
   let myPlayerIndex = null;
@@ -802,14 +815,15 @@ const CAT_COLORS = {
   let pendingAnswers = [];
   let currentQIdx = 0;
   let timerInterval = null;
-  let modalOptionBtns = [];
+let quizModalOptionBtns = [];
+  let gameModalOptionBtns = [];
   let spectatingQuestion = false;
   let spectatingMoveType = null;
   let spectatingPlayerIdx = null;
   let pendingCombatDefenderIdx = null;
   let spectatingDefenderIdx = null;
   let navCursor = { row: 0, col: 0 };
-
+  
   // Setup screen state
   const setupPlayerCount = 2;
   let setupBoardSize = 8;
@@ -936,12 +950,12 @@ const CAT_COLORS = {
         showQuestion(next);
         const r = results[next];
         if (r?.chosenIdx >= 0) {
-          modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+          gameModalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
         }
         advanceSpectateResult(results, next, moreQuestionsInProgress);
         return;
       }
-      // No more questions - close modal
+      // No more questions - close modal and clear state
       spectatingQuestion = false;
       pendingQuestions = [];
       pendingAnswers = [];
@@ -949,7 +963,7 @@ const CAT_COLORS = {
     }, TIMING.RESULT_DISPLAY_MS);
   }
 
-  socket.on('state:update', ({ state, gameOver, winner, validMoves, results, moreQuestionsInProgress }) => {
+  socket.on('state:update', ({ state, events, gameOver, winner, validMoves, results, moreQuestionsInProgress }) => {
     // Show results if this player has pending questions (attacker or spectator)
     const shouldShowResults = results?.length && pendingQuestions.length > 0;
 
@@ -959,7 +973,10 @@ const CAT_COLORS = {
         // Spectator: highlight the chosen answer only
         const r = results[currentQIdx] ?? results[results.length - 1];
         if (r?.chosenIdx >= 0) {
-          modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+          // Both spectator and attacker modes: show actual correctness
+          // This ensures all players see the same thing while preserving privacy
+          // (correct answer is never revealed in UI when answer is wrong)
+          gameModalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
         }
         advanceSpectateResult(results, currentQIdx, moreQuestionsInProgress);
       } else {
@@ -968,7 +985,10 @@ const CAT_COLORS = {
         showQuestion(0);
         const r = results[0];
         if (r?.chosenIdx >= 0) {
-          modalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
+          // Both spectator and attacker modes: show actual correctness
+          // This ensures all players see the same thing while preserving privacy
+          // (correct answer is never revealed in UI when answer is wrong)
+          gameModalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
         }
         advanceSpectateResult(results, 0, moreQuestionsInProgress);
       }
@@ -1021,7 +1041,7 @@ const CAT_COLORS = {
 
     // Diff-based board update: only re-render tiles that changed
     if (oldState && oldState.board) {
-      renderChangedTiles(oldState, state);
+      renderChangedTiles(oldState, state, events);
     } else {
       renderAll(state);
     }
@@ -1046,9 +1066,7 @@ const CAT_COLORS = {
 
   socket.on('game:answer_preview', ({ questionIdx, answerIdx, correct }) => {
     if (!spectatingQuestion || currentQIdx !== questionIdx) {return;}
-    if (correct === true) {
-      modalOptionBtns[answerIdx]?.classList.add('answer-correct');
-    }
+    gameModalOptionBtns[answerIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
   });
 
   // ============================================================
@@ -1121,7 +1139,7 @@ const CAT_COLORS = {
   }
 
   // Diff-based tile update: only re-render tiles where something changed
-  function renderChangedTiles(oldState, newState) {
+  function renderChangedTiles(oldState, newState, events) {
     const changedTiles = new Set();
 
     // Track peg movements
@@ -1158,13 +1176,15 @@ const CAT_COLORS = {
       return;
     }
 
-    // Flag capture changes
-    for (let r = 0; r < newState.boardSize; r++) {
-      for (let c = 0; c < newState.boardSize; c++) {
-        const oldTile = oldState.board[r][c];
-        const newTile = newState.board[r][c];
-        if (oldTile.cornerOwner !== newTile.cornerOwner) {
-          changedTiles.add(`${r},${c}`);
+    // Flag capture changes — only diff cornerOwner when a flag event occurred
+    if (events?.some(e => e.type === 'flag_captured')) {
+      for (let r = 0; r < newState.boardSize; r++) {
+        for (let c = 0; c < newState.boardSize; c++) {
+          const oldTile = oldState.board[r][c];
+          const newTile = newState.board[r][c];
+          if (oldTile.cornerOwner !== newTile.cornerOwner) {
+            changedTiles.add(`${r},${c}`);
+          }
         }
       }
     }
@@ -1395,7 +1415,7 @@ const CAT_COLORS = {
     const optContainer = el('modal-options');
     optContainer.innerHTML = '';
     delete optContainer.dataset.submitting;
-    modalOptionBtns = [];
+    gameModalOptionBtns = [];
     q.opts.forEach((opt, i) => {
       const btn = document.createElement('button');
       btn.className = 'modal-option';
@@ -1403,7 +1423,7 @@ const CAT_COLORS = {
       if (spectatingQuestion) {btn.disabled = true;}
       else {btn.onclick = () => onAnswer(i, idx);}
       optContainer.appendChild(btn);
-      modalOptionBtns.push(btn);
+      gameModalOptionBtns.push(btn);
     });
 
     el('modal-continue-wrap').style.display = 'none';
@@ -1416,7 +1436,7 @@ const CAT_COLORS = {
     } else {
       el('timer-fill').style.display = '';
       startTimer(idx);
-      modalOptionBtns[0]?.focus();
+      gameModalOptionBtns[0]?.focus();
     }
   }
 
@@ -1448,29 +1468,44 @@ const CAT_COLORS = {
     const isFlag = pendingMove?.moveType === 'flag';
     const isLastQuestion = qIdx === pendingQuestions.length - 1;
 
-    // Highlight answers: show player's choice outcome only (no correct reveal to spectators)
-    modalOptionBtns.forEach((btn, i) => {
+    // Store correctness and chosen index for continue timing
+    // Wait for authoritative state:update from server to display results
+
+    // Disable buttons to prevent multiple answers
+    gameModalOptionBtns.forEach((btn) => {
       btn.disabled = true;
-      if (i === chosenIdx) {btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');}
     });
+
+    // Highlight outcome for attacker (always) and correct answer for spectators only
+    gameModalOptionBtns.forEach((btn, i) => {
+      // Show correct answer to spectators only (not attacker)
+      if (i === q.correctIdx && spectatingQuestion) {
+        btn.classList.add('answer-correct');
+      }
+      // Always show the active player's selection outcome
+      if (i === chosenIdx) {
+        btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
+      }
+    });
+
+    // Note: Result display is handled exclusively by state:update from server
+    // This ensures all players see the same thing and privacy is preserved
 
     if (isCombat || isFlag) {
       el('modal-continue-wrap').style.display = 'none';
       if (!correct) {
-        // Wrong answer ends combat/flag immediately
+        // Wrong answer ends combat/flag: keep modal open so state:update can show result
         setTimeout(() => {
-          el('modal-overlay').classList.remove('visible');
           submitTurn();
         }, TIMING.WRONG_ANSWER_DELAY_MS);
       } else if (!isLastQuestion) {
-        // Correct answer, more questions coming: wait 2s for defender to see answer, then submit
+        // Correct answer, more questions coming: wait for defender to see answer, then submit
         setTimeout(() => {
           submitTurn();
         }, TIMING.ANSWER_DELAY_MS);
       } else {
-        // Correct answer, last question: wait 2s then submit and close
+        // Correct answer, last question: keep modal open so state:update can show result
         setTimeout(() => {
-          el('modal-overlay').classList.remove('visible');
           submitTurn();
         }, TIMING.ANSWER_DELAY_MS);
       }
@@ -1482,14 +1517,25 @@ const CAT_COLORS = {
 
   window.continueAfterQuestion = function() {
     if (!pendingMove) {return;}
-    el('modal-overlay').classList.remove('visible');
-    const nextIdx = currentQIdx + 1;
-    if (nextIdx < pendingQuestions.length) {
-      currentQIdx = nextIdx;
-      showQuestion(nextIdx);
-    } else {
-      submitTurn();
-    }
+
+    // Freeze for 2 seconds to allow all players to see the selection and outcome
+    // (Everyone already sees the outcome immediately after answering - matching desktop game)
+    el('modal-continue-btn').disabled = true;
+    el('modal-continue-btn').textContent = 'CONTINUING...';
+
+    setTimeout(() => {
+      const nextIdx = currentQIdx + 1;
+      if (nextIdx < pendingQuestions.length) {
+        currentQIdx = nextIdx;
+        showQuestion(nextIdx);
+      } else {
+        // Keep modal open — state:update will show result then close it
+        submitTurn();
+      }
+      // Re-enable button for potential future use
+      el('modal-continue-btn').disabled = false;
+      el('modal-continue-btn').textContent = 'CONTINUE';
+    }, 2000);
   };
 
   function startTimer(qIdx) {
@@ -1511,7 +1557,7 @@ const CAT_COLORS = {
       if (remaining <= 0) {
         stopTimer();
         const tq = pendingQuestions[qIdx];
-        modalOptionBtns.forEach(btn => { btn.disabled = true; });
+        gameModalOptionBtns.forEach(btn => { btn.disabled = true; });
         pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
         // Auto-submit on timeout instead of leaving the move abandoned
         if (pendingMove?.moveType === 'combat' || pendingMove?.moveType === 'flag') {
@@ -1571,8 +1617,8 @@ const CAT_COLORS = {
     validMovesSet.clear();
     localPhase = null;
     pendingMove = null;
-    pendingQuestions = [];
-    pendingAnswers = [];
+    // pendingQuestions and pendingAnswers intentionally NOT cleared here.
+    // state:update → advanceSpectateResult will show the results then close the modal.
   }
 
   // ============================================================
@@ -1627,15 +1673,15 @@ const CAT_COLORS = {
       const key = e.key.toLowerCase();
       if (key in KEY_MAP) {
         const idx = KEY_MAP[key];
-        if (modalOptionBtns[idx] && !modalOptionBtns[idx].disabled)
-          {modalOptionBtns[idx].click();}
+        if (gameModalOptionBtns[idx] && !gameModalOptionBtns[idx].disabled)
+          {gameModalOptionBtns[idx].click();}
       }
       if (e.key === 'Enter' && el('modal-continue-wrap').style.display !== 'none')
         {window.continueAfterQuestion();}
       // Arrow key option cycling (only when answering, not spectating)
       if (!spectatingQuestion && (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft')) {
         e.preventDefault();
-        const enabledBtns = modalOptionBtns.filter(b => !b.disabled);
+        const enabledBtns = gameModalOptionBtns.filter(b => !b.disabled);
         if (enabledBtns.length === 0) {return;}
         const focused = document.activeElement;
         const cur = enabledBtns.indexOf(focused);
@@ -1757,10 +1803,11 @@ const CAT_COLORS = {
       timer:        setupTimer,
       enabledCats:  setupEnabledCats,
       maxRankStart: setupMaxRankStart,
-    }, ({ error, code, players }) => {
+    }, ({ error, code, players, token }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
       if (me) {el('player-name').value = me.name;}
+      myToken = token;
       myPlayerIndex = 0;
       myRoom = { code, settings: { playerCount: setupPlayerCount, timer: setupTimer } };
       isHost = true;
@@ -1776,10 +1823,11 @@ const CAT_COLORS = {
     if (!playerName) {return;}
     const code = el('join-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length !== 5) {return showError('Room code must be 5 characters.');}
-    socket.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
+    socket.emit('room:join', { code, playerName }, ({ error, players, settings, token }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
       if (me) {el('player-name').value = me.name;}
+      myToken = token;
       myPlayerIndex = me?.index ?? players.length - 1;
       myRoom = { code, settings };
       isHost = false;
@@ -1894,14 +1942,14 @@ const CAT_COLORS = {
     const optContainer = document.getElementById('modal-options');
     optContainer.innerHTML = '';
     optContainer.dataset.submitting = '';
-    modalOptionBtns = [];
+    quizModalOptionBtns = [];
     q.opts.forEach((opt, i) => {
       const btn = document.createElement('button');
       btn.className = 'modal-option';
       btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${sanitize(opt)}`;
       btn.onclick = () => submitQuizAnswer(i);
       optContainer.appendChild(btn);
-      modalOptionBtns.push(btn);
+      quizModalOptionBtns.push(btn);
     });
 
     document.getElementById('modal-continue-wrap').style.display = 'none';
@@ -1917,7 +1965,7 @@ const CAT_COLORS = {
       if (res.error) {return;}
 
       // Highlight chosen answer
-      modalOptionBtns.forEach((btn, i) => {
+      quizModalOptionBtns.forEach((btn, i) => {
         btn.disabled = true;
         if (i === answerIdx) {btn.classList.add(res.correct ? 'answer-correct' : 'answer-wrong');}
       });
@@ -1926,16 +1974,34 @@ const CAT_COLORS = {
         document.getElementById('modal-continue-wrap').style.display = 'flex';
         document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
         document.getElementById('modal-continue-btn').onclick = () => {
-          socket.emit('quiz:next', (nextQ) => {
-            if (nextQ.ok) {showQuizQuestion(nextQ);}
-          });
+          // Freeze for 2 seconds to allow all players to see the selection and outcome
+          document.getElementById('modal-continue-btn').disabled = true;
+          document.getElementById('modal-continue-btn').textContent = 'SHOWING RESULTS...';
+
+          setTimeout(() => {
+            socket.emit('quiz:next', (nextQ) => {
+              if (nextQ.ok) {showQuizQuestion(nextQ);}
+            });
+            // Re-enable button for potential future use
+            document.getElementById('modal-continue-btn').disabled = false;
+            document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
+          }, 2000);
         };
       } else {
         stopGameTimer();
         document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
         document.getElementById('modal-continue-btn').onclick = () => {
-          document.getElementById('modal-overlay').classList.remove('visible');
-          setTimeout(() => showLeaderboard(res), 300);
+          // Freeze for 2 seconds to allow all players to see the selection and outcome
+          document.getElementById('modal-continue-btn').disabled = true;
+          document.getElementById('modal-continue-btn').textContent = 'SHOWING RESULTS...';
+
+          setTimeout(() => {
+            document.getElementById('modal-overlay').classList.remove('visible');
+            setTimeout(() => showLeaderboard(res), 300);
+            // Re-enable button for potential future use
+            document.getElementById('modal-continue-btn').disabled = false;
+            document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
+          }, 2000);
         };
         document.getElementById('modal-continue-wrap').style.display = 'flex';
       }
@@ -1957,12 +2023,21 @@ const CAT_COLORS = {
         clearInterval(quizState.timerInterval);
         stopGameTimer();
         document.getElementById('modal-options').dataset.submitting = 'true';
-        modalOptionBtns.forEach(btn => btn.disabled = true);
+        quizModalOptionBtns.forEach(btn => btn.disabled = true);
         socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
           document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
           document.getElementById('modal-continue-btn').onclick = () => {
-            document.getElementById('modal-overlay').classList.remove('visible');
-            setTimeout(() => showLeaderboard(res), 300);
+            // Freeze for 2 seconds to allow all players to see the selection and outcome
+            document.getElementById('modal-continue-btn').disabled = true;
+            document.getElementById('modal-continue-btn').textContent = 'SHOWING RESULTS...';
+
+            setTimeout(() => {
+              document.getElementById('modal-overlay').classList.remove('visible');
+              setTimeout(() => showLeaderboard(res), 300);
+              // Re-enable button for potential future use
+              document.getElementById('modal-continue-btn').disabled = false;
+              document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
+            }, 2000);
           };
           document.getElementById('modal-continue-wrap').style.display = 'flex';
         });
@@ -2001,7 +2076,9 @@ const CAT_COLORS = {
           <div style="text-align: right; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums;">${result.answers}</div>
           <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(result.timeSec)}s</div>
         `;
-        const insertPos = Math.min(result.answers, res.top10.length);
+        const insertPos = res.top10.filter(
+          e => e.answers > result.answers || (e.answers === result.answers && e.time_ms < result.timeSec * 1000)
+        ).length;
         container.insertBefore(newRow, container.children[insertPos]);
       }
     });

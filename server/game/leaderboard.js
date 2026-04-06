@@ -44,6 +44,9 @@ export function getTop10() {
 }
 
 export function insertScore(name, answers, timeMs) {
+  if (!name || name.length > 16 || typeof answers !== 'number' || answers < 0 || typeof timeMs !== 'number') {
+    return [];
+  }
   try {
     const stmt = db.prepare(`
       INSERT INTO leaderboard (name, answers, time_ms, created_at)
