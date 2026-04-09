@@ -7,7 +7,7 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
-      - CORS_ORIGIN=https://sraz.nbastables.com
+      - CORS_ORIGIN=https://brawl.weeqlash.icu
     volumes:
       - ./server/questions.enc:/app/questions.enc:ro
       - ./data:/app/data

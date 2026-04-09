@@ -34,7 +34,7 @@ const httpServer = createServer(app);
 app.use(express.static(path.join(__dirname, '../client')));
 const CORS_ORIGIN = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
-  : ['https://sraz.nbastables.com', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+  : ['https://brawl.weeqlash.icu', 'http://localhost:3000', 'http://127.0.0.1:3000'];
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN },
 });
