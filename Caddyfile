@@ -1,0 +1,10 @@
+{
+    admin off
+}
+brawl.weeqlash.icu {
+  handle /socket.io/* {
+      reverse_proxy localhost:3000
+  }
+  root * /opt/sraz-multiplayer/client
+  file_server
+}
