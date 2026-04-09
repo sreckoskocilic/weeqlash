@@ -1,4 +1,4 @@
-# Sraz Multiplayer
+# Weeqlash Multiplayer
 
 A multiplayer trivia board game — the online version of Srazique.
 
