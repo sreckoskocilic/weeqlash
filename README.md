@@ -1,6 +1,6 @@
 # Weeqlash Multiplayer
 
-A multiplayer trivia board game — the online version of Srazique.
+A multiplayer trivia board game.
 
 ## How to Play
 
@@ -19,4 +19,3 @@ A multiplayer trivia board game — the online version of Srazique.
 | Start as Vitez | on / off | off |
 | Categories | any subset of 10 | all |
 
-*Note: A 2×2 board size is available for testing purposes by uncommenting the button in client/index.html*
