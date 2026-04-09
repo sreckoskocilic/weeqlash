@@ -36,6 +36,6 @@ jobs:
           username: deploy
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /opt/sraz-multiplayer
+            cd /opt/weeqlash
             git pull
             docker compose up -d --build
