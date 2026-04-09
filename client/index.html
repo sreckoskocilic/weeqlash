@@ -887,7 +887,7 @@
 </div>
 
 <script type="module">
-  const serverUrl = window.SRAZ_SERVER_URL || (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
+  const serverUrl = window.WEEFLASH_SERVER_URL || (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
   const { io } = await import(`${serverUrl}/socket.io/socket.io.esm.min.js`);
 
   const socket = io(serverUrl, { transports: ['websocket'] });

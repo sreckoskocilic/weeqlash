@@ -1,10 +1,9 @@
 // Pure game logic — no DOM, no globals, all functions take state as first arg.
-// Extracted and adapted from srazique/index.clean.html
 
 /**
  * PHASE enum - Server-side game phases
  *
- * Note: This is a simplified version compared to the original game (srazique/index.html).
+ * Note: This is a simplified version compared to the original game (srazique).
  * Original has: SELECT_PEG, SELECT_TILE, QUESTION, COMBAT_Q1, COMBAT_Q2, FLAG_Q, GAME_OVER
  *
  * We only need SELECT_PEG, SELECT_TILE, GAME_OVER on the server because:
@@ -425,7 +424,7 @@ function pickQuestionIds(state, cat, count, questionsDb, excludedIds = new Set()
 }
 
 // Determine move type from board state.
-// Priority matches srazique: combat (enemy peg) is checked BEFORE flag capture.
+// Priority matches: combat (enemy peg) is checked BEFORE flag capture.
 function getMoveType(state, pegId, r, c) {
   const tile = state.board[r][c];
   if (
@@ -453,7 +452,7 @@ function getMoveType(state, pegId, r, c) {
 export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const tile = state.board[targetR][targetC];
   const moveType = getMoveType(state, pegId, targetR, targetC);
-  // tileCat matches srazique's tileCat(): flag tiles use 'other' for normal moves
+  // tileCat matches tileCat(): flag tiles use 'other' for normal moves
   const tileCat =
     tile.category === 'flag' ? 'other' : tile.category;
   const selectedIds = new Set();
@@ -465,14 +464,14 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
 
   let questionIds;
   if (moveType === 'flag') {
-    // Each of the 3 flag capture questions uses a fresh randomCat() — matches srazique
+    // Each of the 3 flag capture questions uses a fresh randomCat()
     questionIds = [
       ...take(randomCat(state.enabledCats), 1),
       ...take(randomCat(state.enabledCats), 1),
       ...take(randomCat(state.enabledCats), 1),
     ];
   } else if (moveType === 'combat') {
-    // Q1 uses the tile's category (matching srazique tileCat), Q2 uses random category
+    // Q1 uses the tile's category (matching tileCat), Q2 uses random category
     const combatQ1Cat = tile.category === 'flag' ? 'other' : tile.category;
     const combatQ2Cat = randomCat(state.enabledCats);
     questionIds = [
@@ -600,7 +599,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       }
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
     }
-    // Always decrement movesRemaining (srazique behavior)
+    // Always decrement movesRemaining
     state.movesRemaining--;
     if (state.movesRemaining > 0 && getValidMoves(state, pegId).length > 0) {
       state.phase = PHASE.SELECT_TILE;

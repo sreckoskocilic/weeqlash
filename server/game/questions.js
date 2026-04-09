@@ -1,5 +1,4 @@
-// Loads questions.enc from srazique public repo (or local path via env),
-// decrypts them, and builds a _byId index for O(1) lookup.
+// Loads questions.enc, decrypts them, and builds a _byId index for O(1) lookup.
 
 import fs from 'fs';
 import path from 'path';
