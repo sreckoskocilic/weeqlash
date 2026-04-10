@@ -34,7 +34,7 @@ import {
   COORD_BASE,
 } from './game/engine.js';
 import { loadQuestions, getAllQuestions } from './game/questions.js';
-import { initDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
+import { initDb, getDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
 import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
 import { rooms, socketToRoom } from './game/rooms.js';
@@ -858,11 +858,12 @@ function recordGameStats(room) {
   const player2UserId = room.players[1]?.userId;
   console.log('[stats] userIds:', player1UserId, player2UserId);
 
-  // If both have accounts, record full game history
-  if (player1UserId && player2UserId) {
-    const durationMs = Date.now() - room.startedAt;
-    const winnerIdx = room.state.winner;
+  // Determine winner index for stats updating (accessible to all sections)
+  const winnerIdx = room.state.winner;
+  const durationMs = Date.now() - room.startedAt;
 
+  // If both have accounts, record full game history and update games played/won
+  if (player1UserId && player2UserId) {
     let winnerId = null;
     if (winnerIdx !== null && winnerIdx < players.length) {
       winnerId = winnerIdx === 0 ? player1UserId : player2UserId;
@@ -882,6 +883,27 @@ function recordGameStats(room) {
         player1Stats,
         player2Stats,
       });
+
+      // Update games played and won for both players
+      const db = getDb();
+      if (db) {
+        // Player 1: increment games played, and games won if they won
+        db.prepare(`
+          UPDATE users SET
+          games_played = COALESCE(games_played, 0) + 1,
+          games_won = COALESCE(games_won, 0) + ${winnerIdx === 0 ? 1 : 0}
+          WHERE id = ?
+        `).run(player1UserId);
+
+        // Player 2: increment games played, and games won if they won
+        db.prepare(`
+          UPDATE users SET
+          games_played = COALESCE(games_played, 0) + 1,
+          games_won = COALESCE(games_won, 0) + ${winnerIdx === 1 ? 1 : 0}
+          WHERE id = ?
+        `).run(player2UserId);
+      }
+
       const gameRoomCode = players[0].name + ' vs ' + players[1].name;
       const winnerStr = winnerId ? 'player' + (winnerIdx + 1) : 'draw';
       console.log(`[stats] Game recorded: ${gameRoomCode}, winner: ${winnerStr}`);
@@ -891,7 +913,7 @@ function recordGameStats(room) {
     return;
   }
 
-  // If only one player has account, track their stats individually
+  // If only one player has account, track their stats individually and update games played/won
   const player1Stats = players[0]?.stats?.byCategory ?? {};
   const player2Stats = players[1]?.stats?.byCategory ?? {};
 
@@ -902,6 +924,16 @@ function recordGameStats(room) {
         trackAnswer(player1UserId, cat, stat.correct);
       }
     }
+    // Update games played and won for player 1
+    const db = getDb();
+    if (db) {
+      db.prepare(`
+        UPDATE users SET
+        games_played = COALESCE(games_played, 0) + 1,
+        games_won = COALESCE(games_won, 0) + ${winnerIdx === 0 ? 1 : 0}
+        WHERE id = ?
+      `).run(player1UserId);
+    }
     console.log('[stats] Recorded player1 stats:', players[0].name);
   }
 
@@ -911,6 +943,16 @@ function recordGameStats(room) {
       if (stat.attempts > 0) {
         trackAnswer(player2UserId, cat, stat.correct);
       }
+    }
+    // Update games played and won for player 2
+    const db = getDb();
+    if (db) {
+      db.prepare(`
+        UPDATE users SET
+        games_played = COALESCE(games_played, 0) + 1,
+        games_won = COALESCE(games_won, 0) + ${winnerIdx === 1 ? 1 : 0}
+        WHERE id = ?
+      `).run(player2UserId);
     }
     console.log('[stats] Recorded player2 stats:', players[1].name);
   }

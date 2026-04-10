@@ -11,19 +11,21 @@ export function initAuthDb() {
   }
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      email_confirmed INTEGER NOT NULL DEFAULT 0,
-      confirmation_token TEXT,
-      reset_token TEXT,
-      reset_token_expires INTEGER,
-      is_blocked INTEGER NOT NULL DEFAULT 0,
-      created_at INTEGER NOT NULL,
-      last_login INTEGER
-    );
+     CREATE TABLE IF NOT EXISTS users (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       username TEXT UNIQUE NOT NULL,
+       email TEXT UNIQUE NOT NULL,
+       password_hash TEXT NOT NULL,
+       email_confirmed INTEGER NOT NULL DEFAULT 0,
+       confirmation_token TEXT,
+       reset_token TEXT,
+       reset_token_expires INTEGER,
+       is_blocked INTEGER NOT NULL DEFAULT 0,
+       created_at INTEGER NOT NULL,
+       last_login INTEGER,
+       games_played INTEGER NOT NULL DEFAULT 0,
+       games_won INTEGER NOT NULL DEFAULT 0
+     );
 
     CREATE TABLE IF NOT EXISTS user_stats (
       user_id INTEGER NOT NULL REFERENCES users(id),
@@ -56,8 +58,34 @@ export function initAuthDb() {
     CREATE INDEX IF NOT EXISTS idx_game_history_created ON game_history(created_at DESC);
   `);
 
+  // Apply schema migrations to ensure existing tables are up to date
+  applySchemaMigrations(db);
+
   console.log('[auth] DB tables initialized');
   return { ok: true };
+}
+
+function applySchemaMigrations(db) {
+  try {
+    // Check if games_played column exists, add if not
+    const tableInfo = db.prepare('PRAGMA table_info(users)').all();
+    const columns = tableInfo.map(col => col.name);
+
+    // Add games_played column if missing
+    if (!columns.includes('games_played')) {
+      db.prepare('ALTER TABLE users ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0').run();
+      console.log('[auth] Added games_played column to users table');
+    }
+
+    // Add games_won column if missing
+    if (!columns.includes('games_won')) {
+      db.prepare('ALTER TABLE users ADD COLUMN games_won INTEGER NOT NULL DEFAULT 0').run();
+      console.log('[auth] Added games_won column to users table');
+    }
+  } catch (error) {
+    console.warn('[auth] Schema migration warning:', error.message);
+    // Don't fail initialization if migration has issues
+  }
 }
 
 // --- User CRUD ---
@@ -80,8 +108,8 @@ export function createUser({ username, email, password }) {
   const confirmToken = crypto.randomBytes(32).toString('hex');
 
   const stmt = db.prepare(`
-    INSERT INTO users (username, email, password_hash, confirmation_token, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO users (username, email, password_hash, confirmation_token, created_at, games_played, games_won)
+    VALUES (?, ?, ?, ?, ?, 0, 0)
   `);
   const result = stmt.run(username, email, passwordHash, confirmToken, now);
 

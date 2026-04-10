@@ -508,14 +508,14 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
 // ---------------------------------------------------------------------------
 
 export function selectPeg(state, playerId, pegId) {
-  if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
-    return { error: 'Wrong phase' };
-  }
-  const player = state.players[state.currentPlayerIdx];
-  if (player.id !== playerId) {
-    return { error: 'Not your turn' };
-  }
-  if (!player.pegIds.includes(pegId)) {
+   if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
+     return { error: 'Wrong phase' };
+   }
+   const currentPlayer = state.players[state.currentPlayerIdx];
+   if (currentPlayer.id !== playerId) {
+     return { error: 'Not your turn' };
+   }
+  if (!currentPlayer.pegIds.includes(pegId)) {
     return { error: 'Not your peg' };
   }
   if (!state.pegsToMove.has(pegId)) {
@@ -546,15 +546,14 @@ export function selectPeg(state, playerId, pegId) {
 // ---------------------------------------------------------------------------
 
 export function applyTurn(state, playerId, submission, questionsDb) {
-  const pending = state.pendingTurn;
-  if (!pending) {
-    return { error: 'No pending turn' };
-  }
-
-  const player = state.players[state.currentPlayerIdx];
-  if (player.id !== playerId) {
-    return { error: 'Not your turn' };
-  }
+   const pending = state.pendingTurn;
+   if (!pending) {
+     return { error: 'No pending turn' };
+   }
+    const currentPlayer = state.players[state.currentPlayerIdx];
+    if (currentPlayer.id !== playerId) {
+      return { error: 'Not your turn' };
+    }
 
   const { pegId, targetR, targetC, moveType, questionIds } = pending;
 
@@ -657,14 +656,21 @@ export function applyTurn(state, playerId, submission, questionsDb) {
         movePeg(state, pegId, targetR, targetC);
         events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
       }
-    }
-    // Combat always ends turn (win or lose)
-    const combatWinner = checkWinCondition(state);
-    if (combatWinner >= 0) {
-      state.phase = PHASE.GAME_OVER;
-      state.winner = combatWinner;
-      return { ok: true, events, gameOver: true, winner: combatWinner };
-    }
+       }
+       // Combat always ends turn (win or lose)
+       const combatWinner = checkWinCondition(state);
+       if (combatWinner >= 0) {
+         // Update game stats for all players
+         state.players.forEach((player, index) => {
+           player.stats.gamesPlayed++;
+           if (index === combatWinner) {
+             player.stats.gamesWon++;
+           }
+         });
+         state.phase = PHASE.GAME_OVER;
+         state.winner = combatWinner;
+         return { ok: true, events, gameOver: true, winner: combatWinner };
+       }
     advanceTurn(state);
     return { ok: true, events, gameOver: false };
   } else if (moveType === 'flag') {
@@ -673,23 +679,23 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     const a1 = checkAnswer(1);
     const a2 = checkAnswer(2);
     const allCorrect = a0 && a1 && a2;
-    if (allCorrect) {
-      movePeg(state, pegId, targetR, targetC);
-      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-      events.push({ type: 'flag_captured', pegId, playerId });
-      state.phase = PHASE.GAME_OVER;
-      state.winner = playerId;
-      return { ok: true, events, gameOver: true, winner: playerId };
-    } else {
-      const wasElim = rankDown(state, pegId);
-      if (wasElim) {
-        eliminatePeg(state, pegId);
-        events.push({ type: 'peg_eliminated', pegId });
+      if (allCorrect) {
+        movePeg(state, pegId, targetR, targetC);
+        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+        events.push({ type: 'flag_captured', pegId, playerId });
+        // Update game stats for all players
+        state.players.forEach((player, index) => {
+          player.stats.gamesPlayed++;
+          if (index === playerId) {
+            player.stats.gamesWon++;
+          }
+        });
+        state.phase = PHASE.GAME_OVER;
+        state.winner = playerId;
+        return { ok: true, events, gameOver: true, winner: playerId };
       } else {
-        events.push({ type: 'rank_down', pegId });
+        finishPegMove(state);
       }
-      finishPegMove(state);
-    }
   }
 
   // Check elimination win (normal and flag paths)
@@ -801,14 +807,14 @@ export function createGame(players, settings = {}) {
       board[pos.r][pos.c].pegId = id;
       pegIds.push(id);
     }
-    return {
-      id: i,
-      name: p.name,
-      color: p.color,
-      pegIds,
-      userId: p.userId ?? null,
-      stats: { byCategory: {} },
-    };
+     return {
+       id: i,
+       name: p.name,
+       color: p.color,
+       pegIds,
+       userId: p.userId ?? null,
+       stats: { byCategory: {}, gamesPlayed: 0, gamesWon: 0 },
+     };
   });
 
   const state = {
