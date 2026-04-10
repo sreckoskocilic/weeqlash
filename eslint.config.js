@@ -3,7 +3,7 @@ import globals from "globals";
 import html from "eslint-plugin-html";
 
 const sharedRules = {
-  "no-unused-vars": ["error", { ignoreRestSiblings: true }],
+  "no-unused-vars": ["error", { ignoreRestSiblings: true, argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
   "no-var": "error",
   "prefer-const": "error",
   eqeqeq: ["error", "always"],
@@ -17,7 +17,7 @@ const sharedRules = {
 };
 
 export default [
-  { ignores: ["node_modules/", "**/node_modules/"] },
+  { ignores: ["node_modules/", "**/node_modules/", "server/.adminjs/", "server/.adminjs/**", "server/game/admin.js"] },
 
   // Server — Node.js ESM
   {

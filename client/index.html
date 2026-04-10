@@ -605,11 +605,44 @@
 <!-- Connect screen -->
 <div class="main-columns" id="screen-connect">
 
-  <!-- LEFT COLUMN: Weeqlash Multiplayer -->
+  <!-- LEFT COLUMN: Sraz Multiplayer -->
   <div class="card">
+    <div id="user-bar" style="display:none;margin-bottom:1rem;padding:0.5rem;background:var(--bg3);border-radius:var(--radius);align-items:center;gap:0.5rem;">
+      <span id="user-display" style="flex:1;font-size:0.85rem;font-weight:600;"></span>
+      <button id="btn-view-stats" style="background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.2rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem;">Stats</button>
+      <button id="btn-logout" style="background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.2rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem;">Sign out</button>
+    </div>
+    <div id="login-section" style="margin-bottom:1rem;">
+      <div id="auth-tabs" style="display:flex;gap:0;margin-bottom:0.75rem;">
+        <button class="auth-tab active" data-tab="login" style="flex:1;padding:0.4rem;background:var(--bg3);border:1px solid var(--bg3);color:var(--text);cursor:pointer;border-radius:var(--radius) 0 0 var(--radius);font-size:0.8rem;">Login</button>
+        <button class="auth-tab" data-tab="register" style="flex:1;padding:0.4rem;background:transparent;border:1px solid var(--bg3);color:var(--muted);cursor:pointer;border-radius:0 var(--radius) var(--radius) 0;font-size:0.8rem;">Register</button>
+      </div>
+      <div id="auth-login-form">
+        <input id="login-username" type="text" placeholder="Username or email" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <input id="login-password" type="password" placeholder="Password" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-login" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Login</button>
+        <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-forgot" style="color:var(--muted);font-size:0.75rem;">Forgot password?</a></div>
+      </div>
+      <div id="auth-register-form" style="display:none;">
+        <input id="reg-username" type="text" placeholder="Username (3-20 chars, letters/numbers/_)" maxlength="20" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <input id="reg-email" type="email" placeholder="Email" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <input id="reg-password" type="password" placeholder="Password (min 6 chars)" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-register" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Create account</button>
+      </div>
+      <div id="auth-forgot-form" style="display:none;">
+        <input id="forgot-email" type="email" placeholder="Your email" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-forgot" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Send reset link</button>
+        <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-back-login" style="color:var(--muted);font-size:0.75rem;">Back to login</a></div>
+      </div>
+      <div id="auth-reset-form" style="display:none;">
+        <input id="reset-password" type="password" placeholder="New password (min 6 chars)" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-reset" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Reset password</button>
+      </div>
+      <div id="auth-message" style="display:none;margin-top:0.5rem;padding:0.4rem;border-radius:var(--radius);font-size:0.8rem;text-align:center;"></div>
+    </div>
     <div class="setup-section">
-      <h3 id="label-player-name">Your Name</h3>
-      <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" aria-labelledby="label-player-name" />
+      <h3>Your Name</h3>
+      <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" />
       <div id="connect-error" class="error" style="display:none"></div>
     </div>
 
@@ -893,8 +926,178 @@
 
   const socket = io(serverUrl, { transports: ['websocket'] });
   const el = id => document.getElementById(id);
+  const $ = el; // Alias for compatibility with auth functions
 
-  // Socket.IO error handling
+  // ============================================================
+  // AUTH
+  // ============================================================
+  let _currentUser = null;
+
+  function showAuthMessage(msg, isError) {
+    const msgEl = $('auth-message');
+    msgEl.textContent = msg;
+    msgEl.style.display = 'block';
+    el.style.background = isError ? 'rgba(217,57,57,0.2)' : 'rgba(67,160,71,0.2)';
+    el.style.color = isError ? '#ff6b6b' : '#66bb6a';
+  }
+
+  function showUserBar(user) {
+    _currentUser = user;
+    $('user-bar').style.display = 'flex';
+    $('user-display').textContent = user.username;
+    $('login-section').style.display = 'none';
+    $('player-name').value = user.username;
+    $('player-name').disabled = true;
+  }
+
+  function hideUserBar() {
+    _currentUser = null;
+    $('user-bar').style.display = 'none';
+    $('login-section').style.display = '';
+    $('player-name').disabled = false;
+  }
+
+  async function checkAuth() {
+    try {
+      const res = await fetch(`${serverUrl}/auth/me`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.user) {
+        showUserBar(data.user);
+      } else {
+        hideUserBar();
+      }
+    } catch { /* not logged in */ hideUserBar(); }
+  }
+
+  // Auth tab switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.background = 'transparent';
+        t.style.color = 'var(--muted)';
+        t.style.borderColor = 'var(--bg3)';
+      });
+      tab.classList.add('active');
+      tab.style.background = 'var(--bg3)';
+      tab.style.color = 'var(--text)';
+      const which = tab.dataset.tab;
+      $('auth-login-form').style.display = which === 'login' ? '' : 'none';
+      $('auth-register-form').style.display = which === 'register' ? '' : 'none';
+      $('auth-forgot-form').style.display = 'none';
+      $('auth-reset-form').style.display = 'none';
+      $('auth-message').style.display = 'none';
+    });
+  });
+
+  // Login
+  $('btn-login').addEventListener('click', async () => {
+    const username = $('login-username').value.trim();
+    const password = $('login-password').value;
+    if (!username || !password) { return showAuthMessage('Fill in all fields', true); }
+
+    const res = await fetch(`${serverUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (data.error) { return showAuthMessage(data.error, true); }
+    showUserBar(data.user);
+  });
+
+  // Register
+  $('btn-register').addEventListener('click', async () => {
+    const username = $('reg-username').value.trim();
+    const email = $('reg-email').value.trim();
+    const password = $('reg-password').value;
+    if (!username || !email || !password) { return showAuthMessage('Fill in all fields', true); }
+
+    const res = await fetch(`${serverUrl}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await res.json();
+    if (data.error) { return showAuthMessage(data.error, true); }
+    showAuthMessage(data.message || 'Check your email to confirm', false);
+  });
+
+  // Forgot password
+  $('link-forgot').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('auth-login-form').style.display = 'none';
+    $('auth-forgot-form').style.display = '';
+    $('auth-message').style.display = 'none';
+  });
+
+  $('link-back-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('auth-forgot-form').style.display = 'none';
+    $('auth-login-form').style.display = '';
+    $('auth-message').style.display = 'none';
+  });
+
+  $('btn-forgot').addEventListener('click', async () => {
+    const email = $('forgot-email').value.trim();
+    if (!email) { return showAuthMessage('Enter your email', true); }
+
+    const res = await fetch(`${serverUrl}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    showAuthMessage(data.message || 'If that email exists, a reset link has been sent', false);
+  });
+
+  // Reset password (from URL param)
+  $('btn-reset').addEventListener('click', async () => {
+    const password = $('reset-password').value;
+    if (!password || password.length < 6) { return showAuthMessage('Password must be at least 6 characters', true); }
+
+    const res = await fetch(`${serverUrl}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: resetToken, password }),
+    });
+    const data = await res.json();
+    if (data.error) { return showAuthMessage(data.error, true); }
+    showAuthMessage('Password reset! You can now log in.', false);
+    $('auth-reset-form').style.display = 'none';
+    $('auth-login-form').style.display = '';
+  });
+
+  // Logout
+  $('btn-logout').addEventListener('click', async () => {
+    await fetch(`${serverUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
+    hideUserBar();
+  });
+
+  // Handle URL params (email confirmation, password reset)
+  const urlParams = new URLSearchParams(window.location.search);
+  let resetToken = null;
+  if (urlParams.get('confirm')) {
+    fetch(`${serverUrl}/auth/confirm/${urlParams.get('confirm')}`)
+      .then(r => r.json())
+      .then(data => {
+        showAuthMessage(data.message || (data.error ? data.error : 'Email confirmed!'), !!data.error);
+      });
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (urlParams.get('reset')) {
+    resetToken = urlParams.get('reset');
+    $('auth-login-form').style.display = 'none';
+    $('auth-register-form').style.display = 'none';
+    $('auth-reset-form').style.display = '';
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Check auth on page load
+  checkAuth();
+
+  // ============================================================
   socket.io.on('error', (err) => {
     console.error('Socket.IO error:', err);
     showError('Connection error. Please refresh the page.');

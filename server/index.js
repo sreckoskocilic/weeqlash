@@ -2,9 +2,18 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
 import path from 'path';
-
+import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import session from 'express-session';
+const projectRoot = path.resolve(__dirname, '..');
+const envPath = path.join(projectRoot, '.env');
+console.log('[index] Loading .env from:', envPath);
+console.log('[index] .env exists:', existsSync(envPath));
+const envResult = dotenv.config({ path: envPath });
+console.log('[index] dotenv result:', envResult?.error || 'loaded');
+console.log('[index] SMTP_HOST after dotenv:', process.env.SMTP_HOST);
 
 import {
   createRoom,
@@ -26,9 +35,21 @@ import {
 } from './game/engine.js';
 import { loadQuestions, getAllQuestions } from './game/questions.js';
 import { initDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
+import { initAuthDb } from './game/auth.js';
+import { registerAuthRoutes } from './game/auth-routes.js';
 
 const app = express();
 const httpServer = createServer(app);
+
+// Session middleware for auth
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'dev-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 },
+});
+app.use(sessionMiddleware);
+app.use(express.json());
 
 // Serve client files for browser access
 app.use(express.static(path.join(__dirname, '../client')));
@@ -123,6 +144,16 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 // Load questions once at startup
 const questionsDb = loadQuestions();
 initDb();
+initAuthDb();
+registerAuthRoutes(app);
+
+// Share session with Socket.IO
+io.engine.use(sessionMiddleware);
+
+// Serve client HTML for dev testing
+app.get('/', (req, res) => {
+  res.type('text/html').send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
+});
 
 // ---------------------------------------------------------------------------
 // Connection
@@ -130,6 +161,14 @@ initDb();
 
 io.on('connection', (socket) => {
   console.log(`[+] ${socket.id}`);
+
+  // Associate socket with authenticated user if available
+  const socketSession = socket.request.session;
+  if (socketSession?.userId) {
+    socket.userId = socketSession.userId;
+    socket.userName = socketSession.username;
+    console.log(`[auth] ${socket.id} linked to user ${socketSession.userId} (${socketSession.username})`);
+  }
 
   // --- Lobby ---
 
@@ -170,9 +209,9 @@ io.on('connection', (socket) => {
     if (checkLobbyRateLimit(socket.id, cb)) {return;}
     // Clean up any lingering quiz session when joining a room game
     quizRuns.delete(socket.id);
-    const result = joinRoom(code, socket.id, playerName);
-    if (result.error) {
-      return cb(result);
+    const joinResult = joinRoom(code, socket.id, playerName);
+    if (joinResult.error) {
+      return cb(joinResult);
     }
     const room = getRoom(code);
     socket.join(code);
@@ -282,12 +321,12 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not in this room' });
     }
 
-    const result = selectPeg(room.state, player.index, pegId);
-    if (result.error) {
-      return cb(result);
+    const pegResult = selectPeg(room.state, player.index, pegId);
+    if (pegResult.error) {
+      return cb(pegResult);
     }
 
-    cb({ ok: true, validMoves: result.validMoves });
+    cb({ ok: true, validMoves: pegResult.validMoves });
   });
 
   socket.on('action:select_tile', ({ code, pegId, r, c }, cb) => {

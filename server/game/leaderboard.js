@@ -5,6 +5,10 @@ const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data
 
 let db;
 
+export function getDb() {
+  return db;
+}
+
 export function initDb() {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
