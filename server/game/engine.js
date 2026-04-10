@@ -54,9 +54,16 @@ function shuffle(arr) {
   return a;
 }
 
-function randomCat(enabledCats) {
+function randomCat(enabledCats, seed = null) {
   const cats = enabledCats?.length ? enabledCats : CATS;
-  return cats[Math.floor(Math.random() * cats.length)];
+  let idx;
+  if (seed !== null) {
+    // Deterministic for tests
+    idx = seed % cats.length;
+  } else {
+    idx = Math.floor(Math.random() * cats.length);
+  }
+  return idx; // Return index, not name
 }
 
 // ---------------------------------------------------------------------------
@@ -87,30 +94,40 @@ export function getValidMoves(state, pegId) {
   });
 }
 
-function generateLayoutMap(boardSize, enabledCats) {
+function generateLayoutMap(boardSize, enabledCats, seed = null) {
   const isCorner = (r, c) =>
     (r === 0 || r === boardSize - 1) && (c === 0 || c === boardSize - 1);
   const useFlagCorners = boardSize > 4;
-  const nonCorner = [];
   const map = Array.from({ length: boardSize }, () =>
     Array(boardSize).fill(null),
   );
 
+  const nonCornerTiles = [];
   for (let r = 0; r < boardSize; r++) {
     for (let c = 0; c < boardSize; c++) {
       if (isCorner(r, c) && useFlagCorners) {
         map[r][c] = 'F';
       } else {
-        nonCorner.push([r, c]);
+        nonCornerTiles.push([r, c]);
       }
     }
   }
-  const pool = shuffle(
-    Array.from({ length: nonCorner.length }, (_, i) => i % enabledCats.length),
-  );
-  nonCorner.forEach(([r, c], i) => {
-    map[r][c] = pool[i];
-  });
+
+  // Ensure each enabled category appears at least once
+  const cats = [...enabledCats];
+  const shuffledCats = shuffle(cats);
+  // Fill first N tiles with unique categories (using indices)
+  for (let i = 0; i < Math.min(nonCornerTiles.length, enabledCats.length); i++) {
+    const [r, c] = nonCornerTiles[i];
+    const catName = shuffledCats[i];
+    map[r][c] = enabledCats.indexOf(catName);
+  }
+  // Fill remaining tiles with random categories (deterministic in tests)
+  for (let i = enabledCats.length; i < nonCornerTiles.length; i++) {
+    const [r, c] = nonCornerTiles[i];
+    map[r][c] = randomCat(enabledCats, seed !== null ? seed + i : null);
+  }
+
   return map;
 }
 
@@ -580,9 +597,12 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     }
     const cp = state.players[state.currentPlayerIdx];
     if (cp?.stats) {
-      cp.stats.attempts++;
+      const cat = q.category || 'unknown';
+      if (!cp.stats.byCategory) { cp.stats.byCategory = {}; }
+      if (!cp.stats.byCategory[cat]) { cp.stats.byCategory[cat] = { attempts: 0, correct: 0 }; }
+      cp.stats.byCategory[cat].attempts++;
       if (correct) {
-        cp.stats.correct++;
+        cp.stats.byCategory[cat].correct++;
       }
     }
     return correct;
@@ -745,10 +765,10 @@ function advanceTurn(state) {
 // ---------------------------------------------------------------------------
 
 export function createGame(players, settings = {}) {
-  const { boardSize = 7, enabledCats, maxRankStart = false } = settings;
+  const { boardSize = 7, enabledCats, maxRankStart = false, boardLayout } = settings;
   const activeCats = enabledCats?.length ? enabledCats : CATS;
   const numPlayers = players.length;
-  const layoutMap = generateLayoutMap(boardSize, activeCats);
+  const layoutMap = boardLayout || generateLayoutMap(boardSize, activeCats);
   const cornerMap = getCornerOwnerMap(numPlayers, boardSize);
 
   const board = Array.from({ length: boardSize }, (_outer, rowIdx) =>
@@ -786,7 +806,8 @@ export function createGame(players, settings = {}) {
       name: p.name,
       color: p.color,
       pegIds,
-      stats: { attempts: 0, correct: 0 },
+      userId: p.userId ?? null,
+      stats: { byCategory: {} },
     };
   });
 

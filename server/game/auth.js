@@ -36,7 +36,7 @@ export function initAuthDb() {
     CREATE TABLE IF NOT EXISTS game_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       player1_id INTEGER NOT NULL REFERENCES users(id),
-      player2_id INTEGER NOT NULL REFERENCES users(id),
+      player2_id INTEGER REFERENCES users(id),
       winner_id INTEGER REFERENCES users(id),
       game_mode TEXT NOT NULL,
       board_size INTEGER,

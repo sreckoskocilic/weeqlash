@@ -35,8 +35,9 @@ import {
 } from './game/engine.js';
 import { loadQuestions, getAllQuestions } from './game/questions.js';
 import { initDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
-import { initAuthDb } from './game/auth.js';
+import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
+import { rooms, socketToRoom } from './game/rooms.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -58,6 +59,8 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN
   : ['https://brawl.weeqlash.icu', 'http://localhost:3000', 'http://127.0.0.1:3000'];
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN },
+  // Enable default cookie parsing
+  cookie: true,
 });
 const PORT = process.env.PORT || 3000;
 
@@ -164,11 +167,64 @@ io.on('connection', (socket) => {
 
   // Associate socket with authenticated user if available
   const socketSession = socket.request.session;
+  console.log('[auth] socket session full:', JSON.stringify(socketSession));
   if (socketSession?.userId) {
     socket.userId = socketSession.userId;
     socket.userName = socketSession.username;
     console.log(`[auth] ${socket.id} linked to user ${socketSession.userId} (${socketSession.username})`);
   }
+
+  // Client sends userId directly after login (workaround for session issues)
+  socket.on('auth:setUserId', (userId) => {
+    console.log('[auth] auth:setUserId received:', userId);
+    if (userId) {
+      socket.userId = userId;
+      console.log(`[auth] ${socket.id} set userId to ${userId}`);
+      // Update the player's userId in ALL rooms this socket might be in
+      const code = socketToRoom.get(socket.id);
+      console.log('[auth] socketToRoom lookup, code:', code);
+      if (code) {
+        const room = rooms.get(code);
+        console.log('[auth] room found:', room ? 'yes' : 'no');
+        if (room) {
+          const player = room.players.find((p) => p.id === socket.id);
+          console.log('[auth] player found:', player ? player.name : 'no', 'current userId:', player?.userId);
+          if (player) {
+            player.userId = userId;
+            console.log('[auth] Updated player userId in room to:', player.userId);
+          }
+        }
+      } else {
+        // Socket not in any room yet - store for when they join
+        socket.pendingUserId = userId;
+        console.log('[auth] No room yet, stored pendingUserId:', userId);
+      }
+    }
+  });
+
+  // Client can emit this after login to refresh session
+  socket.on('auth:refresh', (cb) => {
+    const sess = socket.request.session;
+    console.log('[auth] refresh session received, full session:', JSON.stringify(sess));
+    if (sess?.userId) {
+      socket.userId = sess.userId;
+      socket.userName = sess.username;
+      console.log(`[auth] ${socket.id} refreshed to user ${sess.userId}`);
+      // Update the player's userId in the room if they're in one
+      const code = socketToRoom.get(socket.id);
+      if (code) {
+        const room = rooms.get(code);
+        if (room) {
+          const player = room.players.find((p) => p.id === socket.id);
+          if (player) {
+            player.userId = sess.userId;
+            console.log('[auth] Updated player userId in room:', player.userId);
+          }
+        }
+      }
+    }
+    cb?.({ ok: true, userId: socket.userId });
+  });
 
   // --- Lobby ---
 
@@ -188,7 +244,9 @@ io.on('connection', (socket) => {
         enabledCats,
         maxRankStart,
       });
-      const player = joinRoom(room.code, socket.id, playerName);
+      // Apply pending userId from earlier login if any
+      const userId = socket.userId || socket.pendingUserId;
+      const player = joinRoom(room.code, socket.id, playerName, userId || null);
       if (!player) {
         return cb({ error: 'Failed to create room' });
       }
@@ -209,7 +267,9 @@ io.on('connection', (socket) => {
     if (checkLobbyRateLimit(socket.id, cb)) {return;}
     // Clean up any lingering quiz session when joining a room game
     quizRuns.delete(socket.id);
-    const joinResult = joinRoom(code, socket.id, playerName);
+    // Use socket.userId or pendingUserId if not yet in socket
+    const userId = socket.userId || socket.pendingUserId;
+    const joinResult = joinRoom(code, socket.id, playerName, userId || null);
     if (joinResult.error) {
       return cb(joinResult);
     }
@@ -256,6 +316,7 @@ io.on('connection', (socket) => {
     }
 
     room.started = true;
+    room.startedAt = Date.now();
     room.state = gameState;
 
     // Clean up any lingering quiz sessions for players starting a Sraz game
@@ -577,7 +638,9 @@ io.on('connection', (socket) => {
     cb({ ok: true });
 
     if (result.gameOver) {
+      const gameRoom = getRoom(code);
       console.log(`[game] ${code} over — winner player ${result.winner}`);
+      recordGameStats(gameRoom);
     }
   });
 
@@ -712,6 +775,11 @@ io.on('connection', (socket) => {
     if (room && player) {
       // If game was in progress, notify remaining players and end the game
       if (room.started && room.state) {
+        // Skip if game already ended (e.g., normal completion)
+        if (room.state.phase === PHASE.GAME_OVER) {
+          console.log(`[game] ${room.code} ended (already over)`);
+          return;
+        }
         io.to(room.code).emit('game:player_disconnected', {
           playerId: socket.id,
           playerName: player.name,
@@ -767,6 +835,85 @@ function publicState(state) {
     pegsToMove: [...state.pegsToMove],
     movesRemaining: state.movesRemaining,
   };
+}
+
+// Record game result to database (only for regular game ends, not disconnects)
+function recordGameStats(room) {
+  console.log('[stats] recordGameStats called', {
+    startedAt: room?.startedAt,
+    playersCount: room?.state?.players?.length,
+    roomPlayers: room?.players?.map(p => ({ name: p.name, userId: p.userId })),
+    statePlayers: room?.state?.players?.map(p => ({ name: p.name, userId: p.userId }))
+  });
+
+  if (!room.startedAt || !room.state?.players || room.state.players.length < 2) {
+    console.log('[stats] Skipping - invalid game state');
+    return; // Not a valid started game
+  }
+
+  const players = room.state.players;
+
+  // Get userIds from room players (linked at join time)
+  const player1UserId = room.players[0]?.userId;
+  const player2UserId = room.players[1]?.userId;
+  console.log('[stats] userIds:', player1UserId, player2UserId);
+
+  // If both have accounts, record full game history
+  if (player1UserId && player2UserId) {
+    const durationMs = Date.now() - room.startedAt;
+    const winnerIdx = room.state.winner;
+
+    let winnerId = null;
+    if (winnerIdx !== null && winnerIdx < players.length) {
+      winnerId = winnerIdx === 0 ? player1UserId : player2UserId;
+    }
+
+    const player1Stats = players[0]?.stats ?? { byCategory: {} };
+    const player2Stats = players[1]?.stats ?? { byCategory: {} };
+
+    try {
+      insertGameResult({
+        player1Id: player1UserId,
+        player2Id: player2UserId,
+        winnerId,
+        gameMode: 'duel',
+        boardSize: room.settings.boardSize,
+        durationMs,
+        player1Stats,
+        player2Stats,
+      });
+      const gameRoomCode = players[0].name + ' vs ' + players[1].name;
+      const winnerStr = winnerId ? 'player' + (winnerIdx + 1) : 'draw';
+      console.log(`[stats] Game recorded: ${gameRoomCode}, winner: ${winnerStr}`);
+    } catch (err) {
+      console.error('[stats] Failed to record game:', err.message);
+    }
+    return;
+  }
+
+  // If only one player has account, track their stats individually
+  const player1Stats = players[0]?.stats?.byCategory ?? {};
+  const player2Stats = players[1]?.stats?.byCategory ?? {};
+
+  // Track player1's stats if they have an account
+  if (player1UserId) {
+    for (const [cat, stat] of Object.entries(player1Stats)) {
+      if (stat.attempts > 0) {
+        trackAnswer(player1UserId, cat, stat.correct);
+      }
+    }
+    console.log('[stats] Recorded player1 stats:', players[0].name);
+  }
+
+  // Track player2's stats if they have an account
+  if (player2UserId) {
+    for (const [cat, stat] of Object.entries(player2Stats)) {
+      if (stat.attempts > 0) {
+        trackAnswer(player2UserId, cat, stat.correct);
+      }
+    }
+    console.log('[stats] Recorded player2 stats:', players[1].name);
+  }
 }
 
 httpServer.listen(PORT, () => console.log(`Sraz server :${PORT}`));

@@ -105,7 +105,10 @@ export function registerAuthRoutes(app) {
 
     req.session.userId = result.user.id;
     req.session.username = result.user.username;
-    res.json({ ok: true, user: result.user });
+    console.log('[auth] login set session:', { userId: result.user.id, username: result.user.username });
+    req.session.save(() => {
+      res.json({ ok: true, user: result.user });
+    });
   });
 
   // Logout

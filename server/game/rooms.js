@@ -2,8 +2,8 @@ import { randomUUID } from 'crypto';
 import { CATS } from './engine.js';
 
 // In-memory room store. Each room holds settings, player list, and game state.
-const rooms = new Map(); // code -> room
-const socketToRoom = new Map(); // socketId -> roomCode
+export const rooms = new Map(); // code -> room
+export const socketToRoom = new Map(); // socketId -> roomCode
 
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -54,13 +54,14 @@ export function createRoom({
     settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats, maxRankStart },
     players: [],
     started: false,
+    startedAt: null,
     state: null,
   };
   rooms.set(code, room);
   return room;
 }
 
-export function joinRoom(code, socketId, playerName) {
+export function joinRoom(code, socketId, playerName, userId = null) {
   const normalizedCode = code?.toUpperCase();
   // Validate room code format
   if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
@@ -100,6 +101,7 @@ export function joinRoom(code, socketId, playerName) {
     index: room.players.length,
     isHost: room.players.length === 0,
     token: randomUUID(), // reconnect token, sent only to this player
+    userId, // linked user account (null for guest)
   };
   room.players.push(player);
   socketToRoom.set(socketId, normalizedCode);
