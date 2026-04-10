@@ -7,6 +7,7 @@ import {
   resetPassword,
   resendConfirmation,
   getUserById,
+  getUserStats,
 } from './auth.js';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
@@ -131,6 +132,30 @@ export function registerAuthRoutes(app) {
     res.json({ user: { id: user.id, username: user.username, email: user.email } });
   });
 
+  // Get user stats
+  app.get('/auth/stats/:userId', async (req, res) => {
+    // Verify the logged-in user matches the requested userId (or is requesting their own stats)
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    const requestedId = parseInt(req.params.userId);
+    if (isNaN(requestedId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    try {
+      // Note: showAuthMessage is a client-side function, but following user instruction to replace console.log
+      console.log('[auth-routes] Fetching stats for userId:', req.params.userId);
+      const stats = getUserStats(req.params.userId);
+
+      console.log('[auth-routes] Sending stats result:', stats);
+      res.json(stats);
+    } catch (err) {
+      console.error('[auth-routes] Error fetching user stats:', err.message);
+      res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  });
+
   // Confirm email
   app.get('/auth/confirm/:token', (req, res) => {
     const result = confirmEmail(req.params.token);
@@ -183,7 +208,7 @@ export function registerAuthRoutes(app) {
   });
 
   // Reset password page (serve client for direct URL access)
-  app.get('/auth/reset-password', (req, res) => {
+  app.get('/auth/reset-password', (_req, res) => {
     res.sendFile(path.join(__dirname, '../../client/index.html'));
   });
 

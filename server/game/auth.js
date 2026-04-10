@@ -277,38 +277,17 @@ export function getUserStats(userId) {
     { totalAnswered: 0, totalCorrect: 0 }
   );
 
-  const gameStats = getUserGameStats(userId);
+  const gameWinRatio = db.prepare(
+      'SELECT games_played, games_won FROM users WHERE id = ?'
+  ).get(userId);
+
+  const gameStats = { games: gameWinRatio['games_played'], wins: gameWinRatio['games_won']};
 
   return {
     categories: categoryStats,
     ...totals,
     ...gameStats,
   };
-}
-
-export function getUserGameStats(userId) {
-  const db = getDb();
-
-  const asPlayer1 = db.prepare(`
-    SELECT
-      COUNT(*) as games,
-      SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins
-    FROM game_history
-    WHERE player1_id = ?
-  `).get(userId, userId);
-
-  const asPlayer2 = db.prepare(`
-    SELECT
-      COUNT(*) as games,
-      SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as wins
-    FROM game_history
-    WHERE player2_id = ?
-  `).get(userId, userId);
-
-  const games = (asPlayer1?.games || 0) + (asPlayer2?.games || 0);
-  const wins = (asPlayer1?.wins || 0) + (asPlayer2?.wins || 0);
-
-  return { games, wins, losses: games - wins };
 }
 
 export function getUserHistory(userId, limit = 20) {

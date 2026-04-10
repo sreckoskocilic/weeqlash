@@ -324,6 +324,27 @@
     #modal-continue-wrap { margin-top: 16px; display: none; }
     #modal-continue-btn { width: 100%; padding: 12px; letter-spacing: 1px; }
 
+    /* ===== STATS MODAL OVERLAY ===== */
+    #stats-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000; display: flex;
+      align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #stats-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+
+    /* ===== STATS MODAL CONTENT ===== */
+    #stats-modal {
+      background: var(--bg2); border: 2px solid var(--bg3);
+      border-top: 4px solid #444; border-radius: 12px;
+      padding: 28px; max-width: 500px; width: 90%;
+      max-height: 90svh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transform: scale(0.95); transition: transform 0.2s, border-top-color 0.2s;
+    }
+    #stats-modal-overlay.visible #stats-modal { transform: scale(1); }
+
     /* ===== TURN ANNOUNCE ===== */
     #turn-announce {
       position: fixed; inset: 0;
@@ -595,6 +616,10 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .legal-close:hover { border-color: var(--text); color: var(--text); }
+
+  /* Stats Modal */
+  #stats-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+  #stats-modal-overlay.visible #stats-modal { transform: scale(1); }
   </style>
 </head>
 <body>
@@ -938,8 +963,8 @@
     const msgEl = $('auth-message');
     msgEl.textContent = msg;
     msgEl.style.display = 'block';
-    el.style.background = isError ? 'rgba(217,57,57,0.2)' : 'rgba(67,160,71,0.2)';
-    el.style.color = isError ? '#ff6b6b' : '#66bb6a';
+    msgEl.style.background = isError ? 'rgba(217,57,57,0.2)' : 'rgba(67,160,71,0.2)';
+    msgEl.style.color = isError ? '#ff6b6b' : '#66bb6a';
   }
 
   function showUserBar(user) {
@@ -1006,6 +1031,7 @@
     const data = await res.json();
     if (data.error) { return showAuthMessage(data.error, true); }
     showUserBar(data.user);
+    _currentUser = data.user;
     // Send userId directly to socket (workaround for session issues)
     socket.emit('auth:setUserId', data.user.id);
   });
@@ -1076,6 +1102,48 @@
   $('btn-logout').addEventListener('click', async () => {
     await fetch(`${serverUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
     hideUserBar();
+  });
+
+  // View Stats
+  $('btn-view-stats').addEventListener('click', async () => {
+    showAuthMessage('Stats button clicked', false);
+    if (!_currentUser) {
+      showAuthMessage('Please log in to view stats', true);
+      return;
+    }
+    showAuthMessage(`Current user: ${_currentUser.username}`, false);
+
+    // Test basic server connectivity first
+    showAuthMessage('Testing server connection...', false);
+    try {
+      const testRes = await fetch(`${serverUrl}/`, { credentials: 'include' });
+      showAuthMessage(`Server responded: ${testRes.status}`, false);
+
+      // Show immediate feedback to confirm click was registered
+      showAuthMessage('Contacting stats endpoint...', false);
+
+      const res = await fetch(`${serverUrl}/auth/stats/${_currentUser.id}`, { credentials: 'include' });
+      showAuthMessage(`Stats response status: ${res.status}`, false);
+
+      // Handle HTTP errors
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.error || `HTTP ${res.status}: ${res.statusText}`;
+        showAuthMessage(`Server error: ${errorMsg}`, true);
+        return;
+      }
+
+      const data = await res.json();
+      showAuthMessage('Stats data received', false);
+      if (data.error) {
+        return showAuthMessage(data.error, true);
+      }
+      showAuthMessage('Calling showStatsModal', false);
+      showStatsModal(data);
+    } catch (err) {
+      showAuthMessage('Network error: Unable to reach server', true);
+      showAuthMessage(`Error: ${err.message}`, true);
+    }
   });
 
   // Handle URL params (email confirmation, password reset)
@@ -2547,6 +2615,150 @@ let quizModalOptionBtns = [];
       showLeaderboard({ qualifies: false });
     });
   };
+
+  // Show stats modal
+  function showStatsModal(statsData) {
+    showAuthMessage('Loading stats...', false);
+    // Create modal overlay if it doesn't exist
+    let modalOverlay = document.getElementById('stats-modal-overlay');
+    if (!modalOverlay) {
+      modalOverlay = document.createElement('div');
+      modalOverlay.id = 'stats-modal-overlay';
+      modalOverlay.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      `;
+      modalOverlay.innerHTML = `
+        <div id="stats-modal" style="
+          background: var(--bg2); border: 2px solid var(--bg3);
+          border-top: 4px solid #444; border-radius: 12px;
+          padding: 28px; max-width: 500px; width: 90%;
+          max-height: 90svh; overflow-y: auto;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+          transform: scale(0.95); transition: transform 0.2s, border-top-color 0.2s;
+          z-index: 1001;
+        ">
+          <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+            <div id="stats-modal-category-badge" style="
+              padding: 4px 10px; border-radius: 20px;
+              font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+              text-transform: uppercase; color: white;
+            ">OVERALL</div>
+            <div id="stats-modal-player-label" style="font-size: 0.85rem; color: var(--muted);">
+              _currentUser.username
+            </div>
+          </div>
+
+          <div id="stats-modal-content" style="
+            margin-bottom: 24px;
+          ">
+            <!-- Stats content will be injected here -->
+          </div>
+
+          <div id="stats-modal-actions" style="
+            margin-top: 16px; display: flex; justify-content: flex-end;
+          ">
+            <button id="stats-modal-close" style="
+              width: auto; padding: 12px 24px; background: transparent;
+              border: 1px solid var(--bg3); color: var(--muted);
+              font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
+              padding: 8px 10px; cursor: pointer; letter-spacing: 0.05em;
+              border-radius: 4px; transition: border-color 0.15s, color 0.15s;
+            ">Close</button>
+          </div>
+        </div>
+      `;
+      // Add event listener for close button
+      modalOverlay.querySelector('#stats-modal-close').addEventListener('click', () => {
+        modalOverlay.classList.remove('visible');
+        setTimeout(() => {
+          if (modalOverlay.parentElement) {
+            modalOverlay.parentElement.removeChild(modalOverlay);
+          }
+        }, 200); // Match CSS transition duration
+      });
+
+      // Add event listener for overlay click
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+          modalOverlay.classList.remove('visible');
+        }
+      });
+
+      document.body.appendChild(modalOverlay);
+    }
+
+    // Update stats content
+    const contentEl = modalOverlay.querySelector('#stats-modal-content');
+    // const categoryBadgeEl = modalOverlay.querySelector('#stats-modal-category-badge'); // Not used but kept for potential future use
+
+    // Calculate totals
+    const totalAnswered = statsData.categories.reduce((sum, cat) => sum + cat.answered, 0);
+    const totalCorrect = statsData.categories.reduce((sum, cat) => sum + cat.correct, 0);
+    const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+
+    // Build stats HTML
+    let statsHTML = `
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 2rem; font-weight: 700; margin-bottom: 4px;">${statsData.gamesWon}</div>
+        <div style="font-size: 0.9rem; color: var(--muted);">Games Won</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+        <div style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 600;">${statsData.gamesPlayed}</div>
+          <div style="font-size: 0.8rem; color: var(--muted);">Games Played</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: 600;">${totalAnswered}</div>
+          <div style="font-size: 0.8rem; color: var(--muted);">Questions Answered</div>
+        </div>
+      </div>
+
+      <div style="text-align: center;">
+        <div style="font-size: 1.5rem; font-weight: 600;">${accuracy}%</div>
+        <div style="font-size: 0.8rem; color: var(--muted);">Accuracy</div>
+      </div>
+
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--bg3);">
+        <h3 style="color: var(--accent); font-size: 1rem; text-transform: uppercase;
+                   letter-spacing: 0.1em; margin-bottom: 1rem; font-weight: 700;">
+          By Category
+        </h3>
+        <div id="stats-categories-list" style="display: flex; flex-direction: column; gap: 8px;">
+    `;
+
+    // Add category stats
+    statsData.categories.forEach(cat => {
+      const catName = CAT_NAMES[cat.category] || cat.category;
+      const catAccuracy = cat.answered > 0 ? Math.round((cat.correct / cat.answered) * 100) : 0;
+      statsHTML += `
+        <div style="
+          display: flex; justify-content: space-between;
+          padding: 8px; background: var(--bg3); border-radius: 6px;
+        ">
+          <span style="font-weight: 600;">${catName}</span>
+          <div style="text-align: right; display: flex; gap: 8px;">
+            <div>${cat.correct}/${cat.answered}</div>
+            <div style="font-size: 0.7rem; color: var(--muted);">${catAccuracy}%</div>
+          </div>
+        </div>
+      `;
+    });
+
+    statsHTML += `
+        </div>
+      </div>
+    `;
+
+    contentEl.innerHTML = statsHTML;
+
+    // Show the modal
+    requestAnimationFrame(() => {
+      modalOverlay.classList.add('visible');
+    });
+  }
 </script>
 
 <!-- Quiz Screen (overlay) -->

@@ -958,4 +958,4 @@ function recordGameStats(room) {
   }
 }
 
-httpServer.listen(PORT, () => console.log(`Sraz server :${PORT}`));
+httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
