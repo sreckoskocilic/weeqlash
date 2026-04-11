@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const KEY = Buffer.from(process.env.QUESTIONS_KEY || 'SraziqueQuestions2024', 'utf8');
+const KEY = Buffer.from(process.env.QUESTIONS_KEY, 'utf8');
 
 function decrypt(base64) {
   const enc = Buffer.from(base64, 'base64');

@@ -320,12 +320,19 @@ describe('Engine: Normal Move', () => {
 
 describe('Engine: Question Selection', () => {
   it('falls back to any available question when the target category is empty', () => {
+    // Hardcode boardLayout to ensure all tiles are 'history' (index 0)
+    const boardLayout = [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
     const state = createGame(
       [
         { name: 'P1', color: '#f00' },
         { name: 'P2', color: '#00f' },
       ],
-      { boardSize: 4, enabledCats: ['history'] },
+      { boardSize: 4, enabledCats: ['history'], boardLayout },
     );
     const questionsDb = createSparseQuestionsDb({
       science: [
@@ -350,12 +357,19 @@ describe('Engine: Question Selection', () => {
   });
 
   it('reuses questions instead of returning fewer ids once a category is consumed', () => {
+    // Hardcode boardLayout to ensure all tiles are 'history' (index 0)
+    const boardLayout = [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
     const state = createGame(
       [
         { name: 'P1', color: '#f00' },
         { name: 'P2', color: '#00f' },
       ],
-      { boardSize: 4, enabledCats: ['history'] },
+      { boardSize: 4, enabledCats: ['history'], boardLayout },
     );
     const questionsDb = createSparseQuestionsDb({
       history: [

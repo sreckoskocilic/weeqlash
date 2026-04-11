@@ -6,7 +6,7 @@
   <!-- CSP handled by Cloudflare -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>Weeqlash — Multiplayer</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,9 +14,9 @@
       --bg:     #1a1a2e;
       --bg2:    #16213e;
       --bg3: #2f3741;
-      --accent: #d93939;
+      --accent: #e53935;
       --text: #bdb5b5;
-      --muted: #a4b2a0;
+      --muted: #b4b78b;
       --radius: 8px;
       --bs: min(calc(100svh - 80px), calc(100svw - 24px));
       --ts: 40px;
@@ -25,7 +25,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       min-height: 100svh;
       display: flex;
       flex-direction: column;
@@ -36,15 +36,14 @@
 
     @keyframes shine { to { background-position: 200% center; } }
     h1 {
-      font-size: 2.5rem; font-weight: 900; letter-spacing: 0.3em;
+      font-size: 3rem; letter-spacing: 0.3em;
       background: linear-gradient(135deg, var(--accent), #ff8a65, var(--accent));
       background-size: 200% auto;
       color: transparent;
       -webkit-background-clip: text; background-clip: text;
-      animation: shine 3s linear infinite;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.5rem;
     }
-    .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.85rem; letter-spacing: 5px; text-transform: uppercase; font-weight: 600; }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.8rem; letter-spacing: 3px; text-transform: lowercase; font-weight: 600; }
 
     /* ===== CARDS (connect / lobby) ===== */
     .card {
@@ -85,7 +84,6 @@
     .col-triviandom .lb-row div:last-child { padding-right: 14px; text-align: center; color: rgba(7, 155, 29, 0.5);}
     .btn-triviandom {
       background: var(--triv-accent) !important;
-      color: #fff !important;
       font-weight: 700;
       letter-spacing: 0.04em;
     }
@@ -107,23 +105,25 @@
     }
     input:focus, select:focus { border-color: var(--accent); }
     button {
-      width: 100%; padding: 0.7rem;
+      width: 100%; height: 40px; padding: 0.7rem;
       background: var(--accent); color: #cecdcd;
       border: none; border-radius: var(--radius);
-      font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: opacity 0.15s;
+      font-size: 1.1rem; font-weight: 600;
+      transition: opacity 0.15s;
     }
     button:hover { opacity: 0.85; }
     button:disabled { opacity: 0.4; cursor: default; }
     .divider {
       text-align: center; color: var(--muted);
-      font-size: 0.85rem; margin: 1.25rem 0; position: relative;
+      font-size: 0.85rem;
+        margin: 80px 0 20px 0;
+        position: relative;
     }
     .divider::before { left: 0; } .divider::after { right: 0; }
-    .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
+    .error { color: #e57335; font-size: 1rem; margin-top: 1rem; margin-bottom: 0.75rem; font-weight: 500; background: linear-gradient(45deg, black, transparent);}
     .setup-section { margin-bottom: 0; }
     .setup-section + .setup-section { padding-top: 14px; border-top: 1px solid #1e2d4a; margin-top: 4px; }
-    .setup-section h3 { font-size: 0.7rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+    .setup-section h3 { font-size: 0.7rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; margin-top: 80px; font-weight: 700; }
     .opt-btn-group { display: flex; gap: 8px; margin-bottom: 0; }
     .opt-btn { flex: 1; padding: 8px; background: var(--bg3); border: 2px solid transparent; border-radius: 6px; color: var(--text); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; width: auto; }
     .opt-btn.active { border-color: var(--accent); background: var(--bg); color: var(--accent); }
@@ -177,12 +177,12 @@
       transition: border-left-color 0.2s;
     }
     #turn-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; background: #444; transition: background 0.2s; }
-    #turn-name { font-size: 1rem; font-weight: 700; line-height: 1.2; }
-    #turn-phase { font-size: 0.75rem; color: var(--muted); }
+    #turn-name { font-size: 1.4rem; font-weight: 700;}
+    #turn-phase { font-size: 1rem; color: var(--muted); }
     #player-stats { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-    .player-stat-item { display: flex; flex-direction: column; align-items: center; font-weight: 700; line-height: 1.2; }
-    .player-stat-ratio { font-size: 0.78rem; }
-    .player-stat-pct { font-size: 0.65rem; opacity: 0.8; }
+    .player-stat-item { display: flex; flex-direction: column; align-items: center; font-weight: 700; line-height: 1.2; padding-right: 10px;}
+    .player-stat-ratio { font-size: 1.8rem; }
+    .player-stat-pct { font-size: 1.2rem; opacity: 0.8; }
 
     /* ===== BOARD ===== */
     #board {
@@ -324,6 +324,27 @@
     #modal-continue-wrap { margin-top: 16px; display: none; }
     #modal-continue-btn { width: 100%; padding: 12px; letter-spacing: 1px; }
 
+    /* ===== STATS MODAL OVERLAY ===== */
+    #stats-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000; display: flex;
+      align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #stats-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+
+    /* ===== STATS MODAL CONTENT ===== */
+    #stats-modal {
+      background: var(--bg2); border: 2px solid var(--bg3);
+      border-top: 4px solid #444; border-radius: 12px;
+      padding: 28px; max-width: 500px; width: 90%;
+      max-height: 90svh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transform: scale(0.95); transition: transform 0.2s, border-top-color 0.2s;
+    }
+    #stats-modal-overlay.visible #stats-modal { transform: scale(1); }
+
     /* ===== TURN ANNOUNCE ===== */
     #turn-announce {
       position: fixed; inset: 0;
@@ -373,7 +394,7 @@
       width: 100%;
       max-width: 420px;
       position: relative;
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
     }
 
     .leaderboard-panel::before {
@@ -464,7 +485,7 @@
       border: none;
       border-bottom: 1px solid var(--accent);
       color: var(--text);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.93rem;
       outline: none;
       padding: 1px 0;
@@ -478,7 +499,7 @@
       background: transparent;
       border: 1px solid var(--accent);
       color: var(--accent);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.75rem;
       padding: 2px 8px;
       cursor: pointer;
@@ -501,7 +522,7 @@
       background: transparent;
       border: 1px solid var(--bg3);
       color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.75rem;
       padding: 8px 10px;
       cursor: pointer;
@@ -586,7 +607,7 @@
       background: transparent;
       border: 1px solid var(--bg3);
       color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.75rem;
       padding: 8px;
       cursor: pointer;
@@ -595,33 +616,74 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .legal-close:hover { border-color: var(--text); color: var(--text); }
+
+  /* Stats Modal */
+  #stats-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+  #stats-modal-overlay.visible #stats-modal { transform: scale(1); }
   </style>
 </head>
 <body>
 
-<h1 id="main-title">WEEQLASH</h1>
-<p class="subtitle" id="main-subtitle">Multiplayer Trivia Battle</p>
+<h1 id="main-title">weeqlash</h1>
+<p class="subtitle" id="main-subtitle">brawledge is not mating, buddies (sierra leonardo pro vertebrae)</p>
 
 <!-- Connect screen -->
 <div class="main-columns" id="screen-connect">
 
-  <!-- LEFT COLUMN: Weeqlash Multiplayer -->
+  <!-- LEFT COLUMN: weeqlash -->
   <div class="card">
-    <div class="setup-section">
-      <h3 id="label-player-name">Your Name</h3>
-      <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" aria-labelledby="label-player-name" />
-      <div id="connect-error" class="error" style="display:none"></div>
+    <div id="user-logged-as" style="display:none;margin-bottom:0.5rem;font-size:0.9rem;color:var(--muted);"></div>
+    <div id="user-bar" style="display:none;margin-bottom:1rem;padding:0.5rem;background:var(--bg3);border-radius:var(--radius);align-items:center;gap:0.5rem;">
+      <button id="btn-view-stats" style="background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">Stats</button>
+      <button id="btn-admin" style="display:none;background:transparent;border:1px solid var(--accent);color:var(--accent);padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">Admin</button>
+      <button id="btn-logout" style="margin-left:auto;background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">Sign out</button>
+    </div>
+    <div id="login-section" style="margin-bottom:1rem;">
+      <div id="auth-tabs" style="display:flex;gap:0;margin-bottom:0.75rem;">
+        <button class="auth-tab active" data-tab="login" style="flex:1;padding:0.4rem;background:var(--bg3);border:1px solid var(--bg3);color:var(--text);cursor:pointer;border-radius:var(--radius) 0 0 var(--radius);font-size:0.8rem;">Login</button>
+        <button class="auth-tab" data-tab="register" style="flex:1;padding:0.4rem;background:transparent;border:1px solid var(--bg3);color:var(--muted);cursor:pointer;border-radius:0 var(--radius) var(--radius) 0;font-size:0.8rem;">Register</button>
+      </div>
+      <div id="auth-login-form">
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.4rem;">
+          <input id="login-username" type="text" placeholder="Username or email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:1rem; height: 40px;" />
+          <input id="login-password" type="password" placeholder="Password" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:1rem; height: 40px;" />
+        </div>
+        <div style="display:flex;gap:0.4rem;margin-bottom:0.3rem;">
+          <input type="checkbox" id="keep-logged-in" style="width:auto;" />
+          <label for="keep-logged-in" style="font-size:0.85rem;color:var(--muted);cursor:pointer;">Keep me logged in</label>
+        </div>
+        <button id="btn-login" style="width:100%;background:var(--accent);font-weight:600;">Login</button>
+        <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-forgot" style="color:var(--muted);font-size:0.75rem;">Forgot password?</a></div>
+      </div>
+      <div id="auth-register-form" style="display:none;">
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.4rem;">
+          <input id="reg-username" type="text" placeholder="Username (3-20 chars)" maxlength="20" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+          <input id="reg-email" type="email" placeholder="Email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        </div>
+        <input id="reg-password" type="password" placeholder="Password (min 6 chars)" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-register" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Create account</button>
+      </div>
+      <div id="auth-forgot-form" style="display:none;">
+        <input id="forgot-email" type="email" placeholder="Your email" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-forgot" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Send reset link</button>
+        <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-back-login" style="color:var(--muted);font-size:0.75rem;">Back to login</a></div>
+      </div>
+      <div id="auth-reset-form" style="display:none;">
+        <input id="reset-password" type="password" placeholder="New password (min 6 chars)" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <button id="btn-reset" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Reset password</button>
+      </div>
+      <div id="auth-message" style="display:none;margin-top:0.5rem;padding:0.4rem;border-radius:var(--radius);font-size:0.8rem;text-align:center;"></div>
     </div>
 
     <div class="setup-section">
       <h3>Board Size</h3>
       <div class="opt-btn-group" id="board-size-btns">
-        <!-- 
+        <!--
           To enable 2x2 board for testing:
           1. Uncomment the 2x2 button below
           2. The backend already supports 2x2 boards (validated in server/game/rooms.js)
           3. Game logic supports 2x2 boards (modified in server/game/engine.js)
-          
+
           <button class="opt-btn" data-val="2">2×2</button>
         -->
         <button class="opt-btn" data-val="4">4×4</button>
@@ -631,22 +693,14 @@
         <button class="opt-btn active" data-val="8">8×8</button>
         <button class="opt-btn" data-val="10">10×10</button>
       </div>
+      <div id="connect-error" class="error" style="display:none"></div>
     </div>
 
-    <div class="setup-section">
-      <h3>Question Timer</h3>
-      <div class="opt-btn-group" id="timer-btns">
-        <button class="opt-btn" data-val="15">15s</button>
-        <button class="opt-btn active" data-val="30">30s</button>
-        <button class="opt-btn" data-val="45">45s</button>
-      </div>
+    <div class="setup-section" style="margin-bottom:0.5rem">
+      <button id="btn-create">Create game</button>
     </div>
 
-    <div class="setup-section">
-      <button id="btn-create" style="margin-bottom:0">Create game</button>
-    </div>
-
-    <div class="setup-actions">
+    <div class="setup-actions" style="margin-top:10px;">
       <button id="btn-help">How to Play</button>
       <button id="btn-hc">High Contrast</button>
       <button id="btn-advanced">Settings</button>
@@ -657,6 +711,14 @@
         <h3>Game Options</h3>
         <div class="opt-btn-group">
           <button class="opt-btn" id="btn-max-rank">Start as Vitez</button>
+        </div>
+      </div>
+      <div class="setup-section">
+        <h3>Question Timer</h3>
+        <div class="opt-btn-group" id="timer-btns">
+          <button class="opt-btn" data-val="15">15s</button>
+          <button class="opt-btn active" data-val="30">30s</button>
+          <button class="opt-btn" data-val="45">45s</button>
         </div>
       </div>
       <div class="setup-section">
@@ -683,9 +745,11 @@
     <div class="divider">or join an existing game</div>
 
     <div class="setup-section" style="margin-bottom:0">
-      <h3 id="label-join-code">Room Code</h3>
-      <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em;margin-bottom:0.5rem" aria-labelledby="label-join-code" />
-      <button id="btn-join" style="margin-bottom:0">Join game</button>
+      <h3 id="label-join-code" style="display:none;">Room Code</h3>
+      <div style="display:flex;gap:0.5rem;align-items:stretch;">
+        <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="flex:1;height:48px;text-transform:uppercase;letter-spacing:0.2em;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:1.35rem;" aria-labelledby="label-join-code" />
+        <button id="btn-join" style="flex:2;height:40px;">Join game</button>
+      </div>
     </div>
   </div>
 
@@ -699,7 +763,7 @@
       </div>
       <div id="triv-lb-rows"></div>
     </div>
-    <button id="btn-quiz-start" class="btn-triviandom" style="margin-top:1rem">Start Triviandom</button>
+    <button id="btn-quiz-start" class="btn-triviandom" style="margin-top:1.5rem">Start Triviandom</button>
   </div>
 
 </div>
@@ -891,10 +955,217 @@
   const serverUrl = window.WEEFLASH_SERVER_URL || (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
   const { io } = await import(`${serverUrl}/socket.io/socket.io.esm.min.js`);
 
-  const socket = io(serverUrl, { transports: ['websocket'] });
+  const socket = io(serverUrl, { transports: ['websocket'], withCredentials: true });
   const el = id => document.getElementById(id);
+  const $ = el; // Alias for compatibility with auth functions
 
-  // Socket.IO error handling
+  // ============================================================
+  // AUTH
+  // ============================================================
+  let _currentUser = null;
+
+  function showAuthMessage(msg, isError) {
+    const msgEl = $('auth-message');
+    msgEl.textContent = msg;
+    msgEl.style.display = 'block';
+    msgEl.style.background = isError ? 'rgba(217,57,57,0.2)' : 'rgba(67,160,71,0.2)';
+    msgEl.style.color = isError ? '#ff6b6b' : '#66bb6a';
+  }
+
+  function showUserBar(user) {
+    _currentUser = user;
+    $('user-logged-as').textContent = `logged as ${user.username}`;
+    $('user-logged-as').style.display = 'block';
+    $('user-bar').style.display = 'flex';
+    const isAdmin = user.is_admin === 1 || user.is_admin === true;
+    $('btn-admin').style.display = isAdmin ? 'inline-block' : 'none';
+    $('login-section').style.display = 'none';
+  }
+
+  function hideUserBar() {
+    _currentUser = null;
+    $('user-logged-as').style.display = 'none';
+    $('user-bar').style.display = 'none';
+    $('login-section').style.display = '';
+  }
+
+  async function checkAuth() {
+    try {
+      const res = await fetch(`${serverUrl}/auth/me`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.user) {
+        showUserBar(data.user);
+      } else {
+        hideUserBar();
+      }
+    } catch { /* not logged in */ hideUserBar(); }
+  }
+
+  // Auth tab switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.background = 'transparent';
+        t.style.color = 'var(--muted)';
+        t.style.borderColor = 'var(--bg3)';
+      });
+      tab.classList.add('active');
+      tab.style.background = 'var(--bg3)';
+      tab.style.color = 'var(--text)';
+      const which = tab.dataset.tab;
+      $('auth-login-form').style.display = which === 'login' ? '' : 'none';
+      $('auth-register-form').style.display = which === 'register' ? '' : 'none';
+      $('auth-forgot-form').style.display = 'none';
+      $('auth-reset-form').style.display = 'none';
+      $('auth-message').style.display = 'none';
+    });
+  });
+
+  // Login
+  $('btn-login').addEventListener('click', async () => {
+    const username = $('login-username').value.trim();
+    const password = $('login-password').value;
+    const keepLoggedIn = $('keep-logged-in').checked;
+    if (!username || !password) { return showAuthMessage('Fill in all fields', true); }
+
+    const res = await fetch(`${serverUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password, keepLoggedIn }),
+    });
+    const data = await res.json();
+    if (data.error) { return showAuthMessage(data.error, true); }
+    showUserBar(data.user);
+    _currentUser = data.user;
+    // Send userId directly to socket
+    socket.emit('auth:setUserId', data.user.id);
+  });
+
+  // Register
+  $('btn-register').addEventListener('click', async () => {
+    const username = $('reg-username').value.trim();
+    const email = $('reg-email').value.trim();
+    const password = $('reg-password').value;
+    if (!username || !email || !password) { return showAuthMessage('Fill in all fields', true); }
+
+    const res = await fetch(`${serverUrl}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await res.json();
+    if (data.error) { return showAuthMessage(data.error, true); }
+    showAuthMessage(data.message || 'Check your email to confirm', false);
+  });
+
+  // Forgot password
+  $('link-forgot').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('auth-login-form').style.display = 'none';
+    $('auth-forgot-form').style.display = '';
+    $('auth-message').style.display = 'none';
+  });
+
+  $('link-back-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('auth-forgot-form').style.display = 'none';
+    $('auth-login-form').style.display = '';
+    $('auth-message').style.display = 'none';
+  });
+
+  $('btn-forgot').addEventListener('click', async () => {
+    const email = $('forgot-email').value.trim();
+    if (!email) { return showAuthMessage('Enter your email', true); }
+
+    const res = await fetch(`${serverUrl}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    showAuthMessage(data.message || 'If that email exists, a reset link has been sent', false);
+  });
+
+  // Reset password (from URL param)
+  $('btn-reset').addEventListener('click', async () => {
+    const password = $('reset-password').value;
+    if (!password || password.length < 6) { return showAuthMessage('Password must be at least 6 characters', true); }
+
+    const res = await fetch(`${serverUrl}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: resetToken, password }),
+    });
+    const data = await res.json();
+    if (data.error) { return showAuthMessage(data.error, true); }
+    showAuthMessage('Password reset! You can now log in.', false);
+    $('auth-reset-form').style.display = 'none';
+    $('auth-login-form').style.display = '';
+  });
+
+  // Logout
+  $('btn-logout').addEventListener('click', async () => {
+    await fetch(`${serverUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
+    hideUserBar();
+  });
+
+  // Admin panel
+  $('btn-admin').addEventListener('click', () => {
+    window.open(`${serverUrl}/admin/users`, '_blank');
+  });
+
+  // View Stats
+  $('btn-view-stats').addEventListener('click', async () => {
+    if (!_currentUser) {
+      showAuthMessage('Please log in to view stats', true);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${serverUrl}/auth/stats/${_currentUser.id}`, { credentials: 'include' });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.error || `HTTP ${res.status}: ${res.statusText}`;
+        showAuthMessage(`Server error: ${errorMsg}`, true);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.error) {
+        return showAuthMessage(data.error, true);
+      }
+      showStatsModal(data);
+    } catch {
+      showAuthMessage('Network error: Unable to reach server', true);
+    }
+  });
+
+  // Handle URL params (email confirmation, password reset)
+  const urlParams = new URLSearchParams(window.location.search);
+  let resetToken = null;
+  if (urlParams.get('confirm')) {
+    fetch(`${serverUrl}/auth/confirm/${urlParams.get('confirm')}`)
+      .then(r => r.json())
+      .then(data => {
+        showAuthMessage(data.message || (data.error ? data.error : 'Email confirmed!'), !!data.error);
+      });
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (urlParams.get('reset')) {
+    resetToken = urlParams.get('reset');
+    $('auth-login-form').style.display = 'none';
+    $('auth-register-form').style.display = 'none';
+    $('auth-reset-form').style.display = '';
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Check auth on page load
+  checkAuth();
+
+  // ============================================================
   socket.io.on('error', (err) => {
     console.error('Socket.IO error:', err);
     showError('Connection error. Please refresh the page.');
@@ -1000,7 +1271,7 @@ let quizModalOptionBtns = [];
   let navCursor = { row: 0, col: 0 };
   let lastSubmittedPegId = null;
   let lastSubmittedMoveType = null;
-  
+
   // Setup screen state
   const setupPlayerCount = 2;
   let setupBoardSize = 8;
@@ -1516,7 +1787,13 @@ let quizModalOptionBtns = [];
     el('turn-phase').textContent = phaseText;
 
     el('player-stats').innerHTML = state.players.map(p => {
-      const { attempts = 0, correct = 0 } = p.stats ?? {};
+      const stats = p.stats?.byCategory ?? {};
+      let attempts = 0;
+      let correct = 0;
+      for (const cat of Object.values(stats)) {
+        attempts += cat.attempts ?? 0;
+        correct += cat.correct ?? 0;
+      }
       const pct = attempts > 0 ? (correct / attempts * 100).toFixed(1) + '%' : '—';
       return `<span class="player-stat-item" style="color:${p.color};opacity:${p.pegIds.length ? 1 : 0.4}">
         <span class="player-stat-ratio">${correct}/${attempts}</span>
@@ -1939,19 +2216,19 @@ let quizModalOptionBtns = [];
   // ============================================================
   // LOBBY ACTIONS
   // ============================================================
-  // Predefined names for when player doesn't enter one
+  // Predefined names for guest players (currently unused)
   const RANDOM_NAMES = ['Qwizakk', 'PacMoan', 'EE-TEE', 'Issous', 'Sihirator', 'Bogamber', 'Dandalf', 'Burim', 'Kesko', 'Lepi', 'Aliya', 'Pcheko', 'Dnepr', 'nasmirglAna'];
-  function getRandomName() {
+  function _getRandomName() {
     return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
   }
 
   function getPlayerName() {
-    let name = el('player-name').value.trim();
-    if (!name) { name = getRandomName(); }
-    // Update input to show the assigned name
-    el('player-name').value = name;
+    if (!_currentUser) {
+      showError('Please log in to play');
+      return null;
+    }
     showError('');
-    return name;
+    return _currentUser.username;
   }
 
   // ============================================================
@@ -2335,6 +2612,178 @@ let quizModalOptionBtns = [];
       showLeaderboard({ qualifies: false });
     });
   };
+
+  // Show stats modal
+  function showStatsModal(statsData) {
+    showAuthMessage('Loading stats...', false);
+    // Create modal overlay if it doesn't exist
+    let modalOverlay = document.getElementById('stats-modal-overlay');
+    if (!modalOverlay) {
+      modalOverlay = document.createElement('div');
+      modalOverlay.id = 'stats-modal-overlay';
+      modalOverlay.style.cssText = `
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s;
+      `;
+      modalOverlay.innerHTML = `
+        <div id="stats-modal" style="
+          background: linear-gradient(145deg, #1e1e24 0%, #25252d 100%);
+          border: 1px solid #3a3a45;
+          border-radius: 16px;
+          padding: 32px; max-width: 520px; width: 92%;
+          max-height: 90vh; overflow-y: auto;
+          box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
+          z-index: 1001;
+          font-family: 'Montserrat', 'Segoe UI', sans-serif;
+        ">
+          <div style="text-align: center; margin-bottom: 28px;">
+            <h2 style="margin: 0 0 8px 0; color: #fff; font-size: 1.6rem; font-weight: 600; letter-spacing: 0.5px;">
+              Your Statistics
+            </h2>
+            <div id="stats-modal-player-label" style="color: #888; font-size: 0.9rem;">
+              Player: ${_currentUser?.username || 'Guest'}
+            </div>
+          </div>
+
+          <div id="stats-modal-content" style="margin-bottom: 24px;">
+            <!-- Stats content will be injected here -->
+          </div>
+
+          <div style="text-align: center;">
+            <button id="stats-modal-close" style="
+              width: auto; padding: 14px 36px; background: linear-gradient(135deg, #4a4a5a 0%, #3a3a45 100%);
+              border: none; color: #ddd;
+              font-size: 0.9rem; font-weight: 500;
+              cursor: pointer; border-radius: 8px;
+              transition: transform 0.15s, box-shadow 0.15s;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            ">Close</button>
+          </div>
+        </div>
+      `;
+      // Add event listener for close button
+      modalOverlay.querySelector('#stats-modal-close').addEventListener('click', () => {
+        modalOverlay.classList.remove('visible');
+        setTimeout(() => {
+          if (modalOverlay.parentElement) {
+            modalOverlay.parentElement.removeChild(modalOverlay);
+          }
+        }, 300);
+      });
+
+      // Add event listener for overlay click
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+          modalOverlay.classList.remove('visible');
+        }
+      });
+
+      document.body.appendChild(modalOverlay);
+    }
+
+    // Update stats content
+    const _contentEl = modalOverlay.querySelector('#stats-modal-content');
+
+    // Calculate totals
+    const totalAnswered = statsData.categories.reduce((sum, cat) => sum + cat.answered, 0);
+    const totalCorrect = statsData.categories.reduce((sum, cat) => sum + cat.correct, 0);
+    const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+
+    // Determine accuracy color
+    let accuracyColor = '#ef4444'; // red
+    if (accuracy >= 80) {accuracyColor = '#22c55e';} // green
+    else if (accuracy >= 60) {accuracyColor = '#eab308';} // yellow
+    else if (accuracy >= 40) {accuracyColor = '#f97316';} // orange
+
+    // Build stats HTML with cards and visuals
+    let _statsHTML = `
+    <!-- Main stats row: games won, games played, accuracy -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+      <div style="
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 10px; padding: 16px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #2a2a4a;
+      ">
+        <div style="font-size: 2.2rem; font-weight: 700; color: #fa5e2e; line-height: 1;">${statsData.gamesWon}</div>
+        <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Won</div>
+      </div>
+      <div style="
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 10px; padding: 16px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #2a2a4a;
+      ">
+        <div style="font-size: 2.2rem; font-weight: 700; color: #34dfd0; line-height: 1;">${statsData.gamesPlayed}</div>
+        <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Played</div>
+      </div>
+      <div style="
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 10px; padding: 16px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #2a2a4a;
+      ">
+        <div style="font-size: 2rem; font-weight: 700; color: ${accuracyColor}; line-height: 1;">${accuracy}%</div>
+        <div style="font-size: 0.95rem; color: #b9d0f8; margin-top: 8px;">${totalCorrect}/${totalAnswered}</div>
+      </div>
+    </div>
+
+    <!-- Category breakdown -->
+    <div style="
+      background: linear-gradient(135deg, #1f1f2e 0%, #252530 100%);
+      border-radius: 16px; padding: 20px;
+      border: 1px solid #3a3a4a;
+    ">
+      <h3 style="color: #fff; font-size: 1rem; margin: 0 0 16px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        By Category
+      </h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+  `;
+
+    // Add category stats with progress bars
+    const catColors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899', '#10b981', '#3b82f6'];
+    statsData.categories.forEach((cat, idx) => {
+      const catName = CAT_NAMES[cat.category] || cat.category;
+      const catAccuracy = cat.answered > 0 ? Math.round((cat.correct / cat.answered) * 100) : 0;
+      const barColor = catColors[idx % catColors.length];
+
+      _statsHTML += `
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-weight: 600; color: #e5e7eb; font-size: 0.8rem;">${catName}</span>
+            <span style="font-size: 0.75rem; color: #9ca3af;">
+              <span style="color: ${barColor}; font-weight: 600;">${cat.correct}</span> / ${cat.answered}
+              <span style="color: ${barColor}; margin-left: 4px;">(${catAccuracy}%)</span>
+            </span>
+          </div>
+          <div style="background: #1a1a2a; border-radius: 3px; height: 6px; overflow: hidden;">
+            <div style="
+              width: ${cat.answered > 0 ? (cat.correct / cat.answered * 100) : 0}%;
+              background: linear-gradient(90deg, ${barColor} 0%, ${barColor}dd 100%);
+              height: 100%; border-radius: 3px;
+              transition: width 0.5s ease;
+            "></div>
+          </div>
+        </div>
+      `;
+    });
+
+    _statsHTML += `
+        </div>
+      </div>
+    `;
+
+    // Update modal content
+    modalOverlay.querySelector('#stats-modal-content').innerHTML = _statsHTML;
+
+    // Show the modal - force visibility immediately
+    modalOverlay.classList.add('visible');
+
+    // Also set inline styles as backup
+    modalOverlay.style.opacity = '1';
+    modalOverlay.style.pointerEvents = 'auto';
+  }
 </script>
 
 <!-- Quiz Screen (overlay) -->

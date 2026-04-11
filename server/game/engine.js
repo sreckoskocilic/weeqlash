@@ -54,9 +54,16 @@ function shuffle(arr) {
   return a;
 }
 
-function randomCat(enabledCats) {
+function randomCat(enabledCats, seed = null) {
   const cats = enabledCats?.length ? enabledCats : CATS;
-  return cats[Math.floor(Math.random() * cats.length)];
+  let idx;
+  if (seed !== null) {
+    // Deterministic for tests
+    idx = seed % cats.length;
+  } else {
+    idx = Math.floor(Math.random() * cats.length);
+  }
+  return idx; // Return index, not name
 }
 
 // ---------------------------------------------------------------------------
@@ -87,30 +94,40 @@ export function getValidMoves(state, pegId) {
   });
 }
 
-function generateLayoutMap(boardSize, enabledCats) {
+function generateLayoutMap(boardSize, enabledCats, seed = null) {
   const isCorner = (r, c) =>
     (r === 0 || r === boardSize - 1) && (c === 0 || c === boardSize - 1);
   const useFlagCorners = boardSize > 4;
-  const nonCorner = [];
   const map = Array.from({ length: boardSize }, () =>
     Array(boardSize).fill(null),
   );
 
+  const nonCornerTiles = [];
   for (let r = 0; r < boardSize; r++) {
     for (let c = 0; c < boardSize; c++) {
       if (isCorner(r, c) && useFlagCorners) {
         map[r][c] = 'F';
       } else {
-        nonCorner.push([r, c]);
+        nonCornerTiles.push([r, c]);
       }
     }
   }
-  const pool = shuffle(
-    Array.from({ length: nonCorner.length }, (_, i) => i % enabledCats.length),
-  );
-  nonCorner.forEach(([r, c], i) => {
-    map[r][c] = pool[i];
-  });
+
+  // Ensure each enabled category appears at least once
+  const cats = [...enabledCats];
+  const shuffledCats = shuffle(cats);
+  // Fill first N tiles with unique categories (using indices)
+  for (let i = 0; i < Math.min(nonCornerTiles.length, enabledCats.length); i++) {
+    const [r, c] = nonCornerTiles[i];
+    const catName = shuffledCats[i];
+    map[r][c] = enabledCats.indexOf(catName);
+  }
+  // Fill remaining tiles with random categories (deterministic in tests)
+  for (let i = enabledCats.length; i < nonCornerTiles.length; i++) {
+    const [r, c] = nonCornerTiles[i];
+    map[r][c] = randomCat(enabledCats, seed !== null ? seed + i : null);
+  }
+
   return map;
 }
 
@@ -491,14 +508,14 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
 // ---------------------------------------------------------------------------
 
 export function selectPeg(state, playerId, pegId) {
-  if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
-    return { error: 'Wrong phase' };
-  }
-  const player = state.players[state.currentPlayerIdx];
-  if (player.id !== playerId) {
-    return { error: 'Not your turn' };
-  }
-  if (!player.pegIds.includes(pegId)) {
+   if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
+     return { error: 'Wrong phase' };
+   }
+   const currentPlayer = state.players[state.currentPlayerIdx];
+   if (currentPlayer.id !== playerId) {
+     return { error: 'Not your turn' };
+   }
+  if (!currentPlayer.pegIds.includes(pegId)) {
     return { error: 'Not your peg' };
   }
   if (!state.pegsToMove.has(pegId)) {
@@ -529,15 +546,14 @@ export function selectPeg(state, playerId, pegId) {
 // ---------------------------------------------------------------------------
 
 export function applyTurn(state, playerId, submission, questionsDb) {
-  const pending = state.pendingTurn;
-  if (!pending) {
-    return { error: 'No pending turn' };
-  }
-
-  const player = state.players[state.currentPlayerIdx];
-  if (player.id !== playerId) {
-    return { error: 'Not your turn' };
-  }
+   const pending = state.pendingTurn;
+   if (!pending) {
+     return { error: 'No pending turn' };
+   }
+    const currentPlayer = state.players[state.currentPlayerIdx];
+    if (currentPlayer.id !== playerId) {
+      return { error: 'Not your turn' };
+    }
 
   const { pegId, targetR, targetC, moveType, questionIds } = pending;
 
@@ -580,9 +596,12 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     }
     const cp = state.players[state.currentPlayerIdx];
     if (cp?.stats) {
-      cp.stats.attempts++;
+      const cat = q.category || 'unknown';
+      if (!cp.stats.byCategory) { cp.stats.byCategory = {}; }
+      if (!cp.stats.byCategory[cat]) { cp.stats.byCategory[cat] = { attempts: 0, correct: 0 }; }
+      cp.stats.byCategory[cat].attempts++;
       if (correct) {
-        cp.stats.correct++;
+        cp.stats.byCategory[cat].correct++;
       }
     }
     return correct;
@@ -637,14 +656,21 @@ export function applyTurn(state, playerId, submission, questionsDb) {
         movePeg(state, pegId, targetR, targetC);
         events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
       }
-    }
-    // Combat always ends turn (win or lose)
-    const combatWinner = checkWinCondition(state);
-    if (combatWinner >= 0) {
-      state.phase = PHASE.GAME_OVER;
-      state.winner = combatWinner;
-      return { ok: true, events, gameOver: true, winner: combatWinner };
-    }
+       }
+       // Combat always ends turn (win or lose)
+       const combatWinner = checkWinCondition(state);
+       if (combatWinner >= 0) {
+         // Update game stats for all players
+         state.players.forEach((player, index) => {
+           player.stats.gamesPlayed++;
+           if (index === combatWinner) {
+             player.stats.gamesWon++;
+           }
+         });
+         state.phase = PHASE.GAME_OVER;
+         state.winner = combatWinner;
+         return { ok: true, events, gameOver: true, winner: combatWinner };
+       }
     advanceTurn(state);
     return { ok: true, events, gameOver: false };
   } else if (moveType === 'flag') {
@@ -653,23 +679,24 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     const a1 = checkAnswer(1);
     const a2 = checkAnswer(2);
     const allCorrect = a0 && a1 && a2;
-    if (allCorrect) {
-      movePeg(state, pegId, targetR, targetC);
-      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-      events.push({ type: 'flag_captured', pegId, playerId });
-      state.phase = PHASE.GAME_OVER;
-      state.winner = playerId;
-      return { ok: true, events, gameOver: true, winner: playerId };
-    } else {
-      const wasElim = rankDown(state, pegId);
-      if (wasElim) {
-        eliminatePeg(state, pegId);
-        events.push({ type: 'peg_eliminated', pegId });
+      const winnerIdx = state.currentPlayerIdx;
+        if (allCorrect) {
+          movePeg(state, pegId, targetR, targetC);
+          events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+          events.push({ type: 'flag_captured', pegId, winnerIdx });
+          // Update game stats for all players
+          state.players.forEach((player, index) => {
+            player.stats.gamesPlayed++;
+            if (index === winnerIdx) {
+              player.stats.gamesWon++;
+            }
+          });
+          state.phase = PHASE.GAME_OVER;
+          state.winner = winnerIdx;
+          return { ok: true, events, gameOver: true, winner: winnerIdx };
       } else {
-        events.push({ type: 'rank_down', pegId });
+        finishPegMove(state);
       }
-      finishPegMove(state);
-    }
   }
 
   // Check elimination win (normal and flag paths)
@@ -708,6 +735,9 @@ export function botSelectAnswers(questionIds, questionsDb) {
 /**
  * Reset per-turn flags and rebuild the set of pegs that can move this turn.
  * Called when a turn ends (whether by completion, elimination, or flag capture).
+ *
+ * Note: Question tracking (usedQ, wrongQ) persists across the entire game session
+ * to prevent repeats even across turns. This is handled server-side only.
  */
 function resetTurnState(state) {
   // Clear per-turn flags
@@ -718,11 +748,10 @@ function resetTurnState(state) {
   // Rebuild pegsToMove based on freshly computed eligible pegs
   state.pegsToMove = new Set(getEligiblePegs(state));
 
-  // Clear question-tracking collections
-  for (const cat of Object.keys(state.usedQ)) {
-    state.usedQ[cat].clear();
-  }
-  state.wrongQ.clear();
+  // Note: We NO LONGER clear question-tracking collections here.
+  // Questions answered (correctly or incorrectly) are tracked for the
+  // entire game session to prevent repeats across turns.
+  // This is handled purely server-side - client doesn't track questions.
 
   // Reset phase to SELECT_PEG
   state.phase = PHASE.SELECT_PEG;
@@ -745,10 +774,10 @@ function advanceTurn(state) {
 // ---------------------------------------------------------------------------
 
 export function createGame(players, settings = {}) {
-  const { boardSize = 7, enabledCats, maxRankStart = false } = settings;
+  const { boardSize = 7, enabledCats, maxRankStart = false, boardLayout } = settings;
   const activeCats = enabledCats?.length ? enabledCats : CATS;
   const numPlayers = players.length;
-  const layoutMap = generateLayoutMap(boardSize, activeCats);
+  const layoutMap = boardLayout || generateLayoutMap(boardSize, activeCats);
   const cornerMap = getCornerOwnerMap(numPlayers, boardSize);
 
   const board = Array.from({ length: boardSize }, (_outer, rowIdx) =>
@@ -781,13 +810,14 @@ export function createGame(players, settings = {}) {
       board[pos.r][pos.c].pegId = id;
       pegIds.push(id);
     }
-    return {
-      id: i,
-      name: p.name,
-      color: p.color,
-      pegIds,
-      stats: { attempts: 0, correct: 0 },
-    };
+     return {
+       id: i,
+       name: p.name,
+       color: p.color,
+       pegIds,
+       userId: p.userId ?? null,
+       stats: { byCategory: {}, gamesPlayed: 0, gamesWon: 0 },
+     };
   });
 
   const state = {
