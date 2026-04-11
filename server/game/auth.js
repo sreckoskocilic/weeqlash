@@ -21,6 +21,7 @@ export function initAuthDb() {
        reset_token TEXT,
        reset_token_expires INTEGER,
        is_blocked INTEGER NOT NULL DEFAULT 0,
+       is_admin INTEGER NOT NULL DEFAULT 0,
        created_at INTEGER NOT NULL,
        last_login INTEGER,
        games_played INTEGER NOT NULL DEFAULT 0,
@@ -81,6 +82,12 @@ function applySchemaMigrations(db) {
     if (!columns.includes('games_won')) {
       db.prepare('ALTER TABLE users ADD COLUMN games_won INTEGER NOT NULL DEFAULT 0').run();
       console.log('[auth] Added games_won column to users table');
+    }
+
+    // Add is_admin column if missing
+    if (!columns.includes('is_admin')) {
+      db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0').run();
+      console.log('[auth] Added is_admin column to users table');
     }
   } catch (error) {
     console.warn('[auth] Schema migration warning:', error.message);
@@ -146,7 +153,7 @@ export function authenticateUser(usernameOrEmail, password) {
 
   return {
     ok: true,
-    user: { id: user.id, username: user.username, email: user.email },
+    user: { id: user.id, username: user.username, email: user.email, is_admin: user.is_admin },
   };
 }
 
@@ -281,7 +288,10 @@ export function getUserStats(userId) {
       'SELECT games_played, games_won FROM users WHERE id = ?'
   ).get(userId);
 
-  const gameStats = { games: gameWinRatio['games_played'], wins: gameWinRatio['games_won']};
+  const gameStats = {
+    gamesPlayed: gameWinRatio?.games_played || 0,
+    gamesWon: gameWinRatio?.games_won || 0
+  };
 
   return {
     categories: categoryStats,

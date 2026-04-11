@@ -106,7 +106,8 @@ export function registerAuthRoutes(app) {
 
     req.session.userId = result.user.id;
     req.session.username = result.user.username;
-    console.log('[auth] login set session:', { userId: result.user.id, username: result.user.username });
+    req.session.isAdmin = result.user.is_admin === 1;
+    console.log('[auth] login set session:', { userId: result.user.id, username: result.user.username, isAdmin: result.user.is_admin });
     req.session.save(() => {
       res.json({ ok: true, user: result.user });
     });
@@ -129,12 +130,12 @@ export function registerAuthRoutes(app) {
       req.session.destroy(() => {});
       return res.json({ user: null });
     }
-    res.json({ user: { id: user.id, username: user.username, email: user.email } });
+    res.json({ user: { id: user.id, username: user.username, email: user.email, is_admin: user.is_admin } });
   });
 
   // Get user stats
   app.get('/auth/stats/:userId', async (req, res) => {
-    // Verify the logged-in user matches the requested userId (or is requesting their own stats)
+    // Verify the logged-in user matches the requested userId (or is admin)
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -143,8 +144,13 @@ export function registerAuthRoutes(app) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
+    // Ownership check: user can only view their own stats unless admin
+    const isAdmin = req.session.isAdmin === true;
+    if (!isAdmin && req.session.userId !== requestedId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     try {
-      // Note: showAuthMessage is a client-side function, but following user instruction to replace console.log
       console.log('[auth-routes] Fetching stats for userId:', req.params.userId);
       const stats = getUserStats(req.params.userId);
 

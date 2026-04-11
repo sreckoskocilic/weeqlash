@@ -117,13 +117,15 @@
     button:disabled { opacity: 0.4; cursor: default; }
     .divider {
       text-align: center; color: var(--muted);
-      font-size: 0.85rem; margin: 1.25rem 0; position: relative;
+      font-size: 0.85rem;
+        margin: 80px 0 20px 0;
+        position: relative;
     }
     .divider::before { left: 0; } .divider::after { right: 0; }
     .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
     .setup-section { margin-bottom: 0; }
     .setup-section + .setup-section { padding-top: 14px; border-top: 1px solid #1e2d4a; margin-top: 4px; }
-    .setup-section h3 { font-size: 0.7rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+    .setup-section h3 { font-size: 0.7rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; margin-top: 80px; font-weight: 700; }
     .opt-btn-group { display: flex; gap: 8px; margin-bottom: 0; }
     .opt-btn { flex: 1; padding: 8px; background: var(--bg3); border: 2px solid transparent; border-radius: 6px; color: var(--text); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; width: auto; }
     .opt-btn.active { border-color: var(--accent); background: var(--bg); color: var(--accent); }
@@ -632,10 +634,11 @@
 
   <!-- LEFT COLUMN: Sraz Multiplayer -->
   <div class="card">
+    <div id="user-logged-as" style="display:none;margin-bottom:0.5rem;font-size:0.9rem;color:var(--muted);"></div>
     <div id="user-bar" style="display:none;margin-bottom:1rem;padding:0.5rem;background:var(--bg3);border-radius:var(--radius);align-items:center;gap:0.5rem;">
-      <span id="user-display" style="flex:1;font-size:0.85rem;font-weight:600;"></span>
-      <button id="btn-view-stats" style="background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.2rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem;">Stats</button>
-      <button id="btn-logout" style="background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.2rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem;">Sign out</button>
+      <button id="btn-view-stats" style="background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">Stats</button>
+      <button id="btn-admin" style="display:none;background:transparent;border:1px solid var(--accent);color:var(--accent);padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">Admin</button>
+      <button id="btn-logout" style="margin-left:auto;background:transparent;border:1px solid var(--muted);color:var(--muted);padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;">Sign out</button>
     </div>
     <div id="login-section" style="margin-bottom:1rem;">
       <div id="auth-tabs" style="display:flex;gap:0;margin-bottom:0.75rem;">
@@ -643,14 +646,18 @@
         <button class="auth-tab" data-tab="register" style="flex:1;padding:0.4rem;background:transparent;border:1px solid var(--bg3);color:var(--muted);cursor:pointer;border-radius:0 var(--radius) var(--radius) 0;font-size:0.8rem;">Register</button>
       </div>
       <div id="auth-login-form">
-        <input id="login-username" type="text" placeholder="Username or email" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
-        <input id="login-password" type="password" placeholder="Password" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.4rem;">
+          <input id="login-username" type="text" placeholder="Username or email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+          <input id="login-password" type="password" placeholder="Password" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        </div>
         <button id="btn-login" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Login</button>
         <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-forgot" style="color:var(--muted);font-size:0.75rem;">Forgot password?</a></div>
       </div>
       <div id="auth-register-form" style="display:none;">
-        <input id="reg-username" type="text" placeholder="Username (3-20 chars, letters/numbers/_)" maxlength="20" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
-        <input id="reg-email" type="email" placeholder="Email" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.4rem;">
+          <input id="reg-username" type="text" placeholder="Username (3-20 chars)" maxlength="20" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+          <input id="reg-email" type="email" placeholder="Email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+        </div>
         <input id="reg-password" type="password" placeholder="Password (min 6 chars)" style="width:100%;padding:0.5rem;margin-bottom:0.4rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
         <button id="btn-register" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Create account</button>
       </div>
@@ -664,11 +671,6 @@
         <button id="btn-reset" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Reset password</button>
       </div>
       <div id="auth-message" style="display:none;margin-top:0.5rem;padding:0.4rem;border-radius:var(--radius);font-size:0.8rem;text-align:center;"></div>
-    </div>
-    <div class="setup-section">
-      <h3>Your Name</h3>
-      <input id="player-name" type="text" maxlength="16" placeholder="Enter name or leave blank for random" />
-      <div id="connect-error" class="error" style="display:none"></div>
     </div>
 
     <div class="setup-section">
@@ -690,22 +692,14 @@
         <button class="opt-btn active" data-val="8">8×8</button>
         <button class="opt-btn" data-val="10">10×10</button>
       </div>
+      <div id="connect-error" class="error" style="display:none"></div>
     </div>
 
-    <div class="setup-section">
-      <h3>Question Timer</h3>
-      <div class="opt-btn-group" id="timer-btns">
-        <button class="opt-btn" data-val="15">15s</button>
-        <button class="opt-btn active" data-val="30">30s</button>
-        <button class="opt-btn" data-val="45">45s</button>
-      </div>
+    <div class="setup-section" style="margin-bottom:0.5rem">
+      <button id="btn-create">Create game</button>
     </div>
 
-    <div class="setup-section">
-      <button id="btn-create" style="margin-bottom:0">Create game</button>
-    </div>
-
-    <div class="setup-actions">
+    <div class="setup-actions" style="margin-top:10px;">
       <button id="btn-help">How to Play</button>
       <button id="btn-hc">High Contrast</button>
       <button id="btn-advanced">Settings</button>
@@ -716,6 +710,14 @@
         <h3>Game Options</h3>
         <div class="opt-btn-group">
           <button class="opt-btn" id="btn-max-rank">Start as Vitez</button>
+        </div>
+      </div>
+      <div class="setup-section">
+        <h3>Question Timer</h3>
+        <div class="opt-btn-group" id="timer-btns">
+          <button class="opt-btn" data-val="15">15s</button>
+          <button class="opt-btn active" data-val="30">30s</button>
+          <button class="opt-btn" data-val="45">45s</button>
         </div>
       </div>
       <div class="setup-section">
@@ -742,9 +744,11 @@
     <div class="divider">or join an existing game</div>
 
     <div class="setup-section" style="margin-bottom:0">
-      <h3 id="label-join-code">Room Code</h3>
-      <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="text-transform:uppercase;letter-spacing:0.2em;margin-bottom:0.5rem" aria-labelledby="label-join-code" />
-      <button id="btn-join" style="margin-bottom:0">Join game</button>
+      <h3 id="label-join-code" style="display:none;">Room Code</h3>
+      <div style="display:flex;gap:0.5rem;align-items:stretch;">
+        <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="flex:1;height:42px;text-transform:uppercase;letter-spacing:0.2em;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" aria-labelledby="label-join-code" />
+        <button id="btn-join" style="flex:2;height:42px;">Join game</button>
+      </div>
     </div>
   </div>
 
@@ -969,18 +973,19 @@
 
   function showUserBar(user) {
     _currentUser = user;
+    $('user-logged-as').textContent = `logged as ${user.username}`;
+    $('user-logged-as').style.display = 'block';
     $('user-bar').style.display = 'flex';
-    $('user-display').textContent = user.username;
+    const isAdmin = user.is_admin === 1 || user.is_admin === true;
+    $('btn-admin').style.display = isAdmin ? 'inline-block' : 'none';
     $('login-section').style.display = 'none';
-    $('player-name').value = user.username;
-    $('player-name').disabled = true;
   }
 
   function hideUserBar() {
     _currentUser = null;
+    $('user-logged-as').style.display = 'none';
     $('user-bar').style.display = 'none';
     $('login-section').style.display = '';
-    $('player-name').disabled = false;
   }
 
   async function checkAuth() {
@@ -1104,28 +1109,21 @@
     hideUserBar();
   });
 
+  // Admin panel
+  $('btn-admin').addEventListener('click', () => {
+    window.open(`${serverUrl}/admin`, '_blank');
+  });
+
   // View Stats
   $('btn-view-stats').addEventListener('click', async () => {
-    showAuthMessage('Stats button clicked', false);
     if (!_currentUser) {
       showAuthMessage('Please log in to view stats', true);
       return;
     }
-    showAuthMessage(`Current user: ${_currentUser.username}`, false);
 
-    // Test basic server connectivity first
-    showAuthMessage('Testing server connection...', false);
     try {
-      const testRes = await fetch(`${serverUrl}/`, { credentials: 'include' });
-      showAuthMessage(`Server responded: ${testRes.status}`, false);
-
-      // Show immediate feedback to confirm click was registered
-      showAuthMessage('Contacting stats endpoint...', false);
-
       const res = await fetch(`${serverUrl}/auth/stats/${_currentUser.id}`, { credentials: 'include' });
-      showAuthMessage(`Stats response status: ${res.status}`, false);
 
-      // Handle HTTP errors
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         const errorMsg = errorData.error || `HTTP ${res.status}: ${res.statusText}`;
@@ -1134,15 +1132,12 @@
       }
 
       const data = await res.json();
-      showAuthMessage('Stats data received', false);
       if (data.error) {
         return showAuthMessage(data.error, true);
       }
-      showAuthMessage('Calling showStatsModal', false);
       showStatsModal(data);
-    } catch (err) {
+    } catch {
       showAuthMessage('Network error: Unable to reach server', true);
-      showAuthMessage(`Error: ${err.message}`, true);
     }
   });
 
@@ -2219,19 +2214,19 @@ let quizModalOptionBtns = [];
   // ============================================================
   // LOBBY ACTIONS
   // ============================================================
-  // Predefined names for when player doesn't enter one
+  // Predefined names for guest players (currently unused)
   const RANDOM_NAMES = ['Qwizakk', 'PacMoan', 'EE-TEE', 'Issous', 'Sihirator', 'Bogamber', 'Dandalf', 'Burim', 'Kesko', 'Lepi', 'Aliya', 'Pcheko', 'Dnepr', 'nasmirglAna'];
-  function getRandomName() {
+  function _getRandomName() {
     return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
   }
 
   function getPlayerName() {
-    let name = el('player-name').value.trim();
-    if (!name) { name = getRandomName(); }
-    // Update input to show the assigned name
-    el('player-name').value = name;
+    if (!_currentUser) {
+      showError('Please log in to play');
+      return null;
+    }
     showError('');
-    return name;
+    return _currentUser.username;
   }
 
   // ============================================================
@@ -2625,46 +2620,42 @@ let quizModalOptionBtns = [];
       modalOverlay = document.createElement('div');
       modalOverlay.id = 'stats-modal-overlay';
       modalOverlay.style.cssText = `
-        position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000;
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
         display: flex; align-items: center; justify-content: center;
-        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s;
       `;
       modalOverlay.innerHTML = `
         <div id="stats-modal" style="
-          background: var(--bg2); border: 2px solid var(--bg3);
-          border-top: 4px solid #444; border-radius: 12px;
-          padding: 28px; max-width: 500px; width: 90%;
-          max-height: 90svh; overflow-y: auto;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-          transform: scale(0.95); transition: transform 0.2s, border-top-color 0.2s;
+          background: linear-gradient(145deg, #1e1e24 0%, #25252d 100%);
+          border: 1px solid #3a3a45;
+          border-radius: 16px;
+          padding: 32px; max-width: 520px; width: 92%;
+          max-height: 90vh; overflow-y: auto;
+          box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
           z-index: 1001;
+          font-family: 'Segoe UI', 'Roboto', sans-serif;
         ">
-          <div class="modal-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-            <div id="stats-modal-category-badge" style="
-              padding: 4px 10px; border-radius: 20px;
-              font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
-              text-transform: uppercase; color: white;
-            ">OVERALL</div>
-            <div id="stats-modal-player-label" style="font-size: 0.85rem; color: var(--muted);">
-              _currentUser.username
+          <div style="text-align: center; margin-bottom: 28px;">
+            <h2 style="margin: 0 0 8px 0; color: #fff; font-size: 1.6rem; font-weight: 600; letter-spacing: 0.5px;">
+              Your Statistics
+            </h2>
+            <div id="stats-modal-player-label" style="color: #888; font-size: 0.9rem;">
+              Player: ${_currentUser?.username || 'Guest'}
             </div>
           </div>
 
-          <div id="stats-modal-content" style="
-            margin-bottom: 24px;
-          ">
+          <div id="stats-modal-content" style="margin-bottom: 24px;">
             <!-- Stats content will be injected here -->
           </div>
 
-          <div id="stats-modal-actions" style="
-            margin-top: 16px; display: flex; justify-content: flex-end;
-          ">
+          <div style="text-align: center;">
             <button id="stats-modal-close" style="
-              width: auto; padding: 12px 24px; background: transparent;
-              border: 1px solid var(--bg3); color: var(--muted);
-              font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
-              padding: 8px 10px; cursor: pointer; letter-spacing: 0.05em;
-              border-radius: 4px; transition: border-color 0.15s, color 0.15s;
+              width: auto; padding: 14px 36px; background: linear-gradient(135deg, #4a4a5a 0%, #3a3a45 100%);
+              border: none; color: #ddd;
+              font-size: 0.9rem; font-weight: 500;
+              cursor: pointer; border-radius: 8px;
+              transition: transform 0.15s, box-shadow 0.15s;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             ">Close</button>
           </div>
         </div>
@@ -2676,7 +2667,7 @@ let quizModalOptionBtns = [];
           if (modalOverlay.parentElement) {
             modalOverlay.parentElement.removeChild(modalOverlay);
           }
-        }, 200); // Match CSS transition duration
+        }, 300);
       });
 
       // Add event listener for overlay click
@@ -2690,74 +2681,106 @@ let quizModalOptionBtns = [];
     }
 
     // Update stats content
-    const contentEl = modalOverlay.querySelector('#stats-modal-content');
-    // const categoryBadgeEl = modalOverlay.querySelector('#stats-modal-category-badge'); // Not used but kept for potential future use
+    const _contentEl = modalOverlay.querySelector('#stats-modal-content');
 
     // Calculate totals
     const totalAnswered = statsData.categories.reduce((sum, cat) => sum + cat.answered, 0);
     const totalCorrect = statsData.categories.reduce((sum, cat) => sum + cat.correct, 0);
     const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
 
-    // Build stats HTML
-    let statsHTML = `
-      <div style="text-align: center; margin-bottom: 24px;">
-        <div style="font-size: 2rem; font-weight: 700; margin-bottom: 4px;">${statsData.gamesWon}</div>
-        <div style="font-size: 0.9rem; color: var(--muted);">Games Won</div>
+    // Determine accuracy color
+    let accuracyColor = '#ef4444'; // red
+    if (accuracy >= 80) {accuracyColor = '#22c55e';} // green
+    else if (accuracy >= 60) {accuracyColor = '#eab308';} // yellow
+    else if (accuracy >= 40) {accuracyColor = '#f97316';} // orange
+
+    // Build stats HTML with cards and visuals
+    let _statsHTML = `
+    <!-- Main stats row: games won, games played, accuracy -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+      <div style="
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 10px; padding: 16px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #2a2a4a;
+      ">
+        <div style="font-size: 2.2rem; font-weight: 700; color: #fa5e2e; line-height: 1;">${statsData.gamesWon}</div>
+        <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Won</div>
       </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-        <div style="text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: 600;">${statsData.gamesPlayed}</div>
-          <div style="font-size: 0.8rem; color: var(--muted);">Games Played</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: 600;">${totalAnswered}</div>
-          <div style="font-size: 0.8rem; color: var(--muted);">Questions Answered</div>
-        </div>
+      <div style="
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 10px; padding: 16px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #2a2a4a;
+      ">
+        <div style="font-size: 2.2rem; font-weight: 700; color: #34dfd0; line-height: 1;">${statsData.gamesPlayed}</div>
+        <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Played</div>
       </div>
-
-      <div style="text-align: center;">
-        <div style="font-size: 1.5rem; font-weight: 600;">${accuracy}%</div>
-        <div style="font-size: 0.8rem; color: var(--muted);">Accuracy</div>
+      <div style="
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 10px; padding: 16px; text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #2a2a4a;
+      ">
+        <div style="font-size: 2rem; font-weight: 700; color: ${accuracyColor}; line-height: 1;">${accuracy}%</div>
+        <div style="font-size: 0.95rem; color: #b9d0f8; margin-top: 8px;">${totalCorrect}/${totalAnswered}</div>
       </div>
+    </div>
 
-      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--bg3);">
-        <h3 style="color: var(--accent); font-size: 1rem; text-transform: uppercase;
-                   letter-spacing: 0.1em; margin-bottom: 1rem; font-weight: 700;">
-          By Category
-        </h3>
-        <div id="stats-categories-list" style="display: flex; flex-direction: column; gap: 8px;">
-    `;
+    <!-- Category breakdown -->
+    <div style="
+      background: linear-gradient(135deg, #1f1f2e 0%, #252530 100%);
+      border-radius: 16px; padding: 20px;
+      border: 1px solid #3a3a4a;
+    ">
+      <h3 style="color: #fff; font-size: 1rem; margin: 0 0 16px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        By Category
+      </h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+  `;
 
-    // Add category stats
-    statsData.categories.forEach(cat => {
+    // Add category stats with progress bars
+    const catColors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899', '#10b981', '#3b82f6'];
+    statsData.categories.forEach((cat, idx) => {
       const catName = CAT_NAMES[cat.category] || cat.category;
       const catAccuracy = cat.answered > 0 ? Math.round((cat.correct / cat.answered) * 100) : 0;
-      statsHTML += `
-        <div style="
-          display: flex; justify-content: space-between;
-          padding: 8px; background: var(--bg3); border-radius: 6px;
-        ">
-          <span style="font-weight: 600;">${catName}</span>
-          <div style="text-align: right; display: flex; gap: 8px;">
-            <div>${cat.correct}/${cat.answered}</div>
-            <div style="font-size: 0.7rem; color: var(--muted);">${catAccuracy}%</div>
+      const barColor = catColors[idx % catColors.length];
+  
+      _statsHTML += `
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-weight: 600; color: #e5e7eb; font-size: 0.8rem;">${catName}</span>
+            <span style="font-size: 0.75rem; color: #9ca3af;">
+              <span style="color: ${barColor}; font-weight: 600;">${cat.correct}</span> / ${cat.answered}
+              <span style="color: ${barColor}; margin-left: 4px;">(${catAccuracy}%)</span>
+            </span>
+          </div>
+          <div style="background: #1a1a2a; border-radius: 3px; height: 6px; overflow: hidden;">
+            <div style="
+              width: ${cat.answered > 0 ? (cat.correct / cat.answered * 100) : 0}%;
+              background: linear-gradient(90deg, ${barColor} 0%, ${barColor}dd 100%);
+              height: 100%; border-radius: 3px;
+              transition: width 0.5s ease;
+            "></div>
           </div>
         </div>
       `;
     });
 
-    statsHTML += `
+    _statsHTML += `
         </div>
       </div>
     `;
 
-    contentEl.innerHTML = statsHTML;
+    // Update modal content
+    modalOverlay.querySelector('#stats-modal-content').innerHTML = _statsHTML;
 
-    // Show the modal
-    requestAnimationFrame(() => {
-      modalOverlay.classList.add('visible');
-    });
+    // Show the modal - force visibility immediately
+    modalOverlay.classList.add('visible');
+
+    // Also set inline styles as backup
+    modalOverlay.style.opacity = '1';
+    modalOverlay.style.pointerEvents = 'auto';
   }
 </script>
 

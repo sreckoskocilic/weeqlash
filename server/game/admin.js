@@ -219,6 +219,9 @@ class UserStatsResource extends BaseResource {
       new BaseProperty({ name: 'category', path: 'category', type: 'string' }),
       new BaseProperty({ name: 'answered', path: 'answered', type: 'number' }),
       new BaseProperty({ name: 'correct', path: 'correct', type: 'number' }),
+      new BaseProperty({ name: 'total_answered', path: 'total_answered', type: 'number' }),
+      new BaseProperty({ name: 'total_correct', path: 'total_correct', type: 'number' }),
+      new BaseProperty({ name: 'accuracy', path: 'accuracy', type: 'string' }),
     ];
   }
 
@@ -227,7 +230,18 @@ class UserStatsResource extends BaseResource {
   }
 
   async findOne(id) {
-    return this.db.prepare('SELECT * FROM user_stats WHERE user_id = ?').get(id);
+    const records = this.db.prepare('SELECT * FROM user_stats WHERE user_id = ?').all(id);
+    if (!records || records.length === 0) { return null; }
+    // Aggregate stats for this user since composite key can't be handled well
+    const totalAnswered = records.reduce((sum, r) => sum + r.answered, 0);
+    const totalCorrect = records.reduce((sum, r) => sum + r.correct, 0);
+    return new BaseRecord(this, {
+      user_id: parseInt(id),
+      categories: records.map(r => r.category).join(', '),
+      total_answered: totalAnswered,
+      total_correct: totalCorrect,
+      accuracy: totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) + '%' : '0%',
+    });
   }
 
   async find(query) {

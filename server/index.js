@@ -37,6 +37,8 @@ import { loadQuestions, getAllQuestions } from './game/questions.js';
 import { initDb, getDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
 import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
+import { buildAdminOptions } from './game/admin.js';
+import AdminJSExpress from '@adminjs/express';
 import { rooms, socketToRoom } from './game/rooms.js';
 
 const app = express();
@@ -149,6 +151,11 @@ const questionsDb = loadQuestions();
 initDb();
 initAuthDb();
 registerAuthRoutes(app);
+
+// Initialize AdminJS
+const admin = buildAdminOptions();
+const adminRouter = AdminJSExpress.buildRouter(admin);
+app.use(admin.options.rootPath, adminRouter);
 
 // Share session with Socket.IO
 io.engine.use(sessionMiddleware);
