@@ -6,7 +6,7 @@
   <!-- CSP handled by Cloudflare -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>Weeqlash — Multiplayer</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,9 +14,9 @@
       --bg:     #1a1a2e;
       --bg2:    #16213e;
       --bg3: #2f3741;
-      --accent: #d93939;
+      --accent: #e53935;
       --text: #bdb5b5;
-      --muted: #a4b2a0;
+      --muted: #b4b78b;
       --radius: 8px;
       --bs: min(calc(100svh - 80px), calc(100svw - 24px));
       --ts: 40px;
@@ -25,7 +25,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       min-height: 100svh;
       display: flex;
       flex-direction: column;
@@ -36,15 +36,14 @@
 
     @keyframes shine { to { background-position: 200% center; } }
     h1 {
-      font-size: 2.5rem; font-weight: 900; letter-spacing: 0.3em;
+      font-size: 3rem; letter-spacing: 0.3em;
       background: linear-gradient(135deg, var(--accent), #ff8a65, var(--accent));
       background-size: 200% auto;
       color: transparent;
       -webkit-background-clip: text; background-clip: text;
-      animation: shine 3s linear infinite;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.5rem;
     }
-    .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.85rem; letter-spacing: 5px; text-transform: uppercase; font-weight: 600; }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 0.8rem; letter-spacing: 3px; text-transform: lowercase; font-weight: 600; }
 
     /* ===== CARDS (connect / lobby) ===== */
     .card {
@@ -85,7 +84,6 @@
     .col-triviandom .lb-row div:last-child { padding-right: 14px; text-align: center; color: rgba(7, 155, 29, 0.5);}
     .btn-triviandom {
       background: var(--triv-accent) !important;
-      color: #fff !important;
       font-weight: 700;
       letter-spacing: 0.04em;
     }
@@ -107,11 +105,11 @@
     }
     input:focus, select:focus { border-color: var(--accent); }
     button {
-      width: 100%; padding: 0.7rem;
+      width: 100%; height: 40px; padding: 0.7rem;
       background: var(--accent); color: #cecdcd;
       border: none; border-radius: var(--radius);
-      font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: opacity 0.15s;
+      font-size: 1.1rem; font-weight: 600;
+      transition: opacity 0.15s;
     }
     button:hover { opacity: 0.85; }
     button:disabled { opacity: 0.4; cursor: default; }
@@ -122,7 +120,7 @@
         position: relative;
     }
     .divider::before { left: 0; } .divider::after { right: 0; }
-    .error { color: var(--accent); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 0.75rem; }
+    .error { color: #e57335; font-size: 1rem; margin-top: 1rem; margin-bottom: 0.75rem; font-weight: 500; background: linear-gradient(45deg, black, transparent);}
     .setup-section { margin-bottom: 0; }
     .setup-section + .setup-section { padding-top: 14px; border-top: 1px solid #1e2d4a; margin-top: 4px; }
     .setup-section h3 { font-size: 0.7rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; margin-top: 80px; font-weight: 700; }
@@ -396,7 +394,7 @@
       width: 100%;
       max-width: 420px;
       position: relative;
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
     }
 
     .leaderboard-panel::before {
@@ -487,7 +485,7 @@
       border: none;
       border-bottom: 1px solid var(--accent);
       color: var(--text);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.93rem;
       outline: none;
       padding: 1px 0;
@@ -501,7 +499,7 @@
       background: transparent;
       border: 1px solid var(--accent);
       color: var(--accent);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.75rem;
       padding: 2px 8px;
       cursor: pointer;
@@ -524,7 +522,7 @@
       background: transparent;
       border: 1px solid var(--bg3);
       color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.75rem;
       padding: 8px 10px;
       cursor: pointer;
@@ -609,7 +607,7 @@
       background: transparent;
       border: 1px solid var(--bg3);
       color: var(--muted);
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       font-size: 0.75rem;
       padding: 8px;
       cursor: pointer;
@@ -626,8 +624,8 @@
 </head>
 <body>
 
-<h1 id="main-title">WEEQLASH</h1>
-<p class="subtitle" id="main-subtitle">Multiplayer Trivia Battle</p>
+<h1 id="main-title">weeqlash</h1>
+<p class="subtitle" id="main-subtitle">brawledge is not mating, buddies (sierra leonardo pro vertebrae)</p>
 
 <!-- Connect screen -->
 <div class="main-columns" id="screen-connect">
@@ -650,7 +648,7 @@
           <input id="login-username" type="text" placeholder="Username or email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
           <input id="login-password" type="password" placeholder="Password" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
         </div>
-        <button id="btn-login" style="width:100%;padding:0.5rem;background:var(--accent);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:0.85rem;font-weight:600;">Login</button>
+        <button id="btn-login" style="width:100%;background:var(--accent);font-weight:600;">Login</button>
         <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-forgot" style="color:var(--muted);font-size:0.75rem;">Forgot password?</a></div>
       </div>
       <div id="auth-register-form" style="display:none;">
@@ -746,8 +744,8 @@
     <div class="setup-section" style="margin-bottom:0">
       <h3 id="label-join-code" style="display:none;">Room Code</h3>
       <div style="display:flex;gap:0.5rem;align-items:stretch;">
-        <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="flex:1;height:42px;text-transform:uppercase;letter-spacing:0.2em;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" aria-labelledby="label-join-code" />
-        <button id="btn-join" style="flex:2;height:42px;">Join game</button>
+        <input id="join-code" type="text" maxlength="5" placeholder="XXXXX" style="flex:1;height:48px;text-transform:uppercase;letter-spacing:0.2em;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:1.35rem;" aria-labelledby="label-join-code" />
+        <button id="btn-join" style="flex:2;height:40px;">Join game</button>
       </div>
     </div>
   </div>
@@ -762,7 +760,7 @@
       </div>
       <div id="triv-lb-rows"></div>
     </div>
-    <button id="btn-quiz-start" class="btn-triviandom" style="margin-top:1rem">Start Triviandom</button>
+    <button id="btn-quiz-start" class="btn-triviandom" style="margin-top:1.5rem">Start Triviandom</button>
   </div>
 
 </div>
@@ -2633,7 +2631,7 @@ let quizModalOptionBtns = [];
           max-height: 90vh; overflow-y: auto;
           box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
           z-index: 1001;
-          font-family: 'Segoe UI', 'Roboto', sans-serif;
+          font-family: 'Montserrat', 'Segoe UI', sans-serif;
         ">
           <div style="text-align: center; margin-bottom: 28px;">
             <h2 style="margin: 0 0 8px 0; color: #fff; font-size: 1.6rem; font-weight: 600; letter-spacing: 0.5px;">
