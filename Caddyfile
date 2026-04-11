@@ -2,9 +2,15 @@
     admin off
 }
 brawl.weeqlash.icu {
-  handle /socket.io/* {
-      reverse_proxy localhost:3000
-  }
-  root * /opt/weeqlash/client
-  file_server
+    handle /socket.io/* {
+        reverse_proxy localhost:3000
+    }
+    handle /auth/* {
+        reverse_proxy localhost:3000
+    }
+    handle /admin/* {
+        reverse_proxy localhost:3000
+    }
+    root * /opt/weeqlash/client
+    file_server
 }
