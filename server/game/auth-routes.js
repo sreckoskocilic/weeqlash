@@ -84,8 +84,8 @@ export function registerAuthRoutes(app) {
     const confirmUrl = `${CLIENT_URL}?confirm=${result.confirmToken}`;
     await sendEmail(
       email,
-      'Confirm your Sraz account',
-      `<h2>Welcome to Sraz!</h2><p>Click the link below to confirm your email:</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`
+      'Confirm your Weeqlash account',
+      `<h2>Welcome to Weeqlash!</h2><p>Click the link below to confirm your email:</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`
     );
 
     res.json({ ok: true, message: 'Check your email to confirm your account' });
@@ -191,7 +191,7 @@ export function registerAuthRoutes(app) {
     const confirmUrl = `${CLIENT_URL}?confirm=${result.confirmToken}`;
     sendEmail(
       user.email,
-      'Confirm your Sraz account',
+      'Confirm your Weeqlash account',
       `<p>Click to confirm: <a href="${confirmUrl}">${confirmUrl}</a></p>`
     );
 

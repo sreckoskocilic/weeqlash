@@ -332,7 +332,7 @@ io.on('connection', (socket) => {
     room.startedAt = Date.now();
     room.state = gameState;
 
-    // Clean up any lingering quiz sessions for players starting a Sraz game
+    // Clean up any lingering quiz sessions for players starting a Weeqlash game
     for (const player of room.players) {
       quizRuns.delete(player.id);
     }
@@ -668,7 +668,7 @@ io.on('connection', (socket) => {
     }
     quizTimestamps.set(socket.id, now);
 
-    // Prevent starting quiz while in an active Sraz game
+    // Prevent starting quiz while in an active Weeqlash game
     if (isInActiveGame(socket.id)) {
       return cb({ error: 'Cannot play quiz during an active game.' });
     }
