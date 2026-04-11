@@ -1,11 +1,47 @@
-import AdminJS, { BaseResource, BaseProperty, BaseRecord } from 'adminjs';
+import AdminJS from 'adminjs';
 import { getDb } from './leaderboard.js';
 
-class UserResource extends BaseResource {
-  constructor(db) {
-    super({ name: 'User' });
-    this.db = db;
-  }
+// Simple admin setup without custom adapter
+export function buildAdminOptions() {
+  const db = getDb();
+
+  // Direct SQL adapter for users
+  const usersResource = {
+    name: 'User',
+    id: 'user',
+    database: db,
+    tableName: 'users',
+    columns: ['id', 'username', 'email', 'is_blocked', 'is_admin', 'email_confirmed', 'created_at', 'last_login'],
+  };
+
+  const gameHistoryResource = {
+    name: 'GameHistory',
+    id: 'game_history',
+    database: db,
+    tableName: 'game_history',
+    columns: ['id', 'player1_id', 'player2_id', 'winner_id', 'game_mode', 'board_size', 'duration_ms', 'created_at'],
+  };
+
+  const userStatsResource = {
+    name: 'UserStats',
+    id: 'user_stats',
+    database: db,
+    tableName: 'user_stats',
+    columns: ['user_id', 'category', 'answered', 'correct'],
+  };
+
+  const admin = new AdminJS({
+    rootPath: '/admin',
+    logoutPath: '/auth/logout',
+    loginPath: '/auth/login',
+    branding: {
+      companyName: 'Weeqlash Admin',
+    },
+    resources: [usersResource, gameHistoryResource, userStatsResource],
+  });
+
+  return admin;
+}
 
   static isAdapterFor(raw) {
     return raw instanceof UserResource;
@@ -26,6 +62,10 @@ class UserResource extends BaseResource {
       new BaseProperty({ name: 'created_at', path: 'created_at', type: 'datetime' }),
       new BaseProperty({ name: 'last_login', path: 'last_login', type: 'datetime' }),
     ];
+  }
+
+  _transformProperties(props) {
+    return props;
   }
 
   async rawFind(query) {
@@ -146,6 +186,10 @@ class GameHistoryResource extends BaseResource {
     ];
   }
 
+  _transformProperties(props) {
+    return props;
+  }
+
   async count(_filter) {
     return this.db.prepare('SELECT COUNT(*) as count FROM game_history').get().count;
   }
@@ -223,6 +267,10 @@ class UserStatsResource extends BaseResource {
       new BaseProperty({ name: 'total_correct', path: 'total_correct', type: 'number' }),
       new BaseProperty({ name: 'accuracy', path: 'accuracy', type: 'string' }),
     ];
+  }
+
+  _transformProperties(props) {
+    return props;
   }
 
   async count(_filter) {

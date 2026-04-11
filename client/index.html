@@ -645,8 +645,12 @@
       </div>
       <div id="auth-login-form">
         <div style="display:flex;gap:0.5rem;margin-bottom:0.4rem;">
-          <input id="login-username" type="text" placeholder="Username or email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
-          <input id="login-password" type="password" placeholder="Password" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:0.85rem;" />
+          <input id="login-username" type="text" placeholder="Username or email" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:1rem; height: 40px;" />
+          <input id="login-password" type="password" placeholder="Password" style="flex:1;padding:0.5rem;background:var(--bg);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);font-size:1rem; height: 40px;" />
+        </div>
+        <div style="display:flex;gap:0.4rem;margin-bottom:0.3rem;">
+          <input type="checkbox" id="keep-logged-in" style="width:auto;" />
+          <label for="keep-logged-in" style="font-size:0.85rem;color:var(--muted);cursor:pointer;">Keep me logged in</label>
         </div>
         <button id="btn-login" style="width:100%;background:var(--accent);font-weight:600;">Login</button>
         <div style="text-align:center;margin-top:0.4rem;"><a href="#" id="link-forgot" style="color:var(--muted);font-size:0.75rem;">Forgot password?</a></div>
@@ -1023,19 +1027,20 @@
   $('btn-login').addEventListener('click', async () => {
     const username = $('login-username').value.trim();
     const password = $('login-password').value;
+    const keepLoggedIn = $('keep-logged-in').checked;
     if (!username || !password) { return showAuthMessage('Fill in all fields', true); }
 
     const res = await fetch(`${serverUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, keepLoggedIn }),
     });
     const data = await res.json();
     if (data.error) { return showAuthMessage(data.error, true); }
     showUserBar(data.user);
     _currentUser = data.user;
-    // Send userId directly to socket (workaround for session issues)
+    // Send userId directly to socket
     socket.emit('auth:setUserId', data.user.id);
   });
 
@@ -1109,7 +1114,7 @@
 
   // Admin panel
   $('btn-admin').addEventListener('click', () => {
-    window.open(`${serverUrl}/admin`, '_blank');
+    window.open(`${serverUrl}/admin/users`, '_blank');
   });
 
   // View Stats

@@ -93,7 +93,7 @@ export function registerAuthRoutes(app) {
 
   // Login
   app.post('/auth/login', (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, keepLoggedIn } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
@@ -107,8 +107,14 @@ export function registerAuthRoutes(app) {
     req.session.userId = result.user.id;
     req.session.username = result.user.username;
     req.session.isAdmin = result.user.is_admin === 1;
-    console.log('[auth] login set session:', { userId: result.user.id, username: result.user.username, isAdmin: result.user.is_admin });
-    req.session.save(() => {
+    
+    // Keep logged in = 7 days, otherwise session expires when browser closes
+    req.session.cookie.maxAge = keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : undefined;
+    req.session.cookie.expires = keepLoggedIn ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined;
+    
+    console.log('[auth] login set session:', { userId: result.user.id, keepLoggedIn });
+    req.session.save((err) => {
+      if (err) console.error('[auth] session save error:', err.message);
       res.json({ ok: true, user: result.user });
     });
   });

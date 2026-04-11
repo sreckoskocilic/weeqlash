@@ -6,7 +6,6 @@ import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-import session from 'express-session';
 const projectRoot = path.resolve(__dirname, '..');
 const envPath = path.join(projectRoot, '.env');
 console.log('[index] Loading .env from:', envPath);
@@ -14,6 +13,8 @@ console.log('[index] .env exists:', existsSync(envPath));
 const envResult = dotenv.config({ path: envPath });
 console.log('[index] dotenv result:', envResult?.error || 'loaded');
 console.log('[index] SMTP_HOST after dotenv:', process.env.SMTP_HOST);
+
+import session from 'express-session';
 
 import {
   createRoom,
@@ -37,22 +38,21 @@ import { loadQuestions, getAllQuestions } from './game/questions.js';
 import { initDb, getDb, getTop10, insertScore, checkQualifiesTop10, pruneLeaderboard } from './game/leaderboard.js';
 import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
-import { buildAdminOptions } from './game/admin.js';
-import AdminJSExpress from '@adminjs/express';
+import adminRoutes from './routes/admin.js';
 import { rooms, socketToRoom } from './game/rooms.js';
 
 const app = express();
 const httpServer = createServer(app);
 
-// Session middleware for auth
-const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || 'dev-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 },
-});
-app.use(sessionMiddleware);
-app.use(express.json());
+// Session store function - use MemoryStore (sessions persist while server runs)
+function createSessionMiddleware() {
+  return session({
+    secret: process.env.SESSION_SECRET || 'dev-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 },
+  });
+}
 
 // Serve client files for browser access
 app.use(express.static(path.join(__dirname, '../client')));
@@ -150,12 +150,18 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 const questionsDb = loadQuestions();
 initDb();
 initAuthDb();
-registerAuthRoutes(app);
 
-// Initialize AdminJS
-const admin = buildAdminOptions();
-const adminRouter = AdminJSExpress.buildRouter(admin);
-app.use(admin.options.rootPath, adminRouter);
+// Initialize session middleware
+const sessionMiddleware = createSessionMiddleware();
+
+// Session middleware must come BEFORE routes that use sessions
+app.use(sessionMiddleware);
+
+// Parse JSON bodies
+app.use(express.json());
+
+registerAuthRoutes(app);
+app.use('/admin', adminRoutes);
 
 // Share session with Socket.IO
 io.engine.use(sessionMiddleware);
