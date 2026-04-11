@@ -679,20 +679,21 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     const a1 = checkAnswer(1);
     const a2 = checkAnswer(2);
     const allCorrect = a0 && a1 && a2;
-      if (allCorrect) {
-        movePeg(state, pegId, targetR, targetC);
-        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-        events.push({ type: 'flag_captured', pegId, playerId });
-        // Update game stats for all players
-        state.players.forEach((player, index) => {
-          player.stats.gamesPlayed++;
-          if (index === playerId) {
-            player.stats.gamesWon++;
-          }
-        });
-        state.phase = PHASE.GAME_OVER;
-        state.winner = playerId;
-        return { ok: true, events, gameOver: true, winner: playerId };
+      const winnerIdx = state.currentPlayerIdx;
+        if (allCorrect) {
+          movePeg(state, pegId, targetR, targetC);
+          events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+          events.push({ type: 'flag_captured', pegId, winnerIdx });
+          // Update game stats for all players
+          state.players.forEach((player, index) => {
+            player.stats.gamesPlayed++;
+            if (index === winnerIdx) {
+              player.stats.gamesWon++;
+            }
+          });
+          state.phase = PHASE.GAME_OVER;
+          state.winner = winnerIdx;
+          return { ok: true, events, gameOver: true, winner: winnerIdx };
       } else {
         finishPegMove(state);
       }
@@ -734,6 +735,9 @@ export function botSelectAnswers(questionIds, questionsDb) {
 /**
  * Reset per-turn flags and rebuild the set of pegs that can move this turn.
  * Called when a turn ends (whether by completion, elimination, or flag capture).
+ *
+ * Note: Question tracking (usedQ, wrongQ) persists across the entire game session
+ * to prevent repeats even across turns. This is handled server-side only.
  */
 function resetTurnState(state) {
   // Clear per-turn flags
@@ -744,11 +748,10 @@ function resetTurnState(state) {
   // Rebuild pegsToMove based on freshly computed eligible pegs
   state.pegsToMove = new Set(getEligiblePegs(state));
 
-  // Clear question-tracking collections
-  for (const cat of Object.keys(state.usedQ)) {
-    state.usedQ[cat].clear();
-  }
-  state.wrongQ.clear();
+  // Note: We NO LONGER clear question-tracking collections here.
+  // Questions answered (correctly or incorrectly) are tracked for the
+  // entire game session to prevent repeats across turns.
+  // This is handled purely server-side - client doesn't track questions.
 
   // Reset phase to SELECT_PEG
   state.phase = PHASE.SELECT_PEG;

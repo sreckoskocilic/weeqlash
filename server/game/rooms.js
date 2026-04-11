@@ -131,10 +131,14 @@ export function removePlayerFromRoom(socketId) {
   socketToRoom.delete(socketId);
 
   // Clean up empty rooms after a delay to survive brief reconnects
+  // Use captured values to avoid race condition: check room exists AND is empty at execution time
   if (room.players.length === 0) {
+    const codeToCheck = code;
     setTimeout(() => {
-      if (rooms.get(code)?.players.length === 0) {
-        rooms.delete(code);
+      const existingRoom = rooms.get(codeToCheck);
+      if (existingRoom && existingRoom.players.length === 0) {
+        console.log(`[room] cleaning up empty room ${codeToCheck}`);
+        rooms.delete(codeToCheck);
       }
     }, 15_000);
   }
