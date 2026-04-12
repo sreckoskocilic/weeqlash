@@ -168,6 +168,32 @@ app.use('/admin', adminRoutes);
 // Share session with Socket.IO
 io.engine.use(sessionMiddleware);
 
+// Test-only: teleport a peg to an adjacent position for E2E testing
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/test/peg-info/:code/:pegId', (req, res) => {
+    const room = getRoom(req.params.code);
+    if (!room?.state) {return res.status(404).json({ error: 'Room not found' });}
+    const peg = room.state.pegs[req.params.pegId];
+    if (!peg) {return res.status(404).json({ error: 'Peg not found' });}
+    const validMoves = getValidMoves(room.state, req.params.pegId);
+    res.json({ peg, validMoves });
+  });
+  app.post('/test/teleport-peg', (req, res) => {
+    const { code, pegId, row, col } = req.body;
+    const room = getRoom(code);
+    if (!room?.state) {return res.status(404).json({ error: 'Room not found' });}
+    const peg = room.state.pegs[pegId];
+    if (!peg) {return res.status(404).json({ error: 'Peg not found' });}
+    room.state.board[peg.row][peg.col].pegId = null;
+    peg.row = row;
+    peg.col = col;
+    room.state.board[row][col].pegId = pegId;
+    const sockets = io.sockets.adapter.rooms.get(code);
+    io.to(code).emit('state:update', { state: JSON.parse(JSON.stringify(room.state)), events: [], gameOver: false });
+    res.json({ ok: true, pegRow: peg.row, pegCol: peg.col, socketsInRoom: sockets ? sockets.size : 0 });
+  });
+}
+
 // Serve client HTML for dev testing
 app.get('/', (_req, res) => {
   res.type('text/html').send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
@@ -246,7 +272,7 @@ io.on('connection', (socket) => {
   socket.on(
     'room:create',
     (
-      { playerName, playerCount, boardSize, timer, enabledCats, maxRankStart },
+      { playerName, playerCount, boardSize, timer, enabledCats },
       cb,
     ) => {
       if (checkLobbyRateLimit(socket.id, cb)) {return;}
@@ -257,7 +283,6 @@ io.on('connection', (socket) => {
         boardSize,
         timer,
         enabledCats,
-        maxRankStart,
       });
       // Apply pending userId from earlier login if any
       const userId = socket.userId || socket.pendingUserId;
@@ -579,6 +604,11 @@ io.on('connection', (socket) => {
     const hasMoreQuestions = numSubmitted < pending.questionIds.length;
     const shouldApplyTurn = !hasMoreQuestions || latestWrong;
 
+    // Reset question timer for each sequential combat question so Q3 doesn't expire
+    if (hasMoreQuestions && !latestWrong) {
+      room.lastQuestionStart = Date.now();
+    }
+
     let result = { events: [], gameOver: false };
     if (shouldApplyTurn) {
       result = applyTurn(room.state, player.index, submission, questionsDb);
@@ -847,7 +877,6 @@ function publicState(state) {
     phase: state.phase,
     selectedPegId: state.selectedPegId,
     winner: state.winner,
-    pegsToMove: [...state.pegsToMove],
     movesRemaining: state.movesRemaining,
   };
 }

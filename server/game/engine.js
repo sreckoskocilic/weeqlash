@@ -30,9 +30,6 @@ export const CATS = [
   'other',
 ];
 
-function getRankUpThreshold(boardSize) {
-  return boardSize > 8 ? 5 : 3;
-}
 export const COORD_BASE = 100;
 const DIRS = [
   [-1, 0],
@@ -234,78 +231,6 @@ function eliminatePeg(state, pegId) {
   ].pegIds.filter((id) => id !== pegId);
 }
 
-function rankUp(state, pegId) {
-  const peg = state.pegs[pegId];
-  if (peg.rank < 2) {
-    peg.rank++;
-    peg.correct = 0;
-  }
-}
-
-// Returns true if peg was already rank 0 (should be eliminated)
-function rankDown(state, pegId) {
-  const peg = state.pegs[pegId];
-  if (peg.rank > 0) {
-    peg.rank--;
-    peg.correct = 0;
-    return false;
-  }
-  return true;
-}
-
-function pushPegAway(state, pegId, pushDir = null) {
-  const peg = state.pegs[pegId];
-  if (!peg) {
-    return;
-  }
-
-  if (!pushDir || (pushDir[0] === 0 && pushDir[1] === 0)) {
-    eliminatePeg(state, pegId);
-    return;
-  }
-
-  const [pushDr, pushDc] = pushDir;
-  const { row: pegR, col: pegC } = peg;
-
-  // Chain push: push all pegs in direction until empty space or off board
-  const pushedPegs = [pegId];
-  let curR = pegR + pushDr;
-  let curC = pegC + pushDc;
-
-  while (
-    curR >= 0 &&
-    curR < state.boardSize &&
-    curC >= 0 &&
-    curC < state.boardSize
-  ) {
-    const tile = state.board[curR][curC];
-    if (tile.pegId) {
-      pushedPegs.push(tile.pegId);
-      curR += pushDr;
-      curC += pushDc;
-    } else {
-      break;
-    }
-  }
-
-  // If final position is off board, eliminate the last peg
-  if (
-    curR < 0 ||
-    curR >= state.boardSize ||
-    curC < 0 ||
-    curC >= state.boardSize
-  ) {
-    const lastPegId = pushedPegs.pop();
-    eliminatePeg(state, lastPegId);
-  }
-
-  // Move all pushed pegs one step in direction
-  for (let i = pushedPegs.length - 1; i >= 0; i--) {
-    const pid = pushedPegs[i];
-    const p = state.pegs[pid];
-    movePeg(state, pid, p.row + pushDr, p.col + pushDc);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Win condition
@@ -326,26 +251,6 @@ export function checkWinCondition(state) {
 // ---------------------------------------------------------------------------
 // Turn helpers (match desktop game mechanics)
 // ---------------------------------------------------------------------------
-
-function getEligiblePegs(state) {
-  return state.players[state.currentPlayerIdx].pegIds.filter(
-    (id) => getValidMoves(state, id).length > 0,
-  );
-}
-
-// Called after a peg finishes its moves (wrong answer, movesRemaining=0, or flag fail).
-// Removes peg from pegsToMove. Advances turn when set empties.
-function finishPegMove(state) {
-  state.pegsToMove.delete(state.selectedPegId);
-  state.selectedPegId = null;
-  state.movesRemaining = 0;
-  state.pendingTurn = null;
-  if (state.pegsToMove.size === 0) {
-    advanceTurn(state);
-  } else {
-    state.phase = PHASE.SELECT_PEG;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Question selection
@@ -469,38 +374,48 @@ function getMoveType(state, pegId, r, c) {
 export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const tile = state.board[targetR][targetC];
   const moveType = getMoveType(state, pegId, targetR, targetC);
-  // tileCat matches tileCat(): flag tiles use 'other' for normal moves
-  const tileCat =
-    tile.category === 'flag' ? 'other' : tile.category;
-  const selectedIds = new Set();
-  const take = (cat, count = 1) => {
-    const ids = pickQuestionIds(state, cat, count, questionsDb, selectedIds);
-    ids.forEach((id) => selectedIds.add(id));
-    return ids;
-  };
+  const tileCat = tile.category === 'flag' ? 'other' : tile.category;
 
   let questionIds;
+
   if (moveType === 'flag') {
-    // Each of the 3 flag capture questions uses a fresh randomCat()
-    questionIds = [
-      ...take(randomCat(state.enabledCats), 1),
-      ...take(randomCat(state.enabledCats), 1),
-      ...take(randomCat(state.enabledCats), 1),
-    ];
+    const q1 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
+    const q2 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
+    const q3 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
+    questionIds = [...q1, ...q2, ...q3];
   } else if (moveType === 'combat') {
-    // Q1 uses the tile's category (matching tileCat), Q2 uses random category
-    const combatQ1Cat = tile.category === 'flag' ? 'other' : tile.category;
-    const combatQ2Cat = randomCat(state.enabledCats);
-    questionIds = [
-      ...take(combatQ1Cat, 1),
-      ...take(combatQ2Cat, 1),
-    ];
+    const q1 = pickQuestionIds(state, tileCat, 1, questionsDb);
+    const q2 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
+    const q3 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
+    questionIds = [...q1, ...q2, ...q3];
   } else {
-    questionIds = take(tileCat, 1);
+    questionIds = pickQuestionIds(state, tileCat, 1, questionsDb);
   }
 
-  state.pendingTurn = { pegId, targetR, targetC, moveType, questionIds };
+  state.pendingTurn = {
+    pegId,
+    targetR,
+    targetC,
+    moveType,
+    questionIds,
+  };
+
   return { moveType, questionIds };
+}
+
+// Pick the next question for an ongoing combat or flag sequence.
+// Updates state.pendingTurn.questionId and decrements questionsRemaining.
+// Returns the new question id, or null if no more questions.
+export function advancePendingQuestion(state, questionsDb) {
+  const pending = state.pendingTurn;
+  if (!pending || pending.questionsRemaining <= 1) {
+    return null;
+  }
+  pending.questionsRemaining--;
+  const cat = randomCat(state.enabledCats);
+  const [nextId] = pickQuestionIds(state, cat, 1, questionsDb);
+  pending.questionId = nextId;
+  return nextId;
 }
 
 // ---------------------------------------------------------------------------
@@ -518,19 +433,13 @@ export function selectPeg(state, playerId, pegId) {
   if (!currentPlayer.pegIds.includes(pegId)) {
     return { error: 'Not your peg' };
   }
-  if (!state.pegsToMove.has(pegId)) {
-    return { error: 'Peg already moved this turn' };
-  }
-
   const moves = getValidMoves(state, pegId);
   if (moves.length === 0) {
     return { error: 'No valid moves' };
   }
 
-  const peg = state.pegs[pegId];
   state.pendingTurn = null;
   state.selectedPegId = pegId;
-  state.movesRemaining = peg.rank + 1;
   state.phase = PHASE.SELECT_TILE;
 
   return {
@@ -608,69 +517,64 @@ export function applyTurn(state, playerId, submission, questionsDb) {
   };
 
   if (moveType === 'normal') {
-    const peg = state.pegs[pegId];
-    if (checkAnswer(0)) {
+    const answered = checkAnswer(0);
+    if (answered) {
       movePeg(state, pegId, targetR, targetC);
-      peg.correct++;
-      if (peg.correct >= getRankUpThreshold(state.boardSize)) {
-        rankUp(state, pegId);
-        events.push({ type: 'rank_up', pegId });
-      }
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
     }
-    // Always decrement movesRemaining
     state.movesRemaining--;
-    if (state.movesRemaining > 0 && getValidMoves(state, pegId).length > 0) {
+    if (state.movesRemaining === 0) {
+      advanceTurn(state);
+    } else if (answered && getValidMoves(state, pegId).length > 0) {
+      // Correct answer — keep same peg selected for next move
       state.phase = PHASE.SELECT_TILE;
       return { ok: true, events, gameOver: false };
+    } else {
+      // Wrong answer, or correct but no more valid moves for this peg — let player pick any peg
+      state.selectedPegId = null;
+      state.pendingTurn = null;
+      state.phase = PHASE.SELECT_PEG;
+      return { ok: true, events, gameOver: false };
     }
-    // No moves remaining: finish this peg
-    finishPegMove(state);
   } else if (moveType === 'combat') {
-    const atkPeg = state.pegs[pegId];
-    const pushDir = atkPeg
-      ? [targetR - atkPeg.row, targetC - atkPeg.col]
-      : null;
+    const defPegId = state.board[targetR]?.[targetC]?.pegId;
+    const defPeg = defPegId ? state.pegs[defPegId] : null;
 
-    const q1Correct = checkAnswer(0);
-    if (q1Correct) {
-      const q2Correct = checkAnswer(1);
-      const defPegId = state.board[targetR]?.[targetC]?.pegId;
-      const defPeg = defPegId ? state.pegs[defPegId] : null;
-      if (q2Correct && defPeg) {
-        // Attacker wins only if both Q1 and Q2 are correct
-        const wasElim = rankDown(state, defPegId);
-        if (wasElim) {
+    let combatDone = false;
+    for (let i = 0; i < questionIds.length && !combatDone; i++) {
+      const correct = checkAnswer(i);
+      if (!correct) {
+        combatDone = true;
+      } else {
+        if (defPeg) {
+          defPeg.hp--;
+          events.push({ type: 'combat_hit', defPegId, hp: defPeg.hp });
+        }
+        if (defPeg && defPeg.hp === 0) {
           eliminatePeg(state, defPegId);
           events.push({ type: 'peg_eliminated', pegId: defPegId });
-        } else {
-          pushPegAway(state, defPegId, pushDir);
-          events.push({
-            type: 'peg_pushed',
-            pegId: defPegId,
-            r: state.pegs[defPegId]?.row,
-            c: state.pegs[defPegId]?.col,
-          });
-          events.push({ type: 'rank_down', pegId: defPegId });
+          movePeg(state, pegId, targetR, targetC);
+          events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+          combatDone = true;
         }
-        movePeg(state, pegId, targetR, targetC);
-        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
       }
-       }
-       // Combat always ends turn (win or lose)
-       const combatWinner = checkWinCondition(state);
-       if (combatWinner >= 0) {
-         // Update game stats for all players
-         state.players.forEach((player, index) => {
-           player.stats.gamesPlayed++;
-           if (index === combatWinner) {
-             player.stats.gamesWon++;
-           }
-         });
-         state.phase = PHASE.GAME_OVER;
-         state.winner = combatWinner;
-         return { ok: true, events, gameOver: true, winner: combatWinner };
-       }
+    }
+
+    // Combat always ends turn — consume all remaining tokens
+    state.movesRemaining = 0;
+
+    const combatWinner = checkWinCondition(state);
+    if (combatWinner >= 0) {
+      state.players.forEach((player, index) => {
+        player.stats.gamesPlayed++;
+        if (index === combatWinner) {
+          player.stats.gamesWon++;
+        }
+      });
+      state.phase = PHASE.GAME_OVER;
+      state.winner = combatWinner;
+      return { ok: true, events, gameOver: true, winner: combatWinner };
+    }
     advanceTurn(state);
     return { ok: true, events, gameOver: false };
   } else if (moveType === 'flag') {
@@ -679,24 +583,23 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     const a1 = checkAnswer(1);
     const a2 = checkAnswer(2);
     const allCorrect = a0 && a1 && a2;
-      const winnerIdx = state.currentPlayerIdx;
-        if (allCorrect) {
-          movePeg(state, pegId, targetR, targetC);
-          events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-          events.push({ type: 'flag_captured', pegId, winnerIdx });
-          // Update game stats for all players
-          state.players.forEach((player, index) => {
-            player.stats.gamesPlayed++;
-            if (index === winnerIdx) {
-              player.stats.gamesWon++;
-            }
-          });
-          state.phase = PHASE.GAME_OVER;
-          state.winner = winnerIdx;
-          return { ok: true, events, gameOver: true, winner: winnerIdx };
-      } else {
-        finishPegMove(state);
-      }
+    const winnerIdx = state.currentPlayerIdx;
+    if (allCorrect) {
+      movePeg(state, pegId, targetR, targetC);
+      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      events.push({ type: 'flag_captured', pegId, winnerIdx });
+      state.players.forEach((player, index) => {
+        player.stats.gamesPlayed++;
+        if (index === winnerIdx) {
+          player.stats.gamesWon++;
+        }
+      });
+      state.phase = PHASE.GAME_OVER;
+      state.winner = winnerIdx;
+      return { ok: true, events, gameOver: true, winner: winnerIdx };
+    } else {
+      advanceTurn(state);
+    }
   }
 
   // Check elimination win (normal and flag paths)
@@ -740,20 +643,9 @@ export function botSelectAnswers(questionIds, questionsDb) {
  * to prevent repeats even across turns. This is handled server-side only.
  */
 function resetTurnState(state) {
-  // Clear per-turn flags
   state.pendingTurn = null;
   state.selectedPegId = null;
-  state.movesRemaining = 0;
-
-  // Rebuild pegsToMove based on freshly computed eligible pegs
-  state.pegsToMove = new Set(getEligiblePegs(state));
-
-  // Note: We NO LONGER clear question-tracking collections here.
-  // Questions answered (correctly or incorrectly) are tracked for the
-  // entire game session to prevent repeats across turns.
-  // This is handled purely server-side - client doesn't track questions.
-
-  // Reset phase to SELECT_PEG
+  state.movesRemaining = 3;
   state.phase = PHASE.SELECT_PEG;
 }
 
@@ -774,7 +666,7 @@ function advanceTurn(state) {
 // ---------------------------------------------------------------------------
 
 export function createGame(players, settings = {}) {
-  const { boardSize = 7, enabledCats, maxRankStart = false, boardLayout } = settings;
+  const { boardSize = 7, enabledCats, boardLayout } = settings;
   const activeCats = enabledCats?.length ? enabledCats : CATS;
   const numPlayers = players.length;
   const layoutMap = boardLayout || generateLayoutMap(boardSize, activeCats);
@@ -804,8 +696,7 @@ export function createGame(players, settings = {}) {
         playerId: i,
         row: pos.r,
         col: pos.c,
-        rank: maxRankStart ? 2 : 0,
-        correct: 0,
+        hp: 3,
       };
       board[pos.r][pos.c].pegId = id;
       pegIds.push(id);
@@ -830,13 +721,11 @@ export function createGame(players, settings = {}) {
     phase: PHASE.SELECT_PEG,
     selectedPegId: null,
     pendingTurn: null,
-    movesRemaining: 0,
-    pegsToMove: new Set(),
+    movesRemaining: 3,
     winner: null,
     enabledCats: activeCats,
     usedQ: Object.fromEntries(CATS.map((c) => [c, new Set()])),
     wrongQ: new Set(),
   };
-  state.pegsToMove = new Set(getEligiblePegs(state));
   return state;
 }

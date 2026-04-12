@@ -19,7 +19,6 @@ export function createRoom({
   boardSize = 7,
   timer = 30,
   enabledCats,
-  maxRankStart = false,
 } = {}) {
   // Validate player count (engine supports 2-4)
   const PLAYER_COUNT = Math.max(2, Math.min(4, playerCount));
@@ -51,7 +50,7 @@ export function createRoom({
 
   const room = {
     code,
-    settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats, maxRankStart },
+    settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats },
     players: [],
     started: false,
     startedAt: null,

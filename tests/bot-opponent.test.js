@@ -17,10 +17,12 @@ describe('Bot opponent – turn flow and state handling', () => {
     general: [
       { id: 'q1', a: 0 },
       { id: 'q2', a: 0 },
+      { id: 'q3', a: 0 },
     ],
     _byId: {
       q1: { a: 0 },
       q2: { a: 0 },
+      q3: { a: 0 },
     },
   };
   const baseSubmission = {
@@ -28,7 +30,7 @@ describe('Bot opponent – turn flow and state handling', () => {
     targetR: 3,
     targetC: 3,
     moveType: 'combat',
-    questionIds: ['q1', 'q2'],
+    questionIds: ['q1', 'q2', 'q3'],
   };
 
   it('ends the turn without finishing the game when the first answer is wrong', () => {
@@ -55,6 +57,7 @@ describe('Bot opponent – turn flow and state handling', () => {
       answers: [
         { questionId: 'q1', answerIdx: 0 },
         { questionId: 'q2', answerIdx: 0 },
+        { questionId: 'q3', answerIdx: 0 },
       ],
     };
 
@@ -71,25 +74,24 @@ describe('Bot opponent – turn flow and state handling', () => {
     expect(after.pendingTurn).toBeNull();
   });
 
-  it('switches turn order correctly after a completed turn', () => {
-    const normalSubmission = {
-      pegId: pegId0,
-      targetR: 0,
-      targetC: 1,
-      moveType: 'normal',
-      questionIds: ['q1'],
-      answers: [{ questionId: 'q1', answerIdx: 0 }],
-    };
+  it('switches turn order correctly after spending all 3 move tokens', () => {
+    const state = getStartState();
+    // Spend all 3 tokens with wrong answers so the peg stays put and we can repeat
+    for (let i = 0; i < 3; i++) {
+      const submission = {
+        pegId: pegId0,
+        targetR: 0,
+        targetC: 1,
+        moveType: 'normal',
+        questionIds: ['q1'],
+        answers: [{ questionId: 'q1', answerIdx: 1 }], // wrong answer
+      };
+      triggerTurn(state, 0, questionsDb, submission);
+      if (state.currentPlayerIdx !== 0) {break;}
+    }
 
-    const { state: after } = triggerTurn(
-      getStartState(),
-      0,
-      questionsDb,
-      normalSubmission
-    );
-
-    expect(after.pendingTurn).toBeNull();
-    expect(after.currentPlayerIdx).toBe(1);
+    expect(state.pendingTurn).toBeNull();
+    expect(state.currentPlayerIdx).toBe(1);
   });
 
   it('clears pendingTurn after a wrong answer', () => {

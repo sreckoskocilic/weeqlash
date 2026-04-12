@@ -222,8 +222,6 @@
       65%  { transform: scale(1.22); opacity: 1; }
       100% { transform: scale(1); }
     }
-    @keyframes rank-up   { 0% { box-shadow: 0 0 0 0 #ffd700; } 40% { box-shadow: 0 0 0 6px rgba(255,215,0,0.6); transform: scale(1.25); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); transform: scale(1); } }
-    @keyframes rank-down { 0% { box-shadow: 0 0 0 0 #e53935; } 35% { box-shadow: 0 0 0 6px rgba(229,57,53,0.6); transform: scale(0.82); } 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); transform: scale(1); } }
     @keyframes peg-pulse { 0%,100% { box-shadow: 0 0 0 3px white, 0 0 8px 2px rgba(255,255,255,0.5); } 50% { box-shadow: 0 0 0 4px white, 0 0 14px 5px rgba(255,255,255,0.2); } }
 
     .tile-cat-label {
@@ -262,14 +260,12 @@
     .peg.selected { border-color: white; animation: peg-pulse 1.2s ease-in-out infinite; }
     .peg.just-moved { animation: peg-arrive 0.32s cubic-bezier(0.2,0,0.4,1) forwards; }
     .peg.can-move { box-shadow: 0 0 0 2px rgba(255,255,255,0.5); cursor: pointer; }
-    .peg-rank-badge {
-      position: absolute; top: -6px; right: -6px;
-      width: calc(var(--ts) * 0.2); height: calc(var(--ts) * 0.2);
-      border-radius: 50%; background: #ffd700;
-      border: 1.5px solid rgba(0,0,0,0.5);
-      font-size: calc(var(--ts) * 0.09);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 900; color: #222;
+    .peg-hp {
+      position: absolute; bottom: 2px; right: 3px;
+      font-size: calc(var(--ts) * 0.1);
+      font-weight: 900; color: white;
+      text-shadow: 0 0 2px #000;
+      pointer-events: none;
     }
 
     /* ===== QUESTION MODAL ===== */
@@ -686,6 +682,7 @@
 
           <button class="opt-btn" data-val="2">2×2</button>
         -->
+        <button class="opt-btn" data-val="2">2×2</button>
         <button class="opt-btn" data-val="4">4×4</button>
         <button class="opt-btn" data-val="5">5×5</button>
         <button class="opt-btn" data-val="6">6×6</button>
@@ -707,12 +704,6 @@
     </div>
 
     <div id="advanced-section" style="display:none">
-      <div class="setup-section" style="margin-top:14px">
-        <h3>Game Options</h3>
-        <div class="opt-btn-group">
-          <button class="opt-btn" id="btn-max-rank">Start as Vitez</button>
-        </div>
-      </div>
       <div class="setup-section">
         <h3>Question Timer</h3>
         <div class="opt-btn-group" id="timer-btns">
@@ -862,18 +853,22 @@
   <div class="help-content">
     <h2>HOW TO PLAY</h2>
     <h3>Gameplay</h3>
-    <p>Each turn, move one of your pegs to an adjacent tile. The tile's category determines your trivia question.</p>
+    <p>Each turn you have <strong>3 moves</strong> to spend freely across any of your pegs.</p>
     <ul>
-      <li>Answer correctly to move your peg.</li>
-      <li>Answer wrong and your peg stays put.</li>
+      <li>Each move attempt costs 1 token (whether you answer correctly or not).</li>
+      <li>Answer correctly to move your peg to the target tile.</li>
+      <li>Answer wrong and your peg stays put, but the token is spent.</li>
+      <li>When all 3 tokens are spent, your turn ends.</li>
     </ul>
-    <h3>Ranks</h3>
-    <p>Each peg has a rank: <strong>Kmet → Vojnik → Vitez</strong>. Rank up by answering questions correctly on the same peg (threshold: 3 on small boards, 5 on large).</p>
+    <h3>HP System</h3>
+    <p>Each peg starts with <strong>3 HP</strong>. HP never increases during the game.</p>
     <h3>Combat</h3>
-    <p>Move onto a tile occupied by an enemy peg to attack. You get two questions.</p>
+    <p>Move onto a tile occupied by an enemy peg to attack. You get up to 3 questions.</p>
     <ul>
-      <li>Answer both Q1 and Q2 correctly to win: the enemy peg loses a rank (or is eliminated) and you move in.</li>
-      <li>Miss either question and the attack fails — your peg stays put.</li>
+      <li>Each correct answer deals 1 HP damage to the defender.</li>
+      <li>First miss ends the fight — your peg stays put, defender keeps remaining HP.</li>
+      <li>Reduce the defender to 0 HP to eliminate them and move into their tile.</li>
+      <li>Combat always ends your turn, consuming all remaining move tokens.</li>
     </ul>
     <h3>Flag Tiles</h3>
     <p>Move onto a flag tile to attempt to capture it. Answer 3 questions correctly to claim the flag. Capture all flags to win!</p>
@@ -1215,8 +1210,6 @@
   // ============================================================
   const PHASE = { SELECT_PEG: 'selectPeg', SELECT_TILE: 'selectTile', GAME_OVER: 'gameOver' };
   const COORD_BASE = 100;
-  const RANK_NAMES = ['Kmet', 'Vojnik', 'Vitez'];
-  const RANK_BADGE = ['', '★', '★★'];
   const OPTION_KEYS = ['A','B','C','D'];
   const KEY_MAP = { a:0, b:1, c:2, d:3, '1':0, '2':1, '3':2, '4':3 };
 const CAT_NAMES = {
@@ -1254,8 +1247,6 @@ const CAT_COLORS = {
   let timerDuration = 30;
   let tileEls = [];        // [r][c]
   const movedPegs = new Set();
-  const rankUpPegs = new Set();
-  const rankDownPegs = new Set();
 
   // Turn interaction
   let localPhase = null;
@@ -1284,7 +1275,6 @@ let quizModalOptionBtns = [];
   let setupBoardSize = 8;
   let setupTimer = 30;
   let setupEnabledCats = [...CATS];
-  let setupMaxRankStart = false;
 
   // ============================================================
   // SCREENS
@@ -1435,27 +1425,24 @@ let quizModalOptionBtns = [];
     } else if (shouldShowResults && pendingQuestions.length) {
       stopTimer();
       if (spectatingQuestion) {
-        // Spectator: highlight the chosen answer only
-        const r = results[currentQIdx] ?? results[results.length - 1];
+        // Spectator: use results.length-1 as authoritative index to avoid race with setTimeout advances.
+        const startIdx = results.length - 1;
+        currentQIdx = startIdx;
+        const r = results[startIdx];
         if (r?.chosenIdx >= 0) {
-          // Both spectator and attacker modes: show actual correctness
-          // This ensures all players see the same thing while preserving privacy
-          // (correct answer is never revealed in UI when answer is wrong)
           gameModalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
         }
-        advanceSpectateResult(results, currentQIdx, moreQuestionsInProgress);
+        advanceSpectateResult(results, startIdx, moreQuestionsInProgress);
       } else {
-        // Attacker: reset to Q1 and walk through results
-        currentQIdx = 0;
-        showQuestion(0);
-        const r = results[0];
+        // Attacker: the last entry in results is the answer just submitted.
+        // Use results.length-1 as the authoritative index — avoids race with setTimeout in advanceSpectateResult.
+        const startIdx = results.length - 1;
+        currentQIdx = startIdx;
+        const r = results[startIdx];
         if (r?.chosenIdx >= 0) {
-          // Both spectator and attacker modes: show actual correctness
-          // This ensures all players see the same thing while preserving privacy
-          // (correct answer is never revealed in UI when answer is wrong)
           gameModalOptionBtns[r.chosenIdx]?.classList.add(r.correct ? 'answer-correct' : 'answer-wrong');
         }
-        advanceSpectateResult(results, 0, moreQuestionsInProgress);
+        advanceSpectateResult(results, startIdx, moreQuestionsInProgress);
       }
     } else if (spectatingQuestion) {
       // Not showing results - close spectating modal (turn ended)
@@ -1463,17 +1450,6 @@ let quizModalOptionBtns = [];
       spectatingQuestion = false;
       pendingQuestions = []; // Clear questions when turn ends
       el('modal-overlay').classList.remove('visible');
-    }
-
-    // Detect rank changes before updating state
-    if (gameState) {
-      for (const [pegId, peg] of Object.entries(state.pegs)) {
-        const old = gameState.pegs[pegId];
-        if (old) {
-          if (peg.rank > old.rank) {rankUpPegs.add(pegId);}
-          else if (peg.rank < old.rank) {rankDownPegs.add(pegId);}
-        }
-      }
     }
 
     // Always clear pending questions when receiving new state (turn transition)
@@ -1495,7 +1471,10 @@ let quizModalOptionBtns = [];
     const prevNavCol = navCursor.col;
     gameState = state;
     // If server kept SELECT_TILE for same peg (movesRemaining > 0), restore local state
-    if (state.phase === PHASE.SELECT_TILE && state.selectedPegId && state.currentPlayerIdx === myPlayerIndex && validMoves) {
+    // Skip this block during sequential combat — client is still answering Q2/Q3 and must stay in 'answering' mode.
+    // Overriding localPhase here would allow peg-selection input to fire, calling selectPeg server-side
+    // which clears pendingTurn, causing 'No pending turn' on the next submit.
+    if (!moreQuestionsInProgress && state.phase === PHASE.SELECT_TILE && state.selectedPegId && state.currentPlayerIdx === myPlayerIndex && validMoves) {
       if (lastSubmittedPegId && state.selectedPegId === lastSubmittedPegId) {
         localPhase = PHASE.SELECT_PEG;
         localSelectedPegId = null;
@@ -1506,7 +1485,7 @@ let quizModalOptionBtns = [];
         localSelectedPegId = state.selectedPegId;
         validMovesSet = new Set(validMoves);
       }
-    } else {
+    } else if (!moreQuestionsInProgress && localPhase !== PHASE.SELECT_TILE) {
       localPhase = null;
       localSelectedPegId = null;
       validMovesSet.clear();
@@ -1515,8 +1494,7 @@ let quizModalOptionBtns = [];
       const preferredPegId =
         lastSubmittedPegId &&
         state.pegs[lastSubmittedPegId] &&
-        state.pegs[lastSubmittedPegId].playerId === myPlayerIndex &&
-        state.pegsToMove?.includes(lastSubmittedPegId)
+        state.pegs[lastSubmittedPegId].playerId === myPlayerIndex
           ? lastSubmittedPegId
           : null;
       if (preferredPegId) {setNavCursorToPeg(state, preferredPegId);}
@@ -1625,8 +1603,6 @@ let quizModalOptionBtns = [];
       {updateTile(r, c, state);}}
     updateTurnUI(state);
     movedPegs.clear();
-    rankUpPegs.clear();
-    rankDownPegs.clear();
   }
 
   // Diff-based tile update: only re-render tiles where something changed
@@ -1646,7 +1622,7 @@ let quizModalOptionBtns = [];
         changedTiles.add(`${oldPeg.row},${oldPeg.col}`);
         changedTiles.add(`${newPeg.row},${newPeg.col}`);
       }
-      if (oldPeg.rank !== newPeg.rank) {
+      if (oldPeg.hp !== newPeg.hp) {
         changedTiles.add(`${newPeg.row},${newPeg.col}`);
       }
     }
@@ -1691,8 +1667,6 @@ let quizModalOptionBtns = [];
     // Always update turn UI
     updateTurnUI(newState);
     movedPegs.clear();
-    rankUpPegs.clear();
-    rankDownPegs.clear();
   }
 
   function updateTile(r, c, state) {
@@ -1755,20 +1729,15 @@ let quizModalOptionBtns = [];
       pegEl.dataset.pegId = tile.pegId;
       if (tile.pegId === localSelectedPegId) {pegEl.classList.add('selected');}
       if (movedPegs.has(tile.pegId)) {pegEl.classList.add('just-moved');}
-      if (rankUpPegs.has(tile.pegId)) {pegEl.style.animation = 'rank-up 0.6s ease-out';}
-      else if (rankDownPegs.has(tile.pegId)) {pegEl.style.animation = 'rank-down 0.5s ease-out';}
-      if (state.currentPlayerIdx === myPlayerIndex && state.pegsToMove?.includes(tile.pegId)) {pegEl.classList.add('can-move');}
+      if (state.currentPlayerIdx === myPlayerIndex) {pegEl.classList.add('can-move');}
       pegEl.style.background = player.color;
-      const pegNum = (player?.pegIds?.indexOf(tile.pegId) ?? -1) + 1;
-      pegEl.textContent = peg.rank > 0 ? '' : String(pegNum || '');
-      const rankThreshold = state.boardSize > 8 ? 5 : 3;
-      pegEl.title = `${sanitize(player.name)} — ${RANK_NAMES[peg.rank]} (${peg.correct}/${rankThreshold})`;
-      if (peg.rank > 0) {
-        const badge = document.createElement('div');
-        badge.className = 'peg-rank-badge';
-        badge.textContent = RANK_BADGE[peg.rank];
-        pegEl.appendChild(badge);
-      }
+      const pegLetterIdx = player?.pegIds?.indexOf(tile.pegId) ?? -1;
+      pegEl.textContent = pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : '';
+      pegEl.title = `${sanitize(player.name)} — HP: ${peg.hp}`;
+      const hpEl = document.createElement('span');
+      hpEl.className = 'peg-hp';
+      hpEl.textContent = peg.hp;
+      pegEl.appendChild(hpEl);
       tileEl.appendChild(pegEl);
     }
   }
@@ -1785,11 +1754,13 @@ let quizModalOptionBtns = [];
     const phase = localPhase ?? state.phase;
     let phaseText = '';
     if (phase === PHASE.SELECT_PEG) {
-      const left = state.pegsToMove?.length ?? 0;
-      phaseText = isMyTurn ? `Select a peg (${left} left)` : `${cp?.name} is choosing…`;
+      const mr = state.movesRemaining;
+      const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
+      phaseText = isMyTurn ? `Select a peg (${movesText})` : `${cp?.name} is choosing…`;
     } else if (phase === PHASE.SELECT_TILE) {
       const mr = state.movesRemaining;
-      phaseText = isMyTurn ? `Select a tile to move${mr > 1 ? ` (${mr} moves left)` : ''}` : `${cp?.name} is moving…`;
+      const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
+      phaseText = isMyTurn ? `Select a tile (${movesText})` : `${cp?.name} is moving…`;
     } else if (phase === PHASE.GAME_OVER) {phaseText = 'Game over';}
     el('turn-phase').textContent = phaseText;
 
@@ -1819,7 +1790,6 @@ let quizModalOptionBtns = [];
     if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) {return;}
     const myPlayer = gameState.players[myPlayerIndex];
     if (!myPlayer?.pegIds.includes(pegId)) {return;}
-    if (!gameState.pegsToMove?.includes(pegId)) {return;}
     // Deselect current peg (click it again to go back to peg selection)
     if (phase === PHASE.SELECT_TILE && pegId === localSelectedPegId) {
       localSelectedPegId = null;
@@ -2044,6 +2014,7 @@ let quizModalOptionBtns = [];
       if (remaining <= 0) {
         stopTimer();
         const tq = pendingQuestions[qIdx];
+        if (!tq) {return;}
         gameModalOptionBtns.forEach(btn => { btn.disabled = true; });
         pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
         // Auto-submit on timeout instead of leaving the move abandoned
@@ -2143,7 +2114,8 @@ let quizModalOptionBtns = [];
   }
 
   function initNavCursor(state) {
-    const firstPegId = state.pegsToMove?.[0];
+    const cp = state.players[state.currentPlayerIdx];
+    const firstPegId = cp?.pegIds?.[0];
     if (firstPegId) {
       const peg = state.pegs[firstPegId];
       if (peg) {navCursor = { row: peg.row, col: peg.col };}
@@ -2282,11 +2254,6 @@ let quizModalOptionBtns = [];
     });
   });
 
-  el('btn-max-rank').addEventListener('click', () => {
-    setupMaxRankStart = !setupMaxRankStart;
-    el('btn-max-rank').classList.toggle('active', setupMaxRankStart);
-  });
-
   el('btn-help').addEventListener('click', () => { el('help-modal').classList.add('show'); });
   el('btn-hc').addEventListener('click', () => {
     document.body.classList.toggle('high-contrast');
@@ -2328,7 +2295,6 @@ let quizModalOptionBtns = [];
       boardSize:    setupBoardSize,
       timer:        setupTimer,
       enabledCats:  setupEnabledCats,
-      maxRankStart: setupMaxRankStart,
     }, ({ error, code, players, token }) => {
       if (error) {return showError(error);}
       const me = players.find(p => p.id === myId);
