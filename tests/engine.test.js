@@ -4,7 +4,9 @@ import {
   applyTurn,
   selectPeg,
   planTurnQuestions,
+  advancePendingQuestion,
   checkWinCondition,
+  getValidMoves,
   PHASE,
   CATS,
 } from '../server/game/engine.js';
@@ -14,9 +16,27 @@ function createQuestionsDb() {
   const q = {};
   for (const cat of CATS) {
     q[cat] = [
-      { id: `${cat}_1`, a: 0, q: 'Test?', opts: ['A', 'B', 'C', 'D'] },
-      { id: `${cat}_2`, a: 1, q: 'Test2?', opts: ['A', 'B', 'C', 'D'] },
-      { id: `${cat}_3`, a: 2, q: 'Test3?', opts: ['A', 'B', 'C', 'D'] },
+      {
+        id: `${cat}_1`,
+        a: 0,
+        q: 'Test?',
+        opts: ['A', 'B', 'C', 'D'],
+        category: cat,
+      },
+      {
+        id: `${cat}_2`,
+        a: 1,
+        q: 'Test2?',
+        opts: ['A', 'B', 'C', 'D'],
+        category: cat,
+      },
+      {
+        id: `${cat}_3`,
+        a: 2,
+        q: 'Test3?',
+        opts: ['A', 'B', 'C', 'D'],
+        category: cat,
+      },
     ];
   }
   q._byId = {};
@@ -40,6 +60,21 @@ function createSparseQuestionsDb(overrides = {}) {
     }
   }
   return q;
+}
+
+// Helper: apply one combat round (single answer), optionally advance to next question
+function combatRound(state, playerIdx, p1PegId, p2Peg, answerIdx, questionsDb) {
+  return applyTurn(
+    state,
+    playerIdx,
+    {
+      pegId: p1PegId,
+      targetR: p2Peg.row,
+      targetC: p2Peg.col,
+      answerIdx,
+    },
+    questionsDb,
+  );
 }
 
 describe('Engine: Game Creation', () => {
@@ -74,7 +109,7 @@ describe('Engine: Game Creation', () => {
         { name: 'P1', color: '#f00' },
         { name: 'P2', color: '#00f' },
       ],
-      { boardSize: 2 }
+      { boardSize: 2 },
     );
     expect(state.boardSize).toBe(2);
     expect(state.numPlayers).toBe(2);
@@ -88,28 +123,24 @@ describe('Engine: Game Creation', () => {
         { name: 'P1', color: '#f00' },
         { name: 'P2', color: '#00f' },
       ],
-      { boardSize: 2 }
+      { boardSize: 2 },
     );
 
     const p1PegId = state.players[0].pegIds[0];
     const p2PegId = state.players[1].pegIds[0];
 
-    // Verify starting positions are diagonal (opposite corners)
     const p1Peg = state.pegs[p1PegId];
     const p2Peg = state.pegs[p2PegId];
 
-    // In 2x2, player 1 should be at (0,0), player 2 at (1,1)
     expect(p1Peg.row).toBe(0);
     expect(p1Peg.col).toBe(0);
     expect(p2Peg.row).toBe(1);
     expect(p2Peg.col).toBe(1);
 
-    // Select P1's peg
     const result = selectPeg(state, 0, p1PegId);
     expect(result.ok).toBe(true);
     expect(result.validMoves).toBeDefined();
 
-    // P1 should have 2 valid moves: (0,1) and (1,0)
     const moves = result.validMoves.map((m) => ({
       r: Math.floor(m / 100),
       c: m % 100,
@@ -119,77 +150,82 @@ describe('Engine: Game Creation', () => {
     expect(moves).toContainEqual({ r: 1, c: 0 });
   });
 
-  it('2x2 board: complete turn with combat', () => {
+  it('2x2 board: complete turn with combat (3 rounds, all correct)', () => {
     const state = createGame(
       [
         { name: 'P1', color: '#f00' },
         { name: 'P2', color: '#00f' },
       ],
-      { boardSize: 2 }
+      { boardSize: 2 },
     );
 
     const p1PegId = state.players[0].pegIds[0];
     const p2PegId = state.players[1].pegIds[0];
     const p2Peg = state.pegs[p2PegId];
 
-    // Manually position P1 next to P2 for combat
     state.pegs[p1PegId].row = p2Peg.row;
     state.pegs[p1PegId].col = p2Peg.col - 1;
     state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
     state.board[p2Peg.row][p2Peg.col].pegId = p2PegId;
 
-    // Select P1's peg
-    const selectResult = selectPeg(state, 0, p1PegId);
-    expect(selectResult.ok).toBe(true);
-
-    // Plan combat move
+    selectPeg(state, 0, p1PegId);
     const questionsDb = createQuestionsDb();
-    const planResult = planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
-    expect(planResult.moveType).toBe('combat');
-    expect(planResult.questionIds).toHaveLength(2);
-
-    // Apply turn with correct answers
-    const q1Id = planResult.questionIds[0];
-    const q2Id = planResult.questionIds[1];
-    const a1 = questionsDb._byId[q1Id].a;
-    const a2 = questionsDb._byId[q2Id].a;
-
-    const turnResult = applyTurn(
+    const planResult = planTurnQuestions(
       state,
-      0,
-      {
-        pegId: p1PegId,
-        targetR: p2Peg.row,
-        targetC: p2Peg.col,
-        answers: [
-          { questionId: q1Id, answerIdx: a1 },
-          { questionId: q2Id, answerIdx: a2 },
-        ],
-      },
+      p1PegId,
+      p2Peg.row,
+      p2Peg.col,
       questionsDb,
     );
+    expect(planResult.moveType).toBe('combat');
 
-    expect(turnResult.ok).toBe(true);
-    expect(turnResult.events).toContainEqual({ type: 'peg_moved', pegId: p1PegId, r: p2Peg.row, c: p2Peg.col });
+    // Round 1
+    let qId = state.pendingTurn.questionId;
+    const r1 = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r1.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
 
-    // In 2x2 board, when attacker wins combat, defender should be eliminated
-    // because they're at rank 0 and there's no space to push them
+    // Round 2
+    qId = state.pendingTurn.questionId;
+    const r2 = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r2.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
 
-    // P2 should be eliminated from player's peg list and from the board
+    // Round 3
+    qId = state.pendingTurn.questionId;
+    const r3 = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r3.ok).toBe(true);
+    expect(r3.combatContinues).toBe(false);
+
     expect(state.players[1].pegIds).not.toContain(p2PegId);
-    expect(state.board[p2Peg.row][p2Peg.col].pegId).not.toBe(p2PegId);
-
-    // P1 should now be at the target position
-    expect(state.pegs[p1PegId].row).toBe(p2Peg.row);
-    expect(state.pegs[p1PegId].col).toBe(p2Peg.col);
     expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p1PegId);
-
-    // Should have elimination event
-    expect(turnResult.events).toContainEqual({ type: 'peg_eliminated', pegId: p2PegId });
-
-    // Game should be over since P2 has no pegs left
-    expect(turnResult.gameOver).toBe(true);
-    expect(turnResult.winner).toBe(0);
+    expect(r3.events).toContainEqual({
+      type: 'peg_eliminated',
+      pegId: p2PegId,
+    });
+    expect(r3.gameOver).toBe(true);
+    expect(r3.winner).toBe(0);
     expect(state.phase).toBe(PHASE.GAME_OVER);
   });
 
@@ -256,12 +292,10 @@ describe('Engine: Normal Move', () => {
       c: m % 100,
     }));
     const target = moves[0];
-
-    planTurnQuestions(state, pegId, target.r, target.c, createQuestionsDb());
-
-    // Use correct answer from question DB
-    const qId = state.pendingTurn.questionIds[0];
     const questionsDb = createQuestionsDb();
+    planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+
+    const qId = state.pendingTurn.questionId;
     const correctIdx = questionsDb._byId[qId].a;
 
     const turnResult = applyTurn(
@@ -271,7 +305,7 @@ describe('Engine: Normal Move', () => {
         pegId,
         targetR: target.r,
         targetC: target.c,
-        answers: [{ questionId: qId, answerIdx: correctIdx }],
+        answerIdx: correctIdx,
       },
       questionsDb,
     );
@@ -281,12 +315,13 @@ describe('Engine: Normal Move', () => {
     expect(state.board[target.r][target.c].pegId).toBe(pegId);
   });
 
-  it('fails move on wrong answer', () => {
+  it('fails move on wrong answer — returns to peg selection', () => {
     const state = createGame([
       { name: 'P1', color: '#f00' },
       { name: 'P2', color: '#00f' },
     ]);
     const pegId = state.players[0].pegIds[0];
+    const questionsDb = createQuestionsDb();
 
     const result = selectPeg(state, 0, pegId);
     expect(result.ok).toBe(true);
@@ -297,7 +332,11 @@ describe('Engine: Normal Move', () => {
     }));
     const target = moves[0];
 
-    planTurnQuestions(state, pegId, target.r, target.c, createQuestionsDb());
+    planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+
+    const qId = state.pendingTurn.questionId;
+    const correctIdx = questionsDb._byId[qId].a;
+    const wrongIdx = (correctIdx + 1) % 4;
 
     const turnResult = applyTurn(
       state,
@@ -306,11 +345,9 @@ describe('Engine: Normal Move', () => {
         pegId,
         targetR: target.r,
         targetC: target.c,
-        answers: [
-          { questionId: state.pendingTurn.questionIds[0], answerIdx: 1 },
-        ],
+        answerIdx: wrongIdx,
       },
-      createQuestionsDb(),
+      questionsDb,
     );
 
     expect(turnResult.ok).toBe(true);
@@ -320,7 +357,6 @@ describe('Engine: Normal Move', () => {
 
 describe('Engine: Question Selection', () => {
   it('falls back to any available question when the target category is empty', () => {
-    // Hardcode boardLayout to ensure all tiles are 'history' (index 0)
     const boardLayout = [
       [0, 0, 0, 0],
       [0, 0, 0, 0],
@@ -336,7 +372,13 @@ describe('Engine: Question Selection', () => {
     );
     const questionsDb = createSparseQuestionsDb({
       science: [
-        { id: 'science_1', a: 0, q: 'Fallback?', opts: ['A', 'B', 'C', 'D'] },
+        {
+          id: 'science_1',
+          a: 0,
+          q: 'Fallback?',
+          opts: ['A', 'B', 'C', 'D'],
+          category: 'science',
+        },
       ],
     });
     const pegId = state.players[0].pegIds[0];
@@ -350,14 +392,19 @@ describe('Engine: Question Selection', () => {
 
     expect(target).toBeDefined();
 
-    const planResult = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+    const planResult = planTurnQuestions(
+      state,
+      pegId,
+      target.r,
+      target.c,
+      questionsDb,
+    );
 
-    expect(planResult.questionIds).toEqual(['science_1']);
-    expect(state.pendingTurn.questionIds).toEqual(['science_1']);
+    expect(planResult.questionId).toBe('science_1');
+    expect(state.pendingTurn.questionId).toBe('science_1');
   });
 
   it('reuses questions instead of returning fewer ids once a category is consumed', () => {
-    // Hardcode boardLayout to ensure all tiles are 'history' (index 0)
     const boardLayout = [
       [0, 0, 0, 0],
       [0, 0, 0, 0],
@@ -373,7 +420,13 @@ describe('Engine: Question Selection', () => {
     );
     const questionsDb = createSparseQuestionsDb({
       history: [
-        { id: 'history_1', a: 0, q: 'Only one?', opts: ['A', 'B', 'C', 'D'] },
+        {
+          id: 'history_1',
+          a: 0,
+          q: 'Only one?',
+          opts: ['A', 'B', 'C', 'D'],
+          category: 'history',
+        },
       ],
     });
     const pegId = state.players[0].pegIds[0];
@@ -387,11 +440,349 @@ describe('Engine: Question Selection', () => {
 
     expect(target).toBeDefined();
 
-    const first = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
-    const second = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+    const first = planTurnQuestions(
+      state,
+      pegId,
+      target.r,
+      target.c,
+      questionsDb,
+    );
+    const second = planTurnQuestions(
+      state,
+      pegId,
+      target.r,
+      target.c,
+      questionsDb,
+    );
 
-    expect(first.questionIds).toEqual(['history_1']);
-    expect(second.questionIds).toEqual(['history_1']);
+    expect(first.questionId).toBe('history_1');
+    expect(second.questionId).toBe('history_1');
+  });
+});
+
+describe('Engine: HP-Based Combat', () => {
+  function setupCombatState() {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
+
+    const p1OrigRow = state.pegs[p1PegId].row;
+    const p1OrigCol = state.pegs[p1PegId].col;
+    state.board[p1OrigRow][p1OrigCol].pegId = null;
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
+
+    selectPeg(state, 0, p1PegId);
+    const questionsDb = createQuestionsDb();
+    const planResult = planTurnQuestions(
+      state,
+      p1PegId,
+      p2Peg.row,
+      p2Peg.col,
+      questionsDb,
+    );
+
+    return { state, p1PegId, p2PegId, p2Peg, questionsDb, planResult };
+  }
+
+  it('pegs start with 3 HP', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    for (const pegId of Object.keys(state.pegs)) {
+      expect(state.pegs[pegId].hp).toBe(3);
+    }
+  });
+
+  it('combat plans questionsTotal = min(movesRemaining, 3)', () => {
+    const { planResult, state } = setupCombatState();
+    expect(planResult.questionId).toBeTruthy();
+    expect(state.pendingTurn.questionsTotal).toBe(Math.min(3, 3)); // movesRemaining=3
+  });
+
+  it('attacker misses Q1 — combat ends, defender HP unchanged at 3', () => {
+    const { state, p1PegId, p2PegId, p2Peg, questionsDb } = setupCombatState();
+    const qId = state.pendingTurn.questionId;
+    const wrongA = (questionsDb._byId[qId].a + 1) % 4;
+
+    const result = combatRound(state, 0, p1PegId, p2Peg, wrongA, questionsDb);
+
+    expect(result.ok).toBe(true);
+    expect(result.combatContinues).toBe(false);
+    expect(state.pegs[p2PegId].hp).toBe(3);
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p2PegId);
+  });
+
+  it('attacker hits Q1+Q2, misses Q3 — defender at 1 HP, survives, turn advances', () => {
+    const { state, p1PegId, p2PegId, p2Peg, questionsDb } = setupCombatState();
+
+    // Round 1 correct
+    let qId = state.pendingTurn.questionId;
+    let r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
+
+    // Round 2 correct
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
+
+    // Round 3 wrong
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      (questionsDb._byId[qId].a + 1) % 4,
+      questionsDb,
+    );
+
+    expect(r.ok).toBe(true);
+    expect(r.combatContinues).toBe(false);
+    expect(state.pegs[p2PegId].hp).toBe(1);
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p2PegId);
+    expect(state.currentPlayerIdx).toBe(1);
+  });
+
+  it('attacker hits Q1+Q2+Q3 — defender eliminated, attacker moves in, turn advances', () => {
+    const { state, p1PegId, p2PegId, p2Peg, questionsDb } = setupCombatState();
+
+    // Round 1
+    let qId = state.pendingTurn.questionId;
+    let r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
+
+    // Round 2
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
+
+    // Round 3
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+
+    expect(r.ok).toBe(true);
+    expect(r.combatContinues).toBe(false);
+    expect(r.events).toContainEqual(
+      expect.objectContaining({ type: 'peg_eliminated', pegId: p2PegId }),
+    );
+    expect(r.events).toContainEqual({
+      type: 'peg_moved',
+      pegId: p1PegId,
+      r: p2Peg.row,
+      c: p2Peg.col,
+    });
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p1PegId);
+  });
+
+  it('combat_hit events emitted with correct hp values', () => {
+    const { state, p1PegId, p2PegId, p2Peg, questionsDb } = setupCombatState();
+
+    // Round 1 correct
+    let qId = state.pendingTurn.questionId;
+    let r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.events).toContainEqual({
+      type: 'combat_hit',
+      defPegId: p2PegId,
+      hp: 2,
+    });
+    advancePendingQuestion(state, questionsDb);
+
+    // Round 2 correct
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.events).toContainEqual({
+      type: 'combat_hit',
+      defPegId: p2PegId,
+      hp: 1,
+    });
+    advancePendingQuestion(state, questionsDb);
+
+    // Round 3 wrong — no hit event
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      (questionsDb._byId[qId].a + 1) % 4,
+      questionsDb,
+    );
+    expect(r.events.filter((e) => e.type === 'combat_hit')).toHaveLength(0);
+  });
+
+  it('combat with 1 move remaining — questionsTotal = 1, ends after Q1', () => {
+    const { state, p1PegId, p2Peg, questionsDb } = setupCombatState();
+    state.movesRemaining = 1;
+    // Re-plan with movesRemaining=1
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+    expect(state.pendingTurn.questionsTotal).toBe(1);
+
+    const qId = state.pendingTurn.questionId;
+    const r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    // After 1 correct answer with questionsTotal=1: combatContinues must be false
+    expect(r.combatContinues).toBe(false);
+  });
+
+  it('combat with 2 moves remaining — questionsTotal = 2', () => {
+    const { state, p1PegId, p2Peg, questionsDb } = setupCombatState();
+    state.movesRemaining = 2;
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+    expect(state.pendingTurn.questionsTotal).toBe(2);
+  });
+});
+
+describe('Engine: 3-Move Turn Pool', () => {
+  it('movesRemaining starts at 3 at game start', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    expect(state.movesRemaining).toBe(3);
+  });
+
+  it('wrong answer on normal move decrements movesRemaining by 1', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const pegId = state.players[0].pegIds[0];
+    const questionsDb = createQuestionsDb();
+    selectPeg(state, 0, pegId);
+    const moves = getValidMoves(state, pegId);
+    const target = moves[0];
+
+    planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+    const qId = state.pendingTurn.questionId;
+    const wrongIdx = (questionsDb._byId[qId].a + 1) % 4;
+
+    applyTurn(
+      state,
+      0,
+      {
+        pegId,
+        targetR: target.r,
+        targetC: target.c,
+        answerIdx: wrongIdx,
+      },
+      questionsDb,
+    );
+
+    expect(state.movesRemaining).toBe(2);
+    expect(state.currentPlayerIdx).toBe(0);
+  });
+
+  it('player can select any peg during their turn', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const result0 = selectPeg(state, 0, state.players[0].pegIds[0]);
+    expect(result0.ok).toBe(true);
+    const result1 = selectPeg(state, 0, state.players[0].pegIds[1]);
+    expect(result1.ok).toBe(true);
+    const result2 = selectPeg(state, 0, state.players[0].pegIds[2]);
+    expect(result2.ok).toBe(true);
+  });
+
+  it('turn advances after all 3 moves spent via wrong answers', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const questionsDb = createQuestionsDb();
+
+    for (let i = 0; i < 3; i++) {
+      const pegId = state.players[0].pegIds[0];
+      selectPeg(state, 0, pegId);
+      const moves = getValidMoves(state, pegId);
+      const target = moves[0];
+      planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+      const qId = state.pendingTurn.questionId;
+      const wrongIdx = (questionsDb._byId[qId].a + 1) % 4;
+      applyTurn(
+        state,
+        0,
+        {
+          pegId,
+          targetR: target.r,
+          targetC: target.c,
+          answerIdx: wrongIdx,
+        },
+        questionsDb,
+      );
+      if (state.currentPlayerIdx !== 0) {
+        break;
+      }
+    }
+
+    expect(state.currentPlayerIdx).toBe(1);
   });
 });
 
@@ -406,110 +797,9 @@ describe('Engine: Combat - Bug Fix Validation', () => {
     const p2PegId = state.players[1].pegIds[0];
     const p2Peg = state.pegs[p2PegId];
 
-    // Clear old position before moving
     const p1OrigRow = state.pegs[p1PegId].row;
     const p1OrigCol = state.pegs[p1PegId].col;
     state.board[p1OrigRow][p1OrigCol].pegId = null;
-
-    // Position P1 next to P2
-    state.pegs[p1PegId].row = p2Peg.row;
-    state.pegs[p1PegId].col = p2Peg.col - 1;
-    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
-
-    selectPeg(state, 0, p1PegId);
-    const questionsDb = createQuestionsDb();
-    planTurnQuestions(
-      state,
-      p1PegId,
-      p2Peg.row,
-      p2Peg.col,
-      questionsDb,
-    );
-
-    const q1Id = state.pendingTurn.questionIds[0];
-    const q2Id = state.pendingTurn.questionIds[1];
-    const a1 = questionsDb._byId[q1Id].a;
-    const wrongA1 = (a1 + 1) % 4; // Ensure it's wrong
-
-    const result = applyTurn(
-      state,
-      0,
-      {
-        pegId: p1PegId,
-        targetR: p2Peg.row,
-        targetC: p2Peg.col,
-        answers: [
-          { questionId: q1Id, answerIdx: wrongA1 }, // Wrong
-          { questionId: q2Id, answerIdx: 0 },
-        ],
-      },
-      questionsDb,
-    );
-
-    expect(result.ok).toBe(true);
-    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p2PegId);
-  });
-
-  it('attacker loses if Q2 wrong (Q1 correct)', () => {
-    const state = createGame([
-      { name: 'P1', color: '#f00' },
-      { name: 'P2', color: '#00f' },
-    ]);
-
-    const p1PegId = state.players[0].pegIds[0];
-    const p2PegId = state.players[1].pegIds[0];
-    const p2Peg = state.pegs[p2PegId];
-
-    state.pegs[p1PegId].row = p2Peg.row;
-    state.pegs[p1PegId].col = p2Peg.col - 1;
-    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
-
-    selectPeg(state, 0, p1PegId);
-    const questionsDb = createQuestionsDb();
-    planTurnQuestions(
-      state,
-      p1PegId,
-      p2Peg.row,
-      p2Peg.col,
-      questionsDb,
-    );
-
-    const q1Id = state.pendingTurn.questionIds[0];
-    const q2Id = state.pendingTurn.questionIds[1];
-    const a1 = questionsDb._byId[q1Id].a;
-    const a2 = questionsDb._byId[q2Id].a;
-    const wrongA2 = (a2 + 1) % 4; // Ensure it's wrong
-
-    const result = applyTurn(
-      state,
-      0,
-      {
-        pegId: p1PegId,
-        targetR: p2Peg.row,
-        targetC: p2Peg.col,
-        answers: [
-          { questionId: q1Id, answerIdx: a1 }, // Correct
-          { questionId: q2Id, answerIdx: wrongA2 }, // Wrong
-        ],
-      },
-      questionsDb,
-    );
-
-    expect(result.ok).toBe(true);
-    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p2PegId);
-  });
-
-  it('attacker wins if both Q1 and Q2 correct', () => {
-    const state = createGame([
-      { name: 'P1', color: '#f00' },
-      { name: 'P2', color: '#00f' },
-    ]);
-
-    const p1PegId = state.players[0].pegIds[0];
-    const p2PegId = state.players[1].pegIds[0];
-    const p2Peg = state.pegs[p2PegId];
-
-    // Position P1 next to P2
     state.pegs[p1PegId].row = p2Peg.row;
     state.pegs[p1PegId].col = p2Peg.col - 1;
     state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
@@ -518,29 +808,101 @@ describe('Engine: Combat - Bug Fix Validation', () => {
     const questionsDb = createQuestionsDb();
     planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
 
-    const q1Id = state.pendingTurn.questionIds[0];
-    const q2Id = state.pendingTurn.questionIds[1];
-    const a1 = questionsDb._byId[q1Id].a;
-    const a2 = questionsDb._byId[q2Id].a;
+    const qId = state.pendingTurn.questionId;
+    const wrongA = (questionsDb._byId[qId].a + 1) % 4;
 
-    const result = applyTurn(
+    const result = combatRound(state, 0, p1PegId, p2Peg, wrongA, questionsDb);
+
+    expect(result.ok).toBe(true);
+    expect(result.combatContinues).toBe(false);
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p2PegId);
+  });
+
+  it('attacker loses if Q2 wrong (Q1 correct) — turn ends after Q2', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
+
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
+
+    selectPeg(state, 0, p1PegId);
+    const questionsDb = createQuestionsDb();
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+
+    // Q1 correct
+    let qId = state.pendingTurn.questionId;
+    let r = combatRound(
       state,
       0,
-      {
-        pegId: p1PegId,
-        targetR: p2Peg.row,
-        targetC: p2Peg.col,
-        answers: [
-          { questionId: q1Id, answerIdx: a1 },
-          { questionId: q2Id, answerIdx: a2 },
-        ],
-      },
+      p1PegId,
+      p2Peg,
+      questionsDb._byId[qId].a,
+      questionsDb,
+    );
+    expect(r.combatContinues).toBe(true);
+    advancePendingQuestion(state, questionsDb);
+
+    // Q2 wrong
+    qId = state.pendingTurn.questionId;
+    r = combatRound(
+      state,
+      0,
+      p1PegId,
+      p2Peg,
+      (questionsDb._byId[qId].a + 1) % 4,
       questionsDb,
     );
 
-    expect(result.ok).toBe(true);
-    // Attacker should have moved to defender's position
-    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p1PegId);
+    expect(r.ok).toBe(true);
+    expect(r.combatContinues).toBe(false);
+    expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p2PegId);
+    // Turn must have ended
+    expect(state.currentPlayerIdx).toBe(1);
+  });
+
+  it('attacker wins if all 3 questions correct (defender eliminated at 0 HP)', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
+
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
+
+    selectPeg(state, 0, p1PegId);
+    const questionsDb = createQuestionsDb();
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+
+    for (let i = 0; i < 3; i++) {
+      const qId = state.pendingTurn.questionId;
+      const r = combatRound(
+        state,
+        0,
+        p1PegId,
+        p2Peg,
+        questionsDb._byId[qId].a,
+        questionsDb,
+      );
+      if (i < 2) {
+        expect(r.combatContinues).toBe(true);
+        advancePendingQuestion(state, questionsDb);
+      } else {
+        expect(r.combatContinues).toBe(false);
+        expect(state.board[p2Peg.row][p2Peg.col].pegId).toBe(p1PegId);
+      }
+    }
   });
 });
 
