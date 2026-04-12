@@ -998,7 +998,9 @@
       } else {
         hideUserBar();
       }
-    } catch { /* not logged in */ hideUserBar(); }
+    } catch (error) {
+      console.warn('[auth] Auth check failed (will retry):', error);
+    }
   }
 
   // Auth tab switching
@@ -1190,7 +1192,12 @@
         }
       });
     }
+    // Re-check authentication status after reconnect
+    checkAuth();
   });
+
+  // Periodically re-check authentication status (every 2 minutes)
+  setInterval(checkAuth, 120000);
 
   // ============================================================
   // UTILITIES

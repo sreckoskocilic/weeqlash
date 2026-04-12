@@ -53,18 +53,82 @@ function renderHTML(title, content, extra = '') {
 </html>`;
 }
 
-// Middleware to check admin
-function requireAdmin(req, res, next) {
-  if (!req.session.isAdmin) {
-    return res.send(renderHTML('Access Denied', '<h1>Access Denied</h1><p>You must be an admin to access this page.</p>'));
+// Admin magic key — loaded once from env at startup
+const ADMIN_MAGIC_KEY = process.env.ADMIN_SECRET || '';
+
+// Rate limiting for failed admin access attempts: IP -> { count, windowStart, blockedUntil }
+const adminAttempts = new Map();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 60_000;      // 1 minute window
+const BLOCK_MS   = 300_000;    // 5 minute block after exceeding limit
+
+function recordFailedAttempt(ip) {
+  const now = Date.now();
+  const entry = adminAttempts.get(ip) ?? { count: 0, windowStart: now, blockedUntil: 0 };
+
+  if (now < entry.blockedUntil) {
+    return { blocked: true, retryAfter: Math.ceil((entry.blockedUntil - now) / 1000) };
   }
-  next();
+
+  if (now - entry.windowStart > WINDOW_MS) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+
+  entry.count++;
+  if (entry.count >= MAX_ATTEMPTS) {
+    entry.blockedUntil = now + BLOCK_MS;
+    console.warn(`[admin] IP ${ip} blocked for ${BLOCK_MS / 1000}s after ${entry.count} failed attempts`);
+  } else {
+    console.warn(`[admin] Failed admin access from IP ${ip} (${entry.count}/${MAX_ATTEMPTS})`);
+  }
+
+  adminAttempts.set(ip, entry);
+  return entry.blockedUntil > 0
+    ? { blocked: true, retryAfter: Math.ceil(BLOCK_MS / 1000) }
+    : { blocked: false };
+}
+
+// Prune stale entries every 10 minutes to prevent unbounded growth
+setInterval(() => {
+  const cutoff = Date.now() - (BLOCK_MS + WINDOW_MS);
+  for (const [ip, entry] of adminAttempts) {
+    if (entry.windowStart < cutoff && entry.blockedUntil < Date.now()) adminAttempts.delete(ip);
+  }
+}, 10 * 60_000).unref();
+
+function getClientIp(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.headers['x-real-ip']
+    || req.socket.remoteAddress
+    || 'unknown';
+}
+
+function requireAdmin(req, res, next) {
+  // Authenticated admin via session — fast path, no rate limiting
+  if (req.session.isAdmin) return next();
+
+  // Check for magic key in header or query string
+  const key = req.headers['x-admin-key'] || req.query.admin_key;
+  if (key && ADMIN_MAGIC_KEY && key === ADMIN_MAGIC_KEY) return next();
+
+  // All other attempts are failures — record and possibly block
+  const ip = getClientIp(req);
+  const result = recordFailedAttempt(ip);
+
+  if (result.blocked) {
+    return res.status(429).send(renderHTML('Too Many Requests',
+      `<h1>Too Many Requests</h1><p>Try again in ${result.retryAfter} seconds.</p>`));
+  }
+
+  return res.status(403).send(renderHTML('Access Denied',
+    '<h1>Access Denied</h1><p>You must be an admin to access this page.</p>'));
 }
 
 router.use(requireAdmin);
 
 // ========== USERS PAGE ==========
-router.get('/users', (req, res) => {
+router.get('/users', (_req, res) => {
   const db = getDb();
   const users = db.prepare('SELECT * FROM users ORDER BY id DESC').all();
 
@@ -276,7 +340,7 @@ router.post('/users/resend-email', express.urlencoded({ extended: true }), async
 });
 
 // ========== STATISTICS PAGE ==========
-router.get('/stats', (req, res) => {
+router.get('/stats', (_req, res) => {
   const db = getDb();
 
   const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
@@ -375,7 +439,7 @@ router.get('/stats', (req, res) => {
 });
 
 // ========== ADMIN PAGE ==========
-router.get('/admin', (req, res) => {
+router.get('/admin', (_req, res) => {
   // Game settings from database or defaults
   const content = `
     <h1>Administration</h1>

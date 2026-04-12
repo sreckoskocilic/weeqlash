@@ -46,11 +46,12 @@ const httpServer = createServer(app);
 
 // Session store function - use MemoryStore (sessions persist while server runs)
 function createSessionMiddleware() {
+  const isSecure = process.env.NODE_ENV === 'production';
   return session({
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 },
+    cookie: { secure: isSecure, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' },
   });
 }
 
@@ -167,7 +168,7 @@ app.use('/admin', adminRoutes);
 io.engine.use(sessionMiddleware);
 
 // Serve client HTML for dev testing
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.type('text/html').send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
 });
 
