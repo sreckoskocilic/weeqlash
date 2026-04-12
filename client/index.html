@@ -688,9 +688,9 @@
 
       /* ===== PEGS ===== */
       .peg {
-        width: calc(var(--ts) * 0.44);
-        height: calc(var(--ts) * 0.44);
-        border-radius: 6px;
+        width: calc(var(--ts) * 0.55);
+        height: calc(var(--ts) * 0.55);
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -723,10 +723,10 @@
       }
       .peg-hp {
         position: absolute;
-        bottom: 2px;
-        right: 3px;
-        width: calc(var(--ts) * 0.38);
-        height: calc(var(--ts) * 0.38);
+        bottom: -2px;
+        right: -2px;
+        width: calc(var(--ts) * 0.22);
+        height: calc(var(--ts) * 0.22);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -735,19 +735,18 @@
       .peg-hp-heart {
         position: absolute;
         inset: 0;
-        font-size: calc(var(--ts) * 0.38);
+        font-size: calc(var(--ts) * 0.22);
         line-height: 1;
         color: #e53935;
         filter: drop-shadow(0 0 2px #000);
       }
       .peg-hp-count {
         position: relative;
-        font-size: calc(var(--ts) * 0.16);
+        font-size: calc(var(--ts) * 0.1);
         font-weight: 900;
         color: white;
         text-shadow: 0 0 2px #000;
         line-height: 1;
-        margin-top: calc(var(--ts) * 0.02);
       }
 
       /* ===== QUESTION MODAL ===== */
@@ -1691,6 +1690,23 @@
           <button id="btn-create">Create game</button>
         </div>
 
+        <div
+          class="setup-section"
+          id="dev-quickstart-section"
+          style="margin-bottom: 0.5rem; display: none"
+        >
+          <button
+            id="btn-dev-quickstart"
+            style="
+              background: var(--bg3);
+              color: var(--muted);
+              border: 1px dashed var(--bg3);
+            "
+          >
+            ⚡ Dev: Quick Game
+          </button>
+        </div>
+
         <div class="setup-actions" style="margin-top: 10px">
           <button id="btn-help">How to Play</button>
           <button id="btn-hc">High Contrast</button>
@@ -2600,6 +2616,12 @@
       // ============================================================
       socket.on("connect", () => {
         myId = socket.id;
+        if (
+          location.hostname === "localhost" ||
+          location.hostname === "127.0.0.1"
+        ) {
+          el("dev-quickstart-section").style.display = "";
+        }
       });
 
       socket.on("room:player_joined", ({ players }) => {
@@ -3149,8 +3171,10 @@
           }
           pegEl.style.background = player.color;
           const pegLetterIdx = player?.pegIds?.indexOf(tile.pegId) ?? -1;
-          pegEl.textContent =
+          const letterEl = document.createElement("span");
+          letterEl.textContent =
             pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : "";
+          pegEl.appendChild(letterEl);
           pegEl.title = `${sanitize(player.name)} — HP: ${peg.hp}`;
           const hpEl = document.createElement("span");
           hpEl.className = "peg-hp";
@@ -3881,6 +3905,13 @@
               window.closeLegal(page);
             }
           });
+      });
+
+      el("btn-dev-quickstart").addEventListener("click", () => {
+        myPlayerIndex = 0;
+        socket.emit("dev:quickstart", { boardSize: 4 }, ({ ok, error }) => {
+          if (!ok) showError(error ?? "Dev quickstart failed");
+        });
       });
 
       el("btn-create").addEventListener("click", () => {
