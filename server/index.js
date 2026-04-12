@@ -42,6 +42,7 @@ import adminRoutes from './routes/admin.js';
 import { rooms, socketToRoom } from './game/rooms.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 // Session store function - use MemoryStore (sessions persist while server runs)

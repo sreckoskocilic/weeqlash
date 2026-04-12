@@ -93,7 +93,7 @@ function recordFailedAttempt(ip) {
 setInterval(() => {
   const cutoff = Date.now() - (BLOCK_MS + WINDOW_MS);
   for (const [ip, entry] of adminAttempts) {
-    if (entry.windowStart < cutoff && entry.blockedUntil < Date.now()) adminAttempts.delete(ip);
+    if (entry.windowStart < cutoff && entry.blockedUntil < Date.now()) {adminAttempts.delete(ip);}
   }
 }, 10 * 60_000).unref();
 
@@ -106,11 +106,15 @@ function getClientIp(req) {
 
 function requireAdmin(req, res, next) {
   // Authenticated admin via session — fast path, no rate limiting
-  if (req.session.isAdmin) return next();
+  if (req.session.isAdmin) {return next();}
 
   // Check for magic key in header or query string
   const key = req.headers['x-admin-key'] || req.query.admin_key;
-  if (key && ADMIN_MAGIC_KEY && key === ADMIN_MAGIC_KEY) return next();
+  if (key && ADMIN_MAGIC_KEY && key === ADMIN_MAGIC_KEY) {
+    req.session.isAdmin = true;
+    req.session.save(() => next());
+    return;
+  }
 
   // All other attempts are failures — record and possibly block
   const ip = getClientIp(req);
