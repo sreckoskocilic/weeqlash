@@ -1,92 +1,160 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, applyTurn, botSelectAnswers } from '../server/game/engine.js';
+import {
+  createGame,
+  applyTurn,
+  selectPeg,
+  planTurnQuestions,
+  advancePendingQuestion,
+  getValidMoves,
+  CATS,
+} from '../server/game/engine.js';
 
 describe('Bot opponent – turn flow and state handling', () => {
   const baseConfig = { boardSize: 4, enabledCats: ['general'] };
-  function getStartState() {
-    const s = createGame(
-      [{ name: 'Player 1' }, { name: 'Player 2' }],
-      baseConfig
-    );
-    s.pendingTurn = null;
-    return s;
+
+  function createQuestionsDb() {
+    const q = {};
+    for (const cat of CATS) {
+      q[cat] = [
+        {
+          id: `${cat}_1`,
+          a: 0,
+          q: 'Test?',
+          opts: ['A', 'B', 'C', 'D'],
+          category: cat,
+        },
+        {
+          id: `${cat}_2`,
+          a: 0,
+          q: 'Test2?',
+          opts: ['A', 'B', 'C', 'D'],
+          category: cat,
+        },
+        {
+          id: `${cat}_3`,
+          a: 0,
+          q: 'Test3?',
+          opts: ['A', 'B', 'C', 'D'],
+          category: cat,
+        },
+      ];
+    }
+    q._byId = {};
+    for (const cat of CATS) {
+      for (const qq of q[cat]) {
+        q._byId[qq.id] = qq;
+      }
+    }
+    return q;
   }
 
-  const pegId0 = Object.keys(getStartState().pegs)[0];
-  const questionsDb = {
-    general: [
-      { id: 'q1', a: 0 },
-      { id: 'q2', a: 0 },
-      { id: 'q3', a: 0 },
-    ],
-    _byId: {
-      q1: { a: 0 },
-      q2: { a: 0 },
-      q3: { a: 0 },
-    },
-  };
-  const baseSubmission = {
-    pegId: pegId0,
-    targetR: 3,
-    targetC: 3,
-    moveType: 'combat',
-    questionIds: ['q1', 'q2', 'q3'],
-  };
+  function getStartState() {
+    return createGame([{ name: 'Player 1' }, { name: 'Player 2' }], baseConfig);
+  }
+
+  // Helper: run combat fully (single-answer API), answering correctly or wrongly per round
+  function runCombat(state, questionsDb, p1PegId, p2Peg, answers) {
+    let lastResult;
+    for (let i = 0; i < answers.length; i++) {
+      const qId = state.pendingTurn.questionId;
+      const answerIdx =
+        answers[i] === 'correct'
+          ? questionsDb._byId[qId].a
+          : (questionsDb._byId[qId].a + 1) % 4;
+
+      lastResult = applyTurn(
+        state,
+        0,
+        {
+          pegId: p1PegId,
+          targetR: p2Peg.row,
+          targetC: p2Peg.col,
+          answerIdx,
+        },
+        questionsDb,
+      );
+
+      if (!lastResult.combatContinues) {break;}
+      advancePendingQuestion(state, questionsDb);
+    }
+    return lastResult;
+  }
 
   it('ends the turn without finishing the game when the first answer is wrong', () => {
-    const wrongSubmission = {
-      ...baseSubmission,
-      answers: [{ questionId: 'q1', answerIdx: 1 }],
-    };
+    const state = getStartState();
+    const questionsDb = createQuestionsDb();
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
 
-    const { result, state: after } = triggerTurn(
-      getStartState(),
-      0,
-      questionsDb,
-      wrongSubmission
-    );
+    // Position P1 adjacent to P2
+    state.board[state.pegs[p1PegId].row][state.pegs[p1PegId].col].pegId = null;
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
+
+    selectPeg(state, 0, p1PegId);
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+
+    const result = runCombat(state, questionsDb, p1PegId, p2Peg, ['wrong']);
 
     expect(result.gameOver).toBe(false);
-    expect(after.winner).toBeNull();
-    expect(after.pendingTurn).toBeNull();
+    expect(state.winner).toBeNull();
+    expect(state.pendingTurn).toBeNull();
   });
 
   it('ends the game when combat eliminates the opponent on 4x4 board', () => {
-    const correctSubmission = {
-      ...baseSubmission,
-      answers: [
-        { questionId: 'q1', answerIdx: 0 },
-        { questionId: 'q2', answerIdx: 0 },
-        { questionId: 'q3', answerIdx: 0 },
-      ],
-    };
+    const state = getStartState();
+    const questionsDb = createQuestionsDb();
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
 
-    const { result, state: after } = triggerTurn(
-      getStartState(),
-      0,
-      questionsDb,
-      correctSubmission
-    );
+    // Position P1 adjacent to P2
+    state.board[state.pegs[p1PegId].row][state.pegs[p1PegId].col].pegId = null;
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
+
+    selectPeg(state, 0, p1PegId);
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+
+    // 3 correct answers eliminate defender (3 HP)
+    const result = runCombat(state, questionsDb, p1PegId, p2Peg, [
+      'correct',
+      'correct',
+      'correct',
+    ]);
 
     // On 4x4 with 1 peg per player, combat that eliminates opponent ends game
     expect(result.gameOver).toBe(true);
     expect(result.winner).toBe(0);
-    expect(after.pendingTurn).toBeNull();
+    expect(state.pendingTurn).toBeNull();
   });
 
   it('switches turn order correctly after spending all 3 move tokens', () => {
     const state = getStartState();
-    // Spend all 3 tokens with wrong answers so the peg stays put and we can repeat
+    const questionsDb = createQuestionsDb();
+
     for (let i = 0; i < 3; i++) {
-      const submission = {
-        pegId: pegId0,
-        targetR: 0,
-        targetC: 1,
-        moveType: 'normal',
-        questionIds: ['q1'],
-        answers: [{ questionId: 'q1', answerIdx: 1 }], // wrong answer
-      };
-      triggerTurn(state, 0, questionsDb, submission);
+      const pegId = state.players[0].pegIds[0];
+      selectPeg(state, 0, pegId);
+      const moves = getValidMoves(state, pegId);
+      const target = moves[0];
+      planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+      const qId = state.pendingTurn.questionId;
+      const wrongIdx = (questionsDb._byId[qId].a + 1) % 4;
+      applyTurn(
+        state,
+        0,
+        {
+          pegId,
+          targetR: target.r,
+          targetC: target.c,
+          answerIdx: wrongIdx,
+        },
+        questionsDb,
+      );
       if (state.currentPlayerIdx !== 0) {break;}
     }
 
@@ -95,52 +163,56 @@ describe('Bot opponent – turn flow and state handling', () => {
   });
 
   it('clears pendingTurn after a wrong answer', () => {
-    const wrongSubmission = {
-      ...baseSubmission,
-      answers: [{ questionId: 'q1', answerIdx: 1 }],
-    };
-
     const state = getStartState();
-    state.pendingTurn = { ...baseSubmission };
-    const { state: after } = triggerTurn(
+    const questionsDb = createQuestionsDb();
+    const pegId = state.players[0].pegIds[0];
+    selectPeg(state, 0, pegId);
+    const moves = getValidMoves(state, pegId);
+    const target = moves[0];
+    planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+
+    const qId = state.pendingTurn.questionId;
+    const wrongIdx = (questionsDb._byId[qId].a + 1) % 4;
+    applyTurn(
       state,
       0,
+      {
+        pegId,
+        targetR: target.r,
+        targetC: target.c,
+        answerIdx: wrongIdx,
+      },
       questionsDb,
-      wrongSubmission
     );
 
-    expect(after.pendingTurn).toBeNull();
+    expect(state.pendingTurn).toBeNull();
   });
 
-  it('bot can play a turn using botSelectAnswers', () => {
-    const botSubmission = {
-      ...baseSubmission,
-      answers: botSelectAnswers(baseSubmission.questionIds, questionsDb),
-    };
+  it('bot answers correctly and wins using single-answer API', () => {
+    const state = getStartState();
+    const questionsDb = createQuestionsDb();
+    const p1PegId = state.players[0].pegIds[0];
+    const p2PegId = state.players[1].pegIds[0];
+    const p2Peg = state.pegs[p2PegId];
 
-    const { result, state: after } = triggerTurn(
-      getStartState(),
-      0,
-      questionsDb,
-      botSubmission
-    );
+    // Position P1 adjacent to P2
+    state.board[state.pegs[p1PegId].row][state.pegs[p1PegId].col].pegId = null;
+    state.pegs[p1PegId].row = p2Peg.row;
+    state.pegs[p1PegId].col = p2Peg.col - 1;
+    state.board[p2Peg.row][p2Peg.col - 1].pegId = p1PegId;
 
-    // The bot should have answered correctly and won the game
+    selectPeg(state, 0, p1PegId);
+    planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
+
+    // Bot answers all 3 correctly
+    const result = runCombat(state, questionsDb, p1PegId, p2Peg, [
+      'correct',
+      'correct',
+      'correct',
+    ]);
+
     expect(result.gameOver).toBe(true);
     expect(result.winner).toBe(0);
-    expect(after.pendingTurn).toBeNull();
+    expect(state.pendingTurn).toBeNull();
   });
 });
-
-function triggerTurn(state, playerId, questionsDb, submission) {
-  state.selectedPegId = submission.pegId;
-  state.pendingTurn = {
-    pegId: submission.pegId,
-    targetR: submission.targetR,
-    targetC: submission.targetC,
-    moveType: submission.moveType,
-    questionIds: submission.questionIds,
-  };
-  const result = applyTurn(state, playerId, submission, questionsDb);
-  return { result, state };
-}

@@ -376,20 +376,17 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
   const moveType = getMoveType(state, pegId, targetR, targetC);
   const tileCat = tile.category === 'flag' ? 'other' : tile.category;
 
-  let questionIds;
+  let firstQuestionId;
+  let questionsTotal = 1;
 
   if (moveType === 'flag') {
-    const q1 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
-    const q2 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
-    const q3 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
-    questionIds = [...q1, ...q2, ...q3];
+    questionsTotal = 3;
+    [firstQuestionId] = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
   } else if (moveType === 'combat') {
-    const q1 = pickQuestionIds(state, tileCat, 1, questionsDb);
-    const q2 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
-    const q3 = pickQuestionIds(state, randomCat(state.enabledCats), 1, questionsDb);
-    questionIds = [...q1, ...q2, ...q3];
+    questionsTotal = Math.min(state.movesRemaining, 3);
+    [firstQuestionId] = pickQuestionIds(state, tileCat, 1, questionsDb);
   } else {
-    questionIds = pickQuestionIds(state, tileCat, 1, questionsDb);
+    [firstQuestionId] = pickQuestionIds(state, tileCat, 1, questionsDb);
   }
 
   state.pendingTurn = {
@@ -397,10 +394,12 @@ export function planTurnQuestions(state, pegId, targetR, targetC, questionsDb) {
     targetR,
     targetC,
     moveType,
-    questionIds,
+    questionId: firstQuestionId,
+    questionsRemaining: questionsTotal,
+    questionsTotal,
   };
 
-  return { moveType, questionIds };
+  return { moveType, questionId: firstQuestionId };
 }
 
 // Pick the next question for an ongoing combat or flag sequence.
@@ -454,163 +453,114 @@ export function selectPeg(state, playerId, pegId) {
 // Returns { ok, events, gameOver, winner, state } or { error }
 // ---------------------------------------------------------------------------
 
+// submission: { pegId, targetR, targetC, answerIdx }
+// Returns { ok, events, gameOver, winner, correct, combatContinues } or { error }
 export function applyTurn(state, playerId, submission, questionsDb) {
-   const pending = state.pendingTurn;
-   if (!pending) {
-     return { error: 'No pending turn' };
-   }
-    const currentPlayer = state.players[state.currentPlayerIdx];
-    if (currentPlayer.id !== playerId) {
-      return { error: 'Not your turn' };
-    }
+  const pending = state.pendingTurn;
+  if (!pending) { return { error: 'No pending turn' }; }
 
-  const { pegId, targetR, targetC, moveType, questionIds } = pending;
-
-  if (submission.pegId !== pegId) {
-    return { error: 'Peg mismatch' };
-  }
-  if (submission.targetR !== targetR || submission.targetC !== targetC) {
+  const currentPlayer = state.players[state.currentPlayerIdx];
+  if (currentPlayer.id !== playerId) { return { error: 'Not your turn' }; }
+  if (submission.pegId !== pending.pegId) { return { error: 'Peg mismatch' }; }
+  if (submission.targetR !== pending.targetR || submission.targetC !== pending.targetC) {
     return { error: 'Target mismatch' };
   }
 
-  // For combat with sequential questions: if only Q1 submitted, keep pendingTurn for Q2
-  const answers = submission.answers || [];
-  const numSubmitted = answers.length;
-  const totalQuestions = questionIds.length;
-  const hasMoreQuestions = numSubmitted < totalQuestions && numSubmitted > 0;
-
-  // General rule: if more questions remain and only partial answers submitted, wait for results
-  // Don't clear pendingTurn so player can answer remaining questions after results are shown
-  if (!hasMoreQuestions) {
-    state.pendingTurn = null;
-  }
-
+  const { pegId, targetR, targetC, moveType, questionId } = pending;
+  const q = questionsDb._byId?.[questionId];
+  const correct = q ? (q.a === submission.answerIdx) : false;
   const events = [];
 
-  const checkAnswer = (idx) => {
-    // Don't process answers that haven't been submitted yet
-    if (idx >= numSubmitted) {
-      return false;
-    }
-    const qId = questionIds[idx];
-    const q = questionsDb._byId?.[qId];
-    const ans = answers[idx];
-    if (!q || ans === undefined) {
-      return false;
-    }
-    const correct = q.a === ans.answerIdx;
-    events.push({ type: 'answer', questionId: qId, correct });
-    if (!correct) {
-      state.wrongQ.add(qId);
-    }
-    const cp = state.players[state.currentPlayerIdx];
-    if (cp?.stats) {
-      const cat = q.category || 'unknown';
-      if (!cp.stats.byCategory) { cp.stats.byCategory = {}; }
-      if (!cp.stats.byCategory[cat]) { cp.stats.byCategory[cat] = { attempts: 0, correct: 0 }; }
-      cp.stats.byCategory[cat].attempts++;
-      if (correct) {
-        cp.stats.byCategory[cat].correct++;
-      }
-    }
-    return correct;
-  };
+  events.push({ type: 'answer', questionId, correct });
+  if (!correct) { state.wrongQ.add(questionId); }
+  const cp = state.players[state.currentPlayerIdx];
+  if (cp?.stats) {
+    const cat = q?.category || 'unknown';
+    if (!cp.stats.byCategory) { cp.stats.byCategory = {}; }
+    if (!cp.stats.byCategory[cat]) { cp.stats.byCategory[cat] = { attempts: 0, correct: 0 }; }
+    cp.stats.byCategory[cat].attempts++;
+    if (correct) { cp.stats.byCategory[cat].correct++; }
+  }
 
   if (moveType === 'normal') {
-    const answered = checkAnswer(0);
-    if (answered) {
+    if (correct) {
       movePeg(state, pegId, targetR, targetC);
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
     }
+    state.pendingTurn = null;
     state.movesRemaining--;
     if (state.movesRemaining === 0) {
       advanceTurn(state);
-    } else if (answered && getValidMoves(state, pegId).length > 0) {
-      // Correct answer — keep same peg selected for next move
+    } else if (correct && getValidMoves(state, pegId).length > 0) {
       state.phase = PHASE.SELECT_TILE;
-      return { ok: true, events, gameOver: false };
+      return { ok: true, events, gameOver: false, correct, combatContinues: false };
     } else {
-      // Wrong answer, or correct but no more valid moves for this peg — let player pick any peg
       state.selectedPegId = null;
-      state.pendingTurn = null;
       state.phase = PHASE.SELECT_PEG;
-      return { ok: true, events, gameOver: false };
+      return { ok: true, events, gameOver: false, correct, combatContinues: false };
     }
+    return { ok: true, events, gameOver: false, correct, combatContinues: false };
+
   } else if (moveType === 'combat') {
     const defPegId = state.board[targetR]?.[targetC]?.pegId;
     const defPeg = defPegId ? state.pegs[defPegId] : null;
 
-    let combatDone = false;
-    for (let i = 0; i < questionIds.length && !combatDone; i++) {
-      const correct = checkAnswer(i);
-      if (!correct) {
-        combatDone = true;
-      } else {
-        if (defPeg) {
-          defPeg.hp--;
-          events.push({ type: 'combat_hit', defPegId, hp: defPeg.hp });
-        }
-        if (defPeg && defPeg.hp === 0) {
-          eliminatePeg(state, defPegId);
-          events.push({ type: 'peg_eliminated', pegId: defPegId });
-          movePeg(state, pegId, targetR, targetC);
-          events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-          combatDone = true;
-        }
-      }
+    if (correct && defPeg) {
+      defPeg.hp--;
+      events.push({ type: 'combat_hit', defPegId, hp: defPeg.hp });
     }
 
-    // Combat always ends turn — consume all remaining tokens
-    state.movesRemaining = 0;
-
-    const combatWinner = checkWinCondition(state);
-    if (combatWinner >= 0) {
-      state.players.forEach((player, index) => {
-        player.stats.gamesPlayed++;
-        if (index === combatWinner) {
-          player.stats.gamesWon++;
-        }
-      });
-      state.phase = PHASE.GAME_OVER;
-      state.winner = combatWinner;
-      return { ok: true, events, gameOver: true, winner: combatWinner };
-    }
-    advanceTurn(state);
-    return { ok: true, events, gameOver: false };
-  } else if (moveType === 'flag') {
-    // Check all 3 answers individually — don't short-circuit so each is recorded in state.wrongQ
-    const a0 = checkAnswer(0);
-    const a1 = checkAnswer(1);
-    const a2 = checkAnswer(2);
-    const allCorrect = a0 && a1 && a2;
-    const winnerIdx = state.currentPlayerIdx;
-    if (allCorrect) {
+    const defEliminated = defPeg && defPeg.hp === 0;
+    if (defEliminated) {
+      eliminatePeg(state, defPegId);
+      events.push({ type: 'peg_eliminated', pegId: defPegId });
       movePeg(state, pegId, targetR, targetC);
       events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
-      events.push({ type: 'flag_captured', pegId, winnerIdx });
-      state.players.forEach((player, index) => {
-        player.stats.gamesPlayed++;
-        if (index === winnerIdx) {
-          player.stats.gamesWon++;
-        }
-      });
-      state.phase = PHASE.GAME_OVER;
-      state.winner = winnerIdx;
-      return { ok: true, events, gameOver: true, winner: winnerIdx };
-    } else {
+    }
+
+    const combatContinues = correct && !defEliminated && pending.questionsRemaining > 1;
+
+    if (!combatContinues) {
+      state.pendingTurn = null;
+      state.movesRemaining = 0;
+      const winner = checkWinCondition(state);
+      if (winner >= 0) {
+        state.players.forEach((p, i) => {
+          p.stats.gamesPlayed++;
+          if (i === winner) { p.stats.gamesWon++; }
+        });
+        state.phase = PHASE.GAME_OVER;
+        state.winner = winner;
+        return { ok: true, events, gameOver: true, winner, correct, combatContinues: false };
+      }
       advanceTurn(state);
     }
+    return { ok: true, events, gameOver: false, correct, combatContinues };
+
+  } else if (moveType === 'flag') {
+    const allCorrect = correct && pending.questionsRemaining === 1;
+    if (!correct || pending.questionsRemaining === 1) {
+      state.pendingTurn = null;
+      if (allCorrect) {
+        const winnerIdx = state.currentPlayerIdx;
+        movePeg(state, pegId, targetR, targetC);
+        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+        events.push({ type: 'flag_captured', pegId, winnerIdx });
+        state.players.forEach((p, i) => {
+          p.stats.gamesPlayed++;
+          if (i === winnerIdx) { p.stats.gamesWon++; }
+        });
+        state.phase = PHASE.GAME_OVER;
+        state.winner = winnerIdx;
+        return { ok: true, events, gameOver: true, winner: winnerIdx, correct, combatContinues: false };
+      }
+      advanceTurn(state);
+      return { ok: true, events, gameOver: false, correct, combatContinues: false };
+    }
+    return { ok: true, events, gameOver: false, correct, combatContinues: true };
   }
 
-  // Check elimination win (normal and flag paths)
-  const winner = checkWinCondition(state);
-  if (winner >= 0) {
-    state.phase = PHASE.GAME_OVER;
-    state.winner = winner;
-    return { ok: true, events, gameOver: true, winner };
-  }
-
-  return { ok: true, events, gameOver: false };
+  return { ok: true, events, gameOver: false, correct, combatContinues: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -626,13 +576,10 @@ export function applyTurn(state, playerId, submission, questionsDb) {
  * @param {Object} questionsDb - Database containing question definitions.
  * @returns {Array<{questionId:string,answerIdx:number}>} Answer submissions.
  */
-export function botSelectAnswers(questionIds, questionsDb) {
-  return questionIds.map(qid => {
-    const q = questionsDb?._byId?.[qid];
-    // In our test fixtures the correct answer is always at index 0.
-    // If for some reason the question is missing, we still return index 0.
-    return { questionId: qid, answerIdx: q?.a ?? 0 };
-  });
+export function botAnswer(state, questionsDb) {
+  const qId = state.pendingTurn?.questionId;
+  const q = questionsDb?._byId?.[qId];
+  return { answerIdx: q?.a ?? 0 };
 }
 
 /**
