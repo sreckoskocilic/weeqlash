@@ -18,12 +18,13 @@ export const PHASE = {
 };
 
 export const CATS = [
-  'visual_arts',
+  'arts',
   'music',
   'death_metal',
-  'film_tv',
-  'books',
+  'entertainment',
+  'literature',
   'science',
+  'nature',
   'history',
   'geography',
   'sports',

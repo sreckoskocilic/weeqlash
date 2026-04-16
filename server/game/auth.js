@@ -89,6 +89,28 @@ function applySchemaMigrations(db) {
       db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0').run();
       console.log('[auth] Added is_admin column to users table');
     }
+
+    // Migrate renamed categories in user_stats
+    const catRenames = [
+      ['visual_arts', 'arts'],
+      ['film_tv', 'entertainment'],
+      ['books', 'literature'],
+    ];
+    for (const [oldCat, newCat] of catRenames) {
+      const exists = db.prepare('SELECT COUNT(*) as n FROM user_stats WHERE category = ?').get(oldCat);
+      if (exists.n > 0) {
+        // Merge into new category if it already has rows, otherwise just rename
+        db.prepare(`
+          INSERT INTO user_stats (user_id, category, answered, correct)
+          SELECT user_id, ?, answered, correct FROM user_stats WHERE category = ?
+          ON CONFLICT(user_id, category) DO UPDATE SET
+            answered = user_stats.answered + excluded.answered,
+            correct  = user_stats.correct  + excluded.correct
+        `).run(newCat, oldCat);
+        db.prepare('DELETE FROM user_stats WHERE category = ?').run(oldCat);
+        console.log(`[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`);
+      }
+    }
   } catch (error) {
     console.warn('[auth] Schema migration warning:', error.message);
     // Don't fail initialization if migration has issues

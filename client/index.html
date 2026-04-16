@@ -194,7 +194,6 @@
       button {
         width: 100%;
         height: 40px;
-        padding: 0.7rem;
         background: var(--accent);
         color: #cecdcd;
         border: none;
@@ -214,7 +213,7 @@
         text-align: center;
         color: var(--muted);
         font-size: 0.85rem;
-        margin: 80px 0 20px 0;
+        margin: 40px 0 20px 0;
         position: relative;
       }
       .divider::before {
@@ -245,7 +244,7 @@
         color: var(--muted);
         text-transform: uppercase;
         margin-bottom: 8px;
-        margin-top: 80px;
+        margin-top: 30px;
         font-weight: 700;
       }
       .opt-btn-group {
@@ -625,10 +624,10 @@
       }
 
       /* ===== CATEGORY COLORS ===== */
-      .cat-visual_arts {
+      .cat-arts {
         background: #c62828;
       }
-      .cat-visual_arts .tile-cat-label {
+      .cat-arts .tile-cat-label {
         color: #ffd6d6;
       }
       .cat-music {
@@ -638,28 +637,34 @@
         color: #e8ccff;
       }
       .cat-death_metal {
-        background: #ed6c02;
+        background: #37474f;
       }
       .cat-death_metal .tile-cat-label {
-        color: #fff1d6;
+        color: #cfd8dc;
       }
-      .cat-film_tv {
+      .cat-entertainment {
         background: #e65100;
       }
-      .cat-film_tv .tile-cat-label {
+      .cat-entertainment .tile-cat-label {
         color: #fff0cc;
       }
-      .cat-books {
+      .cat-literature {
         background: #1565c0;
       }
-      .cat-books .tile-cat-label {
+      .cat-literature .tile-cat-label {
         color: #c5dcff;
       }
+      .cat-nature {
+        background: #388e3c;
+      }
+      .cat-nature .tile-cat-label {
+        color: #c8e6c9;
+      }
       .cat-science {
-        background: #2e7d32;
+        background: #969517;
       }
       .cat-science .tile-cat-label {
-        color: #c8f0ca;
+        color: #a0d0e5;
       }
       .cat-history {
         background: #6d4c41;
@@ -674,7 +679,7 @@
         color: #b2dfdb;
       }
       .cat-sports {
-        background: #ad1457;
+        background: #bd1b8a;
       }
       .cat-sports .tile-cat-label {
         color: #ffd6e8;
@@ -1725,8 +1730,8 @@
           <div class="setup-section">
             <h3>Categories</h3>
             <div class="cat-toggle-btns" id="cat-toggle-btns">
-              <button class="cat-toggle-btn active" data-cat="visual_arts">
-                Visual Arts
+              <button class="cat-toggle-btn active" data-cat="arts">
+                Arts
               </button>
               <button class="cat-toggle-btn active" data-cat="geography">
                 Geography
@@ -1734,11 +1739,14 @@
               <button class="cat-toggle-btn active" data-cat="history">
                 History
               </button>
-              <button class="cat-toggle-btn active" data-cat="books">
-                Books
+              <button class="cat-toggle-btn active" data-cat="literature">
+                Literature
               </button>
               <button class="cat-toggle-btn active" data-cat="science">
                 Science
+              </button>
+              <button class="cat-toggle-btn active" data-cat="nature">
+                Nature
               </button>
               <button class="cat-toggle-btn active" data-cat="music">
                 Music
@@ -1746,8 +1754,8 @@
               <button class="cat-toggle-btn active" data-cat="death_metal">
                 Death Metal
               </button>
-              <button class="cat-toggle-btn active" data-cat="film_tv">
-                Film & TV
+              <button class="cat-toggle-btn active" data-cat="entertainment">
+                Entertainment
               </button>
               <button class="cat-toggle-btn active" data-cat="sports">
                 Sports
@@ -2156,15 +2164,15 @@
     <script type="module">
       const serverUrl =
         window.WEEFLASH_SERVER_URL ||
-        (window.location.protocol === "file:"
-          ? "http://localhost:3000"
+        (window.location.protocol === 'file:'
+          ? 'http://localhost:3000'
           : window.location.origin);
       const { io } = await import(
         `${serverUrl}/socket.io/socket.io.esm.min.js`
       );
 
       const socket = io(serverUrl, {
-        transports: ["websocket"],
+        transports: ['websocket'],
         withCredentials: true,
       });
       const el = (id) => document.getElementById(id);
@@ -2176,36 +2184,36 @@
       let _currentUser = null;
 
       function showAuthMessage(msg, isError) {
-        const msgEl = $("auth-message");
+        const msgEl = $('auth-message');
         msgEl.textContent = msg;
-        msgEl.style.display = "block";
+        msgEl.style.display = 'block';
         msgEl.style.background = isError
-          ? "rgba(217,57,57,0.2)"
-          : "rgba(67,160,71,0.2)";
-        msgEl.style.color = isError ? "#ff6b6b" : "#66bb6a";
+          ? 'rgba(217,57,57,0.2)'
+          : 'rgba(67,160,71,0.2)';
+        msgEl.style.color = isError ? '#ff6b6b' : '#66bb6a';
       }
 
       function showUserBar(user) {
         _currentUser = user;
-        $("user-logged-as").textContent = `logged as ${user.username}`;
-        $("user-logged-as").style.display = "block";
-        $("user-bar").style.display = "flex";
+        $('user-logged-as').textContent = `logged as ${user.username}`;
+        $('user-logged-as').style.display = 'block';
+        $('user-bar').style.display = 'flex';
         const isAdmin = user.is_admin === 1 || user.is_admin === true;
-        $("btn-admin").style.display = isAdmin ? "inline-block" : "none";
-        $("login-section").style.display = "none";
+        $('btn-admin').style.display = isAdmin ? 'inline-block' : 'none';
+        $('login-section').style.display = 'none';
       }
 
       function hideUserBar() {
         _currentUser = null;
-        $("user-logged-as").style.display = "none";
-        $("user-bar").style.display = "none";
-        $("login-section").style.display = "";
+        $('user-logged-as').style.display = 'none';
+        $('user-bar').style.display = 'none';
+        $('login-section').style.display = '';
       }
 
       async function checkAuth() {
         try {
           const res = await fetch(`${serverUrl}/auth/me`, {
-            credentials: "include",
+            credentials: 'include',
           });
           const data = await res.json();
           if (data.user) {
@@ -2214,45 +2222,45 @@
             hideUserBar();
           }
         } catch (error) {
-          console.warn("[auth] Auth check failed (will retry):", error);
+          console.warn('[auth] Auth check failed (will retry):', error);
         }
       }
 
       // Auth tab switching
-      document.querySelectorAll(".auth-tab").forEach((tab) => {
-        tab.addEventListener("click", () => {
-          document.querySelectorAll(".auth-tab").forEach((t) => {
-            t.classList.remove("active");
-            t.style.background = "transparent";
-            t.style.color = "var(--muted)";
-            t.style.borderColor = "var(--bg3)";
+      document.querySelectorAll('.auth-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.auth-tab').forEach((t) => {
+            t.classList.remove('active');
+            t.style.background = 'transparent';
+            t.style.color = 'var(--muted)';
+            t.style.borderColor = 'var(--bg3)';
           });
-          tab.classList.add("active");
-          tab.style.background = "var(--bg3)";
-          tab.style.color = "var(--text)";
+          tab.classList.add('active');
+          tab.style.background = 'var(--bg3)';
+          tab.style.color = 'var(--text)';
           const which = tab.dataset.tab;
-          $("auth-login-form").style.display = which === "login" ? "" : "none";
-          $("auth-register-form").style.display =
-            which === "register" ? "" : "none";
-          $("auth-forgot-form").style.display = "none";
-          $("auth-reset-form").style.display = "none";
-          $("auth-message").style.display = "none";
+          $('auth-login-form').style.display = which === 'login' ? '' : 'none';
+          $('auth-register-form').style.display =
+            which === 'register' ? '' : 'none';
+          $('auth-forgot-form').style.display = 'none';
+          $('auth-reset-form').style.display = 'none';
+          $('auth-message').style.display = 'none';
         });
       });
 
       // Login
-      $("btn-login").addEventListener("click", async () => {
-        const username = $("login-username").value.trim();
-        const password = $("login-password").value;
-        const keepLoggedIn = $("keep-logged-in").checked;
+      $('btn-login').addEventListener('click', async () => {
+        const username = $('login-username').value.trim();
+        const password = $('login-password').value;
+        const keepLoggedIn = $('keep-logged-in').checked;
         if (!username || !password) {
-          return showAuthMessage("Fill in all fields", true);
+          return showAuthMessage('Fill in all fields', true);
         }
 
         const res = await fetch(`${serverUrl}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ username, password, keepLoggedIn }),
         });
         const data = await res.json();
@@ -2262,112 +2270,112 @@
         showUserBar(data.user);
         _currentUser = data.user;
         // Send userId directly to socket
-        socket.emit("auth:setUserId", data.user.id);
+        socket.emit('auth:setUserId', data.user.id);
       });
 
       // Register
-      $("btn-register").addEventListener("click", async () => {
-        const username = $("reg-username").value.trim();
-        const email = $("reg-email").value.trim();
-        const password = $("reg-password").value;
+      $('btn-register').addEventListener('click', async () => {
+        const username = $('reg-username').value.trim();
+        const email = $('reg-email').value.trim();
+        const password = $('reg-password').value;
         if (!username || !email || !password) {
-          return showAuthMessage("Fill in all fields", true);
+          return showAuthMessage('Fill in all fields', true);
         }
 
         const res = await fetch(`${serverUrl}/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password }),
         });
         const data = await res.json();
         if (data.error) {
           return showAuthMessage(data.error, true);
         }
-        showAuthMessage(data.message || "Check your email to confirm", false);
+        showAuthMessage(data.message || 'Check your email to confirm', false);
       });
 
       // Forgot password
-      $("link-forgot").addEventListener("click", (e) => {
+      $('link-forgot').addEventListener('click', (e) => {
         e.preventDefault();
-        $("auth-login-form").style.display = "none";
-        $("auth-forgot-form").style.display = "";
-        $("auth-message").style.display = "none";
+        $('auth-login-form').style.display = 'none';
+        $('auth-forgot-form').style.display = '';
+        $('auth-message').style.display = 'none';
       });
 
-      $("link-back-login").addEventListener("click", (e) => {
+      $('link-back-login').addEventListener('click', (e) => {
         e.preventDefault();
-        $("auth-forgot-form").style.display = "none";
-        $("auth-login-form").style.display = "";
-        $("auth-message").style.display = "none";
+        $('auth-forgot-form').style.display = 'none';
+        $('auth-login-form').style.display = '';
+        $('auth-message').style.display = 'none';
       });
 
-      $("btn-forgot").addEventListener("click", async () => {
-        const email = $("forgot-email").value.trim();
+      $('btn-forgot').addEventListener('click', async () => {
+        const email = $('forgot-email').value.trim();
         if (!email) {
-          return showAuthMessage("Enter your email", true);
+          return showAuthMessage('Enter your email', true);
         }
 
         const res = await fetch(`${serverUrl}/auth/forgot-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email }),
         });
         const data = await res.json();
         showAuthMessage(
-          data.message || "If that email exists, a reset link has been sent",
+          data.message || 'If that email exists, a reset link has been sent',
           false,
         );
       });
 
       // Reset password (from URL param)
-      $("btn-reset").addEventListener("click", async () => {
-        const password = $("reset-password").value;
+      $('btn-reset').addEventListener('click', async () => {
+        const password = $('reset-password').value;
         if (!password || password.length < 6) {
           return showAuthMessage(
-            "Password must be at least 6 characters",
+            'Password must be at least 6 characters',
             true,
           );
         }
 
         const res = await fetch(`${serverUrl}/auth/reset-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: resetToken, password }),
         });
         const data = await res.json();
         if (data.error) {
           return showAuthMessage(data.error, true);
         }
-        showAuthMessage("Password reset! You can now log in.", false);
-        $("auth-reset-form").style.display = "none";
-        $("auth-login-form").style.display = "";
+        showAuthMessage('Password reset! You can now log in.', false);
+        $('auth-reset-form').style.display = 'none';
+        $('auth-login-form').style.display = '';
       });
 
       // Logout
-      $("btn-logout").addEventListener("click", async () => {
+      $('btn-logout').addEventListener('click', async () => {
         await fetch(`${serverUrl}/auth/logout`, {
-          method: "POST",
-          credentials: "include",
+          method: 'POST',
+          credentials: 'include',
         });
         hideUserBar();
       });
 
       // Admin panel
-      $("btn-admin").addEventListener("click", () => {
-        window.open(`${serverUrl}/admin/users`, "_blank");
+      $('btn-admin').addEventListener('click', () => {
+        window.open(`${serverUrl}/admin/users`, '_blank');
       });
 
       // View Stats
-      $("btn-view-stats").addEventListener("click", async () => {
+      $('btn-view-stats').addEventListener('click', async () => {
         if (!_currentUser) {
-          showAuthMessage("Please log in to view stats", true);
+          showAuthMessage('Please log in to view stats', true);
           return;
         }
 
         try {
           const res = await fetch(
             `${serverUrl}/auth/stats/${_currentUser.id}`,
-            { credentials: "include" },
+            { credentials: 'include' },
           );
 
           if (!res.ok) {
@@ -2384,55 +2392,55 @@
           }
           showStatsModal(data);
         } catch {
-          showAuthMessage("Network error: Unable to reach server", true);
+          showAuthMessage('Network error: Unable to reach server', true);
         }
       });
 
       // Handle URL params (email confirmation, password reset)
       const urlParams = new URLSearchParams(window.location.search);
       let resetToken = null;
-      if (urlParams.get("confirm")) {
-        fetch(`${serverUrl}/auth/confirm/${urlParams.get("confirm")}`)
+      if (urlParams.get('confirm')) {
+        fetch(`${serverUrl}/auth/confirm/${urlParams.get('confirm')}`)
           .then((r) => r.json())
           .then((data) => {
             showAuthMessage(
-              data.message || (data.error ? data.error : "Email confirmed!"),
+              data.message || (data.error ? data.error : 'Email confirmed!'),
               !!data.error,
             );
           });
-        window.history.replaceState({}, "", window.location.pathname);
+        window.history.replaceState({}, '', window.location.pathname);
       }
-      if (urlParams.get("reset")) {
-        resetToken = urlParams.get("reset");
-        $("auth-login-form").style.display = "none";
-        $("auth-register-form").style.display = "none";
-        $("auth-reset-form").style.display = "";
-        window.history.replaceState({}, "", window.location.pathname);
+      if (urlParams.get('reset')) {
+        resetToken = urlParams.get('reset');
+        $('auth-login-form').style.display = 'none';
+        $('auth-register-form').style.display = 'none';
+        $('auth-reset-form').style.display = '';
+        window.history.replaceState({}, '', window.location.pathname);
       }
 
       // Check auth on page load
       checkAuth();
 
       // ============================================================
-      socket.io.on("error", (err) => {
-        console.error("Socket.IO error:", err);
-        showError("Connection error. Please refresh the page.");
+      socket.io.on('error', (err) => {
+        console.error('Socket.IO error:', err);
+        showError('Connection error. Please refresh the page.');
       });
 
-      socket.io.on("reconnect_attempt", (attempt) => {
+      socket.io.on('reconnect_attempt', (attempt) => {
         console.warn(`Reconnecting... attempt ${attempt}`);
       });
 
-      socket.io.on("reconnect", () => {
-        console.warn("Reconnected");
-        showError("");
+      socket.io.on('reconnect', () => {
+        console.warn('Reconnected');
+        showError('');
         if (myToken && myRoom?.code) {
           socket.emit(
-            "session:resume",
+            'session:resume',
             { token: myToken, code: myRoom.code },
             (res) => {
               if (res.error) {
-                console.warn("Session resume failed:", res.error);
+                console.warn('Session resume failed:', res.error);
                 return;
               }
               if (res.state) {
@@ -2455,7 +2463,7 @@
 
       // Sanitize user input to prevent XSS
       function sanitize(str) {
-        const div = document.createElement("div");
+        const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
       }
@@ -2464,36 +2472,38 @@
       // CONSTANTS
       // ============================================================
       const PHASE = {
-        SELECT_PEG: "selectPeg",
-        SELECT_TILE: "selectTile",
-        GAME_OVER: "gameOver",
+        SELECT_PEG: 'selectPeg',
+        SELECT_TILE: 'selectTile',
+        GAME_OVER: 'gameOver',
       };
       const COORD_BASE = 100;
-      const OPTION_KEYS = ["A", "B", "C", "D"];
+      const OPTION_KEYS = ['A', 'B', 'C', 'D'];
       const KEY_MAP = { a: 0, b: 1, c: 2, d: 3, 1: 0, 2: 1, 3: 2, 4: 3 };
       const CAT_NAMES = {
-        visual_arts: "Visual Arts",
-        music: "Music",
-        death_metal: "Death Metal",
-        film_tv: "Film & TV",
-        books: "Books",
-        science: "Science",
-        history: "History",
-        geography: "Geography",
-        sports: "Sports",
-        other: "Other",
+        arts: 'Arts',
+        music: 'Music',
+        death_metal: 'Death Metal',
+        entertainment: 'Entertainment',
+        literature: 'Literature',
+        science: 'Science',
+        nature: 'Nature',
+        history: 'History',
+        geography: 'Geography',
+        sports: 'Sports',
+        other: 'Other',
       };
       const CAT_COLORS = {
-        visual_arts: "#C62828",
-        geography: "#00695C",
-        history: "#6D4C41",
-        books: "#1565C0",
-        science: "#2E7D32",
-        music: "#6A1B9A",
-        death_metal: "#ED6C02",
-        film_tv: "#E65100",
-        sports: "#AD1457",
-        other: "#546E7A",
+        arts: '#C62828',
+        geography: '#00695C',
+        history: '#6D4C41',
+        literature: '#1565C0',
+        science: '#969517',
+        nature: '#388E3C',
+        music: '#6A1B9A',
+        death_metal: '#37474F',
+        entertainment: '#E65100',
+        sports: '#bd1b8a',
+        other: '#546E7A',
       };
       const CATS = Object.keys(CAT_NAMES);
 
@@ -2557,54 +2567,54 @@
       // SCREENS
       // ============================================================
       function showScreen(id) {
-        const isGame = id === "screen-game";
-        const isConnect = id === "screen-connect";
-        el("main-title").style.display = isGame ? "none" : "";
-        el("main-subtitle").style.display = isGame ? "none" : "";
-        el("site-footer").style.display = isConnect ? "" : "none";
+        const isGame = id === 'screen-game';
+        const isConnect = id === 'screen-connect';
+        el('main-title').style.display = isGame ? 'none' : '';
+        el('main-subtitle').style.display = isGame ? 'none' : '';
+        el('site-footer').style.display = isConnect ? '' : 'none';
         [
-          "screen-connect",
-          "screen-lobby",
-          "screen-game",
-          "screen-gameover",
-          "screen-leaderboard",
+          'screen-connect',
+          'screen-lobby',
+          'screen-game',
+          'screen-gameover',
+          'screen-leaderboard',
         ].forEach((s) => {
-          el(s).style.display = "none";
-          el(s).classList.remove("show");
+          el(s).style.display = 'none';
+          el(s).classList.remove('show');
         });
         if (isGame) {
-          el(id).style.display = "flex";
+          el(id).style.display = 'flex';
         } else if (isConnect) {
-          el(id).style.display = "grid";
+          el(id).style.display = 'grid';
         } else {
-          el(id).style.display = "block";
+          el(id).style.display = 'block';
         }
       }
 
       function showError(msg) {
-        const errEl = el("connect-error");
+        const errEl = el('connect-error');
         errEl.textContent = msg;
-        errEl.style.display = msg ? "block" : "none";
+        errEl.style.display = msg ? 'block' : 'none';
       }
 
       // ============================================================
       // LOBBY
       // ============================================================
       function renderPlayers(players, totalSlots) {
-        const ul = el("player-list");
-        ul.innerHTML = "";
+        const ul = el('player-list');
+        ul.innerHTML = '';
         players.forEach((p) => {
-          const li = document.createElement("li");
+          const li = document.createElement('li');
           li.innerHTML = `
         <span class="dot" style="background:${sanitize(p.color)}"></span>
         <span>${sanitize(p.name)}</span>
-        ${p.isHost ? '<span class="badge">host</span>' : ""}
-        ${p.id === myId ? '<span class="badge">you</span>' : ""}
+        ${p.isHost ? '<span class="badge">host</span>' : ''}
+        ${p.id === myId ? '<span class="badge">you</span>' : ''}
       `;
           ul.appendChild(li);
         });
         for (let i = players.length; i < totalSlots; i++) {
-          const li = document.createElement("li");
+          const li = document.createElement('li');
           li.innerHTML =
             '<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>';
           ul.appendChild(li);
@@ -2614,28 +2624,28 @@
       // ============================================================
       // SOCKET EVENTS
       // ============================================================
-      socket.on("connect", () => {
+      socket.on('connect', () => {
         myId = socket.id;
         if (
-          location.hostname === "localhost" ||
-          location.hostname === "127.0.0.1"
+          location.hostname === 'localhost' ||
+          location.hostname === '127.0.0.1'
         ) {
-          el("dev-quickstart-section").style.display = "";
+          el('dev-quickstart-section').style.display = '';
         }
       });
 
-      socket.on("room:player_joined", ({ players }) => {
+      socket.on('room:player_joined', ({ players }) => {
         renderPlayers(players, myRoom.settings.playerCount);
-        el("lobby-status").textContent =
+        el('lobby-status').textContent =
           `${players.length} / ${myRoom.settings.playerCount} players`;
         // Recover start button if room is full again after a player left
         if (players.length === myRoom.settings.playerCount && isHost) {
-          el("btn-start").disabled = false;
-          el("btn-start").textContent = "Start game";
+          el('btn-start').disabled = false;
+          el('btn-start').textContent = 'Start game';
         }
       });
 
-      socket.on("game:player_disconnected", ({ playerName }) => {
+      socket.on('game:player_disconnected', ({ playerName }) => {
         showError(`${playerName} disconnected.`);
         // Reset local turn state so UI isn't stuck
         localPhase = null;
@@ -2646,27 +2656,27 @@
         pendingAnswers = [];
         spectatingQuestion = false;
         stopTimer();
-        el("modal-overlay").classList.remove("visible");
+        el('modal-overlay').classList.remove('visible');
       });
 
-      socket.on("room:player_left", ({ playerName, players }) => {
+      socket.on('room:player_left', ({ playerName, players }) => {
         renderPlayers(players, myRoom.settings.playerCount);
-        el("lobby-status").textContent =
+        el('lobby-status').textContent =
           `${players.length} / ${myRoom.settings.playerCount} players — ${playerName} left`;
-        el("btn-start").disabled = true;
-        el("btn-start").textContent = "Waiting for players…";
+        el('btn-start').disabled = true;
+        el('btn-start').textContent = 'Waiting for players…';
       });
 
-      socket.on("room:full", ({ players }) => {
+      socket.on('room:full', ({ players }) => {
         renderPlayers(players, myRoom.settings.playerCount);
-        el("lobby-status").textContent = "Room full — host can start the game";
+        el('lobby-status').textContent = 'Room full — host can start the game';
         if (isHost) {
-          el("btn-start").disabled = false;
-          el("btn-start").textContent = "Start game";
+          el('btn-start').disabled = false;
+          el('btn-start').textContent = 'Start game';
         }
       });
 
-      socket.on("game:start", ({ settings, state }) => {
+      socket.on('game:start', ({ settings, state }) => {
         timerDuration = settings.timer ?? 30;
         gameState = state;
         initBoard(state);
@@ -2674,7 +2684,7 @@
           initNavCursor(state);
         }
         renderAll(state);
-        showScreen("screen-game");
+        showScreen('screen-game');
       });
 
       function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
@@ -2699,7 +2709,7 @@
             const r = results[next];
             if (r?.chosenIdx >= 0) {
               gameModalOptionBtns[r.chosenIdx]?.classList.add(
-                r.correct ? "answer-correct" : "answer-wrong",
+                r.correct ? 'answer-correct' : 'answer-wrong',
               );
             }
             advanceSpectateResult(results, next, moreQuestionsInProgress);
@@ -2709,12 +2719,12 @@
           spectatingQuestion = false;
           pendingQuestions = [];
           pendingAnswers = [];
-          el("modal-overlay").classList.remove("visible");
+          el('modal-overlay').classList.remove('visible');
         }, TIMING.RESULT_DISPLAY_MS);
       }
 
       socket.on(
-        "state:update",
+        'state:update',
         ({
           state,
           events,
@@ -2728,9 +2738,9 @@
           const shouldShowResults =
             results?.length && pendingQuestions.length > 0;
           const isNormalAttackerFlow =
-            !spectatingQuestion && lastSubmittedMoveType === "normal";
+            !spectatingQuestion && lastSubmittedMoveType === 'normal';
           const isNormalSpectatorFlow =
-            spectatingQuestion && spectatingMoveType === "normal";
+            spectatingQuestion && spectatingMoveType === 'normal';
 
           if (
             shouldShowResults &&
@@ -2743,7 +2753,7 @@
             pendingQuestions = [];
             pendingAnswers = [];
             lastSubmittedMoveType = null;
-            el("modal-overlay").classList.remove("visible");
+            el('modal-overlay').classList.remove('visible');
           } else if (shouldShowResults && pendingQuestions.length) {
             stopTimer();
             if (spectatingQuestion) {
@@ -2753,7 +2763,7 @@
               const r = results[startIdx];
               if (r?.chosenIdx >= 0) {
                 gameModalOptionBtns[r.chosenIdx]?.classList.add(
-                  r.correct ? "answer-correct" : "answer-wrong",
+                  r.correct ? 'answer-correct' : 'answer-wrong',
                 );
               }
               advanceSpectateResult(results, startIdx, moreQuestionsInProgress);
@@ -2765,7 +2775,7 @@
               const r = results[startIdx];
               if (r?.chosenIdx >= 0) {
                 gameModalOptionBtns[r.chosenIdx]?.classList.add(
-                  r.correct ? "answer-correct" : "answer-wrong",
+                  r.correct ? 'answer-correct' : 'answer-wrong',
                 );
               }
               advanceSpectateResult(results, startIdx, moreQuestionsInProgress);
@@ -2776,7 +2786,7 @@
             spectateGen++;
             spectatingQuestion = false;
             pendingQuestions = [];
-            el("modal-overlay").classList.remove("visible");
+            el('modal-overlay').classList.remove('visible');
           }
 
           // Always clear pending questions when receiving new state (turn transition)
@@ -2790,7 +2800,7 @@
               pendingAnswers = [];
               spectatingQuestion = false;
               stopTimer();
-              el("modal-overlay").classList.remove("visible");
+              el('modal-overlay').classList.remove('visible');
             }
           }
 
@@ -2885,7 +2895,7 @@
       );
 
       socket.on(
-        "game:question_start",
+        'game:question_start',
         ({
           playerIdx,
           moveType,
@@ -2908,20 +2918,20 @@
         },
       );
 
-      socket.on("game:next_question", ({ question, questionIdx }) => {
+      socket.on('game:next_question', ({ question, questionIdx }) => {
         currentQIdx = questionIdx;
         pendingQuestions[questionIdx] = question;
         showQuestion(questionIdx);
       });
 
       socket.on(
-        "game:answer_preview",
+        'game:answer_preview',
         ({ questionIdx, answerIdx, correct }) => {
           if (!spectatingQuestion || currentQIdx !== questionIdx) {
             return;
           }
           gameModalOptionBtns[answerIdx]?.classList.add(
-            correct ? "answer-correct" : "answer-wrong",
+            correct ? 'answer-correct' : 'answer-wrong',
           );
         },
       );
@@ -2930,17 +2940,17 @@
       // BOARD INIT
       // ============================================================
       function initBoard(state) {
-        const boardEl = el("board");
-        boardEl.innerHTML = "";
+        const boardEl = el('board');
+        boardEl.innerHTML = '';
         boardEl.style.gridTemplateColumns = `repeat(${state.boardSize}, 1fr)`;
         const ts = `calc(var(--bs) / ${state.boardSize})`;
-        boardEl.style.setProperty("--ts", ts);
+        boardEl.style.setProperty('--ts', ts);
         tileEls = [];
 
         for (let r = 0; r < state.boardSize; r++) {
           tileEls[r] = [];
           for (let c = 0; c < state.boardSize; c++) {
-            const tile = document.createElement("div");
+            const tile = document.createElement('div');
             tile.dataset.r = r;
             tile.dataset.c = c;
             boardEl.appendChild(tile);
@@ -2950,10 +2960,10 @@
 
         // Board-level click delegation
         boardEl.addEventListener(
-          "click",
+          'click',
           (e) => {
             // Check for peg first
-            const pegEl = e.target.closest(".peg");
+            const pegEl = e.target.closest('.peg');
             if (pegEl) {
               const pegId = pegEl.dataset.pegId;
               const phase = localPhase ?? gameState?.phase;
@@ -3052,7 +3062,7 @@
         }
 
         // Flag capture changes — only diff cornerOwner when a flag event occurred
-        if (events?.some((e) => e.type === "flag_captured")) {
+        if (events?.some((e) => e.type === 'flag_captured')) {
           for (let r = 0; r < newState.boardSize; r++) {
             for (let c = 0; c < newState.boardSize; c++) {
               const oldTile = oldState.board[r][c];
@@ -3066,7 +3076,7 @@
 
         // Render only changed tiles
         for (const key of changedTiles) {
-          const [r, c] = key.split(",").map(Number);
+          const [r, c] = key.split(',').map(Number);
           if (
             r >= 0 &&
             r < newState.boardSize &&
@@ -3091,10 +3101,10 @@
 
         // Base class
         tileEl.className =
-          tile.category === "flag"
-            ? "tile flag-tile"
+          tile.category === 'flag'
+            ? 'tile flag-tile'
             : `tile cat-${tile.category}`;
-        tileEl.innerHTML = "";
+        tileEl.innerHTML = '';
 
         // Highlight states
         const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
@@ -3106,17 +3116,17 @@
         if (phase === PHASE.SELECT_PEG && isMyTurn) {
           const myPlayer = state.players[myPlayerIndex];
           if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) {
-            tileEl.classList.add("clickable");
+            tileEl.classList.add('clickable');
           }
         } else if (phase === PHASE.SELECT_TILE && isMyTurn) {
           if (isValidMove) {
-            tileEl.classList.add("valid-move", "clickable");
+            tileEl.classList.add('valid-move', 'clickable');
           } else if (!isSelectedPeg) {
-            tileEl.classList.add("dimmed");
+            tileEl.classList.add('dimmed');
           }
         }
         if (isSelectedPeg) {
-          tileEl.classList.add("selected-peg-tile");
+          tileEl.classList.add('selected-peg-tile');
         }
         if (
           navCursor.row === r &&
@@ -3124,28 +3134,28 @@
           isMyTurn &&
           (phase === PHASE.SELECT_PEG || phase === PHASE.SELECT_TILE)
         ) {
-          tileEl.classList.add("nav-highlight");
+          tileEl.classList.add('nav-highlight');
         }
 
         // Tile content
-        if (tile.category === "flag" && tile.cornerOwner !== null) {
+        if (tile.category === 'flag' && tile.cornerOwner !== null) {
           const owner = state.players[tile.cornerOwner];
           if (owner) {
             tileEl.style.borderColor = owner.color;
-            const flagEl = document.createElement("div");
-            flagEl.className = "flag-icon";
-            flagEl.textContent = "⚑";
+            const flagEl = document.createElement('div');
+            flagEl.className = 'flag-icon';
+            flagEl.textContent = '⚑';
             flagEl.style.color = owner.color;
             tileEl.appendChild(flagEl);
-            const nameEl = document.createElement("div");
-            nameEl.className = "flag-owner";
+            const nameEl = document.createElement('div');
+            nameEl.className = 'flag-owner';
             nameEl.style.color = owner.color;
             nameEl.textContent = owner.name;
             tileEl.appendChild(nameEl);
           }
         } else {
-          const label = document.createElement("div");
-          label.className = "tile-cat-label";
+          const label = document.createElement('div');
+          label.className = 'tile-cat-label';
           label.textContent = CAT_NAMES[tile.category] ?? tile.category;
           tileEl.appendChild(label);
         }
@@ -3157,32 +3167,32 @@
             return;
           }
           const player = state.players[peg.playerId];
-          const pegEl = document.createElement("div");
-          pegEl.className = "peg";
+          const pegEl = document.createElement('div');
+          pegEl.className = 'peg';
           pegEl.dataset.pegId = tile.pegId;
           if (tile.pegId === localSelectedPegId) {
-            pegEl.classList.add("selected");
+            pegEl.classList.add('selected');
           }
           if (movedPegs.has(tile.pegId)) {
-            pegEl.classList.add("just-moved");
+            pegEl.classList.add('just-moved');
           }
           if (state.currentPlayerIdx === myPlayerIndex) {
-            pegEl.classList.add("can-move");
+            pegEl.classList.add('can-move');
           }
           pegEl.style.background = player.color;
           const pegLetterIdx = player?.pegIds?.indexOf(tile.pegId) ?? -1;
-          const letterEl = document.createElement("span");
+          const letterEl = document.createElement('span');
           letterEl.textContent =
-            pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : "";
+            pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : '';
           pegEl.appendChild(letterEl);
           pegEl.title = `${sanitize(player.name)} — HP: ${peg.hp}`;
-          const hpEl = document.createElement("span");
-          hpEl.className = "peg-hp";
-          const heartEl = document.createElement("span");
-          heartEl.className = "peg-hp-heart";
-          heartEl.textContent = "♥";
-          const countEl = document.createElement("span");
-          countEl.className = "peg-hp-count";
+          const hpEl = document.createElement('span');
+          hpEl.className = 'peg-hp';
+          const heartEl = document.createElement('span');
+          heartEl.className = 'peg-hp-heart';
+          heartEl.textContent = '♥';
+          const countEl = document.createElement('span');
+          countEl.className = 'peg-hp-count';
           countEl.textContent = peg.hp;
           hpEl.appendChild(heartEl);
           hpEl.appendChild(countEl);
@@ -3194,36 +3204,36 @@
       function updateTurnUI(state) {
         const cp = state.players[state.currentPlayerIdx];
         const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
-        el("turn-dot").style.background = cp?.color ?? "#444";
-        el("turn-dot").style.boxShadow = cp?.color
+        el('turn-dot').style.background = cp?.color ?? '#444';
+        el('turn-dot').style.boxShadow = cp?.color
           ? `0 0 8px 2px ${cp.color}66`
-          : "none";
-        el("turn-panel").style.borderLeftColor = cp?.color ?? "#444";
-        el("turn-name").textContent = isMyTurn
-          ? "Your turn"
+          : 'none';
+        el('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
+        el('turn-name').textContent = isMyTurn
+          ? 'Your turn'
           : `${cp?.name}'s turn`;
-        el("turn-name").style.color = cp?.color ?? "";
+        el('turn-name').style.color = cp?.color ?? '';
 
         const phase = localPhase ?? state.phase;
-        let phaseText = "";
+        let phaseText = '';
         if (phase === PHASE.SELECT_PEG) {
           const mr = state.movesRemaining;
-          const movesText = mr === 1 ? "1 move left" : `${mr} moves left`;
+          const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
           phaseText = isMyTurn
             ? `Select a peg (${movesText})`
             : `${cp?.name} is choosing…`;
         } else if (phase === PHASE.SELECT_TILE) {
           const mr = state.movesRemaining;
-          const movesText = mr === 1 ? "1 move left" : `${mr} moves left`;
+          const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
           phaseText = isMyTurn
             ? `Select a tile (${movesText})`
             : `${cp?.name} is moving…`;
         } else if (phase === PHASE.GAME_OVER) {
-          phaseText = "Game over";
+          phaseText = 'Game over';
         }
-        el("turn-phase").textContent = phaseText;
+        el('turn-phase').textContent = phaseText;
 
-        el("player-stats").innerHTML = state.players
+        el('player-stats').innerHTML = state.players
           .map((p) => {
             const stats = p.stats?.byCategory ?? {};
             let attempts = 0;
@@ -3234,14 +3244,14 @@
             }
             const pct =
               attempts > 0
-                ? ((correct / attempts) * 100).toFixed(1) + "%"
-                : "—";
+                ? ((correct / attempts) * 100).toFixed(1) + '%'
+                : '—';
             return `<span class="player-stat-item" style="color:${p.color};opacity:${p.pegIds.length ? 1 : 0.4}">
         <span class="player-stat-ratio">${correct}/${attempts}</span>
         <span class="player-stat-pct">${pct}</span>
       </span>`;
           })
-          .join("");
+          .join('');
       }
 
       // ============================================================
@@ -3272,7 +3282,7 @@
         }
 
         socket.emit(
-          "action:select_peg",
+          'action:select_peg',
           { code: myRoom.code, pegId },
           ({ ok, error, validMoves }) => {
             if (error || !ok) {
@@ -3314,7 +3324,7 @@
         }
 
         socket.emit(
-          "action:select_tile",
+          'action:select_tile',
           { code: myRoom.code, pegId: localSelectedPegId, r, c },
           ({
             ok,
@@ -3330,7 +3340,7 @@
             if (defenderPlayerIdx !== undefined) {
               pendingCombatDefenderIdx = defenderPlayerIdx;
             }
-            localPhase = "answering";
+            localPhase = 'answering';
             pendingMove = {
               pegId: localSelectedPegId,
               targetR: r,
@@ -3360,51 +3370,51 @@
           ? spectatingPlayerIdx
           : myPlayerIndex;
         const player = gameState?.players[activeIdx];
-        const catColor = CAT_COLORS[q.category] ?? "#0f3460";
-        const catName = CAT_NAMES[q.category] ?? "Question";
+        const catColor = CAT_COLORS[q.category] ?? '#0f3460';
+        const catName = CAT_NAMES[q.category] ?? 'Question';
         const moveType = spectatingQuestion
           ? spectatingMoveType
           : pendingMove?.moveType;
 
-        el("modal-cat-badge").textContent = catName;
-        el("modal-cat-badge").style.background = catColor;
-        el("modal").style.borderTopColor = player?.color ?? "#444";
+        el('modal-cat-badge').textContent = catName;
+        el('modal-cat-badge').style.background = catColor;
+        el('modal').style.borderTopColor = player?.color ?? '#444';
 
-        const playerLabel = el("modal-player-label");
-        const combatLabel = el("modal-combat-label");
-        if (moveType === "combat") {
+        const playerLabel = el('modal-player-label');
+        const combatLabel = el('modal-combat-label');
+        if (moveType === 'combat') {
           const defIdx = spectatingQuestion
             ? spectatingDefenderIdx
             : pendingCombatDefenderIdx;
           const defPlayer = defIdx !== null ? gameState?.players[defIdx] : null;
-          combatLabel.style.display = "";
-          combatLabel.style.color = player?.color ?? "";
+          combatLabel.style.display = '';
+          combatLabel.style.color = player?.color ?? '';
           combatLabel.textContent =
             idx === 0
-              ? `⚔ COMBAT — ${player?.name} attacks ${defPlayer?.name ?? "?"} (Q1/${pendingQuestionsTotal})`
+              ? `⚔ COMBAT — ${player?.name} attacks ${defPlayer?.name ?? '?'} (Q1/${pendingQuestionsTotal})`
               : `⚔ COMBAT — ${player?.name} attacks (Q${idx + 1}/${pendingQuestionsTotal})`;
-          playerLabel.style.display = "none";
-        } else if (moveType === "flag") {
-          combatLabel.style.display = "";
-          combatLabel.style.color = player?.color ?? "";
+          playerLabel.style.display = 'none';
+        } else if (moveType === 'flag') {
+          combatLabel.style.display = '';
+          combatLabel.style.color = player?.color ?? '';
           combatLabel.textContent = `⚑ FLAG CAPTURE — ${player?.name} (Q${idx + 1}/3)`;
-          playerLabel.style.display = "none";
+          playerLabel.style.display = 'none';
         } else {
-          combatLabel.style.display = "none";
-          playerLabel.style.display = "";
-          playerLabel.style.color = player?.color ?? "";
-          playerLabel.textContent = player?.name ?? "";
+          combatLabel.style.display = 'none';
+          playerLabel.style.display = '';
+          playerLabel.style.color = player?.color ?? '';
+          playerLabel.textContent = player?.name ?? '';
         }
 
-        el("modal-question").textContent = q.q;
+        el('modal-question').textContent = q.q;
 
-        const optContainer = el("modal-options");
-        optContainer.innerHTML = "";
+        const optContainer = el('modal-options');
+        optContainer.innerHTML = '';
         delete optContainer.dataset.submitting;
         gameModalOptionBtns = [];
         q.opts.forEach((opt, i) => {
-          const btn = document.createElement("button");
-          btn.className = "modal-option";
+          const btn = document.createElement('button');
+          btn.className = 'modal-option';
           btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${sanitize(opt)}`;
           if (spectatingQuestion) {
             btn.disabled = true;
@@ -3415,16 +3425,16 @@
           gameModalOptionBtns.push(btn);
         });
 
-        el("modal-continue-wrap").style.display = "none";
-        el("modal-continue-btn").disabled = false;
-        el("modal-continue-btn").textContent = "CONTINUE";
-        el("modal-overlay").classList.add("visible");
+        el('modal-continue-wrap').style.display = 'none';
+        el('modal-continue-btn').disabled = false;
+        el('modal-continue-btn').textContent = 'CONTINUE';
+        el('modal-overlay').classList.add('visible');
 
         if (spectatingQuestion) {
-          el("timer-fill").style.display = "none";
-          el("timer-text").textContent = "…";
+          el('timer-fill').style.display = 'none';
+          el('timer-text').textContent = '…';
         } else {
-          el("timer-fill").style.display = "";
+          el('timer-fill').style.display = '';
           startTimer(idx);
           gameModalOptionBtns[0]?.focus();
         }
@@ -3433,33 +3443,33 @@
       function onAnswer(chosenIdx, qIdx) {
         // Validate answer index to prevent invalid submissions
         if (chosenIdx < 0 || chosenIdx > 3) {
-          console.error("Invalid answer index:", chosenIdx);
+          console.error('Invalid answer index:', chosenIdx);
           return;
         }
 
         // Debounce: prevent double-submit
-        if (el("modal-options")?.dataset?.submitting === "true") {
+        if (el('modal-options')?.dataset?.submitting === 'true') {
           return;
         }
-        el("modal-options").dataset.submitting = "true";
+        el('modal-options').dataset.submitting = 'true';
 
         stopTimer();
         const q = pendingQuestions[qIdx];
         if (!q) {
-          console.error("Question not found at index:", qIdx);
+          console.error('Question not found at index:', qIdx);
           return;
         }
         const correct = chosenIdx === q.correctIdx;
         pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
-        socket.emit("turn:answer_preview", {
+        socket.emit('turn:answer_preview', {
           code: myRoom.code,
           questionIdx: qIdx,
           answerIdx: chosenIdx,
         });
 
         // For combat and flag: auto-submit without showing Continue button
-        const isCombat = pendingMove?.moveType === "combat";
-        const isFlag = pendingMove?.moveType === "flag";
+        const isCombat = pendingMove?.moveType === 'combat';
+        const isFlag = pendingMove?.moveType === 'flag';
         const isLastQuestion = qIdx === pendingQuestions.length - 1;
 
         // Store correctness and chosen index for continue timing
@@ -3474,11 +3484,11 @@
         gameModalOptionBtns.forEach((btn, i) => {
           // Show correct answer to spectators only (not attacker)
           if (i === q.correctIdx && spectatingQuestion) {
-            btn.classList.add("answer-correct");
+            btn.classList.add('answer-correct');
           }
           // Always show the active player's selection outcome
           if (i === chosenIdx) {
-            btn.classList.add(correct ? "answer-correct" : "answer-wrong");
+            btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
           }
         });
 
@@ -3486,7 +3496,7 @@
         // This ensures all players see the same thing and privacy is preserved
 
         if (isCombat || isFlag) {
-          el("modal-continue-wrap").style.display = "none";
+          el('modal-continue-wrap').style.display = 'none';
           if (!correct) {
             // Wrong answer ends combat/flag: keep modal open so state:update can show result
             setTimeout(() => {
@@ -3505,7 +3515,7 @@
           }
         } else {
           // Normal move
-          el("modal-continue-wrap").style.display = "block";
+          el('modal-continue-wrap').style.display = 'block';
         }
       }
 
@@ -3513,34 +3523,34 @@
         if (!pendingMove) {
           return;
         }
-        el("modal-continue-btn").disabled = true;
+        el('modal-continue-btn').disabled = true;
         lastSubmittedPegId = pendingMove?.pegId ?? null;
         localSelectedPegId = null;
-        localPhase = "answering";
+        localPhase = 'answering';
         validMovesSet.clear();
-        el("modal-overlay").classList.remove("visible");
+        el('modal-overlay').classList.remove('visible');
         renderAll(gameState);
         submitTurn();
       };
 
       function startTimer(qIdx) {
         stopTimer();
-        const fill = el("timer-fill");
-        const text = el("timer-text");
+        const fill = el('timer-fill');
+        const text = el('timer-text');
         let remaining = timerDuration;
-        fill.style.width = "100%";
-        fill.className = "timer-bar-fill safe";
-        text.textContent = timerDuration + "s";
+        fill.style.width = '100%';
+        fill.className = 'timer-bar-fill safe';
+        text.textContent = timerDuration + 's';
 
         timerInterval = setInterval(() => {
           remaining -= 0.1;
           const pct = Math.max(0, (remaining / timerDuration) * 100);
-          fill.style.width = pct + "%";
-          text.textContent = Math.ceil(remaining) + "s";
+          fill.style.width = pct + '%';
+          text.textContent = Math.ceil(remaining) + 's';
           if (pct < TIMING.TIMER_DANGER_PCT) {
-            fill.className = "timer-bar-fill danger";
+            fill.className = 'timer-bar-fill danger';
           } else if (pct < TIMING.TIMER_WARNING_PCT) {
-            fill.className = "timer-bar-fill warning";
+            fill.className = 'timer-bar-fill warning';
           }
           if (remaining <= 0) {
             stopTimer();
@@ -3554,12 +3564,12 @@
             pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
             // Auto-submit on timeout instead of leaving the move abandoned
             if (
-              pendingMove?.moveType === "combat" ||
-              pendingMove?.moveType === "flag"
+              pendingMove?.moveType === 'combat' ||
+              pendingMove?.moveType === 'flag'
             ) {
               submitTurn();
             } else {
-              el("modal-continue-wrap").style.display = "block";
+              el('modal-continue-wrap').style.display = 'block';
             }
           }
         }, TIMING.TICK_INTERVAL_MS);
@@ -3579,7 +3589,7 @@
         lastSubmittedMoveType = pendingMove?.moveType ?? lastSubmittedMoveType;
 
         socket.emit(
-          "turn:submit",
+          'turn:submit',
           {
             code: myRoom.code,
             submission: {
@@ -3591,7 +3601,7 @@
           },
           ({ error }) => {
             if (error) {
-              console.error("submit:", error);
+              console.error('submit:', error);
               showError(error);
               // Recover UI state so player isn't stuck
               localPhase = null;
@@ -3601,7 +3611,7 @@
               pendingQuestions = [];
               pendingAnswers = [];
               stopTimer();
-              el("modal-overlay").classList.remove("visible");
+              el('modal-overlay').classList.remove('visible');
             }
           },
         );
@@ -3610,7 +3620,7 @@
         // or state:update closes the modal when combat/turn ends.
         localSelectedPegId = null;
         validMovesSet.clear();
-        localPhase = "answering";
+        localPhase = 'answering';
       }
 
       // ============================================================
@@ -3618,9 +3628,9 @@
       // ============================================================
       function showGameOver(winnerIdx, state) {
         const winner = state.players[winnerIdx];
-        el("winner-text").textContent = `${winner?.name ?? "Unknown"} wins!`;
-        el("winner-text").style.color = winner?.color ?? "#ffd700";
-        el("screen-gameover").style.display = "flex";
+        el('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
+        el('winner-text').style.color = winner?.color ?? '#ffd700';
+        el('screen-gameover').style.display = 'flex';
         // Reset local turn state so UI isn't stuck
         localPhase = null;
         localSelectedPegId = null;
@@ -3630,21 +3640,21 @@
         pendingAnswers = [];
         spectatingQuestion = false;
         stopTimer();
-        el("modal-overlay").classList.remove("visible");
+        el('modal-overlay').classList.remove('visible');
       }
 
       function showTurnAnnounce(player, isMe) {
-        const container = el("turn-announce");
+        const container = el('turn-announce');
         if (!container) {
           return;
         }
-        const nameEl = el("turn-announce-name");
-        const subEl = el("turn-announce-sub");
+        const nameEl = el('turn-announce-name');
+        const subEl = el('turn-announce-sub');
         nameEl.textContent = player.name;
         nameEl.style.color = player.color;
-        subEl.textContent = isMe ? "YOUR TURN" : "THEIR TURN";
-        container.classList.add("visible");
-        setTimeout(() => container.classList.remove("visible"), 2000);
+        subEl.textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
+        container.classList.add('visible');
+        setTimeout(() => container.classList.remove('visible'), 2000);
       }
 
       function initNavCursor(state) {
@@ -3678,8 +3688,8 @@
         ArrowRight: [0, 1],
       };
 
-      document.addEventListener("keydown", (e) => {
-        const modalVisible = el("modal-overlay").classList.contains("visible");
+      document.addEventListener('keydown', (e) => {
+        const modalVisible = el('modal-overlay').classList.contains('visible');
 
         if (modalVisible) {
           const key = e.key.toLowerCase();
@@ -3693,18 +3703,18 @@
             }
           }
           if (
-            e.key === "Enter" &&
-            el("modal-continue-wrap").style.display !== "none"
+            e.key === 'Enter' &&
+            el('modal-continue-wrap').style.display !== 'none'
           ) {
             window.continueAfterQuestion();
           }
           // Arrow key option cycling (only when answering, not spectating)
           if (
             !spectatingQuestion &&
-            (e.key === "ArrowDown" ||
-              e.key === "ArrowRight" ||
-              e.key === "ArrowUp" ||
-              e.key === "ArrowLeft")
+            (e.key === 'ArrowDown' ||
+              e.key === 'ArrowRight' ||
+              e.key === 'ArrowUp' ||
+              e.key === 'ArrowLeft')
           ) {
             e.preventDefault();
             const enabledBtns = gameModalOptionBtns.filter((b) => !b.disabled);
@@ -3714,7 +3724,7 @@
             const focused = document.activeElement;
             const cur = enabledBtns.indexOf(focused);
             const delta =
-              e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : -1;
+              e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
             const next =
               (cur + delta + enabledBtns.length) % enabledBtns.length;
             enabledBtns[next].focus();
@@ -3750,7 +3760,7 @@
           return;
         }
 
-        if (e.key === "Enter") {
+        if (e.key === 'Enter') {
           e.preventDefault();
           const { row, col } = navCursor;
           const tile = gameState.board[row]?.[col];
@@ -3777,20 +3787,20 @@
       // ============================================================
       // Predefined names for guest players (currently unused)
       const RANDOM_NAMES = [
-        "Qwizakk",
-        "PacMoan",
-        "EE-TEE",
-        "Issous",
-        "Sihirator",
-        "Bogamber",
-        "Dandalf",
-        "Burim",
-        "Kesko",
-        "Lepi",
-        "Aliya",
-        "Pcheko",
-        "Dnepr",
-        "nasmirglAna",
+        'Qwizakk',
+        'PacMoan',
+        'EE-TEE',
+        'Issous',
+        'Sihirator',
+        'Bogamber',
+        'Dandalf',
+        'Burim',
+        'Kesko',
+        'Lepi',
+        'Aliya',
+        'Pcheko',
+        'Dnepr',
+        'nasmirglAna',
       ];
       function _getRandomName() {
         return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
@@ -3798,10 +3808,10 @@
 
       function getPlayerName() {
         if (!_currentUser) {
-          showError("Please log in to play");
+          showError('Please log in to play');
           return null;
         }
-        showError("");
+        showError('');
         return _currentUser.username;
       }
 
@@ -3810,27 +3820,27 @@
       // ============================================================
       function initOptBtnGroup(groupId, setter) {
         const group = el(groupId);
-        group.addEventListener("click", (e) => {
-          const btn = e.target.closest(".opt-btn");
+        group.addEventListener('click', (e) => {
+          const btn = e.target.closest('.opt-btn');
           if (!btn) {
             return;
           }
           group
-            .querySelectorAll(".opt-btn")
-            .forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
+            .querySelectorAll('.opt-btn')
+            .forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
           setter(parseInt(btn.dataset.val));
         });
       }
-      initOptBtnGroup("board-size-btns", (v) => {
+      initOptBtnGroup('board-size-btns', (v) => {
         setupBoardSize = v;
       });
-      initOptBtnGroup("timer-btns", (v) => {
+      initOptBtnGroup('timer-btns', (v) => {
         setupTimer = v;
       });
 
-      el("cat-toggle-btns").addEventListener("click", (e) => {
-        const btn = e.target.closest(".cat-toggle-btn");
+      el('cat-toggle-btns').addEventListener('click', (e) => {
+        const btn = e.target.closest('.cat-toggle-btn');
         if (!btn) {
           return;
         }
@@ -3840,90 +3850,90 @@
             return;
           }
           setupEnabledCats = setupEnabledCats.filter((c) => c !== cat);
-          btn.classList.remove("active");
+          btn.classList.remove('active');
         } else {
           setupEnabledCats.push(cat);
-          btn.classList.add("active");
+          btn.classList.add('active');
         }
       });
 
-      el("btn-cats-all").addEventListener("click", () => {
+      el('btn-cats-all').addEventListener('click', () => {
         setupEnabledCats = [...CATS];
         document
-          .querySelectorAll("#cat-toggle-btns .cat-toggle-btn")
+          .querySelectorAll('#cat-toggle-btns .cat-toggle-btn')
           .forEach((btn) => {
-            btn.classList.add("active");
+            btn.classList.add('active');
           });
       });
 
-      el("btn-cats-none").addEventListener("click", () => {
+      el('btn-cats-none').addEventListener('click', () => {
         setupEnabledCats = [];
         document
-          .querySelectorAll("#cat-toggle-btns .cat-toggle-btn")
+          .querySelectorAll('#cat-toggle-btns .cat-toggle-btn')
           .forEach((btn) => {
-            btn.classList.remove("active");
+            btn.classList.remove('active');
           });
       });
 
-      el("btn-help").addEventListener("click", () => {
-        el("help-modal").classList.add("show");
+      el('btn-help').addEventListener('click', () => {
+        el('help-modal').classList.add('show');
       });
-      el("btn-hc").addEventListener("click", () => {
-        document.body.classList.toggle("high-contrast");
-        el("btn-hc").classList.toggle(
-          "active",
-          document.body.classList.contains("high-contrast"),
+      el('btn-hc').addEventListener('click', () => {
+        document.body.classList.toggle('high-contrast');
+        el('btn-hc').classList.toggle(
+          'active',
+          document.body.classList.contains('high-contrast'),
         );
       });
-      el("btn-advanced").addEventListener("click", () => {
-        const sec = el("advanced-section");
-        const visible = sec.style.display !== "none";
-        sec.style.display = visible ? "none" : "block";
-        el("btn-advanced").classList.toggle("active", !visible);
+      el('btn-advanced').addEventListener('click', () => {
+        const sec = el('advanced-section');
+        const visible = sec.style.display !== 'none';
+        sec.style.display = visible ? 'none' : 'block';
+        el('btn-advanced').classList.toggle('active', !visible);
       });
 
       window.closeHelp = function () {
-        el("help-modal").classList.remove("show");
+        el('help-modal').classList.remove('show');
       };
-      el("help-modal").addEventListener("click", (e) => {
-        if (e.target === el("help-modal")) {
+      el('help-modal').addEventListener('click', (e) => {
+        if (e.target === el('help-modal')) {
           window.closeHelp();
         }
       });
 
       window.openLegal = function (page) {
-        document.getElementById("modal-" + page).classList.add("open");
+        document.getElementById('modal-' + page).classList.add('open');
       };
       window.closeLegal = function (page) {
-        document.getElementById("modal-" + page).classList.remove("open");
+        document.getElementById('modal-' + page).classList.remove('open');
       };
-      ["privacy", "cookies", "terms"].forEach((page) => {
+      ['privacy', 'cookies', 'terms'].forEach((page) => {
         document
-          .getElementById("modal-" + page)
-          .addEventListener("click", (e) => {
-            if (e.target === document.getElementById("modal-" + page)) {
+          .getElementById('modal-' + page)
+          .addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modal-' + page)) {
               window.closeLegal(page);
             }
           });
       });
 
-      el("btn-dev-quickstart").addEventListener("click", () => {
+      el('btn-dev-quickstart').addEventListener('click', () => {
         myPlayerIndex = 0;
-        socket.emit("dev:quickstart", { boardSize: 4 }, ({ ok, error }) => {
-          if (!ok) showError(error ?? "Dev quickstart failed");
+        socket.emit('dev:quickstart', { boardSize: 4 }, ({ ok, error }) => {
+          if (!ok) {showError(error ?? 'Dev quickstart failed');}
         });
       });
 
-      el("btn-create").addEventListener("click", () => {
+      el('btn-create').addEventListener('click', () => {
         const playerName = getPlayerName();
         if (!playerName) {
           return;
         }
         if (setupEnabledCats.length === 0) {
-          return showError("Select at least one category.");
+          return showError('Select at least one category.');
         }
         socket.emit(
-          "room:create",
+          'room:create',
           {
             playerName,
             playerCount: setupPlayerCount,
@@ -3937,7 +3947,7 @@
             }
             const me = players.find((p) => p.id === myId);
             if (me) {
-              el("player-name").value = me.name;
+              el('player-name').value = me.name;
             }
             myToken = token;
             myPlayerIndex = 0;
@@ -3946,29 +3956,29 @@
               settings: { playerCount: setupPlayerCount, timer: setupTimer },
             };
             isHost = true;
-            el("lobby-code").textContent = code;
+            el('lobby-code').textContent = code;
             renderPlayers(players, myRoom.settings.playerCount);
-            el("lobby-status").textContent =
+            el('lobby-status').textContent =
               `${players.length} / ${myRoom.settings.playerCount} players`;
-            showScreen("screen-lobby");
+            showScreen('screen-lobby');
           },
         );
       });
 
-      el("btn-join").addEventListener("click", () => {
+      el('btn-join').addEventListener('click', () => {
         const playerName = getPlayerName();
         if (!playerName) {
           return;
         }
-        const code = el("join-code")
+        const code = el('join-code')
           .value.trim()
           .toUpperCase()
-          .replace(/[^A-Z0-9]/g, "");
+          .replace(/[^A-Z0-9]/g, '');
         if (code.length !== 5) {
-          return showError("Room code must be 5 characters.");
+          return showError('Room code must be 5 characters.');
         }
         socket.emit(
-          "room:join",
+          'room:join',
           { code, playerName },
           ({ error, players, settings, token }) => {
             if (error) {
@@ -3976,49 +3986,49 @@
             }
             const me = players.find((p) => p.id === myId);
             if (me) {
-              el("player-name").value = me.name;
+              el('player-name').value = me.name;
             }
             myToken = token;
             myPlayerIndex = me?.index ?? players.length - 1;
             myRoom = { code, settings };
             isHost = false;
-            el("lobby-code").textContent = code;
+            el('lobby-code').textContent = code;
             renderPlayers(players, settings.playerCount);
-            el("lobby-status").textContent =
+            el('lobby-status').textContent =
               `${players.length} / ${settings.playerCount} players`;
-            showScreen("screen-lobby");
+            showScreen('screen-lobby');
           },
         );
       });
 
-      el("btn-start").addEventListener("click", () => {
-        socket.emit("room:start", { code: myRoom.code }, ({ error }) => {
+      el('btn-start').addEventListener('click', () => {
+        socket.emit('room:start', { code: myRoom.code }, ({ error }) => {
           if (error) {
             showError(error);
           }
         });
       });
 
-      el("btn-copy-code").addEventListener("click", () => {
+      el('btn-copy-code').addEventListener('click', () => {
         if (!myRoom?.code) {
           return;
         }
         navigator.clipboard
           .writeText(myRoom.code)
           .then(() => {
-            const btn = el("btn-copy-code");
+            const btn = el('btn-copy-code');
             const originalText = btn.textContent;
-            btn.textContent = "✅";
+            btn.textContent = '✅';
             setTimeout(() => {
               btn.textContent = originalText;
             }, 2000);
           })
           .catch((err) => {
-            console.error("Failed to copy code: ", err);
+            console.error('Failed to copy code: ', err);
           });
       });
 
-      el("join-code").addEventListener("input", (e) => {
+      el('join-code').addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase();
       });
 
@@ -4032,14 +4042,14 @@
       let gameTimerStart = 0;
       function startGameTimer() {
         gameTimerStart = Date.now();
-        const timerEl = document.getElementById("modal-game-timer");
-        timerEl.style.display = "";
+        const timerEl = document.getElementById('modal-game-timer');
+        timerEl.style.display = '';
         clearInterval(quizState.gameTimerInterval);
         quizState.gameTimerInterval = setInterval(() => {
           const elapsed = Math.floor((Date.now() - gameTimerStart) / 1000);
           const m = Math.floor(elapsed / 60);
           const s = elapsed % 60;
-          timerEl.textContent = `${m}:${String(s).padStart(2, "0")}`;
+          timerEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
         }, 500);
       }
       function stopGameTimer() {
@@ -4054,38 +4064,38 @@
           return;
         }
         leaderboardLoaded = true;
-        socket.emit("quiz:leaderboard", (res) => {
-          const container = document.getElementById("triv-lb-rows");
+        socket.emit('quiz:leaderboard', (res) => {
+          const container = document.getElementById('triv-lb-rows');
           if (!container) {
             return;
           }
-          container.innerHTML = "";
+          container.innerHTML = '';
           const entries = res.top10 || [];
           for (let i = 0; i < 10; i++) {
             const entry = entries[i];
-            const row = document.createElement("div");
-            row.className = "lb-row";
+            const row = document.createElement('div');
+            row.className = 'lb-row';
             row.innerHTML = `
           <div class="lb-rk">${String(i + 1)}</div>
-          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry ? sanitize(entry.name) : "TestPlayer 0"}</div>
-          <div style="text-align: center; font-weight: 600; font-variant-numeric: tabular-nums;">${entry ? entry.answers : "0"}</div>
-          <div style="text-align: right; font-size: 0.85rem; color: #5ebb52; font-variant-numeric: tabular-nums;">${entry ? Math.round(entry.time_ms / 1000) : "0"}s</div>
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry ? sanitize(entry.name) : 'TestPlayer 0'}</div>
+          <div style="text-align: center; font-weight: 600; font-variant-numeric: tabular-nums;">${entry ? entry.answers : '0'}</div>
+          <div style="text-align: right; font-size: 0.85rem; color: #5ebb52; font-variant-numeric: tabular-nums;">${entry ? Math.round(entry.time_ms / 1000) : '0'}s</div>
         `;
             container.appendChild(row);
           }
         });
       }
-      socket.on("connect", loadMainLeaderboard);
+      socket.on('connect', loadMainLeaderboard);
       if (socket.connected) {
         loadMainLeaderboard();
       }
 
       document
-        .getElementById("btn-quiz-start")
-        .addEventListener("click", () => {
-          document.getElementById("screen-connect").style.display = "none";
-          document.getElementById("screen-lobby").style.display = "none";
-          document.getElementById("screen-game").style.display = "none";
+        .getElementById('btn-quiz-start')
+        .addEventListener('click', () => {
+          document.getElementById('screen-connect').style.display = 'none';
+          document.getElementById('screen-lobby').style.display = 'none';
+          document.getElementById('screen-game').style.display = 'none';
 
           // Clean up any lingering timers before starting fresh
           clearInterval(quizState.timerInterval);
@@ -4093,10 +4103,10 @@
           quizState.timerInterval = null;
           quizState.gameTimerInterval = null;
 
-          socket.emit("quiz:start", (res) => {
+          socket.emit('quiz:start', (res) => {
             if (res.error) {
-              console.error("Quiz start error:", res.error);
-              showError("Quiz error: " + res.error);
+              console.error('Quiz start error:', res.error);
+              showError('Quiz error: ' + res.error);
               return;
             }
             quizState.run = { answers: 0, startedAt: Date.now() };
@@ -4107,47 +4117,47 @@
 
       function showQuizQuestion(q) {
         // Use exact same modal as game
-        document.getElementById("modal-overlay").classList.add("visible");
-        document.getElementById("modal-cat-badge").textContent = q.category
+        document.getElementById('modal-overlay').classList.add('visible');
+        document.getElementById('modal-cat-badge').textContent = q.category
           ? CAT_NAMES[q.category] || q.category
-          : "QUESTION";
-        document.getElementById("modal-cat-badge").style.background = q.category
-          ? CAT_COLORS[q.category] || "#0f3460"
-          : "#0f3460";
+          : 'QUESTION';
+        document.getElementById('modal-cat-badge').style.background = q.category
+          ? CAT_COLORS[q.category] || '#0f3460'
+          : '#0f3460';
         const streak = quizState.run.answers;
-        document.getElementById("modal-player-label").textContent =
-          streak > 0 ? `Streak ${streak}` : "";
-        document.getElementById("modal-combat-label").style.display = "none";
-        document.getElementById("modal-question").textContent = q.q;
+        document.getElementById('modal-player-label').textContent =
+          streak > 0 ? `Streak ${streak}` : '';
+        document.getElementById('modal-combat-label').style.display = 'none';
+        document.getElementById('modal-question').textContent = q.q;
 
-        const optContainer = document.getElementById("modal-options");
-        optContainer.innerHTML = "";
-        optContainer.dataset.submitting = "";
+        const optContainer = document.getElementById('modal-options');
+        optContainer.innerHTML = '';
+        optContainer.dataset.submitting = '';
         quizModalOptionBtns = [];
         q.opts.forEach((opt, i) => {
-          const btn = document.createElement("button");
-          btn.className = "modal-option";
+          const btn = document.createElement('button');
+          btn.className = 'modal-option';
           btn.innerHTML = `<span class="option-key">${OPTION_KEYS[i]}</span>${sanitize(opt)}`;
           btn.onclick = () => submitQuizAnswer(i);
           optContainer.appendChild(btn);
           quizModalOptionBtns.push(btn);
         });
 
-        document.getElementById("modal-continue-wrap").style.display = "none";
-        document.getElementById("modal-continue-btn").textContent = "CONTINUE";
+        document.getElementById('modal-continue-wrap').style.display = 'none';
+        document.getElementById('modal-continue-btn').textContent = 'CONTINUE';
         startQuizTimer();
       }
 
       function submitQuizAnswer(answerIdx) {
         if (
-          document.getElementById("modal-options")?.dataset?.submitting ===
-          "true"
+          document.getElementById('modal-options')?.dataset?.submitting ===
+          'true'
         ) {
           return;
         }
-        document.getElementById("modal-options").dataset.submitting = "true";
+        document.getElementById('modal-options').dataset.submitting = 'true';
         clearInterval(quizState.timerInterval);
-        socket.emit("quiz:answer", { answerIdx }, (res) => {
+        socket.emit('quiz:answer', { answerIdx }, (res) => {
           if (res.error) {
             return;
           }
@@ -4157,18 +4167,18 @@
             btn.disabled = true;
             if (i === answerIdx) {
               btn.classList.add(
-                res.correct ? "answer-correct" : "answer-wrong",
+                res.correct ? 'answer-correct' : 'answer-wrong',
               );
             }
           });
 
           if (res.correct) {
-            document.getElementById("modal-continue-wrap").style.display =
-              "flex";
-            document.getElementById("modal-continue-btn").textContent =
-              "NEXT QUESTION";
-            document.getElementById("modal-continue-btn").onclick = () => {
-              socket.emit("quiz:next", (nextQ) => {
+            document.getElementById('modal-continue-wrap').style.display =
+              'flex';
+            document.getElementById('modal-continue-btn').textContent =
+              'NEXT QUESTION';
+            document.getElementById('modal-continue-btn').onclick = () => {
+              socket.emit('quiz:next', (nextQ) => {
                 if (nextQ.ok) {
                   showQuizQuestion(nextQ);
                 }
@@ -4176,65 +4186,65 @@
             };
           } else {
             stopGameTimer();
-            document.getElementById("modal-continue-btn").textContent =
-              "SEE RESULTS";
-            document.getElementById("modal-continue-btn").onclick = () => {
+            document.getElementById('modal-continue-btn').textContent =
+              'SEE RESULTS';
+            document.getElementById('modal-continue-btn').onclick = () => {
               document
-                .getElementById("modal-overlay")
-                .classList.remove("visible");
+                .getElementById('modal-overlay')
+                .classList.remove('visible');
               setTimeout(() => showLeaderboard(res), 300);
             };
-            document.getElementById("modal-continue-wrap").style.display =
-              "flex";
+            document.getElementById('modal-continue-wrap').style.display =
+              'flex';
           }
         });
       }
 
       function startQuizTimer() {
         let secs = 10;
-        document.getElementById("timer-text").textContent = `${secs}s`;
-        const timerFill = document.getElementById("timer-fill");
+        document.getElementById('timer-text').textContent = `${secs}s`;
+        const timerFill = document.getElementById('timer-fill');
 
         quizState.timerInterval = setInterval(() => {
           secs--;
-          document.getElementById("timer-text").textContent = `${secs}s`;
+          document.getElementById('timer-text').textContent = `${secs}s`;
           const percent = (secs / 10) * 100;
-          timerFill.style.width = percent + "%";
+          timerFill.style.width = percent + '%';
 
           if (secs === 0) {
             clearInterval(quizState.timerInterval);
             stopGameTimer();
-            document.getElementById("modal-options").dataset.submitting =
-              "true";
+            document.getElementById('modal-options').dataset.submitting =
+              'true';
             quizModalOptionBtns.forEach((btn) => (btn.disabled = true));
-            socket.emit("quiz:answer", { answerIdx: -1 }, (res) => {
-              document.getElementById("modal-continue-btn").textContent =
-                "SEE RESULTS";
-              document.getElementById("modal-continue-btn").onclick = () => {
+            socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
+              document.getElementById('modal-continue-btn').textContent =
+                'SEE RESULTS';
+              document.getElementById('modal-continue-btn').onclick = () => {
                 document
-                  .getElementById("modal-overlay")
-                  .classList.remove("visible");
+                  .getElementById('modal-overlay')
+                  .classList.remove('visible');
                 setTimeout(() => showLeaderboard(res), 300);
               };
-              document.getElementById("modal-continue-wrap").style.display =
-                "flex";
+              document.getElementById('modal-continue-wrap').style.display =
+                'flex';
             });
           }
         }, 1000);
       }
 
       function showLeaderboard(result) {
-        document.getElementById("screen-leaderboard").classList.add("show");
+        document.getElementById('screen-leaderboard').classList.add('show');
 
-        socket.emit("quiz:leaderboard", (res) => {
-          const container = document.getElementById("lb-rows");
-          container.innerHTML = "";
+        socket.emit('quiz:leaderboard', (res) => {
+          const container = document.getElementById('lb-rows');
+          container.innerHTML = '';
 
           res.top10.forEach((entry, i) => {
-            const row = document.createElement("div");
-            row.className = "lb-row";
+            const row = document.createElement('div');
+            row.className = 'lb-row';
             row.innerHTML = `
-          <div class="lb-rk">${String(i + 1).padStart(2, "0")}</div>
+          <div class="lb-rk">${String(i + 1).padStart(2, '0')}</div>
           <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(entry.name)}</div>
           <div style="text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${entry.answers}</div>
           <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(entry.time_ms / 1000)}s</div>
@@ -4243,10 +4253,10 @@
           });
 
           if (result.qualifies) {
-            const newRow = document.createElement("div");
-            newRow.className = "lb-row new";
+            const newRow = document.createElement('div');
+            newRow.className = 'lb-row new';
             newRow.innerHTML = `
-          <div class="lb-rk">${String(result.answers < res.top10.length ? result.answers + 1 : 10).padStart(2, "0")}</div>
+          <div class="lb-rk">${String(result.answers < res.top10.length ? result.answers + 1 : 10).padStart(2, '0')}</div>
           <div class="lb-inp-wrap">
             <input id="lb-name-input" placeholder="your name" maxlength="16" autofocus/>
             <button onclick="submitQuizScore()">OK</button>
@@ -4264,16 +4274,16 @@
           }
         });
 
-        document.getElementById("lb-play-again").onclick = () => {
+        document.getElementById('lb-play-again').onclick = () => {
           document
-            .getElementById("screen-leaderboard")
-            .classList.remove("show");
+            .getElementById('screen-leaderboard')
+            .classList.remove('show');
           // Clean up any lingering timers before starting fresh
           clearInterval(quizState.timerInterval);
           clearInterval(quizState.gameTimerInterval);
           quizState.timerInterval = null;
           quizState.gameTimerInterval = null;
-          socket.emit("quiz:start", (res) => {
+          socket.emit('quiz:start', (res) => {
             if (res.ok) {
               quizState.run = { answers: 0, startedAt: Date.now() };
               showQuizQuestion(res);
@@ -4281,11 +4291,11 @@
           });
         };
 
-        document.getElementById("lb-back").onclick = () => {
+        document.getElementById('lb-back').onclick = () => {
           document
-            .getElementById("screen-leaderboard")
-            .classList.remove("show");
-          document.getElementById("screen-connect").style.display = "";
+            .getElementById('screen-leaderboard')
+            .classList.remove('show');
+          document.getElementById('screen-connect').style.display = '';
           // Reset leaderboard flag so it reloads fresh data
           leaderboardLoaded = false;
           loadMainLeaderboard();
@@ -4299,23 +4309,23 @@
       }
 
       window.submitQuizScore = function submitQuizScore() {
-        const name = document.getElementById("lb-name-input").value.trim();
+        const name = document.getElementById('lb-name-input').value.trim();
         if (!name) {
           return;
         }
-        socket.emit("quiz:submit_score", { name }, () => {
+        socket.emit('quiz:submit_score', { name }, () => {
           showLeaderboard({ qualifies: false });
         });
       };
 
       // Show stats modal
       function showStatsModal(statsData) {
-        showAuthMessage("Loading stats...", false);
+        showAuthMessage('Loading stats...', false);
         // Create modal overlay if it doesn't exist
-        let modalOverlay = document.getElementById("stats-modal-overlay");
+        let modalOverlay = document.getElementById('stats-modal-overlay');
         if (!modalOverlay) {
-          modalOverlay = document.createElement("div");
-          modalOverlay.id = "stats-modal-overlay";
+          modalOverlay = document.createElement('div');
+          modalOverlay.id = 'stats-modal-overlay';
           modalOverlay.style.cssText = `
         position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
         display: flex; align-items: center; justify-content: center;
@@ -4337,7 +4347,7 @@
               Your Statistics
             </h2>
             <div id="stats-modal-player-label" style="color: #888; font-size: 0.9rem;">
-              Player: ${_currentUser?.username || "Guest"}
+              Player: ${_currentUser?.username || 'Guest'}
             </div>
           </div>
 
@@ -4359,9 +4369,9 @@
       `;
           // Add event listener for close button
           modalOverlay
-            .querySelector("#stats-modal-close")
-            .addEventListener("click", () => {
-              modalOverlay.classList.remove("visible");
+            .querySelector('#stats-modal-close')
+            .addEventListener('click', () => {
+              modalOverlay.classList.remove('visible');
               setTimeout(() => {
                 if (modalOverlay.parentElement) {
                   modalOverlay.parentElement.removeChild(modalOverlay);
@@ -4370,9 +4380,9 @@
             });
 
           // Add event listener for overlay click
-          modalOverlay.addEventListener("click", (e) => {
+          modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) {
-              modalOverlay.classList.remove("visible");
+              modalOverlay.classList.remove('visible');
             }
           });
 
@@ -4380,7 +4390,7 @@
         }
 
         // Update stats content
-        const _contentEl = modalOverlay.querySelector("#stats-modal-content");
+        const _contentEl = modalOverlay.querySelector('#stats-modal-content');
 
         // Calculate totals
         const totalAnswered = statsData.categories.reduce(
@@ -4397,15 +4407,15 @@
             : 0;
 
         // Determine accuracy color
-        let accuracyColor = "#ef4444"; // red
+        let accuracyColor = '#ef4444'; // red
         if (accuracy >= 80) {
-          accuracyColor = "#22c55e";
+          accuracyColor = '#22c55e';
         } // green
         else if (accuracy >= 60) {
-          accuracyColor = "#eab308";
+          accuracyColor = '#eab308';
         } // yellow
         else if (accuracy >= 40) {
-          accuracyColor = "#f97316";
+          accuracyColor = '#f97316';
         } // orange
 
         // Build stats HTML with cards and visuals
@@ -4455,12 +4465,12 @@
 
         // Add category stats with progress bars
         const catColors = [
-          "#8b5cf6",
-          "#06b6d4",
-          "#f59e0b",
-          "#ec4899",
-          "#10b981",
-          "#3b82f6",
+          '#8b5cf6',
+          '#06b6d4',
+          '#f59e0b',
+          '#ec4899',
+          '#10b981',
+          '#3b82f6',
         ];
         statsData.categories.forEach((cat, idx) => {
           const catName = CAT_NAMES[cat.category] || cat.category;
@@ -4497,15 +4507,15 @@
     `;
 
         // Update modal content
-        modalOverlay.querySelector("#stats-modal-content").innerHTML =
+        modalOverlay.querySelector('#stats-modal-content').innerHTML =
           _statsHTML;
 
         // Show the modal - force visibility immediately
-        modalOverlay.classList.add("visible");
+        modalOverlay.classList.add('visible');
 
         // Also set inline styles as backup
-        modalOverlay.style.opacity = "1";
-        modalOverlay.style.pointerEvents = "auto";
+        modalOverlay.style.opacity = '1';
+        modalOverlay.style.pointerEvents = 'auto';
       }
     </script>
 
