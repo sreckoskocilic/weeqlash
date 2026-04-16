@@ -1,20 +1,20 @@
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import { fileURLToPath } from "url";
-import { readFileSync, existsSync } from "fs";
-import path from "path";
-import dotenv from "dotenv";
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, "..");
-const envPath = path.join(projectRoot, ".env");
-console.log("[index] Loading .env from:", envPath);
-console.log("[index] .env exists:", existsSync(envPath));
+const projectRoot = path.resolve(__dirname, '..');
+const envPath = path.join(projectRoot, '.env');
+console.log('[index] Loading .env from:', envPath);
+console.log('[index] .env exists:', existsSync(envPath));
 const envResult = dotenv.config({ path: envPath });
-console.log("[index] dotenv result:", envResult?.error || "loaded");
-console.log("[index] SMTP_HOST after dotenv:", process.env.SMTP_HOST);
+console.log('[index] dotenv result:', envResult?.error || 'loaded');
+console.log('[index] SMTP_HOST after dotenv:', process.env.SMTP_HOST);
 
-import session from "express-session";
+import session from 'express-session';
 
 import {
   createRoom,
@@ -24,7 +24,7 @@ import {
   reattachSocket,
   cleanupStaleRooms,
   isInActiveGame,
-} from "./game/rooms.js";
+} from './game/rooms.js';
 import {
   createGame,
   selectPeg,
@@ -34,8 +34,8 @@ import {
   getValidMoves,
   PHASE,
   COORD_BASE,
-} from "./game/engine.js";
-import { loadQuestions, getAllQuestions } from "./game/questions.js";
+} from './game/engine.js';
+import { loadQuestions, getAllQuestions } from './game/questions.js';
 import {
   initDb,
   getDb,
@@ -43,39 +43,39 @@ import {
   insertScore,
   checkQualifiesTop10,
   pruneLeaderboard,
-} from "./game/leaderboard.js";
-import { initAuthDb, insertGameResult, trackAnswer } from "./game/auth.js";
-import { registerAuthRoutes } from "./game/auth-routes.js";
-import adminRoutes from "./routes/admin.js";
-import { rooms, socketToRoom } from "./game/rooms.js";
+} from './game/leaderboard.js';
+import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
+import { registerAuthRoutes } from './game/auth-routes.js';
+import adminRoutes from './routes/admin.js';
+import { rooms, socketToRoom } from './game/rooms.js';
 
 const app = express();
-app.set("trust proxy", 1);
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 // Session store function - use MemoryStore (sessions persist while server runs)
 function createSessionMiddleware() {
-  const isSecure = process.env.NODE_ENV === "production";
+  const isSecure = process.env.NODE_ENV === 'production';
   return session({
-    secret: process.env.SESSION_SECRET || "dev-secret",
+    secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: isSecure,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: 'lax',
     },
   });
 }
 
 // Serve client files for browser access
-app.use(express.static(path.join(__dirname, "../client")));
+app.use(express.static(path.join(__dirname, '../client')));
 const CORS_ORIGIN = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",")
+  ? process.env.CORS_ORIGIN.split(',')
   : [
-      "https://brawl.weeqlash.icu",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
+      'https://brawl.weeqlash.icu',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
     ];
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN },
@@ -149,7 +149,7 @@ function gracefulShutdown(signal) {
   clearInterval(roomCleanupInterval);
   clearInterval(leaderboardPruneInterval);
   httpServer.close(() => {
-    console.log("[shutdown] HTTP server closed");
+    console.log('[shutdown] HTTP server closed');
     process.exit(0);
   });
 }
@@ -159,15 +159,15 @@ function checkLobbyRateLimit(socketId, cb) {
   const now = Date.now();
   const last = lobbyTimestamps.get(socketId) || 0;
   if (now - last < LOBBY_RATE_LIMIT_MS) {
-    cb?.({ error: "Please wait before trying again." });
+    cb?.({ error: 'Please wait before trying again.' });
     return true;
   }
   lobbyTimestamps.set(socketId, now);
   return false;
 }
 
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Load questions once at startup
 const questionsDb = loadQuestions();
@@ -184,41 +184,41 @@ app.use(sessionMiddleware);
 app.use(express.json());
 
 registerAuthRoutes(app);
-app.use("/admin", adminRoutes);
+app.use('/admin', adminRoutes);
 
 // Share session with Socket.IO
 io.engine.use(sessionMiddleware);
 
 // Test-only: teleport a peg to an adjacent position for E2E testing
-if (process.env.NODE_ENV !== "production") {
-  app.get("/test/peg-info/:code/:pegId", (req, res) => {
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/test/peg-info/:code/:pegId', (req, res) => {
     const room = getRoom(req.params.code);
     if (!room?.state) {
-      return res.status(404).json({ error: "Room not found" });
+      return res.status(404).json({ error: 'Room not found' });
     }
     const peg = room.state.pegs[req.params.pegId];
     if (!peg) {
-      return res.status(404).json({ error: "Peg not found" });
+      return res.status(404).json({ error: 'Peg not found' });
     }
     const validMoves = getValidMoves(room.state, req.params.pegId);
     res.json({ peg, validMoves });
   });
-  app.post("/test/teleport-peg", (req, res) => {
+  app.post('/test/teleport-peg', (req, res) => {
     const { code, pegId, row, col } = req.body;
     const room = getRoom(code);
     if (!room?.state) {
-      return res.status(404).json({ error: "Room not found" });
+      return res.status(404).json({ error: 'Room not found' });
     }
     const peg = room.state.pegs[pegId];
     if (!peg) {
-      return res.status(404).json({ error: "Peg not found" });
+      return res.status(404).json({ error: 'Peg not found' });
     }
     room.state.board[peg.row][peg.col].pegId = null;
     peg.row = row;
     peg.col = col;
     room.state.board[row][col].pegId = pegId;
     const sockets = io.sockets.adapter.rooms.get(code);
-    io.to(code).emit("state:update", {
+    io.to(code).emit('state:update', {
       state: JSON.parse(JSON.stringify(room.state)),
       events: [],
       gameOver: false,
@@ -233,22 +233,22 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Serve client HTML for dev testing
-app.get("/", (_req, res) => {
+app.get('/', (_req, res) => {
   res
-    .type("text/html")
-    .send(readFileSync(path.join(__dirname, "../client/index.html"), "utf8"));
+    .type('text/html')
+    .send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
 });
 
 // ---------------------------------------------------------------------------
 // Connection
 // ---------------------------------------------------------------------------
 
-io.on("connection", (socket) => {
+io.on('connection', (socket) => {
   console.log(`[+] ${socket.id}`);
 
   // Associate socket with authenticated user if available
   const socketSession = socket.request.session;
-  console.log("[auth] socket session full:", JSON.stringify(socketSession));
+  console.log('[auth] socket session full:', JSON.stringify(socketSession));
   if (socketSession?.userId) {
     socket.userId = socketSession.userId;
     socket.userName = socketSession.username;
@@ -258,29 +258,29 @@ io.on("connection", (socket) => {
   }
 
   // Client sends userId directly after login (workaround for session issues)
-  socket.on("auth:setUserId", (userId) => {
-    console.log("[auth] auth:setUserId received:", userId);
+  socket.on('auth:setUserId', (userId) => {
+    console.log('[auth] auth:setUserId received:', userId);
     if (userId) {
       socket.userId = userId;
       console.log(`[auth] ${socket.id} set userId to ${userId}`);
       // Update the player's userId in ALL rooms this socket might be in
       const code = socketToRoom.get(socket.id);
-      console.log("[auth] socketToRoom lookup, code:", code);
+      console.log('[auth] socketToRoom lookup, code:', code);
       if (code) {
         const room = rooms.get(code);
-        console.log("[auth] room found:", room ? "yes" : "no");
+        console.log('[auth] room found:', room ? 'yes' : 'no');
         if (room) {
           const player = room.players.find((p) => p.id === socket.id);
           console.log(
-            "[auth] player found:",
-            player ? player.name : "no",
-            "current userId:",
+            '[auth] player found:',
+            player ? player.name : 'no',
+            'current userId:',
             player?.userId,
           );
           if (player) {
             player.userId = userId;
             console.log(
-              "[auth] Updated player userId in room to:",
+              '[auth] Updated player userId in room to:',
               player.userId,
             );
           }
@@ -288,16 +288,16 @@ io.on("connection", (socket) => {
       } else {
         // Socket not in any room yet - store for when they join
         socket.pendingUserId = userId;
-        console.log("[auth] No room yet, stored pendingUserId:", userId);
+        console.log('[auth] No room yet, stored pendingUserId:', userId);
       }
     }
   });
 
   // Client can emit this after login to refresh session
-  socket.on("auth:refresh", (cb) => {
+  socket.on('auth:refresh', (cb) => {
     const sess = socket.request.session;
     console.log(
-      "[auth] refresh session received, full session:",
+      '[auth] refresh session received, full session:',
       JSON.stringify(sess),
     );
     if (sess?.userId) {
@@ -312,7 +312,7 @@ io.on("connection", (socket) => {
           const player = room.players.find((p) => p.id === socket.id);
           if (player) {
             player.userId = sess.userId;
-            console.log("[auth] Updated player userId in room:", player.userId);
+            console.log('[auth] Updated player userId in room:', player.userId);
           }
         }
       }
@@ -323,7 +323,7 @@ io.on("connection", (socket) => {
   // --- Lobby ---
 
   socket.on(
-    "room:create",
+    'room:create',
     ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
       if (checkLobbyRateLimit(socket.id, cb)) {
         return;
@@ -340,7 +340,7 @@ io.on("connection", (socket) => {
       const userId = socket.userId || socket.pendingUserId;
       const player = joinRoom(room.code, socket.id, playerName, userId || null);
       if (!player) {
-        return cb({ error: "Failed to create room" });
+        return cb({ error: 'Failed to create room' });
       }
       socket.join(room.code);
       console.log(`[room] ${room.code} created by ${playerName}`);
@@ -355,7 +355,7 @@ io.on("connection", (socket) => {
     },
   );
 
-  socket.on("room:join", ({ code, playerName }, cb) => {
+  socket.on('room:join', ({ code, playerName }, cb) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -371,7 +371,7 @@ io.on("connection", (socket) => {
     socket.join(code);
     socket
       .to(code)
-      .emit("room:player_joined", { players: room.players.map(publicPlayer) });
+      .emit('room:player_joined', { players: room.players.map(publicPlayer) });
     const token = room.players.find((p) => p.id === socket.id)?.token;
     cb({
       ok: true,
@@ -381,29 +381,29 @@ io.on("connection", (socket) => {
       token,
     });
     if (room.players.length === room.settings.playerCount) {
-      io.to(code).emit("room:full", {
+      io.to(code).emit('room:full', {
         players: room.players.map(publicPlayer),
       });
     }
   });
 
-  socket.on("room:start", ({ code }, cb) => {
+  socket.on('room:start', ({ code }, cb) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
     const room = getRoom(code);
     if (!room) {
-      return cb({ error: "Room not found" });
+      return cb({ error: 'Room not found' });
     }
     const host = room.players.find((p) => p.isHost);
     if (!host || host.id !== socket.id) {
-      return cb({ error: "Only host can start" });
+      return cb({ error: 'Only host can start' });
     }
     if (room.players.length < 2) {
-      return cb({ error: "Need at least 2 players" });
+      return cb({ error: 'Need at least 2 players' });
     }
     if (room.started) {
-      return cb({ error: "Already started" });
+      return cb({ error: 'Already started' });
     }
 
     // Create game state first — only mark room as started if it succeeds
@@ -412,7 +412,7 @@ io.on("connection", (socket) => {
       gameState = createGame(room.players, room.settings);
     } catch (err) {
       console.error(`[game] ${code} failed to create game:`, err.message);
-      return cb({ error: "Failed to start game" });
+      return cb({ error: 'Failed to start game' });
     }
 
     room.started = true;
@@ -428,7 +428,7 @@ io.on("connection", (socket) => {
       `[game] ${code} started (${room.players.length}p, board ${room.settings.boardSize})`,
     );
 
-    io.to(code).emit("game:start", {
+    io.to(code).emit('game:start', {
       players: room.state.players,
       settings: room.settings,
       state: publicState(room.state),
@@ -438,17 +438,17 @@ io.on("connection", (socket) => {
 
   // --- Reconnect ---
 
-  socket.on("session:resume", ({ token, code }, cb) => {
+  socket.on('session:resume', ({ token, code }, cb) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
     const room = getRoom(code);
     if (!room || !room.started) {
-      return cb({ error: "Room not found or not started" });
+      return cb({ error: 'Room not found or not started' });
     }
     const player = room.players.find((p) => p.token === token);
     if (!player) {
-      return cb({ error: "Invalid session token" });
+      return cb({ error: 'Invalid session token' });
     }
 
     // Clean up any lingering quiz session on reconnect
@@ -460,7 +460,7 @@ io.on("connection", (socket) => {
     socket.join(code);
     console.log(`[reconnect] ${player.name} re-joined ${code}`);
     // Notify other players that someone reconnected
-    socket.to(code).emit("room:player_reconnected", {
+    socket.to(code).emit('room:player_reconnected', {
       players: room.players.map(publicPlayer),
     });
     cb({
@@ -473,15 +473,15 @@ io.on("connection", (socket) => {
 
   // --- Game actions ---
 
-  socket.on("action:select_peg", ({ code, pegId }, cb) => {
+  socket.on('action:select_peg', ({ code, pegId }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {
-      return cb({ error: "No active game" });
+      return cb({ error: 'No active game' });
     }
 
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
-      return cb({ error: "Not in this room" });
+      return cb({ error: 'Not in this room' });
     }
 
     const pegResult = selectPeg(room.state, player.index, pegId);
@@ -492,28 +492,28 @@ io.on("connection", (socket) => {
     cb({ ok: true, validMoves: pegResult.validMoves });
   });
 
-  socket.on("action:select_tile", ({ code, pegId, r, c }, cb) => {
+  socket.on('action:select_tile', ({ code, pegId, r, c }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {
-      return cb({ error: "No active game" });
+      return cb({ error: 'No active game' });
     }
 
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
-      return cb({ error: "Not in this room" });
+      return cb({ error: 'Not in this room' });
     }
     if (room.state.currentPlayerIdx !== player.index) {
-      return cb({ error: "Not your turn" });
+      return cb({ error: 'Not your turn' });
     }
     if (pegId !== room.state.selectedPegId) {
-      return cb({ error: "Peg not selected" });
+      return cb({ error: 'Peg not selected' });
     }
 
     const validMoves = getValidMoves(room.state, pegId).map(
       (m) => m.r * COORD_BASE + m.c,
     );
     if (!validMoves.includes(r * COORD_BASE + c)) {
-      return cb({ error: "Invalid move target" });
+      return cb({ error: 'Invalid move target' });
     }
 
     const { moveType, questionId } = planTurnQuestions(
@@ -538,13 +538,13 @@ io.on("connection", (socket) => {
     const gamePlayer = room.state.players[player.index];
     const defPegId = room.state.board[r]?.[c]?.pegId;
     const defenderPlayerIdx =
-      moveType === "combat" && defPegId !== null
+      moveType === 'combat' && defPegId !== null
         ? (room.state.pegs[defPegId]?.playerId ?? null)
         : null;
     const { questionsTotal } = room.state.pendingTurn;
 
     const { correctIdx, ...questionPublic } = question ?? {};
-    socket.to(code).emit("game:question_start", {
+    socket.to(code).emit('game:question_start', {
       playerIdx: player.index,
       playerColor: gamePlayer?.color,
       moveType,
@@ -557,23 +557,23 @@ io.on("connection", (socket) => {
     cb({ ok: true, moveType, question, questionsTotal, defenderPlayerIdx });
   });
 
-  socket.on("turn:answer_preview", ({ code, answerIdx }, cb) => {
+  socket.on('turn:answer_preview', ({ code, answerIdx }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {
-      return cb?.({ error: "No active game" });
+      return cb?.({ error: 'No active game' });
     }
     const player = room.players.find((p) => p.id === socket.id);
     if (!player || room.state.currentPlayerIdx !== player.index) {
-      return cb?.({ error: "Not your turn" });
+      return cb?.({ error: 'Not your turn' });
     }
-    if (typeof answerIdx !== "number" || answerIdx < 0 || answerIdx > 3) {
-      return cb?.({ error: "Invalid answer index" });
+    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {
+      return cb?.({ error: 'Invalid answer index' });
     }
 
     const now = Date.now();
     const lastPreview = previewTimestamps.get(socket.id) || 0;
     if (now - lastPreview < PREVIEW_RATE_LIMIT_MS) {
-      return cb?.({ error: "Too fast" });
+      return cb?.({ error: 'Too fast' });
     }
     previewTimestamps.set(socket.id, now);
 
@@ -581,59 +581,59 @@ io.on("connection", (socket) => {
     const qId = pending?.questionId;
     const isCorrect = qId ? questionsDb._byId?.[qId]?.a === answerIdx : null;
     if (isCorrect) {
-      socket.to(code).emit("game:answer_preview", { answerIdx, correct: true });
+      socket.to(code).emit('game:answer_preview', { answerIdx, correct: true });
     } else {
-      socket.to(code).emit("game:answer_preview", { answerIdx });
+      socket.to(code).emit('game:answer_preview', { answerIdx });
     }
     cb?.({ ok: true });
   });
 
-  socket.on("turn:submit", ({ code, submission }, cb) => {
+  socket.on('turn:submit', ({ code, submission }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {
-      return cb({ error: "No active game" });
+      return cb({ error: 'No active game' });
     }
     if (room.state.phase === PHASE.GAME_OVER) {
-      return cb({ error: "Game over" });
+      return cb({ error: 'Game over' });
     }
 
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
-      return cb({ error: "Not in this room" });
+      return cb({ error: 'Not in this room' });
     }
 
     const timeSinceQuestionStart = Date.now() - (room.lastQuestionStart || 0);
     if (timeSinceQuestionStart < MIN_ANSWER_DELAY_MS) {
       return cb({
         error:
-          "Answering too quickly. Wait for other players to see the question.",
+          'Answering too quickly. Wait for other players to see the question.',
       });
     }
     if (timeSinceQuestionStart > MAX_ANSWER_TIME_MS) {
-      return cb({ error: "Answer expired. Time ran out." });
+      return cb({ error: 'Answer expired. Time ran out.' });
     }
 
     const now = Date.now();
     const lastAnswer = answerTimestamps.get(socket.id) || 0;
     if (now - lastAnswer < RATE_LIMIT_MS) {
-      return cb({ error: "Too many requests. Please slow down." });
+      return cb({ error: 'Too many requests. Please slow down.' });
     }
     answerTimestamps.set(socket.id, now);
 
     const pending = room.state.pendingTurn;
     if (!pending) {
-      return cb({ error: "No pending turn" });
+      return cb({ error: 'No pending turn' });
     }
     if (room.state.currentPlayerIdx !== player.index) {
-      return cb({ error: "Not your turn" });
+      return cb({ error: 'Not your turn' });
     }
 
     if (
-      typeof submission.answerIdx !== "number" ||
+      typeof submission.answerIdx !== 'number' ||
       submission.answerIdx < -1 ||
       submission.answerIdx > 3
     ) {
-      return cb({ error: "Invalid answer index" });
+      return cb({ error: 'Invalid answer index' });
     }
 
     const result = applyTurn(room.state, player.index, submission, questionsDb);
@@ -660,12 +660,12 @@ io.on("connection", (socket) => {
 
       room.lastQuestionStart = Date.now();
 
-      socket.emit("game:next_question", {
+      socket.emit('game:next_question', {
         question: nextQuestion,
         questionIdx: qIdx,
         correct: result.correct,
       });
-      socket.to(code).emit("game:next_question", {
+      socket.to(code).emit('game:next_question', {
         question: nextPublic,
         questionIdx: qIdx,
         correct: result.correct,
@@ -692,7 +692,7 @@ io.on("connection", (socket) => {
       validMoves: nextValidMoves,
     };
 
-    io.to(code).emit("state:update", payload);
+    io.to(code).emit('state:update', payload);
     cb({ ok: true });
 
     if (result.gameOver) {
@@ -703,24 +703,24 @@ io.on("connection", (socket) => {
 
   // --- Quiz ---
 
-  socket.on("quiz:start", (cb) => {
+  socket.on('quiz:start', (cb) => {
     // Rate limit: one quiz start per 2 seconds
     const now = Date.now();
     const lastQuiz = quizTimestamps.get(socket.id) || 0;
     if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: "Please wait before starting another quiz." });
+      return cb({ error: 'Please wait before starting another quiz.' });
     }
     quizTimestamps.set(socket.id, now);
 
     // Prevent starting quiz while in an active Weeqlash game
     if (isInActiveGame(socket.id)) {
-      return cb({ error: "Cannot play quiz during an active game." });
+      return cb({ error: 'Cannot play quiz during an active game.' });
     }
 
     const allQuestions = getAllQuestions(questionsDb);
 
     if (allQuestions.length === 0) {
-      return cb({ error: "No questions available" });
+      return cb({ error: 'No questions available' });
     }
 
     const randomQ =
@@ -742,21 +742,21 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("quiz:answer", ({ answerIdx }, cb) => {
+  socket.on('quiz:answer', ({ answerIdx }, cb) => {
     const run = quizRuns.get(socket.id);
     if (!run) {
-      return cb({ error: "Quiz not started" });
+      return cb({ error: 'Quiz not started' });
     }
 
     // Validate answer index: 0-3 valid choices, -1 means timeout (treated as wrong)
-    if (typeof answerIdx !== "number" || answerIdx < -1 || answerIdx > 3) {
-      return cb({ error: "Invalid answer index" });
+    if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
+      return cb({ error: 'Invalid answer index' });
     }
 
     const qId = run.questionIds[run.answers];
     const q = questionsDb._byId[qId];
     if (!q) {
-      return cb({ error: "Question not found" });
+      return cb({ error: 'Question not found' });
     }
 
     const correct = q.a === answerIdx;
@@ -786,15 +786,15 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("quiz:next", (cb) => {
+  socket.on('quiz:next', (cb) => {
     const run = quizRuns.get(socket.id);
     if (!run) {
-      return cb({ error: "Quiz not started" });
+      return cb({ error: 'Quiz not started' });
     }
 
     const allQuestions = getAllQuestions(questionsDb);
     if (allQuestions.length === 0) {
-      return cb({ error: "No questions available" });
+      return cb({ error: 'No questions available' });
     }
     const usedIds = new Set(run.questionIds);
     const availableQuestions = allQuestions.filter((q) => !usedIds.has(q.id));
@@ -813,16 +813,16 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("quiz:submit_score", ({ name }, cb) => {
+  socket.on('quiz:submit_score', ({ name }, cb) => {
     const run = quizRuns.get(socket.id);
     if (!run) {
-      return cb({ error: "No completed run" });
+      return cb({ error: 'No completed run' });
     }
 
     // Validate name: 1-16 characters, trimmed
     const sanitizedName = name?.trim();
     if (!sanitizedName || sanitizedName.length > 16) {
-      return cb({ error: "Name must be 1-16 characters" });
+      return cb({ error: 'Name must be 1-16 characters' });
     }
 
     const timeMs = Date.now() - run.startedAt;
@@ -832,20 +832,20 @@ io.on("connection", (socket) => {
     cb({ ok: true, top10 });
   });
 
-  socket.on("quiz:leaderboard", (cb) => {
+  socket.on('quiz:leaderboard', (cb) => {
     cb({ ok: true, top10: getTop10() });
   });
 
   // --- Dev quickstart (non-production only) ---
 
-  if (process.env.NODE_ENV !== "production") {
-    socket.on("dev:quickstart", ({ boardSize = 4 } = {}, cb) => {
-      const colors = ["#e53935", "#1565c0"];
+  if (process.env.NODE_ENV !== 'production') {
+    socket.on('dev:quickstart', ({ boardSize = 4 } = {}, cb) => {
+      const colors = ['#e53935', '#1565c0'];
       const room = createRoom({ playerCount: 2, boardSize, timer: 30 });
       const fakePlayers = [
         {
           id: socket.id,
-          name: "Dev Player",
+          name: 'Dev Player',
           color: colors[0],
           isHost: true,
           index: 0,
@@ -853,8 +853,8 @@ io.on("connection", (socket) => {
           userId: null,
         },
         {
-          id: "bot-dev",
-          name: "Bot",
+          id: 'bot-dev',
+          name: 'Bot',
           color: colors[1],
           isHost: false,
           index: 1,
@@ -876,7 +876,7 @@ io.on("connection", (socket) => {
       room.startedAt = Date.now();
       room.state = gameState;
 
-      socket.emit("game:start", {
+      socket.emit('game:start', {
         players: gameState.players,
         settings: room.settings,
         state: publicState(gameState),
@@ -887,7 +887,7 @@ io.on("connection", (socket) => {
 
   // --- Disconnect ---
 
-  socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
     console.log(`[-] ${socket.id}`);
     quizRuns.delete(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
@@ -899,7 +899,7 @@ io.on("connection", (socket) => {
           console.log(`[game] ${room.code} ended (already over)`);
           return;
         }
-        io.to(room.code).emit("game:player_disconnected", {
+        io.to(room.code).emit('game:player_disconnected', {
           playerId: socket.id,
           playerName: player.name,
         });
@@ -910,8 +910,8 @@ io.on("connection", (socket) => {
           const winner = room.players[0];
           room.state.phase = PHASE.GAME_OVER;
           room.state.winner = winner.index;
-          io.to(room.code).emit("state:update", {
-            events: [{ type: "player_disconnected", playerId: socket.id }],
+          io.to(room.code).emit('state:update', {
+            events: [{ type: 'player_disconnected', playerId: socket.id }],
             state: publicState(room.state),
             gameOver: true,
             winner: winner.index,
@@ -922,7 +922,7 @@ io.on("connection", (socket) => {
         }
       } else {
         // Lobby: just broadcast player left
-        io.to(room.code).emit("room:player_left", {
+        io.to(room.code).emit('room:player_left', {
           playerId: socket.id,
           playerName: player.name,
           players: room.players.map(publicPlayer),
@@ -959,7 +959,7 @@ function publicState(state) {
 
 // Record game result to database (only for regular game ends, not disconnects)
 function recordGameStats(room) {
-  console.log("[stats] recordGameStats called", {
+  console.log('[stats] recordGameStats called', {
     startedAt: room?.startedAt,
     playersCount: room?.state?.players?.length,
     roomPlayers: room?.players?.map((p) => ({
@@ -977,7 +977,7 @@ function recordGameStats(room) {
     !room.state?.players ||
     room.state.players.length < 2
   ) {
-    console.log("[stats] Skipping - invalid game state");
+    console.log('[stats] Skipping - invalid game state');
     return; // Not a valid started game
   }
 
@@ -986,7 +986,7 @@ function recordGameStats(room) {
   // Get userIds from room players (linked at join time)
   const player1UserId = room.players[0]?.userId;
   const player2UserId = room.players[1]?.userId;
-  console.log("[stats] userIds:", player1UserId, player2UserId);
+  console.log('[stats] userIds:', player1UserId, player2UserId);
 
   // Determine winner index for stats updating (accessible to all sections)
   const winnerIdx = room.state.winner;
@@ -1007,7 +1007,7 @@ function recordGameStats(room) {
         player1Id: player1UserId,
         player2Id: player2UserId,
         winnerId,
-        gameMode: "duel",
+        gameMode: 'duel',
         boardSize: room.settings.boardSize,
         durationMs,
         player1Stats,
@@ -1038,13 +1038,13 @@ function recordGameStats(room) {
         ).run(player2UserId);
       }
 
-      const gameRoomCode = players[0].name + " vs " + players[1].name;
-      const winnerStr = winnerId ? "player" + (winnerIdx + 1) : "draw";
+      const gameRoomCode = players[0].name + ' vs ' + players[1].name;
+      const winnerStr = winnerId ? 'player' + (winnerIdx + 1) : 'draw';
       console.log(
         `[stats] Game recorded: ${gameRoomCode}, winner: ${winnerStr}`,
       );
     } catch (err) {
-      console.error("[stats] Failed to record game:", err.message);
+      console.error('[stats] Failed to record game:', err.message);
     }
     return;
   }
@@ -1072,7 +1072,7 @@ function recordGameStats(room) {
       `,
       ).run(player1UserId);
     }
-    console.log("[stats] Recorded player1 stats:", players[0].name);
+    console.log('[stats] Recorded player1 stats:', players[0].name);
   }
 
   // Track player2's stats if they have an account
@@ -1094,7 +1094,7 @@ function recordGameStats(room) {
       `,
       ).run(player2UserId);
     }
-    console.log("[stats] Recorded player2 stats:", players[1].name);
+    console.log('[stats] Recorded player2 stats:', players[1].name);
   }
 }
 
