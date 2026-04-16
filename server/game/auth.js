@@ -90,26 +90,32 @@ function applySchemaMigrations(db) {
       console.log('[auth] Added is_admin column to users table');
     }
 
-    // Migrate renamed categories in user_stats
-    const catRenames = [
-      ['visual_arts', 'arts'],
-      ['film_tv', 'entertainment'],
-      ['books', 'literature'],
-    ];
-    for (const [oldCat, newCat] of catRenames) {
-      const exists = db.prepare('SELECT COUNT(*) as n FROM user_stats WHERE category = ?').get(oldCat);
-      if (exists.n > 0) {
-        // Merge into new category if it already has rows, otherwise just rename
-        db.prepare(`
-          INSERT INTO user_stats (user_id, category, answered, correct)
-          SELECT user_id, ?, answered, correct FROM user_stats WHERE category = ?
-          ON CONFLICT(user_id, category) DO UPDATE SET
-            answered = user_stats.answered + excluded.answered,
-            correct  = user_stats.correct  + excluded.correct
-        `).run(newCat, oldCat);
-        db.prepare('DELETE FROM user_stats WHERE category = ?').run(oldCat);
-        console.log(`[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`);
-      }
+    // Migrate renamed categories in user_stats (runs once; no-ops after old rows are gone)
+    const oldCats = ['visual_arts', 'film_tv', 'books'];
+    const hasOldRows = db.prepare(
+      `SELECT 1 FROM user_stats WHERE category IN (${oldCats.map(() => '?').join(',')}) LIMIT 1`
+    ).get(...oldCats);
+    if (hasOldRows) {
+      const catRenames = [
+        ['visual_arts', 'arts'],
+        ['film_tv', 'entertainment'],
+        ['books', 'literature'],
+      ];
+      const insertStmt = db.prepare(`
+        INSERT INTO user_stats (user_id, category, answered, correct)
+        SELECT user_id, ?, answered, correct FROM user_stats WHERE category = ?
+        ON CONFLICT(user_id, category) DO UPDATE SET
+          answered = user_stats.answered + excluded.answered,
+          correct  = user_stats.correct  + excluded.correct
+      `);
+      const deleteStmt = db.prepare('DELETE FROM user_stats WHERE category = ?');
+      db.transaction(() => {
+        for (const [oldCat, newCat] of catRenames) {
+          insertStmt.run(newCat, oldCat);
+          deleteStmt.run(oldCat);
+          console.log(`[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`);
+        }
+      })();
     }
   } catch (error) {
     console.warn('[auth] Schema migration warning:', error.message);
@@ -332,7 +338,7 @@ export function getUserHistory(userId, limit = 20) {
       w.username as winner_name
     FROM game_history gh
     JOIN users u1 ON gh.player1_id = u1.id
-    JOIN users u2 ON gh.player2_id = u2.id
+    LEFT JOIN users u2 ON gh.player2_id = u2.id
     LEFT JOIN users w ON gh.winner_id = w.id
     WHERE gh.player1_id = ? OR gh.player2_id = ?
     ORDER BY gh.created_at DESC

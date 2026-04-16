@@ -664,7 +664,7 @@
         background: #969517;
       }
       .cat-science .tile-cat-label {
-        color: #a0d0e5;
+        color: #f9f7d0;
       }
       .cat-history {
         background: #6d4c41;
@@ -1729,41 +1729,7 @@
           </div>
           <div class="setup-section">
             <h3>Categories</h3>
-            <div class="cat-toggle-btns" id="cat-toggle-btns">
-              <button class="cat-toggle-btn active" data-cat="arts">
-                Arts
-              </button>
-              <button class="cat-toggle-btn active" data-cat="geography">
-                Geography
-              </button>
-              <button class="cat-toggle-btn active" data-cat="history">
-                History
-              </button>
-              <button class="cat-toggle-btn active" data-cat="literature">
-                Literature
-              </button>
-              <button class="cat-toggle-btn active" data-cat="science">
-                Science
-              </button>
-              <button class="cat-toggle-btn active" data-cat="nature">
-                Nature
-              </button>
-              <button class="cat-toggle-btn active" data-cat="music">
-                Music
-              </button>
-              <button class="cat-toggle-btn active" data-cat="death_metal">
-                Death Metal
-              </button>
-              <button class="cat-toggle-btn active" data-cat="entertainment">
-                Entertainment
-              </button>
-              <button class="cat-toggle-btn active" data-cat="sports">
-                Sports
-              </button>
-              <button class="cat-toggle-btn active" data-cat="other">
-                Other
-              </button>
-            </div>
+            <div class="cat-toggle-btns" id="cat-toggle-btns"></div>
             <div class="setup-actions">
               <button id="btn-cats-all" class="active">All</button>
               <button id="btn-cats-none">None</button>
@@ -2562,6 +2528,11 @@
       let setupBoardSize = 8;
       let setupTimer = 30;
       let setupEnabledCats = [...CATS];
+
+      // Populate category toggle buttons from CATS so adding/removing a category only requires updating CAT_NAMES
+      el('cat-toggle-btns').innerHTML = CATS.map(
+        (cat) => `<button class="cat-toggle-btn active" data-cat="${cat}">${CAT_NAMES[cat]}</button>`
+      ).join('');
 
       // ============================================================
       // SCREENS
