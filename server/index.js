@@ -18,6 +18,7 @@ import session from 'express-session';
 
 import {
   createRoom,
+  createQlasRoom,
   joinRoom,
   getRoom,
   removePlayerFromRoom,
@@ -36,6 +37,17 @@ import {
   COORD_BASE,
 } from './game/engine.js';
 import { loadQuestions, getAllQuestions } from './game/questions.js';
+import {
+  createQlasGame,
+  calcTimer,
+  processAnswer,
+  processReroll,
+  endTurn,
+  applyOutcome,
+  checkInstantWin,
+  checkGameOver,
+  PHASE as QLAS_PHASE,
+} from './game/qlashique.js';
 import {
   initDb,
   getDb,
@@ -404,6 +416,9 @@ io.on('connection', (socket) => {
     }
     if (room.started) {
       return cb({ error: 'Already started' });
+    }
+    if (room.mode === 'qlashique') {
+      return cb({ error: 'Qlashique rooms start via class selection' });
     }
 
     // Create game state first — only mark room as started if it succeeds
@@ -885,6 +900,275 @@ io.on('connection', (socket) => {
     });
   }
 
+  // --- Qlashique ---
+
+  socket.on('qlashique:create_room', ({ playerName } = {}, cb) => {
+    if (checkLobbyRateLimit(socket.id, cb)) {
+      return;
+    }
+    quizRuns.delete(socket.id);
+    const userId = socket.userId || socket.pendingUserId;
+    const room = createQlasRoom();
+    const player = joinRoom(room.code, socket.id, playerName, userId || null);
+    if (player.error) {
+      return cb(player);
+    }
+    socket.join(room.code);
+    const token = room.players.find((p) => p.id === socket.id)?.token;
+    cb({
+      ok: true,
+      code: room.code,
+      playerId: socket.id,
+      players: room.players.map(publicPlayer),
+      token,
+    });
+  });
+
+  socket.on('qlashique:select_class', ({ code, classId } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room || room.mode !== 'qlashique') {
+      return cb({ error: 'Room not found' });
+    }
+    if (room.started) {
+      return cb({ error: 'Game already started' });
+    }
+    if (!['slowpoke', 'reroll'].includes(classId)) {
+      return cb({ error: 'Invalid class' });
+    }
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+
+    room.classSelections[player.index] = classId;
+    io.to(code).emit('qlashique:class_selected', {
+      playerIdx: player.index,
+      classId,
+    });
+    cb({ ok: true });
+
+    if (room.classSelections[0] && room.classSelections[1]) {
+      room.started = true;
+      room.startedAt = Date.now();
+      room.state = createQlasGame(
+        room.classSelections[0],
+        room.classSelections[1],
+      );
+      _emitQlasTurnStart(io, code, room);
+    }
+  });
+
+  socket.on('qlashique:start_guessing', ({ code } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashique') {
+      return cb({ error: 'No active game' });
+    }
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+    if (room.state.phase !== QLAS_PHASE.DECISION) {
+      return cb({ error: 'Not in decision phase' });
+    }
+
+    room.state.phase = QLAS_PHASE.GUESSING;
+    room.questionIdx = 0;
+
+    const q = _pickQlasQuestion(room, questionsDb);
+    if (!q) {
+      return cb({ error: 'No questions available' });
+    }
+    room.currentQuestion = q;
+
+    socket.emit('qlashique:question', {
+      question: { id: q.id, q: q.q, opts: q.opts, category: q.category },
+      questionIdx: 0,
+    });
+    cb({ ok: true });
+  });
+
+  socket.on('qlashique:answer', ({ code, answerIdx } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashique') {
+      return cb({ error: 'No active game' });
+    }
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+    if (room.state.phase !== QLAS_PHASE.GUESSING) {
+      return cb({ error: 'Not in guessing phase' });
+    }
+    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {
+      return cb({ error: 'Invalid answer' });
+    }
+    if (!room.currentQuestion) {
+      return cb({ error: 'No active question' });
+    }
+
+    const result = processAnswer(room.state, answerIdx, room.currentQuestion.a);
+    if (result.error) {
+      return cb(result);
+    }
+
+    socket.emit('qlashique:answer_result', {
+      correct: result.correct,
+      newScore: room.state.currentScore,
+      playerIdx: player.index,
+    });
+
+    if (checkInstantWin(room.state)) {
+      room.state.phase = QLAS_PHASE.GAME_OVER;
+      io.to(code).emit('qlashique:game_over', {
+        winnerIdx: player.index,
+        reason: 'instant_win',
+      });
+      return cb({ ok: true });
+    }
+
+    room.questionIdx++;
+    const nextQ = _pickQlasQuestion(room, questionsDb);
+    if (nextQ) {
+      room.currentQuestion = nextQ;
+      socket.emit('qlashique:question', {
+        question: {
+          id: nextQ.id,
+          q: nextQ.q,
+          opts: nextQ.opts,
+          category: nextQ.category,
+        },
+        questionIdx: room.questionIdx,
+      });
+    }
+
+    cb({ ok: true });
+  });
+
+  socket.on('qlashique:reroll', ({ code } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashique') {
+      return cb({ error: 'No active game' });
+    }
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+
+    const result = processReroll(room.state);
+    if (result.error) {
+      return cb(result);
+    }
+
+    const newQ = _pickQlasQuestion(room, questionsDb);
+    if (!newQ) {
+      return cb({ error: 'No questions available' });
+    }
+    room.currentQuestion = newQ;
+
+    socket.emit('qlashique:rerolled', {
+      newQuestion: {
+        id: newQ.id,
+        q: newQ.q,
+        opts: newQ.opts,
+        category: newQ.category,
+      },
+    });
+    cb({ ok: true });
+  });
+
+  socket.on('qlashique:end_turn', ({ code } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashique') {
+      return cb({ error: 'No active game' });
+    }
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+
+    const scoreBeforeEnd = room.state.currentScore;
+    const { outcome, error } = endTurn(room.state);
+    if (error) {
+      return cb({ error });
+    }
+
+    io.to(code).emit('qlashique:turn_end', { score: scoreBeforeEnd, outcome });
+    io.to(code).emit('qlashique:hp_update', {
+      p0hp: room.state.players[0].hp,
+      p1hp: room.state.players[1].hp,
+    });
+
+    const winnerIdx = checkGameOver(room.state);
+    if (winnerIdx >= 0) {
+      room.state.phase = QLAS_PHASE.GAME_OVER;
+      const reason =
+        room.state.players[player.index].hp <= 0 ? 'self_destruct' : 'hp';
+      io.to(code).emit('qlashique:game_over', { winnerIdx, reason });
+      return cb({ ok: true });
+    }
+
+    if (outcome !== 'choose') {
+      _emitQlasTurnStart(io, code, room);
+    }
+
+    cb({ ok: true });
+  });
+
+  socket.on('qlashique:choose_outcome', ({ code, choice } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashique') {
+      return cb({ error: 'No active game' });
+    }
+
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+    if (!['attack', 'heal'].includes(choice)) {
+      return cb({ error: 'Invalid choice' });
+    }
+
+    const result = applyOutcome(room.state, choice);
+    if (result.error) {
+      return cb(result);
+    }
+
+    io.to(code).emit('qlashique:hp_update', {
+      p0hp: result.p0hp,
+      p1hp: result.p1hp,
+    });
+
+    const winnerIdx = checkGameOver(room.state);
+    if (winnerIdx >= 0) {
+      room.state.phase = QLAS_PHASE.GAME_OVER;
+      io.to(code).emit('qlashique:game_over', { winnerIdx, reason: 'hp' });
+      return cb({ ok: true });
+    }
+
+    _emitQlasTurnStart(io, code, room);
+    cb({ ok: true });
+  });
+
   // --- Disconnect ---
 
   socket.on('disconnect', () => {
@@ -894,8 +1178,11 @@ io.on('connection', (socket) => {
     if (room && player) {
       // If game was in progress, notify remaining players and end the game
       if (room.started && room.state) {
-        // Skip if game already ended (e.g., normal completion)
-        if (room.state.phase === PHASE.GAME_OVER) {
+        const alreadyOver =
+          room.mode === 'qlashique'
+            ? room.state.phase === QLAS_PHASE.GAME_OVER
+            : room.state.phase === PHASE.GAME_OVER;
+        if (alreadyOver) {
           console.log(`[game] ${room.code} ended (already over)`);
           return;
         }
@@ -903,19 +1190,24 @@ io.on('connection', (socket) => {
           playerId: socket.id,
           playerName: player.name,
         });
-        // If only one player remains, declare them the winner.
-        // Intentional: mutates state directly here instead of via engine because
-        // the game is ending due to a disconnection, not a valid turn outcome.
         if (room.players.length === 1) {
           const winner = room.players[0];
-          room.state.phase = PHASE.GAME_OVER;
-          room.state.winner = winner.index;
-          io.to(room.code).emit('state:update', {
-            events: [{ type: 'player_disconnected', playerId: socket.id }],
-            state: publicState(room.state),
-            gameOver: true,
-            winner: winner.index,
-          });
+          if (room.mode === 'qlashique') {
+            room.state.phase = QLAS_PHASE.GAME_OVER;
+            io.to(room.code).emit('qlashique:game_over', {
+              winnerIdx: winner.index,
+              reason: 'disconnect',
+            });
+          } else {
+            room.state.phase = PHASE.GAME_OVER;
+            room.state.winner = winner.index;
+            io.to(room.code).emit('state:update', {
+              events: [{ type: 'player_disconnected', playerId: socket.id }],
+              state: publicState(room.state),
+              gameOver: true,
+              winner: winner.index,
+            });
+          }
           console.log(
             `[game] ${room.code} ended — ${player.name} disconnected, ${winner.name} wins`,
           );
@@ -1096,6 +1388,30 @@ function recordGameStats(room) {
     }
     console.log('[stats] Recorded player2 stats:', players[1].name);
   }
+}
+
+function _pickQlasQuestion(room, db) {
+  const all = getAllQuestions(db);
+  if (!all.length) {
+    return null;
+  }
+  const available = all.filter((q) => !room.usedQIds.has(q.id));
+  const pool = available.length > 0 ? available : all;
+  const q = pool[Math.floor(Math.random() * pool.length)];
+  room.usedQIds.add(q.id);
+  return q;
+}
+
+function _emitQlasTurnStart(ioServer, code, room) {
+  const { state, classSelections } = room;
+  const idx = state.currentPlayerIdx;
+  const timerSeconds = calcTimer(state.turnNumber, classSelections[idx]);
+  room.questionIdx = 0;
+  ioServer.to(code).emit('qlashique:turn_start', {
+    playerIdx: idx,
+    timerSeconds,
+    rerollAvailable: classSelections[idx] === 'reroll',
+  });
 }
 
 httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));

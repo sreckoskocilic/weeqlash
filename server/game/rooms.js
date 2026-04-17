@@ -38,7 +38,9 @@ export function createRoom({
   // Validate enabledCats — filter out any values not in the known category list
   if (Array.isArray(enabledCats)) {
     enabledCats = enabledCats.filter((c) => CATS.includes(c));
-    if (enabledCats.length === 0) {enabledCats = undefined;}
+    if (enabledCats.length === 0) {
+      enabledCats = undefined;
+    }
   } else {
     enabledCats = undefined;
   }
@@ -63,7 +65,11 @@ export function createRoom({
 export function joinRoom(code, socketId, playerName, userId = null) {
   const normalizedCode = code?.toUpperCase();
   // Validate room code format
-  if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
+  if (
+    !normalizedCode ||
+    normalizedCode.length !== 5 ||
+    !/^[A-Z0-9]+$/.test(normalizedCode)
+  ) {
     return { error: 'Invalid room code' };
   }
 
@@ -109,7 +115,11 @@ export function joinRoom(code, socketId, playerName, userId = null) {
 
 export function getRoom(code) {
   const normalizedCode = code?.toUpperCase();
-  if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
+  if (
+    !normalizedCode ||
+    normalizedCode.length !== 5 ||
+    !/^[A-Z0-9]+$/.test(normalizedCode)
+  ) {
     return null;
   }
   return rooms.get(normalizedCode) ?? null;
@@ -176,6 +186,29 @@ export function cleanupStaleRooms() {
   }
 
   return removed;
+}
+
+export function createQlasRoom() {
+  let code;
+  do {
+    code = generateCode();
+  } while (rooms.has(code));
+
+  const room = {
+    code,
+    mode: 'qlashique',
+    settings: { playerCount: 2 },
+    players: [],
+    started: false,
+    startedAt: null,
+    state: null,
+    classSelections: [null, null],
+    usedQIds: new Set(),
+    currentQuestion: null,
+    questionIdx: 0,
+  };
+  rooms.set(code, room);
+  return room;
 }
 
 // Check if a socket ID belongs to a player in an active (started) game.
