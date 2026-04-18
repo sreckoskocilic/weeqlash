@@ -1078,6 +1078,10 @@ io.on('connection', (socket) => {
       return cb(result);
     }
 
+    if (player.userId) {
+      trackAnswer(player.userId, 'qlashique', result.correct);
+    }
+
     socket.emit('qlashique:answer_result', {
       correct: result.correct,
       newScore: room.state.currentScore,
@@ -1086,6 +1090,7 @@ io.on('connection', (socket) => {
 
     if (checkInstantWin(room.state)) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
+      _saveQlasResult(room, player.index);
       io.to(code).emit('qlashique:game_over', {
         winnerIdx: player.index,
         reason: 'instant_win',
@@ -1221,6 +1226,7 @@ io.on('connection', (socket) => {
     const winnerIdx = checkGameOver(room.state);
     if (winnerIdx >= 0 && winnerIdx < 2) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
+      _saveQlasResult(room, winnerIdx);
       io.to(code).emit('qlashique:game_over', { winnerIdx, reason: 'hp' });
       return cb({ ok: true });
     }
@@ -1460,6 +1466,26 @@ function _pickQlasQuestion(room, db) {
   const q = pool[Math.floor(Math.random() * pool.length)];
   room.usedQIds.add(q.id);
   return q;
+}
+
+function _saveQlasResult(room, winnerIdx) {
+  const [p0, p1] = room.players;
+  if (!p0?.userId && !p1?.userId) {return;}
+  const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
+  try {
+    insertGameResult({
+      player1Id: p0?.userId ?? null,
+      player2Id: p1?.userId ?? null,
+      winnerId: winnerIdx === 0 ? (p0?.userId ?? null) : (p1?.userId ?? null),
+      gameMode: 'qlashique',
+      boardSize: null,
+      durationMs,
+      player1Stats: {},
+      player2Stats: {},
+    });
+  } catch (e) {
+    console.warn('[qlashique] Failed to save game result:', e.message);
+  }
 }
 
 function _emitQlasTurnStart(ioServer, code, room) {

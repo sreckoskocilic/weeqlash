@@ -70,31 +70,39 @@ function applySchemaMigrations(db) {
   try {
     // Check if games_played column exists, add if not
     const tableInfo = db.prepare('PRAGMA table_info(users)').all();
-    const columns = tableInfo.map(col => col.name);
+    const columns = tableInfo.map((col) => col.name);
 
     // Add games_played column if missing
     if (!columns.includes('games_played')) {
-      db.prepare('ALTER TABLE users ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0').run();
+      db.prepare(
+        'ALTER TABLE users ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0',
+      ).run();
       console.log('[auth] Added games_played column to users table');
     }
 
     // Add games_won column if missing
     if (!columns.includes('games_won')) {
-      db.prepare('ALTER TABLE users ADD COLUMN games_won INTEGER NOT NULL DEFAULT 0').run();
+      db.prepare(
+        'ALTER TABLE users ADD COLUMN games_won INTEGER NOT NULL DEFAULT 0',
+      ).run();
       console.log('[auth] Added games_won column to users table');
     }
 
     // Add is_admin column if missing
     if (!columns.includes('is_admin')) {
-      db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0').run();
+      db.prepare(
+        'ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
+      ).run();
       console.log('[auth] Added is_admin column to users table');
     }
 
     // Migrate renamed categories in user_stats (runs once; no-ops after old rows are gone)
     const oldCats = ['visual_arts', 'film_tv', 'books'];
-    const hasOldRows = db.prepare(
-      `SELECT 1 FROM user_stats WHERE category IN (${oldCats.map(() => '?').join(',')}) LIMIT 1`
-    ).get(...oldCats);
+    const hasOldRows = db
+      .prepare(
+        `SELECT 1 FROM user_stats WHERE category IN (${oldCats.map(() => '?').join(',')}) LIMIT 1`,
+      )
+      .get(...oldCats);
     if (hasOldRows) {
       const catRenames = [
         ['visual_arts', 'arts'],
@@ -108,12 +116,16 @@ function applySchemaMigrations(db) {
           answered = user_stats.answered + excluded.answered,
           correct  = user_stats.correct  + excluded.correct
       `);
-      const deleteStmt = db.prepare('DELETE FROM user_stats WHERE category = ?');
+      const deleteStmt = db.prepare(
+        'DELETE FROM user_stats WHERE category = ?',
+      );
       db.transaction(() => {
         for (const [oldCat, newCat] of catRenames) {
           insertStmt.run(newCat, oldCat);
           deleteStmt.run(oldCat);
-          console.log(`[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`);
+          console.log(
+            `[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`,
+          );
         }
       })();
     }
@@ -129,12 +141,16 @@ export function createUser({ username, email, password }) {
   const db = getDb();
   const now = Date.now();
 
-  const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  const existingUser = db
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get(username);
   if (existingUser) {
     return { error: 'Username already taken' };
   }
 
-  const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existingEmail = db
+    .prepare('SELECT id FROM users WHERE email = ?')
+    .get(email);
   if (existingEmail) {
     return { error: 'Email already registered' };
   }
@@ -157,9 +173,9 @@ export function createUser({ username, email, password }) {
 
 export function authenticateUser(usernameOrEmail, password) {
   const db = getDb();
-  const user = db.prepare(
-    'SELECT * FROM users WHERE username = ? OR email = ?'
-  ).get(usernameOrEmail, usernameOrEmail);
+  const user = db
+    .prepare('SELECT * FROM users WHERE username = ? OR email = ?')
+    .get(usernameOrEmail, usernameOrEmail);
 
   if (!user) {
     return { error: 'Invalid credentials' };
@@ -174,30 +190,50 @@ export function authenticateUser(usernameOrEmail, password) {
   }
 
   if (!user.email_confirmed) {
-    return { error: 'Email not confirmed', needsConfirmation: true, userId: user.id };
+    return {
+      error: 'Email not confirmed',
+      needsConfirmation: true,
+      userId: user.id,
+    };
   }
 
-  db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(Date.now(), user.id);
+  db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(
+    Date.now(),
+    user.id,
+  );
 
   return {
     ok: true,
-    user: { id: user.id, username: user.username, email: user.email, is_admin: user.is_admin },
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      is_admin: user.is_admin,
+    },
   };
 }
 
 export function getUserById(id) {
   const db = getDb();
-  const user = db.prepare('SELECT id, username, email, email_confirmed, is_blocked, created_at, last_login FROM users WHERE id = ?').get(id);
+  const user = db
+    .prepare(
+      'SELECT id, username, email, email_confirmed, is_blocked, created_at, last_login FROM users WHERE id = ?',
+    )
+    .get(id);
   return user || null;
 }
 
 export function confirmEmail(token) {
   const db = getDb();
-  const user = db.prepare('SELECT id FROM users WHERE confirmation_token = ?').get(token);
+  const user = db
+    .prepare('SELECT id FROM users WHERE confirmation_token = ?')
+    .get(token);
   if (!user) {
     return { error: 'Invalid confirmation token' };
   }
-  db.prepare('UPDATE users SET email_confirmed = 1, confirmation_token = NULL WHERE id = ?').run(user.id);
+  db.prepare(
+    'UPDATE users SET email_confirmed = 1, confirmation_token = NULL WHERE id = ?',
+  ).run(user.id);
   return { ok: true };
 }
 
@@ -212,32 +248,38 @@ export function createResetToken(email) {
   const resetToken = crypto.randomBytes(32).toString('hex');
   const expires = Date.now() + 3600000; // 1 hour
 
-  db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?')
-    .run(resetToken, expires, user.id);
+  db.prepare(
+    'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
+  ).run(resetToken, expires, user.id);
 
   return { ok: true, resetToken };
 }
 
 export function resetPassword(token, newPassword) {
   const db = getDb();
-  const user = db.prepare(
-    'SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > ?'
-  ).get(token, Date.now());
+  const user = db
+    .prepare(
+      'SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > ?',
+    )
+    .get(token, Date.now());
 
   if (!user) {
     return { error: 'Invalid or expired reset token' };
   }
 
   const passwordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
-  db.prepare('UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?')
-    .run(passwordHash, user.id);
+  db.prepare(
+    'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
+  ).run(passwordHash, user.id);
 
   return { ok: true };
 }
 
 export function resendConfirmation(userId) {
   const db = getDb();
-  const user = db.prepare('SELECT id, email_confirmed FROM users WHERE id = ?').get(userId);
+  const user = db
+    .prepare('SELECT id, email_confirmed FROM users WHERE id = ?')
+    .get(userId);
   if (!user) {
     return { error: 'User not found' };
   }
@@ -246,62 +288,36 @@ export function resendConfirmation(userId) {
   }
 
   const confirmToken = crypto.randomBytes(32).toString('hex');
-  db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(confirmToken, userId);
+  db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(
+    confirmToken,
+    userId,
+  );
   return { ok: true, confirmToken };
-}
-
-// --- User Management (Admin) ---
-
-export function blockUser(userId) {
-  const db = getDb();
-  db.prepare('UPDATE users SET is_blocked = 1 WHERE id = ?').run(userId);
-  return { ok: true };
-}
-
-export function unblockUser(userId) {
-  const db = getDb();
-  db.prepare('UPDATE users SET is_blocked = 0 WHERE id = ?').run(userId);
-  return { ok: true };
-}
-
-export function adminResetPassword(userId, newPassword) {
-  const db = getDb();
-  const passwordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, userId);
-  return { ok: true };
-}
-
-export function getAllUsers({ limit = 50, offset = 0 } = {}) {
-  const db = getDb();
-  const users = db.prepare(`
-    SELECT id, username, email, email_confirmed, is_blocked, created_at, last_login
-    FROM users
-    ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `).all(limit, offset);
-  const total = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  return { users, total };
 }
 
 // --- Stats ---
 
 export function trackAnswer(userId, category, correct) {
   const db = getDb();
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO user_stats (user_id, category, answered, correct)
     VALUES (?, ?, 1, ?)
     ON CONFLICT(user_id, category) DO UPDATE SET
       answered = answered + 1,
       correct = correct + excluded.correct
-  `).run(userId, category, correct ? 1 : 0);
+  `,
+  ).run(userId, category, correct ? 1 : 0);
 }
 
 export function getUserStats(userId) {
   const db = getDb();
 
-  const categoryStats = db.prepare(
-    'SELECT category, answered, correct FROM user_stats WHERE user_id = ? ORDER BY category'
-  ).all(userId);
+  const categoryStats = db
+    .prepare(
+      'SELECT category, answered, correct FROM user_stats WHERE user_id = ? ORDER BY category',
+    )
+    .all(userId);
 
   const totals = categoryStats.reduce(
     (acc, s) => {
@@ -309,16 +325,16 @@ export function getUserStats(userId) {
       acc.totalCorrect += s.correct;
       return acc;
     },
-    { totalAnswered: 0, totalCorrect: 0 }
+    { totalAnswered: 0, totalCorrect: 0 },
   );
 
-  const gameWinRatio = db.prepare(
-      'SELECT games_played, games_won FROM users WHERE id = ?'
-  ).get(userId);
+  const gameWinRatio = db
+    .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
+    .get(userId);
 
   const gameStats = {
     gamesPlayed: gameWinRatio?.games_played || 0,
-    gamesWon: gameWinRatio?.games_won || 0
+    gamesWon: gameWinRatio?.games_won || 0,
   };
 
   return {
@@ -328,26 +344,16 @@ export function getUserStats(userId) {
   };
 }
 
-export function getUserHistory(userId, limit = 20) {
-  const db = getDb();
-  const stmt = db.prepare(`
-    SELECT
-      gh.*,
-      u1.username as player1_name,
-      u2.username as player2_name,
-      w.username as winner_name
-    FROM game_history gh
-    JOIN users u1 ON gh.player1_id = u1.id
-    LEFT JOIN users u2 ON gh.player2_id = u2.id
-    LEFT JOIN users w ON gh.winner_id = w.id
-    WHERE gh.player1_id = ? OR gh.player2_id = ?
-    ORDER BY gh.created_at DESC
-    LIMIT ?
-  `);
-  return stmt.all(userId, userId, limit);
-}
-
-export function insertGameResult({ player1Id, player2Id, winnerId, gameMode, boardSize, durationMs, player1Stats, player2Stats }) {
+export function insertGameResult({
+  player1Id,
+  player2Id,
+  winnerId,
+  gameMode,
+  boardSize,
+  durationMs,
+  player1Stats,
+  player2Stats,
+}) {
   const db = getDb();
   const stmt = db.prepare(`
     INSERT INTO game_history (player1_id, player2_id, winner_id, game_mode, board_size, duration_ms, player1_stats, player2_stats, created_at)
@@ -362,7 +368,7 @@ export function insertGameResult({ player1Id, player2Id, winnerId, gameMode, boa
     durationMs || null,
     JSON.stringify(player1Stats),
     JSON.stringify(player2Stats),
-    Date.now()
+    Date.now(),
   );
   return { ok: true, id: result.lastInsertRowid };
 }
