@@ -28,6 +28,7 @@ export const CATS = [
   'history',
   'geography',
   'sports',
+  'epl_2025',
   'other',
 ];
 
@@ -70,8 +71,7 @@ function randomCat(enabledCats, seed = null) {
 
 function adjTiles(state, r, c) {
   return DIRS.map(([dr, dc]) => ({ r: r + dr, c: c + dc })).filter(
-    (p) =>
-      p.r >= 0 && p.r < state.boardSize && p.c >= 0 && p.c < state.boardSize,
+    (p) => p.r >= 0 && p.r < state.boardSize && p.c >= 0 && p.c < state.boardSize,
   );
 }
 
@@ -93,12 +93,9 @@ export function getValidMoves(state, pegId) {
 }
 
 function generateLayoutMap(boardSize, enabledCats, seed = null) {
-  const isCorner = (r, c) =>
-    (r === 0 || r === boardSize - 1) && (c === 0 || c === boardSize - 1);
+  const isCorner = (r, c) => (r === 0 || r === boardSize - 1) && (c === 0 || c === boardSize - 1);
   const useFlagCorners = boardSize > 4;
-  const map = Array.from({ length: boardSize }, () =>
-    Array(boardSize).fill(null),
-  );
+  const map = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
 
   const nonCornerTiles = [];
   for (let r = 0; r < boardSize; r++) {
@@ -152,12 +149,7 @@ function getStartPositions(numPlayers, boardSize) {
   const S = boardSize - 1;
   if (boardSize === 2) {
     // For 2x2 board, only 1 peg per player
-    const corners = [
-      [{ r: 0, c: 0 }],
-      [{ r: 0, c: S }],
-      [{ r: S, c: 0 }],
-      [{ r: S, c: S }],
-    ];
+    const corners = [[{ r: 0, c: 0 }], [{ r: 0, c: S }], [{ r: S, c: 0 }], [{ r: S, c: S }]];
     if (numPlayers === 2) {
       return [corners[0], corners[3]];
     }
@@ -167,12 +159,7 @@ function getStartPositions(numPlayers, boardSize) {
     return corners;
   }
   if (boardSize === 4) {
-    const corners = [
-      [{ r: 0, c: 0 }],
-      [{ r: 0, c: S }],
-      [{ r: S, c: 0 }],
-      [{ r: S, c: S }],
-    ];
+    const corners = [[{ r: 0, c: 0 }], [{ r: 0, c: S }], [{ r: S, c: 0 }], [{ r: S, c: S }]];
     if (numPlayers === 2) {
       return [corners[0], corners[3]];
     }
@@ -227,11 +214,10 @@ function movePeg(state, pegId, r, c) {
 function eliminatePeg(state, pegId) {
   const peg = state.pegs[pegId];
   state.board[peg.row][peg.col].pegId = null;
-  state.players[peg.playerId].pegIds = state.players[
-    peg.playerId
-  ].pegIds.filter((id) => id !== pegId);
+  state.players[peg.playerId].pegIds = state.players[peg.playerId].pegIds.filter(
+    (id) => id !== pegId,
+  );
 }
-
 
 // ---------------------------------------------------------------------------
 // Win condition
@@ -294,10 +280,14 @@ function takeQuestions(pool, usedSet, wrongSet, count, excludedIds = new Set()) 
   ];
 
   for (const phase of phases) {
-    if (selected.length >= count) {break;}
+    if (selected.length >= count) {
+      break;
+    }
     const candidates = shuffle(phase());
     for (const q of candidates) {
-      if (selected.length >= count) {break;}
+      if (selected.length >= count) {
+        break;
+      }
       selected.push(q);
       reservedIds.add(q.id);
     }
@@ -321,13 +311,7 @@ function pickQuestionIds(state, cat, count, questionsDb, excludedIds = new Set()
   const primaryPool = questionsDb[cat];
   const primaryUsedSet = ensureQuestionTrackingSet(state, cat);
 
-  const selected = takeQuestions(
-    primaryPool,
-    primaryUsedSet,
-    wrongSet,
-    count,
-    excludedIds,
-  );
+  const selected = takeQuestions(primaryPool, primaryUsedSet, wrongSet, count, excludedIds);
 
   if (selected.length >= count) {
     return selected.map((q) => q.id);
@@ -350,10 +334,7 @@ function pickQuestionIds(state, cat, count, questionsDb, excludedIds = new Set()
 // Priority matches: combat (enemy peg) is checked BEFORE flag capture.
 function getMoveType(state, pegId, r, c) {
   const tile = state.board[r][c];
-  if (
-    tile.pegId &&
-    state.pegs[tile.pegId].playerId !== state.pegs[pegId].playerId
-  ) {
+  if (tile.pegId && state.pegs[tile.pegId].playerId !== state.pegs[pegId].playerId) {
     return 'combat';
   }
   if (
@@ -423,13 +404,13 @@ export function advancePendingQuestion(state, questionsDb) {
 // ---------------------------------------------------------------------------
 
 export function selectPeg(state, playerId, pegId) {
-   if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
-     return { error: 'Wrong phase' };
-   }
-   const currentPlayer = state.players[state.currentPlayerIdx];
-   if (currentPlayer.id !== playerId) {
-     return { error: 'Not your turn' };
-   }
+  if (state.phase !== PHASE.SELECT_PEG && state.phase !== PHASE.SELECT_TILE) {
+    return { error: 'Wrong phase' };
+  }
+  const currentPlayer = state.players[state.currentPlayerIdx];
+  if (currentPlayer.id !== playerId) {
+    return { error: 'Not your turn' };
+  }
   if (!currentPlayer.pegIds.includes(pegId)) {
     return { error: 'Not your peg' };
   }
@@ -458,29 +439,43 @@ export function selectPeg(state, playerId, pegId) {
 // Returns { ok, events, gameOver, winner, correct, combatContinues } or { error }
 export function applyTurn(state, playerId, submission, questionsDb) {
   const pending = state.pendingTurn;
-  if (!pending) { return { error: 'No pending turn' }; }
+  if (!pending) {
+    return { error: 'No pending turn' };
+  }
 
   const currentPlayer = state.players[state.currentPlayerIdx];
-  if (currentPlayer.id !== playerId) { return { error: 'Not your turn' }; }
-  if (submission.pegId !== pending.pegId) { return { error: 'Peg mismatch' }; }
+  if (currentPlayer.id !== playerId) {
+    return { error: 'Not your turn' };
+  }
+  if (submission.pegId !== pending.pegId) {
+    return { error: 'Peg mismatch' };
+  }
   if (submission.targetR !== pending.targetR || submission.targetC !== pending.targetC) {
     return { error: 'Target mismatch' };
   }
 
   const { pegId, targetR, targetC, moveType, questionId } = pending;
   const q = questionsDb._byId?.[questionId];
-  const correct = q ? (q.a === submission.answerIdx) : false;
+  const correct = q ? q.a === submission.answerIdx : false;
   const events = [];
 
   events.push({ type: 'answer', questionId, correct });
-  if (!correct) { state.wrongQ.add(questionId); }
+  if (!correct) {
+    state.wrongQ.add(questionId);
+  }
   const cp = state.players[state.currentPlayerIdx];
   if (cp?.stats) {
     const cat = q?.category || 'unknown';
-    if (!cp.stats.byCategory) { cp.stats.byCategory = {}; }
-    if (!cp.stats.byCategory[cat]) { cp.stats.byCategory[cat] = { attempts: 0, correct: 0 }; }
+    if (!cp.stats.byCategory) {
+      cp.stats.byCategory = {};
+    }
+    if (!cp.stats.byCategory[cat]) {
+      cp.stats.byCategory[cat] = { attempts: 0, correct: 0 };
+    }
     cp.stats.byCategory[cat].attempts++;
-    if (correct) { cp.stats.byCategory[cat].correct++; }
+    if (correct) {
+      cp.stats.byCategory[cat].correct++;
+    }
   }
 
   if (moveType === 'normal') {
@@ -501,7 +496,6 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       return { ok: true, events, gameOver: false, correct, combatContinues: false };
     }
     return { ok: true, events, gameOver: false, correct, combatContinues: false };
-
   } else if (moveType === 'combat') {
     const defPegId = state.board[targetR]?.[targetC]?.pegId;
     const defPeg = defPegId ? state.pegs[defPegId] : null;
@@ -528,7 +522,9 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       if (winner >= 0) {
         state.players.forEach((p, i) => {
           p.stats.gamesPlayed++;
-          if (i === winner) { p.stats.gamesWon++; }
+          if (i === winner) {
+            p.stats.gamesWon++;
+          }
         });
         state.phase = PHASE.GAME_OVER;
         state.winner = winner;
@@ -537,7 +533,6 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       advanceTurn(state);
     }
     return { ok: true, events, gameOver: false, correct, combatContinues };
-
   } else if (moveType === 'flag') {
     const allCorrect = correct && pending.questionsRemaining === 1;
     if (!correct || pending.questionsRemaining === 1) {
@@ -549,11 +544,20 @@ export function applyTurn(state, playerId, submission, questionsDb) {
         events.push({ type: 'flag_captured', pegId, winnerIdx });
         state.players.forEach((p, i) => {
           p.stats.gamesPlayed++;
-          if (i === winnerIdx) { p.stats.gamesWon++; }
+          if (i === winnerIdx) {
+            p.stats.gamesWon++;
+          }
         });
         state.phase = PHASE.GAME_OVER;
         state.winner = winnerIdx;
-        return { ok: true, events, gameOver: true, winner: winnerIdx, correct, combatContinues: false };
+        return {
+          ok: true,
+          events,
+          gameOver: true,
+          winner: winnerIdx,
+          correct,
+          combatContinues: false,
+        };
       }
       advanceTurn(state);
       return { ok: true, events, gameOver: false, correct, combatContinues: false };
@@ -649,14 +653,14 @@ export function createGame(players, settings = {}) {
       board[pos.r][pos.c].pegId = id;
       pegIds.push(id);
     }
-     return {
-       id: i,
-       name: p.name,
-       color: p.color,
-       pegIds,
-       userId: p.userId ?? null,
-       stats: { byCategory: {}, gamesPlayed: 0, gamesWon: 0 },
-     };
+    return {
+      id: i,
+      name: p.name,
+      color: p.color,
+      pegIds,
+      userId: p.userId ?? null,
+      stats: { byCategory: {}, gamesPlayed: 0, gamesWon: 0 },
+    };
   });
 
   const state = {
