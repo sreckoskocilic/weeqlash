@@ -1040,7 +1040,7 @@ io.on('connection', (socket) => {
     const _gracedMs = ((room.qlasTimerSeconds || 5) + 3) * 1000;
     room.qlasTimer = setTimeout(() => {
       room.qlasTimer = null;
-      if (room.state?.phase !== QLAS_PHASE.GUESSING) {
+      if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
         return;
       }
       const activeIdx = room.state.currentPlayerIdx;

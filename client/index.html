@@ -3483,11 +3483,11 @@
       });
 
       socket.on('room:player_joined', ({ players }) => {
-        renderPlayers(players, myRoom.settings.playerCount);
+        renderPlayers(players, setupPlayerCount);
         el('lobby-status').textContent =
-          `${players.length} / ${myRoom.settings.playerCount} players`;
+          `${players.length} / ${setupPlayerCount} players`;
         // Recover start button if room is full again after a player left
-        if (players.length === myRoom.settings.playerCount && isHost) {
+        if (players.length === setupPlayerCount && isHost) {
           el('btn-start').disabled = false;
           el('btn-start').textContent = 'Start game';
         }
@@ -3508,15 +3508,15 @@
       });
 
       socket.on('room:player_left', ({ playerName, players }) => {
-        renderPlayers(players, myRoom.settings.playerCount);
+        renderPlayers(players, setupPlayerCount);
         el('lobby-status').textContent =
-          `${players.length} / ${myRoom.settings.playerCount} players — ${playerName} left`;
+          `${players.length} / ${setupPlayerCount} players — ${playerName} left`;
         el('btn-start').disabled = true;
         el('btn-start').textContent = 'Waiting for players…';
       });
 
       socket.on('room:full', ({ players }) => {
-        renderPlayers(players, myRoom.settings.playerCount);
+        renderPlayers(players, setupPlayerCount);
         el('lobby-status').textContent = 'Room full — host can start the game';
         if (isHost) {
           el('btn-start').disabled = false;
