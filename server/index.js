@@ -375,6 +375,17 @@ io.on('connection', (socket) => {
       io.to(code).emit('room:full', {
         players: room.players.map(publicPlayer),
       });
+      if (room.mode === 'qlashique' && !room.started) {
+        room.classSelections[1] = 'none';
+        room.started = true;
+        room.startedAt = Date.now();
+        room.state = createQlasGame('none', 'none');
+        room.qlasStats = [
+          { answered: 0, correct: 0 },
+          { answered: 0, correct: 0 },
+        ];
+        _emitQlasTurnStart(io, code, room);
+      }
     }
   });
 
@@ -915,6 +926,7 @@ io.on('connection', (socket) => {
     }
     socket.join(room.code);
     const token = room.players.find((p) => p.id === socket.id)?.token;
+    room.classSelections[0] = 'none';
     cb({
       ok: true,
       code: room.code,
@@ -986,9 +998,10 @@ io.on('connection', (socket) => {
     }
     room.currentQuestion = q;
 
-    socket.emit('qlashique:question', {
+    io.to(code).emit('qlashique:question', {
       question: { id: q.id, q: q.q, opts: q.opts, category: q.category },
       questionIdx: 0,
+      activePlayerIdx: room.state.currentPlayerIdx,
     });
     cb({ ok: true });
 
@@ -1042,10 +1055,12 @@ io.on('connection', (socket) => {
     }
     if (room.qlasStats) {
       room.qlasStats[player.index].answered++;
-      if (result.correct) room.qlasStats[player.index].correct++;
+      if (result.correct) {
+        room.qlasStats[player.index].correct++;
+      }
     }
 
-    socket.emit('qlashique:answer_result', {
+    io.to(code).emit('qlashique:answer_result', {
       correct: result.correct,
       newScore: room.state.currentScore,
       playerIdx: player.index,
@@ -1066,7 +1081,7 @@ io.on('connection', (socket) => {
       const nextQ = _pickQlasQuestion(room, questionsDb);
       if (nextQ) {
         room.currentQuestion = nextQ;
-        socket.emit('qlashique:question', {
+        io.to(code).emit('qlashique:question', {
           question: {
             id: nextQ.id,
             q: nextQ.q,
@@ -1074,6 +1089,7 @@ io.on('connection', (socket) => {
             category: nextQ.category,
           },
           questionIdx: room.questionIdx,
+          activePlayerIdx: room.state.currentPlayerIdx,
         });
       }
     }

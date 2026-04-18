@@ -1346,7 +1346,7 @@
       }
       #screen-qlashique .qlas-inner {
         width: 100%;
-        max-width: 760px;
+        max-width: 90vw;
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -2297,7 +2297,12 @@
         >
           <button
             id="btn-dev-quickstart"
-            style="background: var(--bg3); color: var(--muted); border: 1px dashed var(--bg3); display: none;"
+            style="
+              background: var(--bg3);
+              color: var(--muted);
+              border: 1px dashed var(--bg3);
+              display: none;
+            "
           >
             ⚡ Dev: Quick Game
           </button>
@@ -5210,6 +5215,14 @@
         qlasPlayers[playerIdx].classId = classId;
       });
 
+      socket.on('room:player_joined', ({ players }) => {
+        if (qlasCode) {
+          players.forEach((p, i) => {
+            qlasPlayers[i].name = p.name || '';
+          });
+        }
+      });
+
       socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds }) => {
         qlasStopTimer();
         qlasScore = 0;
@@ -5219,6 +5232,7 @@
         qEl('btn-qlas-stop').style.display = 'none';
         qEl('btn-qlas-end').style.display = 'none';
         qEl('btn-qlas-heal').style.display = 'none';
+        qEl('qlas-waiting-panel').style.display = 'none';
         qEl('qlas-phase-class').style.display = 'none';
         qEl('qlas-phase-combat').style.display = '';
         qEl('qlas-phase-gameover').style.display = 'none';
@@ -5267,24 +5281,28 @@
         scoreEl2.textContent = score > 0 ? '+' + score : '' + score;
       }
 
-      socket.on('qlashique:question', ({ question, questionIdx }) => {
+      socket.on('qlashique:question', ({ question, questionIdx, activePlayerIdx }) => {
+        const isMyTurn = activePlayerIdx === qlasMyIdx;
         if (questionIdx === 0) {
-          qlasGuessingActive = true;
+          qlasGuessingActive = isMyTurn;
           qEl('qlas-decision-panel').style.display = 'none';
-          qEl('qlas-action-row').style.display = '';
-          qEl('btn-qlas-stop').style.display = '';
+          qEl('qlas-action-row').style.display = isMyTurn ? '' : 'none';
+          qEl('btn-qlas-stop').style.display = isMyTurn ? '' : 'none';
           qEl('btn-qlas-end').style.display = 'none';
           qEl('btn-qlas-heal').style.display = 'none';
           qEl('qlas-qpanel').style.display = '';
           qEl('qlas-qpanel').style.opacity = '1.0';
-          const showReroll = qlasPlayers[qlasMyIdx].classId === 'reroll';
-          qEl('btn-qlas-reroll').style.display = showReroll ? '' : 'none';
-          qEl('btn-qlas-reroll').disabled = false;
-          qlasStartTimer(qlasTimerTotal);
-        } else if (qlasGuessingActive) {
+          qEl('btn-qlas-reroll').style.display = 'none';
+          if (isMyTurn) {
+            qlasStartTimer(qlasTimerTotal);
+          }
+        } else if (isMyTurn) {
           document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
         }
         qlasRenderQuestion(question, questionIdx);
+        if (!isMyTurn) {
+          document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+        }
       });
 
       socket.on('qlashique:answer_result', ({ correct, newScore, playerIdx }) => {
@@ -5408,23 +5426,41 @@
         qlasScore = 0;
         qlasToken = null;
         qlasGuessingActive = false;
-        document.querySelectorAll('.qlas-card').forEach((c) => {
-          c.classList.remove('selected');
-          c.style.pointerEvents = '';
-          c.style.opacity = '';
-        });
-        const btn = el('qlas-btn-confirm');
-        btn.disabled = true;
-        btn.textContent = qlasIsHost ? 'CREATE ROOM →' : 'JOIN ROOM →';
-        btn.style.background = '#ff4757';
-        el('qlas-confirm-icon').textContent = '?';
-        el('qlas-confirm-icon').style.borderColor = '';
-        el('qlas-confirm-name').textContent = 'No class selected';
-        el('qlas-confirm-name').style.color = '#4a4a7a';
-        el('qlas-confirm-tag').textContent = 'click a class above';
-        el('qlas-waiting-panel').style.display = 'none';
-        qlasShowPhase('class');
+
+        const playerName = getPlayerName();
         showScreen('screen-qlashique');
+        qlasShowPhase('class');
+        qEl('qlas-class-grid').style.display = 'none';
+        qEl('qlas-confirm-row').style.display = 'none';
+        qEl('qlas-waiting-panel').style.display = '';
+
+        if (qlasIsHost) {
+          socket.emit('qlashique:create_room', { playerName }, (res) => {
+            if (res.error) {
+              showError(res.error);
+              return;
+            }
+            qlasCode = res.code;
+            qlasToken = res.token;
+            qlasMyIdx = 0;
+            qlasPlayers[0].name = playerName;
+            qEl('qlas-waiting-label').textContent = 'Waiting for opponent\u2026';
+            qEl('qlas-code-row').style.display = '';
+            qEl('qlas-code-val').textContent = res.code;
+          });
+        } else {
+          socket.emit('room:join', { code: qlasCode, playerName }, (res) => {
+            if (res.error) {
+              showError(res.error);
+              return;
+            }
+            qlasToken = res.token;
+            qlasMyIdx = res.myIdx;
+            qlasPlayers[0].name = res.players[0]?.name || '';
+            qlasPlayers[1].name = res.players[1]?.name || '';
+            qEl('qlas-waiting-label').textContent = 'Waiting for game to start\u2026';
+          });
+        }
       });
     </script>
 
@@ -5433,12 +5469,12 @@
       <div class="qlas-inner">
         <div style="text-align: center">
           <h2 class="qlas-title">QLASHIQUE</h2>
-          <p class="qlas-subtitle">select your class — your playstyle defines your fate</p>
+          <p class="qlas-subtitle">1v1 trivia duel — answer fast, attack harder</p>
         </div>
 
         <!-- Class select -->
         <div id="qlas-phase-class">
-          <div class="qlas-class-grid">
+          <div class="qlas-class-grid" id="qlas-class-grid">
             <div
               class="qlas-card"
               id="qlas-card-slowpoke"
@@ -5478,7 +5514,7 @@
               </div>
             </div>
           </div>
-          <div class="qlas-confirm-row" style="margin-top: 10px">
+          <div class="qlas-confirm-row" id="qlas-confirm-row" style="margin-top: 10px">
             <div class="qlas-confirm-preview">
               <div class="qlas-confirm-icon" id="qlas-confirm-icon">?</div>
               <div>
@@ -5497,7 +5533,28 @@
               <div class="qlas-waiting-msg" id="qlas-waiting-label">Waiting for opponent…</div>
               <div id="qlas-code-row" style="display: none">
                 <div class="qlas-waiting-msg" style="margin-top: 8px">Share this code</div>
-                <div class="qlas-code-display" id="qlas-code-val">—</div>
+                <div style="display: inline-flex; align-items: center; gap: 10px">
+                  <div class="qlas-code-display" id="qlas-code-val">—</div>
+                  <button
+                    onclick="
+                      navigator.clipboard.writeText(
+                        document.getElementById('qlas-code-val').textContent,
+                      )
+                    "
+                    style="
+                      background: #0d2e0d;
+                      border: 1px solid #00ff41;
+                      color: #00ff41;
+                      font-family: 'IBM Plex Mono', monospace;
+                      font-size: 0.75rem;
+                      padding: 4px 10px;
+                      border-radius: 2px;
+                      cursor: pointer;
+                    "
+                  >
+                    COPY
+                  </button>
+                </div>
               </div>
             </div>
           </div>
