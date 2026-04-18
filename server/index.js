@@ -36,7 +36,8 @@ import {
   PHASE,
   COORD_BASE,
 } from './game/engine.js';
-import { loadQuestions, getAllQuestions } from './game/questions.js';
+import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.js';
+import { QUIZ_MODES_BY_ID } from './game/quiz-modes.js';
 import {
   createQlasGame,
   calcTimer,
@@ -51,10 +52,10 @@ import {
 import {
   initDb,
   getDb,
-  getTop10,
-  insertScore,
-  checkQualifiesTop10,
-  pruneLeaderboard,
+  getTop10ForMode,
+  insertScoreForMode,
+  checkQualifiesTop10ForMode,
+  pruneAllModes,
 } from './game/leaderboard.js';
 import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
@@ -141,7 +142,7 @@ roomCleanupInterval.unref();
 
 // Periodic leaderboard pruning (every 5 minutes)
 const leaderboardPruneInterval = setInterval(() => {
-  pruneLeaderboard();
+  pruneAllModes();
 }, 5 * 60_000);
 leaderboardPruneInterval.unref();
 
@@ -734,8 +735,25 @@ io.on('connection', (socket) => {
 
   // --- Quiz ---
 
-  socket.on('quiz:start', (cb) => {
-    // Rate limit: one quiz start per 2 seconds
+  function getQuizPool(mode) {
+    const cfg = QUIZ_MODES_BY_ID[mode];
+    if (!cfg) {
+      return null;
+    }
+    return cfg.categories
+      ? getQuestionsForCategories(questionsDb, cfg.categories)
+      : getAllQuestions(questionsDb);
+  }
+
+  socket.on('quiz:start', ({ mode = 'triviandom' } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      ((cb = mode), (mode = 'triviandom'));
+    } // backward compat
+
+    if (!QUIZ_MODES_BY_ID[mode]) {
+      return cb({ error: `Unknown quiz mode: ${mode}` });
+    }
+
     const now = Date.now();
     const lastQuiz = quizTimestamps.get(socket.id) || 0;
     if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
@@ -743,33 +761,19 @@ io.on('connection', (socket) => {
     }
     quizTimestamps.set(socket.id, now);
 
-    // Prevent starting quiz while in an active Weeqlash game
     if (isInActiveGame(socket.id)) {
       return cb({ error: 'Cannot play quiz during an active game.' });
     }
 
-    const allQuestions = getAllQuestions(questionsDb);
-
-    if (allQuestions.length === 0) {
-      return cb({ error: 'No questions available' });
+    const pool = getQuizPool(mode);
+    if (!pool || pool.length === 0) {
+      return cb({ error: 'No questions available for this mode.' });
     }
 
-    const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
-    const run = {
-      startedAt: Date.now(),
-      questionIds: [randomQ.id],
-      answers: 0,
-    };
-    quizRuns.set(socket.id, run);
+    const randomQ = pool[Math.floor(Math.random() * pool.length)];
+    quizRuns.set(socket.id, { startedAt: Date.now(), questionIds: [randomQ.id], answers: 0, mode });
 
-    cb({
-      ok: true,
-      questionIds: [randomQ.id],
-      id: randomQ.id,
-      q: randomQ.q,
-      opts: randomQ.opts,
-      category: randomQ.category,
-    });
+    cb({ ok: true, id: randomQ.id, q: randomQ.q, opts: randomQ.opts, category: randomQ.category });
   });
 
   socket.on('quiz:answer', ({ answerIdx }, cb) => {
@@ -778,13 +782,11 @@ io.on('connection', (socket) => {
       return cb({ error: 'Quiz not started' });
     }
 
-    // Validate answer index: 0-3 valid choices, -1 means timeout (treated as wrong)
     if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
       return cb({ error: 'Invalid answer index' });
     }
 
-    const qId = run.questionIds[run.answers];
-    const q = questionsDb._byId[qId];
+    const q = questionsDb._byId[run.questionIds[run.answers]];
     if (!q) {
       return cb({ error: 'Question not found' });
     }
@@ -793,7 +795,11 @@ io.on('connection', (socket) => {
 
     if (!correct) {
       const timeSec = (Date.now() - run.startedAt) / 1000;
-      const qualifies = checkQualifiesTop10(run.answers, Date.now() - run.startedAt);
+      const qualifies = checkQualifiesTop10ForMode(
+        run.mode,
+        run.answers,
+        Date.now() - run.startedAt,
+      );
       return cb({
         ok: true,
         correct: false,
@@ -806,11 +812,7 @@ io.on('connection', (socket) => {
     }
 
     run.answers++;
-    cb({
-      ok: true,
-      correct: true,
-      correctIdx: q.a,
-    });
+    cb({ ok: true, correct: true, correctIdx: q.a });
   });
 
   socket.on('quiz:next', (cb) => {
@@ -819,24 +821,18 @@ io.on('connection', (socket) => {
       return cb({ error: 'Quiz not started' });
     }
 
-    const allQuestions = getAllQuestions(questionsDb);
-    if (allQuestions.length === 0) {
+    const pool = getQuizPool(run.mode);
+    if (!pool || pool.length === 0) {
       return cb({ error: 'No questions available' });
     }
+
     const usedIds = new Set(run.questionIds);
-    const availableQuestions = allQuestions.filter((q) => !usedIds.has(q.id));
-    const pool = availableQuestions.length > 0 ? availableQuestions : allQuestions;
-    const randomQ = pool[Math.floor(Math.random() * pool.length)];
+    const available = pool.filter((q) => !usedIds.has(q.id));
+    const src = available.length > 0 ? available : pool;
+    const randomQ = src[Math.floor(Math.random() * src.length)];
 
     run.questionIds.push(randomQ.id);
-
-    cb({
-      ok: true,
-      id: randomQ.id,
-      q: randomQ.q,
-      opts: randomQ.opts,
-      category: randomQ.category,
-    });
+    cb({ ok: true, id: randomQ.id, q: randomQ.q, opts: randomQ.opts, category: randomQ.category });
   });
 
   socket.on('quiz:submit_score', ({ name }, cb) => {
@@ -845,21 +841,23 @@ io.on('connection', (socket) => {
       return cb({ error: 'No completed run' });
     }
 
-    // Validate name: 1-16 characters, trimmed
     const sanitizedName = name?.trim();
     if (!sanitizedName || sanitizedName.length > 16) {
       return cb({ error: 'Name must be 1-16 characters' });
     }
 
     const timeMs = Date.now() - run.startedAt;
-    const top10 = insertScore(sanitizedName, run.answers, timeMs);
+    const top10 = insertScoreForMode(run.mode, sanitizedName, run.answers, timeMs);
     quizRuns.delete(socket.id);
 
     cb({ ok: true, top10 });
   });
 
-  socket.on('quiz:leaderboard', (cb) => {
-    cb({ ok: true, top10: getTop10() });
+  socket.on('quiz:leaderboard', ({ mode = 'triviandom' } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      ((cb = mode), (mode = 'triviandom'));
+    } // backward compat
+    cb({ ok: true, top10: getTop10ForMode(mode) });
   });
 
   // --- Dev quickstart (non-production only) ---

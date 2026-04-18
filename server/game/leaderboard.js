@@ -1,9 +1,18 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.js';
 
 const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data/leaderboard.db');
 
 let db;
+
+const ALLOWED_TABLES = new Set(QUIZ_MODES.map((m) => m.table));
+
+function assertTable(table) {
+  if (!ALLOWED_TABLES.has(table)) {
+    throw new Error(`Unknown leaderboard table: ${table}`);
+  }
+}
 
 export function getDb() {
   return db;
@@ -13,78 +22,121 @@ export function initDb() {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
 
-  const tableExists = db.prepare(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='leaderboard'"
-  ).get();
-
-  if (!tableExists) {
-    db.exec(`
-      CREATE TABLE leaderboard (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        answers INTEGER NOT NULL,
-        time_ms INTEGER NOT NULL,
-        created_at INTEGER NOT NULL
-      );
-      CREATE INDEX idx_answers_time ON leaderboard(answers DESC, time_ms ASC);
-    `);
-    console.log('[leaderboard] DB initialized');
+  for (const mode of QUIZ_MODES) {
+    const exists = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='${mode.table}'`)
+      .get();
+    if (!exists) {
+      db.exec(`
+        CREATE TABLE ${mode.table} (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          answers INTEGER NOT NULL,
+          time_ms INTEGER NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX idx_${mode.table}_answers_time ON ${mode.table}(answers DESC, time_ms ASC);
+      `);
+      console.log(`[leaderboard] table '${mode.table}' initialized`);
+    }
   }
 }
 
-export function getTop10() {
+// --- Generic table operations ---
+
+export function getTop10ForTable(table) {
+  assertTable(table);
   try {
-    const stmt = db.prepare(`
-      SELECT id, name, answers, time_ms, created_at
-      FROM leaderboard
-      ORDER BY answers DESC, time_ms ASC
-      LIMIT 10
-    `);
-    return stmt.all();
+    return db
+      .prepare(
+        `SELECT id, name, answers, time_ms, created_at FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 10`,
+      )
+      .all();
   } catch (err) {
-    console.error('[leaderboard] getTop10 failed:', err.message);
+    console.error(`[leaderboard] getTop10ForTable(${table}) failed:`, err.message);
     return [];
   }
 }
 
-export function insertScore(name, answers, timeMs) {
-  if (!name || name.length > 16 || typeof answers !== 'number' || answers < 0 || typeof timeMs !== 'number') {
+export function insertScoreForTable(table, name, answers, timeMs) {
+  assertTable(table);
+  if (
+    !name ||
+    name.length > 16 ||
+    typeof answers !== 'number' ||
+    answers < 0 ||
+    typeof timeMs !== 'number'
+  ) {
     return [];
   }
   try {
-    const stmt = db.prepare(`
-      INSERT INTO leaderboard (name, answers, time_ms, created_at)
-      VALUES (?, ?, ?, ?)
-    `);
-    stmt.run(name, answers, timeMs, Date.now());
-    return getTop10();
+    db.prepare(`INSERT INTO ${table} (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run(
+      name,
+      answers,
+      timeMs,
+      Date.now(),
+    );
+    return getTop10ForTable(table);
   } catch (err) {
-    console.error('[leaderboard] insertScore failed:', err.message);
+    console.error(`[leaderboard] insertScoreForTable(${table}) failed:`, err.message);
     return [];
   }
 }
 
-export function checkQualifiesTop10(answers, timeMs) {
+export function checkQualifiesTop10ForTable(table, answers, timeMs) {
+  assertTable(table);
   try {
-    // Single query: count entries better than this score.
-    // If fewer than 10 are better, the new score qualifies for top 10.
-    const better = db.prepare(
-      'SELECT COUNT(*) as cnt FROM leaderboard WHERE answers > ? OR (answers = ? AND time_ms < ?)'
-    ).get(answers, answers, timeMs);
-
+    const better = db
+      .prepare(
+        `SELECT COUNT(*) as cnt FROM ${table} WHERE answers > ? OR (answers = ? AND time_ms < ?)`,
+      )
+      .get(answers, answers, timeMs);
     return better.cnt < 10;
   } catch (err) {
-    console.error('[leaderboard] checkQualifiesTop10 failed:', err.message);
+    console.error(`[leaderboard] checkQualifiesTop10ForTable(${table}) failed:`, err.message);
     return false;
   }
 }
 
-// Prune entries beyond the top 100 to prevent unbounded DB growth.
-// Keeps a buffer above the top 10 so new scores can still qualify.
-export function pruneLeaderboard() {
+export function pruneTable(table) {
+  assertTable(table);
   try {
-    db.prepare('DELETE FROM leaderboard WHERE id NOT IN (SELECT id FROM leaderboard ORDER BY answers DESC, time_ms ASC LIMIT 100)').run();
+    db.prepare(
+      `DELETE FROM ${table} WHERE id NOT IN (SELECT id FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 100)`,
+    ).run();
   } catch (err) {
-    console.error('[leaderboard] pruneLeaderboard failed:', err.message);
+    console.error(`[leaderboard] pruneTable(${table}) failed:`, err.message);
   }
+}
+
+export function pruneAllModes() {
+  for (const mode of QUIZ_MODES) {
+    pruneTable(mode.table);
+  }
+}
+
+// --- Mode-based convenience wrappers ---
+
+export function getTop10ForMode(modeId) {
+  const mode = QUIZ_MODES_BY_ID[modeId];
+  if (!mode) {
+    return [];
+  }
+  return getTop10ForTable(mode.table);
+}
+
+export function insertScoreForMode(modeId, name, answers, timeMs) {
+  const mode = QUIZ_MODES_BY_ID[modeId];
+  if (!mode) {
+    return [];
+  }
+  return insertScoreForTable(mode.table, name, answers, timeMs);
+}
+
+export function checkQualifiesTop10ForMode(modeId, answers, timeMs) {
+  const mode = QUIZ_MODES_BY_ID[modeId];
+  if (!mode) {
+    return false;
+  }
+  return checkQualifiesTop10ForTable(mode.table, answers, timeMs);
 }

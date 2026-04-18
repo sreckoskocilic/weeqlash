@@ -67,6 +67,45 @@
         font-weight: 600;
       }
 
+      /* ===== ANNOUNCEMENTS ===== */
+      #announcements {
+        width: 100%;
+        max-width: 880px;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--bg3);
+        border-left: 3px solid var(--accent);
+        background: var(--bg2);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        font-size: 0.82rem;
+        font-family: 'IBM Plex Mono', monospace;
+      }
+      #announcements .ann-header {
+        color: var(--accent);
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 0.6rem;
+      }
+      #announcements ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      #announcements li::before {
+        content: '» ';
+        color: var(--muted);
+      }
+      #announcements a {
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      #announcements a:hover {
+        color: var(--text);
+      }
+
       /* ===== CARDS (connect / lobby) ===== */
       .card {
         background: var(--bg2);
@@ -143,6 +182,27 @@
       }
       .btn-triviandom:hover {
         opacity: 0.85;
+      }
+      .btn-quiz-mode {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        width: 100%;
+      }
+      .btn-quiz-mode:hover {
+        opacity: 0.85;
+      }
+      .btn-show-mode-lb {
+        width: 100%;
+        padding: 0.45rem;
+        margin-bottom: 0.6rem;
+        background: transparent;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
       }
 
       @media (max-width: 700px) {
@@ -1963,6 +2023,29 @@
       brawledge is not mating, buddies (sierra leonardo pro vertebrae)
     </p>
 
+    <!-- Announcements — edit the <li> items to update -->
+    <section id="announcements">
+      <div class="ann-header">// what's new</div>
+      <ul>
+        <li>
+          <strong>Qlashique</strong> — 1v1 trivia duel mode is here.
+          <a
+            href="#"
+            onclick="
+              document.getElementById('help-modal').classList.add('show');
+              return false;
+            "
+            >How to play</a
+          >
+        </li>
+        <li>
+          <strong>EPL 2025 Triviandom</strong> — Premier League-only question mode with its own
+          leaderboard
+        </li>
+        <li>New question categories added</li>
+      </ul>
+    </section>
+
     <!-- Connect screen -->
     <div class="main-columns" id="screen-connect">
       <!-- LEFT COLUMN: weeqlash -->
@@ -2415,6 +2498,48 @@
             ⚔ QLASHIQUE
           </button>
         </div>
+        <div class="divider" style="margin-top: 0.8rem"></div>
+        <!-- EPL 2025 -->
+        <button
+          class="btn-show-mode-lb"
+          id="btn-show-epl-lb"
+          style="border: 1px solid #2a4a2a; color: #4a8a4a; margin-top: 0.4rem"
+        >
+          Show EPL 2025 Leaderboard
+        </button>
+        <div
+          id="epl-lb-panel"
+          class="leaderboard-panel"
+          style="
+            display: none;
+            max-width: none;
+            padding: 0;
+            background: transparent;
+            border-color: #2a4a2a;
+          "
+        >
+          <div class="lb-heading" style="color: #5ebb52">
+            EPL <span style="color: #38a169">2025</span>
+          </div>
+          <div
+            class="lb-divider"
+            style="background: linear-gradient(90deg, #2a4a2a, #38a169, transparent)"
+          ></div>
+          <div class="lb-thead" style="border-bottom-color: #2a4a2a">
+            <div>#</div>
+            <div>NAME</div>
+            <div style="text-align: right">RUN</div>
+            <div style="text-align: right">TIME</div>
+          </div>
+          <div id="epl-lb-rows"></div>
+        </div>
+        <button
+          id="btn-epl-start"
+          class="btn-quiz-mode"
+          style="background: #1a4731 !important; color: #5ebb52; border: 1px solid #2d6a4f"
+        >
+          ⚽ EPL 2025 TRIVIANDOM
+        </button>
       </div>
     </div>
 
@@ -2556,36 +2681,35 @@
     <!-- Help modal -->
     <div id="help-modal">
       <div class="help-content">
-        <h2>HOW TO PLAY</h2>
-        <h3>Gameplay</h3>
-        <p>Each turn you have <strong>3 moves</strong> to spend freely across any of your pegs.</p>
-        <ul>
-          <li>Each move attempt costs 1 token (whether you answer correctly or not).</li>
-          <li>Answer correctly to move your peg to the target tile.</li>
-          <li>Answer wrong and your peg stays put, but the token is spent.</li>
-          <li>When all 3 tokens are spent, your turn ends.</li>
-        </ul>
-        <h3>HP System</h3>
-        <p>Each peg starts with <strong>3 HP</strong>. HP never increases during the game.</p>
-        <h3>Combat</h3>
-        <p>Move onto a tile occupied by an enemy peg to attack. You get up to 3 questions.</p>
-        <ul>
-          <li>Each correct answer deals 1 HP damage to the defender.</li>
-          <li>First miss ends the fight — your peg stays put, defender keeps remaining HP.</li>
-          <li>Reduce the defender to 0 HP to eliminate them and move into their tile.</li>
-          <li>Combat always ends your turn, consuming all remaining move tokens.</li>
-        </ul>
-        <h3>Flag Tiles</h3>
+        <h2>HOW TO PLAY — QLASHIQUE</h2>
         <p>
-          Move onto a flag tile to attempt to capture it. Answer 3 questions correctly to claim the
-          flag. Capture all flags to win!
+          1v1 trivia duel. Both players start with <strong>30 HP</strong> and take turns. To start:
+          one player leaves the code field blank and clicks on green
+          <strong>QLASHIQUE</strong> button to create a room, then shares the 5-letter code. The
+          other enters the code and clicks the same button to join.
         </p>
-        <h3>Keyboard Controls</h3>
+        <p>
+          When it's your turn, click <strong>⚔ ATTACK</strong> to start the timer. Questions appear
+          one by one — correct: <strong>+1</strong>, wrong: <strong>−1</strong>. Keep answering
+          until the timer runs out or you click <strong>END TURN</strong> at any point — even with
+          score 0, in which case the turn ends with no effect. Timer starts at 5 s and grows +3 s
+          each turn (max 25 s).
+        </p>
+        <p>Your final score determines what happens:</p>
         <ul>
-          <li><strong>Arrow keys</strong> — navigate the board or cycle answer options</li>
-          <li><strong>A / B / C / D</strong> — pick an answer option</li>
-          <li><strong>Enter</strong> — select peg/tile or confirm answer</li>
+          <li><strong>Negative</strong> — you deal that much damage to yourself.</li>
+          <li><strong>0</strong> — nothing happens.</li>
+          <li><strong>1</strong> — attacks the opponent for 1 HP.</li>
+          <li>
+            <strong>2 or more</strong> — choose: attack the opponent for full score damage, or heal
+            yourself for +2 HP.
+          </li>
+          <li><strong>+10 in one turn with no wrong answers</strong> — instant win.</li>
         </ul>
+        <p>
+          The <strong>💊 HEAL</strong> button is available during your turn (disabled if score &lt;
+          2). Clicking it immediately heals +2 HP and ends your turn.
+        </p>
         <button onclick="window.closeHelp()">GOT IT</button>
       </div>
     </div>
@@ -4444,6 +4568,8 @@
       });
 
       // Quiz handlers
+      let currentQuizMode = 'triviandom';
+
       const quizState = {
         run: null,
         timerInterval: null,
@@ -4468,15 +4594,10 @@
         quizState.gameTimerInterval = null;
       }
 
-      // Populate main-screen leaderboard
-      let leaderboardLoaded = false;
-      function loadMainLeaderboard() {
-        if (leaderboardLoaded) {
-          return;
-        }
-        leaderboardLoaded = true;
-        socket.emit('quiz:leaderboard', (res) => {
-          const container = document.getElementById('triv-lb-rows');
+      // Populate main-screen leaderboards
+      function loadPanelLeaderboard(mode, containerId) {
+        socket.emit('quiz:leaderboard', { mode }, (res) => {
+          const container = document.getElementById(containerId);
           if (!container) {
             return;
           }
@@ -4487,34 +4608,39 @@
             const row = document.createElement('div');
             row.className = 'lb-row';
             row.innerHTML = `
-          <div class="lb-rk">${String(i + 1)}</div>
-          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry ? sanitize(entry.name) : 'TestPlayer 0'}</div>
-          <div style="text-align: center; font-weight: 600; font-variant-numeric: tabular-nums;">${entry ? entry.answers : '0'}</div>
-          <div style="text-align: right; font-size: 0.85rem; color: #5ebb52; font-variant-numeric: tabular-nums;">${entry ? Math.round(entry.time_ms / 1000) : '0'}s</div>
-        `;
+              <div class="lb-rk">${String(i + 1)}</div>
+              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${entry ? sanitize(entry.name) : '—'}</div>
+              <div style="text-align:center;font-weight:600;font-variant-numeric:tabular-nums">${entry ? entry.answers : '0'}</div>
+              <div style="text-align:right;font-size:0.85rem;color:#5ebb52;font-variant-numeric:tabular-nums">${entry ? Math.round(entry.time_ms / 1000) : '0'}s</div>
+            `;
             container.appendChild(row);
           }
         });
+      }
+
+      let leaderboardLoaded = false;
+      function loadMainLeaderboard() {
+        if (leaderboardLoaded) {
+          return;
+        }
+        leaderboardLoaded = true;
+        loadPanelLeaderboard('triviandom', 'triv-lb-rows');
       }
       socket.on('connect', loadMainLeaderboard);
       if (socket.connected) {
         loadMainLeaderboard();
       }
 
-      document.getElementById('btn-quiz-start').addEventListener('click', () => {
-        document.getElementById('screen-connect').style.display = 'none';
+      function startQuizMode(mode) {
+        currentQuizMode = mode;
         document.getElementById('screen-lobby').style.display = 'none';
         document.getElementById('screen-game').style.display = 'none';
-
-        // Clean up any lingering timers before starting fresh
         clearInterval(quizState.timerInterval);
         clearInterval(quizState.gameTimerInterval);
         quizState.timerInterval = null;
         quizState.gameTimerInterval = null;
-
-        socket.emit('quiz:start', (res) => {
+        socket.emit('quiz:start', { mode }, (res) => {
           if (res.error) {
-            console.error('Quiz start error:', res.error);
             showError('Quiz error: ' + res.error);
             return;
           }
@@ -4522,6 +4648,37 @@
           startGameTimer();
           showQuizQuestion(res);
         });
+      }
+
+      document
+        .getElementById('btn-quiz-start')
+        .addEventListener('click', () => startQuizMode('triviandom'));
+      document
+        .getElementById('btn-epl-start')
+        .addEventListener('click', () => startQuizMode('epl_2025'));
+
+      el('btn-show-triv-lb').addEventListener('click', () => {
+        const panel = el('triv-lb-panel');
+        const visible = panel.style.display !== 'none';
+        panel.style.display = visible ? 'none' : '';
+        el('btn-show-triv-lb').textContent = visible
+          ? 'Show Triviandom Leaderboard'
+          : 'Hide Leaderboard';
+        if (!visible) {
+          loadPanelLeaderboard('triviandom', 'triv-lb-rows');
+        }
+      });
+
+      el('btn-show-epl-lb').addEventListener('click', () => {
+        const panel = el('epl-lb-panel');
+        const visible = panel.style.display !== 'none';
+        panel.style.display = visible ? 'none' : '';
+        el('btn-show-epl-lb').textContent = visible
+          ? 'Show EPL 2025 Leaderboard'
+          : 'Hide EPL Leaderboard';
+        if (!visible) {
+          loadPanelLeaderboard('epl_2025', 'epl-lb-rows');
+        }
       });
 
       function showQuizQuestion(q) {
@@ -4629,7 +4786,7 @@
       function showLeaderboard(result) {
         document.getElementById('screen-leaderboard').classList.add('show');
 
-        socket.emit('quiz:leaderboard', (res) => {
+        socket.emit('quiz:leaderboard', { mode: currentQuizMode }, (res) => {
           const container = document.getElementById('lb-rows');
           container.innerHTML = '';
 
@@ -4673,9 +4830,10 @@
           clearInterval(quizState.gameTimerInterval);
           quizState.timerInterval = null;
           quizState.gameTimerInterval = null;
-          socket.emit('quiz:start', (res) => {
+          socket.emit('quiz:start', { mode: currentQuizMode }, (res) => {
             if (res.ok) {
               quizState.run = { answers: 0, startedAt: Date.now() };
+              startGameTimer();
               showQuizQuestion(res);
             }
           });
@@ -5397,15 +5555,6 @@
       });
 
       // --- Entry point ---
-
-      el('btn-show-triv-lb').addEventListener('click', () => {
-        const panel = el('triv-lb-panel');
-        const visible = panel.style.display !== 'none';
-        panel.style.display = visible ? 'none' : '';
-        el('btn-show-triv-lb').textContent = visible
-          ? 'Show Triviandom Leaderboard'
-          : 'Hide Leaderboard';
-      });
 
       el('btn-qlas-start').addEventListener('click', () => {
         const codeInput = el('qlas-join-code').value.trim().toUpperCase();
