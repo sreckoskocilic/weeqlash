@@ -154,6 +154,7 @@
         background: var(--triv-accent) !important;
         font-weight: 700;
         letter-spacing: 0.04em;
+        width: 100%;
       }
       .btn-triviandom:hover {
         opacity: 0.85;
@@ -192,7 +193,7 @@
         border-color: var(--accent);
       }
       button {
-        width: 100%;
+        width: 70%;
         height: 40px;
         background: var(--accent);
         color: #cecdcd;
@@ -1507,7 +1508,6 @@
         letter-spacing: 0.12em;
       }
       .qlas-btn-confirm {
-        padding: 12px 32px;
         background: #e53935;
         border: none;
         border-radius: 8px;
@@ -1549,11 +1549,6 @@
         text-transform: uppercase;
       }
       /* Player bars */
-      .qlas-players-row {
-        display: flex;
-        gap: 10px;
-        width: 100%;
-      }
       .qlas-pbar {
         flex: 1;
         background: #13131a;
@@ -1639,49 +1634,11 @@
         color: #6b6b8a;
         margin-bottom: 4px;
       }
-      .qlas-pips {
-        display: flex;
-        gap: 2px;
-        margin-bottom: 6px;
-      }
-      .qlas-pip {
-        flex: 1;
-        height: 3px;
-        border-radius: 2px;
-        background: var(--pc, #e53935);
-        opacity: 0.8;
-      }
-      .qlas-pip.empty {
-        background: #252535;
-        opacity: 1;
-      }
-      .qlas-ability-row {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-      .qlas-ability-badge {
-        font-size: 0.58rem;
-        letter-spacing: 0.08em;
-        padding: 2px 5px;
-        border-radius: 4px;
-        margin-left: auto;
-      }
-      .qlas-ability-badge.ready {
-        background: rgba(67, 160, 71, 0.2);
-        color: #43a047;
-        border: 1px solid rgba(67, 160, 71, 0.3);
-      }
-      .qlas-ability-badge.used {
-        background: rgba(107, 107, 138, 0.1);
-        color: #6b6b8a;
-        border: 1px solid #2a2a3d;
-      }
       .qlas-score-row {
         display: flex;
         align-items: center;
         gap: 7px;
-        margin-top: 4px;
+        margin-left: auto;
       }
       .qlas-score-label {
         font-size: 0.56rem;
@@ -1736,43 +1693,22 @@
       .qlas-turn-timer.danger {
         color: #e53935;
       }
-      /* Phase bar */
-      .qlas-phase-bar {
+      /* Combat two-column layout */
+      .qlas-combat-layout {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .qlas-col-players {
         display: flex;
-        background: #13131a;
-        border: 1px solid #2a2a3d;
-        border-radius: 10px;
-        overflow: hidden;
+        flex-direction: column;
+        gap: 10px;
       }
-      .qlas-phase-seg {
-        flex: 1;
-        padding: 8px 12px;
-        text-align: center;
-        font-size: 0.62rem;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        color: #6b6b8a;
-        position: relative;
-        transition:
-          background 0.2s,
-          color 0.2s;
-      }
-      .qlas-phase-seg.active {
-        background: #1c1c27;
-        color: #d4d4e8;
-      }
-      .qlas-phase-seg.active::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 10%;
-        right: 10%;
-        height: 2px;
-        background: #e53935;
-        border-radius: 2px;
-      }
-      .qlas-phase-seg + .qlas-phase-seg {
-        border-left: 1px solid #2a2a3d;
+      .qlas-col-game {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
       /* Question panel */
       .qlas-qpanel {
@@ -1788,15 +1724,7 @@
         gap: 9px;
         margin-bottom: 12px;
       }
-      .qlas-cat-badge {
-        padding: 3px 9px;
-        border-radius: 20px;
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: #fff;
-      }
+
       .qlas-player-label {
         font-size: 0.78rem;
         color: #6b6b8a;
@@ -1907,7 +1835,6 @@
       }
       .btn-qlas-end {
         flex: 2;
-        padding: 12px 16px;
         background: #1c1c27;
         border: 2px solid #2a2a3d;
         border-radius: 8px;
@@ -1958,91 +1885,6 @@
         border: 1px solid rgba(67, 160, 71, 0.3);
         padding: 2px 6px;
         border-radius: 4px;
-      }
-      /* Outcome panel */
-      .qlas-outcome-panel {
-        background: #13131a;
-        border: 1px solid #2a2a3d;
-        border-radius: 10px;
-        padding: 16px 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      .qlas-outcome-score {
-        font-family: "Bebas Neue", sans-serif;
-        font-size: 2.8rem;
-        line-height: 1;
-        letter-spacing: 0.02em;
-        min-width: 56px;
-        text-align: center;
-      }
-      .qlas-outcome-score.positive {
-        color: #43a047;
-      }
-      .qlas-outcome-score.negative {
-        color: #e53935;
-      }
-      .qlas-outcome-score.zero {
-        color: #6b6b8a;
-      }
-      .qlas-outcome-divider {
-        width: 1px;
-        height: 46px;
-        background: #2a2a3d;
-        flex-shrink: 0;
-      }
-      .qlas-outcome-choices {
-        flex: 1;
-        display: flex;
-        gap: 8px;
-      }
-      .qlas-outcome-btn {
-        flex: 1;
-        padding: 11px 12px;
-        background: #1c1c27;
-        border: 2px solid #2a2a3d;
-        border-radius: 8px;
-        color: #6b6b8a;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.7rem;
-        letter-spacing: 0.08em;
-        cursor: pointer;
-        transition: all 0.15s;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        text-align: center;
-      }
-      .qlas-outcome-btn .ob-icon {
-        font-size: 1.1rem;
-      }
-      .qlas-outcome-btn .ob-label {
-        text-transform: uppercase;
-      }
-      .qlas-outcome-btn .ob-value {
-        font-size: 0.95rem;
-        font-weight: 700;
-        font-family: "Bebas Neue", sans-serif;
-      }
-      .qlas-outcome-btn.atk:hover {
-        border-color: #e53935;
-        color: #e53935;
-        background: rgba(229, 57, 53, 0.1);
-      }
-      .qlas-outcome-btn.heal:hover {
-        border-color: #43a047;
-        color: #43a047;
-        background: rgba(67, 160, 71, 0.1);
-      }
-      .qlas-status {
-        font-size: 0.6rem;
-        letter-spacing: 0.15em;
-        color: #6b6b8a;
-        text-align: center;
-        padding: 6px;
-        text-transform: uppercase;
       }
       /* Gameover */
       .qlas-gameover {
@@ -2157,8 +1999,8 @@
         .qlas-class-grid {
           grid-template-columns: 1fr;
         }
-        .qlas-players-row {
-          flex-direction: column;
+        .qlas-combat-layout {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -5397,8 +5239,6 @@
       let qlasTimerLeft = 5;
       let qlasTimerInterval = null;
       let qlasGuessingActive = false;
-      let qlasOutcomeChosen = false;
-      let qlasAutoHeal = false;
       let qlasLastAnswerIdx = -1;
       let qlasToken = null;
 
@@ -5419,49 +5259,27 @@
         qEl('qlas-phase-' + phase).style.display = '';
       }
 
-      function qlasRenderPips(playerIdx, hp) {
-        const pipsEl = qEl('qlas-p' + playerIdx + 'pips');
-        pipsEl.innerHTML = '';
-        for (let i = 0; i < 30; i++) {
-          const d = document.createElement('div');
-          d.className = 'qlas-pip' + (i >= hp ? ' empty' : '');
-          pipsEl.appendChild(d);
-        }
-      }
-
       function qlasSetHP(playerIdx, hp) {
         hp = Math.max(0, Math.min(30, hp));
         qlasHp[playerIdx] = hp;
         qEl('qlas-p' + playerIdx + 'hp').textContent = hp;
         qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / 30) * 100 + '%';
-        qlasRenderPips(playerIdx, hp);
       }
 
       function qlasSetScore(score) {
+        if (qlasMyIdx === null) {
+          return;
+        }
         qlasScore = score;
         const scoreEl = qEl('qlas-p' + qlasMyIdx + 'score');
+        if (!scoreEl) {
+          return;
+        }
         scoreEl.textContent =
           score > 0 ? '+' + score : score === 0 ? '0' : '' + score;
         scoreEl.className =
           'qlas-score-val ' + (score > 0 ? 'pos' : score < 0 ? 'neg' : 'zero');
-        // heal button
-        const healAmt = score >= 2 ? Math.floor((score * 2) / 3) : 0;
-        qEl('qlas-heal-val').textContent =
-          healAmt > 0 ? '+' + healAmt + ' HP' : '+0 HP';
-        qEl('btn-qlas-heal').disabled = score < 2 || !qlasGuessingActive;
-        // outcome values
-        qEl('qlas-atk-val').textContent = score > 0 ? '−' + score + ' HP' : '0';
-        qEl('qlas-heal-out-val').textContent =
-          healAmt > 0 ? '+' + healAmt + ' HP' : '+0';
-        const os = qEl('qlas-outcome-score');
-        os.textContent = score > 0 ? '+' + score : '' + score;
-        os.className =
-          'qlas-outcome-score ' +
-          (score > 0 ? 'positive' : score < 0 ? 'negative' : 'zero');
-      }
-
-      function qlasSetStatus(msg) {
-        qEl('qlas-status').textContent = msg;
+        qEl('qlas-heal-val').textContent = '+2 HP';
       }
 
       function qlasFlash(playerIdx, type) {
@@ -5476,7 +5294,6 @@
       function qlasRenderQuestion(q, idx) {
         qlasCurrentQ = q;
         qlasQIdx = idx;
-        qEl('qlas-cat-badge').textContent = q.category || '—';
         qEl('qlas-q-counter').textContent = 'Q ' + (idx + 1);
         qEl('qlas-question').textContent = q.q;
         const meta = QLAS_CLASS_META[qlasPlayers[qlasMyIdx].classId];
@@ -5498,17 +5315,6 @@
         });
       }
 
-      function qlasSetPhaseBar(phase) {
-        qEl('qlas-seg-decision').classList.toggle(
-          'active',
-          phase === 'decision',
-        );
-        qEl('qlas-seg-guessing').classList.toggle(
-          'active',
-          phase === 'guessing',
-        );
-      }
-
       function qlasStartTimer(seconds) {
         qlasTimerTotal = seconds;
         qlasTimerLeft = seconds;
@@ -5528,9 +5334,6 @@
             (pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '');
           if (qlasTimerLeft <= 0) {
             clearInterval(qlasTimerInterval);
-            if (qlasGuessingActive) {
-              window.qlasEndTurn();
-            }
           }
         }, 100);
       }
@@ -5549,20 +5352,6 @@
           qEl('qlas-p' + i + 'name').textContent =
             p.name || 'Player ' + (i + 1);
           qEl('qlas-p' + i + 'class').textContent = meta.name || '—';
-          if (p.classId === 'reroll') {
-            qEl('qlas-p' + i + 'ability-icon').textContent = '🎲';
-            qEl('qlas-p' + i + 'ability-name').textContent = 'Replace Question';
-            qEl('qlas-p' + i + 'ability-status').textContent = 'READY';
-            qEl('qlas-p' + i + 'ability-status').className =
-              'qlas-ability-badge ready';
-          } else if (p.classId === 'slowpoke') {
-            qEl('qlas-p' + i + 'ability-icon').textContent = '🐢';
-            qEl('qlas-p' + i + 'ability-name').textContent = '+2s Timer';
-            qEl('qlas-p' + i + 'ability-status').textContent = 'ALWAYS ON';
-            qEl('qlas-p' + i + 'ability-status').className =
-              'qlas-ability-badge ready';
-          }
-          qlasRenderPips(i, 30);
         });
       }
 
@@ -5583,7 +5372,7 @@
         const QLAS_PHASE_GAMEOVER = 'game_over';
         const QLAS_PHASE_OUTCOME = 'outcome';
         const QLAS_PHASE_GUESSING = 'guessing';
-        const QLAS_PHASE_DECISION = 'decision';
+        const _QLAS_PHASE_DECISION = 'decision';
 
         if (res.phase === QLAS_PHASE_GAMEOVER) {
           qlasShowPhase('gameover');
@@ -5599,9 +5388,14 @@
 
         if (res.phase === QLAS_PHASE_OUTCOME) {
           if (isMyTurn) {
-            qEl('qlas-outcome-panel').style.display = '';
+            qEl('btn-qlas-end').style.display = '';
+            qEl('btn-qlas-end').disabled = false;
+            qEl('qlas-action-row').style.display = '';
+            if (qlasScore >= 2) {
+              qEl('btn-qlas-heal').style.display = '';
+              qEl('btn-qlas-heal').disabled = false;
+            }
           }
-          qlasSetStatus('choose: attack or heal');
           return;
         }
 
@@ -5617,26 +5411,16 @@
           qEl('qlas-qpanel').style.display = '';
           qEl('qlas-action-row').style.display = '';
           qEl('btn-qlas-end').disabled = false;
-          qlasSetPhaseBar('guessing');
           qlasRenderQuestion(res.currentQuestion, 0);
           qlasStartTimer(remaining);
-          qlasSetStatus('reconnected \u2014 answer or end turn');
           return;
         }
 
         // DECISION phase (or opponent's guessing turn)
-        qlasSetPhaseBar(
-          res.phase === QLAS_PHASE_DECISION ? 'decision' : 'guessing',
-        );
         if (isMyTurn) {
           qEl('qlas-decision-panel').style.display = '';
-          qlasSetStatus('reconnected \u2014 click ATTACK to start guessing');
         } else {
           qEl('qlas-decision-panel').style.display = 'none';
-          const name =
-            qlasPlayers[res.currentPlayerIdx].name ||
-            'Player ' + (res.currentPlayerIdx + 1);
-          qlasSetStatus(name + '\u2019s turn');
         }
       }
 
@@ -5705,7 +5489,7 @@
               return;
             }
             qlasToken = res.token;
-            qlasMyIdx = res.players.findIndex((p) => p.id === res.playerId);
+            qlasMyIdx = res.myIdx;
             qlasPlayers[0].name = res.players[0]?.name || '';
             qlasPlayers[1].name = res.players[1]?.name || '';
             qEl('qlas-waiting-panel').style.display = '';
@@ -5723,9 +5507,20 @@
       // --- Guessing phase ---
 
       window.qlasStartGuessing = function () {
+        qlasGuessingActive = true;
+        qEl('qlas-decision-panel').style.display = 'none';
+        qEl('qlas-action-row').style.display = '';
+        qEl('btn-qlas-stop').style.display = '';
+        qEl('btn-qlas-stop').disabled = false;
+        qEl('btn-qlas-end').style.display = 'none';
+        qEl('btn-qlas-heal').style.display = 'none';
         socket.emit('qlashique:start_guessing', { code: qlasCode }, (res) => {
           if (res?.error) {
-            qlasSetStatus(res.error);
+            qlasGuessingActive = false;
+            qEl('qlas-decision-panel').style.display = '';
+            qEl('qlas-action-row').style.display = 'none';
+            qEl('btn-qlas-stop').style.display = 'none';
+            console.error('start_guessing failed:', res.error);
           }
         });
       };
@@ -5741,78 +5536,58 @@
         socket.emit(
           'qlashique:answer',
           { code: qlasCode, answerIdx },
-          (res) => {
-            if (res?.error) {
-              qlasSetStatus(res.error);
-            }
-          },
+          () => {},
         );
       }
 
       window.qlasReroll = function () {
         socket.emit('qlashique:reroll', { code: qlasCode }, (res) => {
+          if (!res?.error) {
+            qEl('btn-qlas-reroll').disabled = true;
+          }
+        });
+      };
+
+      window.qlasStopAttack = function () {
+        if (!qlasGuessingActive) {
+          return;
+        }
+        qlasGuessingActive = false;
+        qEl('btn-qlas-stop').disabled = true;
+        document
+          .querySelectorAll('.qlas-opt')
+          .forEach((b) => (b.disabled = true));
+        socket.emit('qlashique:stop_attack', { code: qlasCode }, (res) => {
           if (res?.error) {
-            qlasSetStatus(res.error);
             return;
           }
-          qEl('btn-qlas-reroll').disabled = true;
-          qEl('qlas-p' + qlasMyIdx + 'ability-status').textContent = 'USED';
-          qEl('qlas-p' + qlasMyIdx + 'ability-status').className =
-            'qlas-ability-badge used';
+          qEl('btn-qlas-stop').style.display = 'none';
+          qEl('btn-qlas-end').style.display = '';
+          qEl('btn-qlas-end').disabled = false;
+          if (qlasScore >= 2) {
+            qEl('btn-qlas-heal').style.display = '';
+            qEl('btn-qlas-heal').disabled = false;
+          }
         });
       };
 
       window.qlasEndTurn = function () {
-        if (!qlasGuessingActive) {
-          return;
-        }
-        qlasStopTimer();
-        qlasGuessingActive = false;
         qEl('btn-qlas-end').disabled = true;
         qEl('btn-qlas-heal').disabled = true;
-        document
-          .querySelectorAll('.qlas-opt')
-          .forEach((b) => (b.disabled = true));
-        socket.emit('qlashique:end_turn', { code: qlasCode }, (res) => {
-          if (res?.error) {
-            qlasSetStatus(res.error);
-          }
-        });
+        socket.emit(
+          'qlashique:end_turn',
+          { code: qlasCode, choice: 'attack' },
+          () => {},
+        );
       };
 
       window.qlasHeal = function () {
-        if (qlasScore < 2 || !qlasGuessingActive) {
-          return;
-        }
-        qlasStopTimer();
-        qlasGuessingActive = false;
-        qlasAutoHeal = true;
         qEl('btn-qlas-end').disabled = true;
         qEl('btn-qlas-heal').disabled = true;
-        document
-          .querySelectorAll('.qlas-opt')
-          .forEach((b) => (b.disabled = true));
-        socket.emit('qlashique:end_turn', { code: qlasCode }, (res) => {
-          if (res?.error) {
-            qlasSetStatus(res.error);
-          }
-        });
-      };
-
-      window.qlasChooseOutcome = function (choice) {
-        if (qlasOutcomeChosen) {
-          return;
-        }
-        qlasOutcomeChosen = true;
-        qEl('qlas-outcome-panel').style.display = 'none';
         socket.emit(
-          'qlashique:choose_outcome',
-          { code: qlasCode, choice },
-          (res) => {
-            if (res?.error) {
-              qlasSetStatus(res.error);
-            }
-          },
+          'qlashique:end_turn',
+          { code: qlasCode, choice: 'heal' },
+          () => {},
         );
       };
 
@@ -5822,60 +5597,51 @@
         qlasPlayers[playerIdx].classId = classId;
       });
 
-      socket.on(
-        'qlashique:turn_start',
-        ({ playerIdx, timerSeconds, rerollAvailable }) => {
-          qlasStopTimer();
-          qlasScore = 0;
-          qlasGuessingActive = false;
-          qlasOutcomeChosen = false;
-          qlasAutoHeal = false;
-          qEl('qlas-outcome-panel').style.display = 'none';
-          qEl('qlas-qpanel').style.display = 'none';
-          qEl('qlas-action-row').style.display = 'none';
-          qEl('qlas-phase-class').style.display = 'none';
-          qEl('qlas-phase-combat').style.display = '';
-          qEl('qlas-phase-gameover').style.display = 'none';
-          showScreen('screen-qlashique');
+      socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds }) => {
+        qlasStopTimer();
+        qlasScore = 0;
+        qlasGuessingActive = false;
+        qEl('qlas-qpanel').style.display = 'none';
+        qEl('qlas-action-row').style.display = 'none';
+        qEl('btn-qlas-stop').style.display = 'none';
+        qEl('btn-qlas-end').style.display = 'none';
+        qEl('btn-qlas-heal').style.display = 'none';
+        qEl('qlas-phase-class').style.display = 'none';
+        qEl('qlas-phase-combat').style.display = '';
+        qEl('qlas-phase-gameover').style.display = 'none';
+        showScreen('screen-qlashique');
 
-          qlasRenderPlayerInfo();
-          [0, 1].forEach((i) => {
-            qlasSetScoreOther(i, null);
-          });
-          qlasSetScore(0);
+        qlasRenderPlayerInfo();
+        [0, 1].forEach((i) => {
+          qlasSetScoreOther(i, null);
+        });
+        qlasSetScore(0);
 
-          qEl('qlas-p0bar').classList.toggle('active-turn', playerIdx === 0);
-          qEl('qlas-p1bar').classList.toggle('active-turn', playerIdx === 1);
+        qEl('qlas-p0bar').classList.toggle('active-turn', playerIdx === 0);
+        qEl('qlas-p1bar').classList.toggle('active-turn', playerIdx === 1);
 
-          const isMyTurn = playerIdx === qlasMyIdx;
-          const turnPlayerName =
-            qlasPlayers[playerIdx].name || 'Player ' + (playerIdx + 1);
-          qEl('qlas-turn-name').textContent = isMyTurn
-            ? 'YOUR TURN'
-            : turnPlayerName + "'S TURN";
-          qEl('qlas-turn-round').textContent = 'TIMER ' + timerSeconds + 's';
-          qEl('qlas-turn-timer').textContent = timerSeconds + 's';
-          qlasSetPhaseBar('decision');
-          qEl('qlas-p' + playerIdx + 'score').textContent = '0';
-          qEl('qlas-p' + playerIdx + 'score').className = 'qlas-score-val zero';
+        const isMyTurn = playerIdx === qlasMyIdx;
+        const turnPlayerName =
+          qlasPlayers[playerIdx].name || 'Player ' + (playerIdx + 1);
+        qEl('qlas-turn-name').textContent = isMyTurn
+          ? 'YOUR TURN'
+          : turnPlayerName + "'S TURN";
+        qEl('qlas-turn-round').textContent = 'TIMER ' + timerSeconds + 's';
+        qEl('qlas-turn-timer').textContent = timerSeconds + 's';
+        const pScoreEl = qEl('qlas-p' + playerIdx + 'score');
+        if (pScoreEl) {
+          pScoreEl.textContent = '0';
+          pScoreEl.className = 'qlas-score-val zero';
+        }
 
-          if (rerollAvailable) {
-            qEl('qlas-p' + playerIdx + 'ability-status').textContent = 'READY';
-            qEl('qlas-p' + playerIdx + 'ability-status').className =
-              'qlas-ability-badge ready';
-          }
-
-          if (isMyTurn) {
-            qEl('qlas-decision-panel').style.display = '';
-            qlasSetStatus('Your turn begins — click ATTACK to start guessing');
-            qlasTimerTotal = timerSeconds;
-            qlasTimerLeft = timerSeconds;
-          } else {
-            qEl('qlas-decision-panel').style.display = 'none';
-            qlasSetStatus(`${turnPlayerName}'s turn is starting...`);
-          }
-        },
-      );
+        if (isMyTurn) {
+          qEl('qlas-decision-panel').style.display = '';
+          qlasTimerTotal = timerSeconds;
+          qlasTimerLeft = timerSeconds;
+        } else {
+          qEl('qlas-decision-panel').style.display = 'none';
+        }
+      });
 
       function qlasSetScoreOther(playerIdx, score) {
         const scoreEl = qEl('qlas-p' + playerIdx + 'score');
@@ -5891,20 +5657,19 @@
       }
 
       socket.on('qlashique:question', ({ question, questionIdx }) => {
-        if (!qlasGuessingActive && questionIdx === 0) {
+        if (questionIdx === 0) {
           qlasGuessingActive = true;
           qEl('qlas-decision-panel').style.display = 'none';
+          qEl('qlas-action-row').style.display = '';
+          qEl('btn-qlas-stop').style.display = '';
+          qEl('btn-qlas-end').style.display = 'none';
+          qEl('btn-qlas-heal').style.display = 'none';
           qEl('qlas-qpanel').style.display = '';
           qEl('qlas-qpanel').style.opacity = '1.0';
-          qEl('qlas-action-row').style.display = '';
-          qEl('btn-qlas-end').disabled = false;
-          qEl('btn-qlas-heal').disabled = true;
           const showReroll = qlasPlayers[qlasMyIdx].classId === 'reroll';
           qEl('btn-qlas-reroll').style.display = showReroll ? '' : 'none';
           qEl('btn-qlas-reroll').disabled = false;
-          qlasSetPhaseBar('guessing');
           qlasStartTimer(qlasTimerTotal);
-          qlasSetStatus('answer questions or end your turn');
         } else if (qlasGuessingActive) {
           document
             .querySelectorAll('.qlas-opt')
@@ -5924,9 +5689,6 @@
               );
             }
             qlasSetScore(newScore);
-            qlasSetStatus(
-              correct ? 'correct! score +1' : 'wrong! score \u22121',
-            );
           } else {
             qlasSetScoreOther(playerIdx, newScore);
           }
@@ -5940,28 +5702,42 @@
           .forEach((b) => (b.disabled = false));
       });
 
-      socket.on('qlashique:turn_end', ({ score, outcome }) => {
+      socket.on('qlashique:turn_end', () => {
         qlasStopTimer();
         qlasGuessingActive = false;
         qEl('qlas-action-row').style.display = 'none';
         qEl('qlas-qpanel').style.opacity = '0.4';
+      });
 
-        if (outcome === 'choose' && qlasAutoHeal) {
-          qlasAutoHeal = false;
-          window.qlasChooseOutcome('heal');
+      socket.on('qlashique:attack_stopped', ({ score }) => {
+        qlasGuessingActive = false;
+        document
+          .querySelectorAll('.qlas-opt')
+          .forEach((b) => (b.disabled = true));
+        qEl('btn-qlas-stop').style.display = 'none';
+        qEl('btn-qlas-end').style.display = '';
+        qEl('btn-qlas-end').disabled = false;
+        if (score >= 2) {
+          qEl('btn-qlas-heal').style.display = '';
+          qEl('btn-qlas-heal').disabled = false;
+        }
+      });
+
+      socket.on('qlashique:timer_expired', () => {
+        if (!qlasGuessingActive) {
           return;
         }
-        if (outcome === 'choose') {
-          qEl('qlas-outcome-panel').style.display = 'flex';
-          qlasSetStatus('choose: attack or heal');
-        } else if (outcome === 'self_damage') {
-          qlasSetStatus(
-            `Your turn ended: self‑damage from negative score (${score})`,
-          );
-        } else if (outcome === 'attack') {
-          qlasSetStatus(`Your turn ended: you dealt ${score} damage`);
-        } else {
-          qlasSetStatus('Your turn ended: no effect (score 0)');
+        qlasStopTimer();
+        qlasGuessingActive = false;
+        document
+          .querySelectorAll('.qlas-opt')
+          .forEach((b) => (b.disabled = true));
+        qEl('btn-qlas-stop').style.display = 'none';
+        qEl('btn-qlas-end').style.display = '';
+        qEl('btn-qlas-end').disabled = false;
+        if (qlasScore >= 2) {
+          qEl('btn-qlas-heal').style.display = '';
+          qEl('btn-qlas-heal').disabled = false;
         }
       });
 
@@ -6037,7 +5813,6 @@
         qlasScore = 0;
         qlasToken = null;
         qlasGuessingActive = false;
-        qlasOutcomeChosen = false;
         document.querySelectorAll('.qlas-card').forEach((c) => {
           c.classList.remove('selected');
           c.style.pointerEvents = '';
@@ -6153,219 +5928,140 @@
 
         <!-- Combat -->
         <div id="qlas-phase-combat" style="display: none">
-          <div class="qlas-players-row">
-            <div class="qlas-pbar" id="qlas-p0bar" style="--pc: #e53935">
-              <div class="qlas-pb-top">
-                <div class="qlas-pb-avatar" id="qlas-p0avatar">A</div>
-                <div>
-                  <div class="qlas-pb-name" id="qlas-p0name">Player 1</div>
-                  <div class="qlas-pb-class" id="qlas-p0class">—</div>
+          <div class="qlas-combat-layout">
+            <!-- Column 1: player boxes -->
+            <div class="qlas-col-players">
+              <div class="qlas-pbar" id="qlas-p0bar" style="--pc: #e53935">
+                <div class="qlas-pb-top">
+                  <div class="qlas-pb-avatar" id="qlas-p0avatar">A</div>
+                  <div>
+                    <div class="qlas-pb-name" id="qlas-p0name">Player 1</div>
+                    <div class="qlas-pb-class" id="qlas-p0class">—</div>
+                  </div>
+                </div>
+                <div class="qlas-hp-bar-bg">
+                  <div
+                    class="qlas-hp-bar-fill"
+                    id="qlas-p0hpbar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+                <div class="qlas-hp-row">
+                  <div class="qlas-hp-num" id="qlas-p0hp">30</div>
+                  <div class="qlas-hp-max">/ 30</div>
+                  <div class="qlas-score-row">
+                    <span class="qlas-score-label">SCORE</span>
+                    <span class="qlas-score-val zero" id="qlas-p0score">—</span>
+                  </div>
                 </div>
               </div>
-              <div class="qlas-hp-bar-bg">
-                <div
-                  class="qlas-hp-bar-fill"
-                  id="qlas-p0hpbar"
-                  style="width: 100%"
-                ></div>
-              </div>
-              <div class="qlas-hp-row">
-                <div class="qlas-hp-num" id="qlas-p0hp">30</div>
-                <div class="qlas-hp-max">/ 30</div>
-              </div>
-              <div class="qlas-pips" id="qlas-p0pips"></div>
-              <div class="qlas-ability-row">
-                <span id="qlas-p0ability-icon">—</span>
-                <span
-                  style="
-                    font-size: 0.58rem;
-                    color: #6b6b8a;
-                    letter-spacing: 0.1em;
-                    text-transform: uppercase;
-                  "
-                  id="qlas-p0ability-name"
-                ></span>
-                <span
-                  class="qlas-ability-badge ready"
-                  id="qlas-p0ability-status"
-                ></span>
-              </div>
-              <div class="qlas-score-row">
-                <span class="qlas-score-label">SCORE</span>
-                <span class="qlas-score-val zero" id="qlas-p0score">—</span>
-              </div>
-            </div>
-            <div class="qlas-pbar" id="qlas-p1bar" style="--pc: #5c9ee5">
-              <div class="qlas-pb-top">
-                <div class="qlas-pb-avatar" id="qlas-p1avatar">B</div>
-                <div>
-                  <div class="qlas-pb-name" id="qlas-p1name">Player 2</div>
-                  <div class="qlas-pb-class" id="qlas-p1class">—</div>
+              <div class="qlas-pbar" id="qlas-p1bar" style="--pc: #5c9ee5">
+                <div class="qlas-pb-top">
+                  <div class="qlas-pb-avatar" id="qlas-p1avatar">B</div>
+                  <div>
+                    <div class="qlas-pb-name" id="qlas-p1name">Player 2</div>
+                    <div class="qlas-pb-class" id="qlas-p1class">—</div>
+                  </div>
+                </div>
+                <div class="qlas-hp-bar-bg">
+                  <div
+                    class="qlas-hp-bar-fill"
+                    id="qlas-p1hpbar"
+                    style="width: 100%"
+                  ></div>
+                </div>
+                <div class="qlas-hp-row">
+                  <div class="qlas-hp-num" id="qlas-p1hp">30</div>
+                  <div class="qlas-hp-max">/ 30</div>
+                  <div class="qlas-score-row">
+                    <span class="qlas-score-label">SCORE</span>
+                    <span class="qlas-score-val zero" id="qlas-p1score">—</span>
+                  </div>
                 </div>
               </div>
-              <div class="qlas-hp-bar-bg">
-                <div
-                  class="qlas-hp-bar-fill"
-                  id="qlas-p1hpbar"
-                  style="width: 100%"
-                ></div>
-              </div>
-              <div class="qlas-hp-row">
-                <div class="qlas-hp-num" id="qlas-p1hp">30</div>
-                <div class="qlas-hp-max">/ 30</div>
-              </div>
-              <div class="qlas-pips" id="qlas-p1pips"></div>
-              <div class="qlas-ability-row">
-                <span id="qlas-p1ability-icon">—</span>
-                <span
-                  style="
-                    font-size: 0.58rem;
-                    color: #6b6b8a;
-                    letter-spacing: 0.1em;
-                    text-transform: uppercase;
-                  "
-                  id="qlas-p1ability-name"
-                ></span>
-                <span
-                  class="qlas-ability-badge ready"
-                  id="qlas-p1ability-status"
-                ></span>
-              </div>
-              <div class="qlas-score-row">
-                <span class="qlas-score-label">SCORE</span>
-                <span class="qlas-score-val zero" id="qlas-p1score">—</span>
-              </div>
             </div>
-          </div>
 
-          <div class="qlas-turn-bar">
-            <div class="qlas-turn-name" id="qlas-turn-name">—</div>
-            <div class="qlas-turn-round" id="qlas-turn-round"></div>
-            <div class="qlas-turn-timer" id="qlas-turn-timer">—</div>
-          </div>
+            <!-- Column 2: turn info + questions + buttons -->
+            <div class="qlas-col-game">
+              <div class="qlas-turn-bar">
+                <div class="qlas-turn-name" id="qlas-turn-name">—</div>
+                <div class="qlas-turn-round" id="qlas-turn-round"></div>
+                <div class="qlas-turn-timer" id="qlas-turn-timer">—</div>
+              </div>
 
-          <div class="qlas-phase-bar">
-            <div class="qlas-phase-seg" id="qlas-seg-decision">
-              Decision phase
-            </div>
-            <div class="qlas-phase-seg" id="qlas-seg-guessing">
-              Guessing phase
-            </div>
-          </div>
+              <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
+                <div class="qlas-qheader">
+                  <span
+                    class="qlas-player-label"
+                    id="qlas-qplayer-label"
+                  ></span>
+                  <button
+                    class="btn-qlas-reroll"
+                    id="btn-qlas-reroll"
+                    style="display: none"
+                    onclick="qlasReroll()"
+                  >
+                    🎲 REROLL
+                  </button>
+                  <span class="qlas-q-counter" id="qlas-q-counter">Q 1</span>
+                </div>
+                <div class="qlas-timer-bar">
+                  <div
+                    class="qlas-timer-fill"
+                    id="qlas-timer-fill"
+                    style="width: 100%"
+                  ></div>
+                </div>
+                <div class="qlas-question" id="qlas-question"></div>
+                <div class="qlas-options" id="qlas-options"></div>
+              </div>
 
-          <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
-            <div class="qlas-qheader">
-              <span
-                class="qlas-cat-badge"
-                id="qlas-cat-badge"
-                style="background: #555"
-                >—</span
-              >
-              <span class="qlas-player-label" id="qlas-qplayer-label"></span>
-              <button
-                class="btn-qlas-reroll"
-                id="btn-qlas-reroll"
+              <div
+                class="qlas-action-row"
+                id="qlas-action-row"
                 style="display: none"
-                onclick="qlasReroll()"
               >
-                🎲 REROLL
-              </button>
-              <span class="qlas-q-counter" id="qlas-q-counter">Q 1</span>
-            </div>
-            <div class="qlas-timer-bar">
-              <div
-                class="qlas-timer-fill"
-                id="qlas-timer-fill"
-                style="width: 100%"
-              ></div>
-            </div>
-            <div class="qlas-question" id="qlas-question"></div>
-            <div class="qlas-options" id="qlas-options"></div>
-          </div>
-
-          <div
-            class="qlas-action-row"
-            id="qlas-action-row"
-            style="display: none"
-          >
-            <button
-              class="btn-qlas-end"
-              id="btn-qlas-end"
-              onclick="qlasEndTurn()"
-            >
-              END TURN
-            </button>
-            <button
-              class="btn-qlas-heal"
-              id="btn-qlas-heal"
-              disabled
-              onclick="qlasHeal()"
-            >
-              💊 HEAL
-              <span class="qlas-heal-val" id="qlas-heal-val">+0 HP</span>
-            </button>
-          </div>
-
-          <div
-            class="qlas-outcome-panel"
-            id="qlas-outcome-panel"
-            style="display: none"
-          >
-            <div class="qlas-outcome-score positive" id="qlas-outcome-score">
-              +2
-            </div>
-            <div class="qlas-outcome-divider"></div>
-            <div style="flex: 1">
-              <div
-                style="
-                  font-size: 0.6rem;
-                  color: #6b6b8a;
-                  letter-spacing: 0.15em;
-                  margin-bottom: 8px;
-                "
-              >
-                CHOOSE ACTION
-              </div>
-              <div class="qlas-outcome-choices">
                 <button
-                  class="qlas-outcome-btn atk"
-                  onclick="qlasChooseOutcome('attack')"
+                  class="btn-qlas-end"
+                  id="btn-qlas-stop"
+                  style="display: none"
+                  onclick="qlasStopAttack()"
                 >
-                  <span class="ob-icon">⚔️</span>
-                  <span class="ob-label">Attack</span>
-                  <span class="ob-value" id="qlas-atk-val">−0</span>
+                  🛑 STOP ATTACK
                 </button>
                 <button
-                  class="qlas-outcome-btn heal"
-                  onclick="qlasChooseOutcome('heal')"
+                  class="btn-qlas-end"
+                  id="btn-qlas-end"
+                  style="display: none"
+                  onclick="qlasEndTurn()"
                 >
-                  <span class="ob-icon">💊</span>
-                  <span class="ob-label">Heal</span>
-                  <span class="ob-value" id="qlas-heal-out-val">+0</span>
+                  END TURN
+                </button>
+                <button
+                  class="btn-qlas-heal"
+                  id="btn-qlas-heal"
+                  style="display: none"
+                  onclick="qlasHeal()"
+                >
+                  💊 HEAL
+                  <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
+                </button>
+              </div>
+
+              <div
+                id="qlas-decision-panel"
+                style="display: none; text-align: center; margin-top: 4px"
+              >
+                <button
+                  class="qlas-btn-confirm"
+                  id="btn-qlas-attack"
+                  onclick="qlasStartGuessing()"
+                  style="font-size: 1.3rem; width: 100%"
+                >
+                  ⚔ ATTACK
                 </button>
               </div>
             </div>
-          </div>
-
-          <div class="qlas-status" id="qlas-status">waiting for turn…</div>
-
-          <div
-            id="qlas-decision-panel"
-            style="
-              display: none;
-              width: 100%;
-              text-align: center;
-              margin-top: 4px;
-            "
-          >
-            <button
-              class="qlas-btn-confirm"
-              id="btn-qlas-attack"
-              onclick="qlasStartGuessing()"
-              style="padding: 14px 40px; font-size: 1.3rem"
-            >
-              ⚔ ATTACK
-            </button>
           </div>
         </div>
 

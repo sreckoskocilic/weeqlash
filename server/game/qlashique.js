@@ -139,7 +139,7 @@ export function applyOutcome(state, choice) {
   if (choice === 'attack') {
     state.players[opponentIdx].hp -= score;
   } else {
-    state.players[playerIdx].hp += Math.floor((score * 2) / 3);
+    state.players[playerIdx].hp += 2;
   }
 
   state.phase = PHASE.DECISION;
@@ -172,8 +172,12 @@ export function checkGameOver(state) {
     // Both dead simultaneously: current player loses (self-damage scenario)
     return 1 - state.currentPlayerIdx;
   }
-  if (p0.hp <= 0) {return 1;}
-  if (p1.hp <= 0) {return 0;}
+  if (p0.hp <= 0) {
+    return 1;
+  }
+  if (p1.hp <= 0) {
+    return 0;
+  }
   return -1;
 }
 

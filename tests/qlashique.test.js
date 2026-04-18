@@ -207,18 +207,18 @@ describe('applyOutcome', () => {
     expect(s.players[1].hp).toBe(25);
   });
 
-  it('heal restores floor(score * 2/3) to self', () => {
+  it('heal always restores 2 HP to self', () => {
     const s = outcomeState(6);
     s.players[0].hp = 20;
     applyOutcome(s, 'heal');
-    expect(s.players[0].hp).toBe(24); // 20 + floor(6*2/3)=4
+    expect(s.players[0].hp).toBe(22);
   });
 
-  it('heal with score 2 restores 1 HP', () => {
+  it('heal with score 2 restores 2 HP', () => {
     const s = outcomeState(2);
     s.players[0].hp = 25;
     applyOutcome(s, 'heal');
-    expect(s.players[0].hp).toBe(26); // floor(2*2/3)=1
+    expect(s.players[0].hp).toBe(27);
   });
 
   it('advances turn after outcome', () => {
@@ -530,40 +530,15 @@ describe('edge cases: score to outcome mapping', () => {
 });
 
 describe('edge cases: heal calculation', () => {
-  it('heal with score 2 gives 1 HP', () => {
-    const s = createQlasGame('reroll', 'reroll');
-    s.phase = PHASE.OUTCOME;
-    s.currentScore = 2;
-    s.players[0].hp = 20;
-    applyOutcome(s, 'heal');
-    expect(s.players[0].hp).toBe(21); // 20 + floor(2*2/3) = 20 + 1
-  });
-
-  it('heal with score 3 gives 2 HP', () => {
-    const s = createQlasGame('reroll', 'reroll');
-    s.phase = PHASE.OUTCOME;
-    s.currentScore = 3;
-    s.players[0].hp = 20;
-    applyOutcome(s, 'heal');
-    expect(s.players[0].hp).toBe(22); // 20 + floor(3*2/3) = 20 + 2
-  });
-
-  it('heal with score 4 gives 2 HP', () => {
-    const s = createQlasGame('reroll', 'reroll');
-    s.phase = PHASE.OUTCOME;
-    s.currentScore = 4;
-    s.players[0].hp = 20;
-    applyOutcome(s, 'heal');
-    expect(s.players[0].hp).toBe(22); // 20 + floor(4*2/3) = 20 + 2
-  });
-
-  it('heal with score 5 gives 3 HP', () => {
-    const s = createQlasGame('reroll', 'reroll');
-    s.phase = PHASE.OUTCOME;
-    s.currentScore = 5;
-    s.players[0].hp = 20;
-    applyOutcome(s, 'heal');
-    expect(s.players[0].hp).toBe(23); // 20 + floor(5*2/3) = 20 + 3
+  it('heal always gives flat 2 HP regardless of score', () => {
+    for (const score of [2, 3, 4, 5, 10]) {
+      const s = createQlasGame('reroll', 'reroll');
+      s.phase = PHASE.OUTCOME;
+      s.currentScore = score;
+      s.players[0].hp = 20;
+      applyOutcome(s, 'heal');
+      expect(s.players[0].hp).toBe(22);
+    }
   });
 });
 

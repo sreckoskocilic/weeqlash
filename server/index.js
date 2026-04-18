@@ -384,13 +384,14 @@ io.on('connection', (socket) => {
     socket
       .to(code)
       .emit('room:player_joined', { players: room.players.map(publicPlayer) });
-    const token = room.players.find((p) => p.id === socket.id)?.token;
+    const joiningPlayer = room.players.find((p) => p.id === socket.id);
     cb({
       ok: true,
       playerId: socket.id,
+      myIdx: joiningPlayer?.index,
       players: room.players.map(publicPlayer),
       settings: room.settings,
-      token,
+      token: joiningPlayer?.token,
     });
     if (room.players.length === room.settings.playerCount) {
       io.to(code).emit('room:full', {
@@ -1038,34 +1039,14 @@ io.on('connection', (socket) => {
       clearTimeout(room.qlasTimer);
     }
     const _gracedMs = ((room.qlasTimerSeconds || 5) + 3) * 1000;
+    room.qlasTimerExpired = false;
     room.qlasTimer = setTimeout(() => {
       room.qlasTimer = null;
       if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
         return;
       }
-      const activeIdx = room.state.currentPlayerIdx;
-      const scoreBeforeEnd = room.state.currentScore;
-      const { outcome, error: _err } = endTurn(room.state);
-      if (_err) {
-        return;
-      }
-      io.to(code).emit('qlashique:turn_end', {
-        score: scoreBeforeEnd,
-        outcome,
-      });
-      io.to(code).emit('qlashique:hp_update', {
-        p0hp: room.state.players[0].hp,
-        p1hp: room.state.players[1].hp,
-      });
-      const winnerIdx = checkGameOver(room.state);
-      if (winnerIdx >= 0) {
-        room.state.phase = QLAS_PHASE.GAME_OVER;
-        const reason =
-          room.state.players[activeIdx].hp <= 0 ? 'self_destruct' : 'hp';
-        io.to(code).emit('qlashique:game_over', { winnerIdx, reason });
-      } else if (outcome !== 'choose') {
-        _emitQlasTurnStart(io, code, room);
-      }
+      room.qlasTimerExpired = true;
+      io.to(code).emit('qlashique:timer_expired');
     }, _gracedMs);
   });
 
@@ -1113,18 +1094,20 @@ io.on('connection', (socket) => {
     }
 
     room.questionIdx++;
-    const nextQ = _pickQlasQuestion(room, questionsDb);
-    if (nextQ) {
-      room.currentQuestion = nextQ;
-      socket.emit('qlashique:question', {
-        question: {
-          id: nextQ.id,
-          q: nextQ.q,
-          opts: nextQ.opts,
-          category: nextQ.category,
-        },
-        questionIdx: room.questionIdx,
-      });
+    if (!room.qlasTimerExpired) {
+      const nextQ = _pickQlasQuestion(room, questionsDb);
+      if (nextQ) {
+        room.currentQuestion = nextQ;
+        socket.emit('qlashique:question', {
+          question: {
+            id: nextQ.id,
+            q: nextQ.q,
+            opts: nextQ.opts,
+            category: nextQ.category,
+          },
+          questionIdx: room.questionIdx,
+        });
+      }
     }
 
     cb({ ok: true });
@@ -1166,7 +1149,32 @@ io.on('connection', (socket) => {
     cb({ ok: true });
   });
 
-  socket.on('qlashique:end_turn', ({ code } = {}, cb) => {
+  socket.on('qlashique:stop_attack', ({ code } = {}, cb) => {
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashique') {
+      return cb({ error: 'No active game' });
+    }
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      return cb({ error: 'Not in this room' });
+    }
+    if (room.state.currentPlayerIdx !== player.index) {
+      return cb({ error: 'Not your turn' });
+    }
+    if (room.state.phase !== QLAS_PHASE.GUESSING) {
+      return cb({ error: 'Not in guessing phase' });
+    }
+    if (room.qlasTimer) {
+      clearTimeout(room.qlasTimer);
+      room.qlasTimer = null;
+    }
+    room.qlasTimerExpired = true;
+    socket.emit('qlashique:attack_stopped', { score: room.state.currentScore });
+    cb({ ok: true });
+  });
+
+  socket.on('qlashique:end_turn', ({ code, choice = 'attack' } = {}, cb) => {
+    console.log('[qlashique:end_turn] code:', code, 'socket.id:', socket.id);
     const room = getRoom(code);
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });
@@ -1191,57 +1199,27 @@ io.on('connection', (socket) => {
       return cb({ error });
     }
 
-    io.to(code).emit('qlashique:turn_end', { score: scoreBeforeEnd, outcome });
+    let finalOutcome = outcome;
+    if (outcome === 'choose') {
+      const safeChoice = choice === 'heal' ? 'heal' : 'attack';
+      const result = applyOutcome(room.state, safeChoice);
+      if (result.error) {
+        return cb(result);
+      }
+      finalOutcome = safeChoice;
+    }
+
+    io.to(code).emit('qlashique:turn_end', {
+      score: scoreBeforeEnd,
+      outcome: finalOutcome,
+    });
     io.to(code).emit('qlashique:hp_update', {
       p0hp: room.state.players[0].hp,
       p1hp: room.state.players[1].hp,
     });
 
     const winnerIdx = checkGameOver(room.state);
-    if (winnerIdx >= 0) {
-      room.state.phase = QLAS_PHASE.GAME_OVER;
-      const reason =
-        room.state.players[player.index].hp <= 0 ? 'self_destruct' : 'hp';
-      io.to(code).emit('qlashique:game_over', { winnerIdx, reason });
-      return cb({ ok: true });
-    }
-
-    if (outcome !== 'choose') {
-      _emitQlasTurnStart(io, code, room);
-    }
-
-    cb({ ok: true });
-  });
-
-  socket.on('qlashique:choose_outcome', ({ code, choice } = {}, cb) => {
-    const room = getRoom(code);
-    if (!room?.state || room.mode !== 'qlashique') {
-      return cb({ error: 'No active game' });
-    }
-
-    const player = room.players.find((p) => p.id === socket.id);
-    if (!player) {
-      return cb({ error: 'Not in this room' });
-    }
-    if (room.state.currentPlayerIdx !== player.index) {
-      return cb({ error: 'Not your turn' });
-    }
-    if (!['attack', 'heal'].includes(choice)) {
-      return cb({ error: 'Invalid choice' });
-    }
-
-    const result = applyOutcome(room.state, choice);
-    if (result.error) {
-      return cb(result);
-    }
-
-    io.to(code).emit('qlashique:hp_update', {
-      p0hp: result.p0hp,
-      p1hp: result.p1hp,
-    });
-
-    const winnerIdx = checkGameOver(room.state);
-    if (winnerIdx >= 0) {
+    if (winnerIdx >= 0 && winnerIdx < 2) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
       io.to(code).emit('qlashique:game_over', { winnerIdx, reason: 'hp' });
       return cb({ ok: true });
@@ -1485,15 +1463,18 @@ function _pickQlasQuestion(room, db) {
 }
 
 function _emitQlasTurnStart(ioServer, code, room) {
-  const { state, classSelections } = room;
-  const idx = state.currentPlayerIdx;
-  const timerSeconds = calcTimer(state.turnNumber, classSelections[idx]);
+  const idx = room.state.currentPlayerIdx;
+  const timerSeconds = calcTimer(
+    room.state.turnNumber,
+    room.classSelections[idx],
+  );
   room.questionIdx = 0;
   room.qlasTimerSeconds = timerSeconds;
+  room.qlasTimerExpired = false;
   ioServer.to(code).emit('qlashique:turn_start', {
     playerIdx: idx,
     timerSeconds,
-    rerollAvailable: classSelections[idx] === 'reroll',
+    rerollAvailable: room.classSelections[idx] === 'reroll',
   });
 }
 
