@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Weeqlash — Multiplayer</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Montserrat:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=Montserrat:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -34,7 +34,7 @@
       body {
         background: var(--bg);
         color: var(--text);
-        font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+        font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
         min-height: 100svh;
         display: flex;
         flex-direction: column;
@@ -51,12 +51,7 @@
       h1 {
         font-size: 3rem;
         letter-spacing: 0.3em;
-        background: linear-gradient(
-          135deg,
-          var(--accent),
-          #ff8a65,
-          var(--accent)
-        );
+        background: linear-gradient(135deg, var(--accent), #ff8a65, var(--accent));
         background-size: 200% auto;
         color: transparent;
         -webkit-background-clip: text;
@@ -97,24 +92,14 @@
         --triv-accent: #125f9d;
       }
       .col-triviandom .leaderboard-panel::before {
-        background: linear-gradient(
-          90deg,
-          transparent,
-          var(--triv-accent),
-          transparent
-        );
+        background: linear-gradient(90deg, transparent, var(--triv-accent), transparent);
         opacity: 0.8;
       }
       .col-triviandom .lb-heading {
         text-align: center;
       }
       .col-triviandom .lb-divider {
-        background: linear-gradient(
-          90deg,
-          var(--triv-accent),
-          #3d6aaf,
-          transparent
-        );
+        background: linear-gradient(90deg, var(--triv-accent), #3d6aaf, transparent);
       }
       .col-triviandom .lb-thead {
         border-bottom-color: #2a4a7a;
@@ -154,6 +139,7 @@
         background: var(--triv-accent) !important;
         font-weight: 700;
         letter-spacing: 0.04em;
+        width: 100%;
       }
       .btn-triviandom:hover {
         opacity: 0.85;
@@ -1053,22 +1039,17 @@
         width: 100%;
         max-width: 420px;
         position: relative;
-        font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+        font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
       }
 
       .leaderboard-panel::before {
-        content: "";
+        content: '';
         position: absolute;
         top: 0;
         left: 10%;
         right: 10%;
         height: 1px;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          var(--accent),
-          transparent
-        );
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
         opacity: 0.5;
       }
 
@@ -1087,12 +1068,7 @@
 
       .lb-divider {
         height: 1px;
-        background: linear-gradient(
-          90deg,
-          var(--accent),
-          var(--bg3),
-          transparent
-        );
+        background: linear-gradient(90deg, var(--accent), var(--bg3), transparent);
         margin-bottom: 18px;
         opacity: 0.6;
       }
@@ -1166,7 +1142,7 @@
         border: none;
         border-bottom: 1px solid var(--accent);
         color: var(--text);
-        font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+        font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
         font-size: 0.93rem;
         outline: none;
         padding: 1px 0;
@@ -1182,7 +1158,7 @@
         background: transparent;
         border: 1px solid var(--accent);
         color: var(--accent);
-        font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+        font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
         font-size: 0.75rem;
         padding: 2px 8px;
         cursor: pointer;
@@ -1210,7 +1186,7 @@
         background: transparent;
         border: 1px solid var(--bg3);
         color: var(--muted);
-        font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+        font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
         font-size: 0.75rem;
         padding: 8px 10px;
         cursor: pointer;
@@ -1320,7 +1296,7 @@
         background: transparent;
         border: 1px solid var(--bg3);
         color: var(--muted);
-        font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+        font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
         font-size: 0.75rem;
         padding: 8px;
         cursor: pointer;
@@ -1333,6 +1309,642 @@
       .legal-close:hover {
         border-color: var(--text);
         color: var(--text);
+      }
+
+      /* ===== QLASHIQUE ===== */
+      #screen-qlashique {
+        position: fixed;
+        inset: 0;
+        background: #020c02;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        gap: 12px;
+        z-index: 20;
+        overflow-y: auto;
+        font-family: 'IBM Plex Mono', monospace;
+        color: #88ff88;
+      }
+      #screen-qlashique h2.qlas-title {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: clamp(2.2rem, 5vw, 3.5rem);
+        letter-spacing: 0.12em;
+        color: #00ff41;
+        text-shadow:
+          0 0 30px #00ff41,
+          0 0 60px rgba(0, 255, 65, 0.3);
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .qlas-subtitle {
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        color: #ffe600;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+      #screen-qlashique .qlas-inner {
+        width: 100%;
+        max-width: 90vw;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      /* Class cards */
+      .qlas-class-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .qlas-card {
+        background: #071007;
+        border: 2px solid #0d2e0d;
+        border-radius: 2px;
+        padding: 20px;
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          transform 0.15s;
+        position: relative;
+        overflow: hidden;
+      }
+      .qlas-card:hover {
+        border-color: var(--qc, #00ff41);
+        transform: translateY(-2px);
+      }
+      .qlas-card.selected {
+        border-color: var(--qc, #00ff41);
+        background: #041004;
+      }
+      .qlas-card-check {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--qc, #00ff41);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        color: #000;
+        font-weight: 900;
+        opacity: 0;
+        transform: scale(0);
+        transition: all 0.2s;
+      }
+      .qlas-card.selected .qlas-card-check {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .qlas-card-icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .qlas-card-name {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.5rem;
+        letter-spacing: 0.1em;
+        color: var(--qc, #88ff88);
+      }
+      .qlas-card-arch {
+        font-size: 0.58rem;
+        color: #ffe600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        margin: 3px 0 10px;
+      }
+      .qlas-card-desc {
+        font-size: 0.8rem;
+        color: #ffe600;
+        line-height: 1.6;
+        font-family: 'IBM Plex Mono', monospace;
+      }
+      .qlas-card-ability {
+        margin-top: 12px;
+        padding: 9px 11px;
+        background: #020c02;
+        border: 1px solid #0d2e0d;
+        border-left: 3px solid var(--qc, #00ff41);
+        border-radius: 2px;
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: #88ff88;
+        font-family: 'IBM Plex Mono', monospace;
+      }
+      .qlas-card-ability strong {
+        color: var(--qc, #00ff41);
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        display: block;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+      }
+      /* Confirm row */
+      .qlas-confirm-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #071007;
+        border: 1px solid #0d2e0d;
+        border-radius: 2px;
+        padding: 14px 20px;
+        gap: 16px;
+      }
+      .qlas-confirm-preview {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .qlas-confirm-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 2px;
+        background: #041004;
+        border: 2px solid #0d2e0d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        transition: border-color 0.2s;
+      }
+      .qlas-confirm-name {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+      }
+      .qlas-confirm-tag {
+        font-size: 0.62rem;
+        color: #ffe600;
+        letter-spacing: 0.12em;
+        padding-top: 4px;
+      }
+      .qlas-btn-confirm {
+        background: #00ff41;
+        border: none;
+        border-radius: 2px;
+        color: #000;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        transition: opacity 0.15s;
+        white-space: nowrap;
+        flex-shrink: 0;
+        width: 60%;
+      }
+      .qlas-btn-confirm:hover:not(:disabled) {
+        opacity: 0.85;
+      }
+      .qlas-btn-confirm:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      /* Waiting */
+      .qlas-waiting {
+        text-align: center;
+        padding: 24px;
+        background: #071007;
+        border: 1px solid #0d2e0d;
+        border-radius: 2px;
+      }
+      .qlas-code-display {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 2.8rem;
+        letter-spacing: 0.3em;
+        color: #ffe600;
+        margin: 8px 0;
+      }
+      .qlas-waiting-msg {
+        font-size: 0.7rem;
+        color: #ffe600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+      /* Player bars */
+      .qlas-pbar {
+        flex: 1;
+        background: #071007;
+        border: 2px solid #0d2e0d;
+        border-radius: 2px;
+        padding: 12px 14px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.3s;
+      }
+      .qlas-pbar::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--pc, transparent);
+        border-radius: 2px 0 0 2px;
+      }
+      .qlas-pbar.active-turn {
+        border-color: var(--pc);
+        box-shadow:
+          0 0 18px -6px var(--pc),
+          inset 0 0 0 1px var(--pc);
+      }
+      .qlas-pb-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .qlas-pb-grid .qlas-hp-num {
+        grid-column: 2;
+        grid-row: span 2;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .qlas-pb-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        font-family: 'IBM Plex Mono', monospace;
+      }
+      .qlas-pb-class {
+        font-size: 0.65rem;
+        color: var(--pc, #ffe600);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .qlas-hp-bar-bg {
+        height: 6px;
+        background: #030803;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 4px;
+      }
+      .qlas-hp-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: var(--pc, #00ff41);
+        transition: width 0.5s;
+      }
+      .qlas-hp-num {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 2.2rem;
+        line-height: 1;
+        color: var(--pc, #88ff88);
+        transition: color 0.3s;
+        text-shadow: 0 0 10px var(--pc);
+      }
+      /* Turn bar */
+      .qlas-turn-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #071007;
+        border: 1px solid #00ff41;
+        border-radius: 2px;
+        padding: 9px 16px;
+      }
+      .qlas-turn-name {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1rem;
+        letter-spacing: 0.1em;
+        color: var(--active-pc, #00ff41);
+      }
+      .qlas-turn-score {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.4rem;
+        letter-spacing: 0.04em;
+        color: var(--active-pc, #00ff41);
+        margin-left: auto;
+        padding-right: 20px;
+        font-variant-numeric: tabular-nums;
+      }
+      .qlas-turn-timer {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.4rem;
+        letter-spacing: 0.04em;
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+      }
+      .qlas-turn-timer.warn {
+        color: #ffff00;
+      }
+      .qlas-turn-timer.danger {
+        color: #ff5555;
+      }
+      /* Combat two-column layout */
+      .qlas-combat-layout {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .qlas-col-players {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .qlas-col-game {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      /* Question panel */
+      .qlas-qpanel {
+        background: #071007;
+        border: 2px solid #00ff41;
+        border-radius: 2px;
+        padding: 18px 20px;
+      }
+      .qlas-timer-bar {
+        height: 8px;
+        background: #030803;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 14px;
+      }
+      .qlas-timer-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: #00ff41;
+        transition:
+          width 0.1s linear,
+          background 0.3s;
+      }
+      .qlas-timer-fill.warn {
+        background: #ffe600;
+      }
+      .qlas-timer-fill.danger {
+        background: #ff5555;
+      }
+      .qlas-question {
+        font-size: 0.96rem;
+        line-height: 1.65;
+        margin-bottom: 14px;
+        color: #88ff88;
+        font-family: 'IBM Plex Mono', monospace;
+      }
+      .qlas-options {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .qlas-opt {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        background: #041004;
+        border: 1.5px solid transparent;
+        border-radius: 2px;
+        color: #88ff88;
+        font-size: 0.86rem;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: left;
+        font-family: 'IBM Plex Mono', monospace;
+        width: 100%;
+      }
+      .qlas-opt:hover:not(:disabled) {
+        border-color: #00b8ff;
+        background: #030803;
+      }
+      .qlas-opt.correct {
+        border-color: #00ff41 !important;
+        background: rgba(0, 255, 65, 0.15) !important;
+      }
+      .qlas-opt.wrong {
+        border-color: #ff5555 !important;
+        background: rgba(255, 85, 85, 0.15) !important;
+      }
+      .qlas-opt:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+      .qlas-opt-key {
+        font-size: 0.68rem;
+        opacity: 0.5;
+        flex-shrink: 0;
+        width: 14px;
+      }
+      .btn-qlas-reroll {
+        padding: 6px 12px;
+        background: rgba(255, 230, 0, 0.1);
+        border: 1px solid rgba(255, 230, 0, 0.3);
+        border-radius: 2px;
+        color: #ffe600;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+        max-width: 30%;
+      }
+      .btn-qlas-reroll:hover:not(:disabled) {
+        background: rgba(255, 230, 0, 0.2);
+        border-color: #ffe600;
+      }
+      .btn-qlas-reroll:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      /* Action row */
+      .qlas-action-row {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-qlas-end {
+        flex: 2;
+        background: #041004;
+        border: 2px solid #0d2e0d;
+        border-radius: 2px;
+        color: #ffe600;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.05rem;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-qlas-end:hover:not(:disabled) {
+        border-color: #88ff88;
+        color: #88ff88;
+      }
+      .btn-qlas-end:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .btn-qlas-stop {
+        flex: 2;
+        background: rgba(0, 255, 65, 0.15);
+        border: 2px solid #00ff41;
+        border-radius: 2px;
+        color: #00ff41;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.05rem;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-qlas-stop:hover:not(:disabled) {
+        background: rgba(0, 255, 65, 0.28);
+        box-shadow: 0 0 12px -4px #00ff41;
+      }
+      .btn-qlas-stop:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .btn-qlas-heal {
+        flex: 1;
+        padding: 12px 14px;
+        background: rgba(0, 255, 65, 0.12);
+        border: 2px solid rgba(0, 255, 65, 0.35);
+        border-radius: 2px;
+        color: #00ff41;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.05rem;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+      .btn-qlas-heal:hover:not(:disabled) {
+        background: rgba(0, 255, 65, 0.22);
+        border-color: #00ff41;
+      }
+      .btn-qlas-heal:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .qlas-heal-val {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.68rem;
+        background: rgba(0, 255, 65, 0.2);
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        padding: 2px 6px;
+        border-radius: 2px;
+      }
+      /* Gameover */
+      .qlas-gameover {
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .qlas-gameover h1 {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 3rem;
+        color: #00ff41;
+        letter-spacing: 0.2em;
+        text-shadow: 0 0 20px #00ff41;
+      }
+      .qlas-gameover .winner {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.8rem;
+        color: #ffe600;
+        letter-spacing: 0.1em;
+        margin: 12px 0;
+      }
+      .qlas-gameover .reason {
+        font-size: 0.7rem;
+        color: #ffe600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+      .qlas-btn-back {
+        margin-top: 20px;
+        padding: 12px 32px;
+        background: transparent;
+        border: 2px solid #00ff41;
+        border-radius: 2px;
+        color: #00ff41;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .qlas-btn-back:hover {
+        background: rgba(0, 255, 65, 0.15);
+      }
+      /* Flash animations */
+      @keyframes qlasDmg {
+        0% {
+          background: rgba(255, 85, 85, 0);
+        }
+        20% {
+          background: rgba(255, 85, 85, 0.22);
+        }
+        100% {
+          background: transparent;
+        }
+      }
+      @keyframes qlasHeal {
+        0% {
+          background: rgba(0, 255, 65, 0);
+        }
+        20% {
+          background: rgba(0, 255, 65, 0.2);
+        }
+        100% {
+          background: transparent;
+        }
+      }
+      .qlas-take-dmg {
+        animation: qlasDmg 0.6s ease-out;
+      }
+      .qlas-take-heal {
+        animation: qlasHeal 0.6s ease-out;
+      }
+      /* Qlashique buttons in right column */
+      .btn-qlashique {
+        width: 100%;
+        margin-top: 0.6rem;
+        background: rgba(0, 255, 65, 0.1);
+        border: 1px solid rgba(0, 255, 65, 0.4);
+        color: #00ff41;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 1.1rem;
+        letter-spacing: 0.15em;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      .btn-qlashique:hover {
+        background: rgba(0, 255, 65, 0.2);
+        border-color: #00ff41;
+      }
+      .btn-show-triv-lb {
+        width: 100%;
+        padding: 0.45rem;
+        margin-bottom: 0.6rem;
+        background: transparent;
+        border: 1px solid #2a4a7a;
+        color: #6b8ab4;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .btn-show-triv-lb:hover {
+        border-color: #3d6aaf;
+        color: #8aaad4;
+      }
+      @media (max-width: 600px) {
+        .qlas-class-grid {
+          grid-template-columns: 1fr;
+        }
+        .qlas-combat-layout {
+          grid-template-columns: 1fr;
+        }
       }
 
       /* Stats Modal */
@@ -1357,12 +1969,7 @@
       <div class="card">
         <div
           id="user-logged-as"
-          style="
-            display: none;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--muted);
-          "
+          style="display: none; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--muted)"
         ></div>
         <div
           id="user-bar"
@@ -1422,10 +2029,7 @@
           </button>
         </div>
         <div id="login-section" style="margin-bottom: 1rem">
-          <div
-            id="auth-tabs"
-            style="display: flex; gap: 0; margin-bottom: 0.75rem"
-          >
+          <div id="auth-tabs" style="display: flex; gap: 0; margin-bottom: 0.75rem">
             <button
               class="auth-tab active"
               data-tab="login"
@@ -1504,17 +2108,11 @@
                 >Keep me logged in</label
               >
             </div>
-            <button
-              id="btn-login"
-              style="width: 100%; background: var(--accent); font-weight: 600"
-            >
+            <button id="btn-login" style="width: 100%; background: var(--accent); font-weight: 600">
               Login
             </button>
             <div style="text-align: center; margin-top: 0.4rem">
-              <a
-                href="#"
-                id="link-forgot"
-                style="color: var(--muted); font-size: 0.75rem"
+              <a href="#" id="link-forgot" style="color: var(--muted); font-size: 0.75rem"
                 >Forgot password?</a
               >
             </div>
@@ -1616,10 +2214,7 @@
               Send reset link
             </button>
             <div style="text-align: center; margin-top: 0.4rem">
-              <a
-                href="#"
-                id="link-back-login"
-                style="color: var(--muted); font-size: 0.75rem"
+              <a href="#" id="link-back-login" style="color: var(--muted); font-size: 0.75rem"
                 >Back to login</a
               >
             </div>
@@ -1706,6 +2301,7 @@
               background: var(--bg3);
               color: var(--muted);
               border: 1px dashed var(--bg3);
+              display: none;
             "
           >
             ⚡ Dev: Quick Game
@@ -1737,7 +2333,7 @@
           </div>
         </div>
 
-        <div class="divider">or join an existing game</div>
+        <div class="divider">enter room code to join the game</div>
 
         <div class="setup-section" style="margin-bottom: 0">
           <h3 id="label-join-code" style="display: none">Room Code</h3>
@@ -1761,18 +2357,19 @@
               "
               aria-labelledby="label-join-code"
             />
-            <button id="btn-join" style="flex: 2; height: 40px">
-              Join game
-            </button>
+            <button id="btn-join" style="flex: 2; height: 40px">Join game</button>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT COLUMN: Triviandom -->
+      <!-- RIGHT COLUMN: Triviandom + Qlashique -->
       <div class="card col-triviandom">
+        <button class="btn-show-triv-lb" id="btn-show-triv-lb">Show Triviandom Leaderboard</button>
         <div
+          id="triv-lb-panel"
           class="leaderboard-panel"
           style="
+            display: none;
             max-width: none;
             padding: 0;
             background: transparent;
@@ -1789,13 +2386,35 @@
           </div>
           <div id="triv-lb-rows"></div>
         </div>
-        <button
-          id="btn-quiz-start"
-          class="btn-triviandom"
-          style="margin-top: 1.5rem"
-        >
-          Start Triviandom
-        </button>
+        <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
+        <div class="divider">enter room code to join the game</div>
+        <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
+          <input
+            id="qlas-join-code"
+            type="text"
+            maxlength="5"
+            placeholder="CODE"
+            style="
+              flex: 1;
+              height: 42px;
+              text-transform: uppercase;
+              letter-spacing: 0.2em;
+              padding: 0.5rem;
+              background: var(--bg);
+              border: 1px solid var(--bg3);
+              color: var(--text);
+              border-radius: var(--radius);
+              font-size: 1rem;
+            "
+          />
+          <button
+            class="btn-qlashique"
+            id="btn-qlas-start"
+            style="flex: 2; margin-top: 0; height: 42px"
+          >
+            ⚔ QLASHIQUE
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1816,48 +2435,40 @@
         <h2>Privacy Policy</h2>
         <p>Last updated: April 2026</p>
         <h3>What we collect</h3>
-        <p>
-          When you play Weeqlash, we collect only what is needed to run the
-          game:
-        </p>
+        <p>When you play Weeqlash, we collect only what is needed to run the game:</p>
         <ul>
           <li>
-            <strong>Player name</strong> — entered by you, used only for your
-            current game session. Never stored on our servers after the session
-            ends.
+            <strong>Player name</strong> — entered by you, used only for your current game session.
+            Never stored on our servers after the session ends.
           </li>
           <li>
-            <strong>Leaderboard entries</strong> — if you choose to submit a
-            score, your chosen display name and score are stored in the public
-            leaderboard.
+            <strong>Leaderboard entries</strong> — if you choose to submit a score, your chosen
+            display name and score are stored in the public leaderboard.
           </li>
         </ul>
         <h3>What we do NOT collect</h3>
         <ul>
           <li>Email addresses, passwords, or account information</li>
           <li>
-            IP addresses or device identifiers beyond what is technically
-            required for a WebSocket connection
+            IP addresses or device identifiers beyond what is technically required for a WebSocket
+            connection
           </li>
           <li>Behavioural tracking or analytics data</li>
           <li>Any data from minors knowingly</li>
         </ul>
         <h3>Data sharing</h3>
         <p>
-          We do not sell, rent, or share your data with third parties.
-          Leaderboard scores are public by design — do not use your real name if
-          you prefer anonymity.
+          We do not sell, rent, or share your data with third parties. Leaderboard scores are public
+          by design — do not use your real name if you prefer anonymity.
         </p>
         <h3>Data retention</h3>
         <p>
-          Game session data is discarded when the session ends. Leaderboard
-          entries are kept until reset.
+          Game session data is discarded when the session ends. Leaderboard entries are kept until
+          reset.
         </p>
         <h3>Contact</h3>
         <p>Questions? Reach out via the project repository.</p>
-        <button class="legal-close" onclick="closeLegal('privacy')">
-          [ close ]
-        </button>
+        <button class="legal-close" onclick="closeLegal('privacy')">[ close ]</button>
       </div>
     </div>
 
@@ -1867,42 +2478,34 @@
         <h2>Cookie Policy</h2>
         <p>Last updated: April 2026</p>
         <h3>Cookies used</h3>
-        <p>
-          Weeqlash uses only the minimum browser storage required to function:
-        </p>
+        <p>Weeqlash uses only the minimum browser storage required to function:</p>
         <ul>
           <li>
-            <strong>localStorage</strong> — your last-used player name and UI
-            preferences (board size, timer, categories, high-contrast mode) are
-            saved locally in your browser so you don't have to re-enter them
-            each visit. This data never leaves your device.
+            <strong>localStorage</strong> — your last-used player name and UI preferences (board
+            size, timer, categories, high-contrast mode) are saved locally in your browser so you
+            don't have to re-enter them each visit. This data never leaves your device.
           </li>
         </ul>
         <h3>No tracking cookies</h3>
         <p>
-          We do not use advertising cookies, analytics cookies, or any
-          third-party tracking technologies. There are no fingerprinting
-          scripts, pixel trackers, or cross-site identifiers.
+          We do not use advertising cookies, analytics cookies, or any third-party tracking
+          technologies. There are no fingerprinting scripts, pixel trackers, or cross-site
+          identifiers.
         </p>
         <h3>Third-party content</h3>
         <p>
-          Fonts are loaded from Google Fonts (fonts.googleapis.com). Google may
-          set its own cookies in accordance with their
-          <a
-            href="https://policies.google.com/privacy"
-            target="_blank"
-            rel="noopener"
+          Fonts are loaded from Google Fonts (fonts.googleapis.com). Google may set its own cookies
+          in accordance with their
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener"
             >privacy policy</a
           >.
         </p>
         <h3>Controlling storage</h3>
         <p>
-          You can clear localStorage at any time via your browser's developer
-          tools or settings. Doing so will reset your saved preferences.
+          You can clear localStorage at any time via your browser's developer tools or settings.
+          Doing so will reset your saved preferences.
         </p>
-        <button class="legal-close" onclick="closeLegal('cookies')">
-          [ close ]
-        </button>
+        <button class="legal-close" onclick="closeLegal('cookies')">[ close ]</button>
       </div>
     </div>
 
@@ -1913,52 +2516,40 @@
         <p>Last updated: April 2026</p>
         <h3>Acceptance</h3>
         <p>
-          By playing Weeqlash you agree to these terms. If you do not agree,
-          please do not use the service.
+          By playing Weeqlash you agree to these terms. If you do not agree, please do not use the
+          service.
         </p>
         <h3>Use of the service</h3>
-        <p>
-          Weeqlash is a free multiplayer trivia game provided for entertainment.
-          You may:
-        </p>
+        <p>Weeqlash is a free multiplayer trivia game provided for entertainment. You may:</p>
         <ul>
           <li>Play games with other users</li>
-          <li>
-            Submit scores to the public leaderboard using a display name of your
-            choosing
-          </li>
+          <li>Submit scores to the public leaderboard using a display name of your choosing</li>
         </ul>
         <p>You must not:</p>
         <ul>
-          <li>
-            Attempt to exploit, cheat, or disrupt the service or other players'
-            experience
-          </li>
+          <li>Attempt to exploit, cheat, or disrupt the service or other players' experience</li>
           <li>Submit offensive, hateful, or impersonating display names</li>
           <li>Use automated scripts or bots to interact with the service</li>
           <li>Attempt to reverse-engineer or tamper with the server</li>
         </ul>
         <h3>Leaderboard</h3>
         <p>
-          Leaderboard entries are public. Display names are chosen by you — do
-          not use personal information you wish to keep private. We reserve the
-          right to remove any entry at our discretion.
+          Leaderboard entries are public. Display names are chosen by you — do not use personal
+          information you wish to keep private. We reserve the right to remove any entry at our
+          discretion.
         </p>
         <h3>Disclaimer</h3>
         <p>
-          The service is provided "as is" without warranties of any kind. We are
-          not liable for any damages arising from use of the service. Trivia
-          questions are for entertainment — answers may occasionally be
-          imperfect.
+          The service is provided "as is" without warranties of any kind. We are not liable for any
+          damages arising from use of the service. Trivia questions are for entertainment — answers
+          may occasionally be imperfect.
         </p>
         <h3>Changes</h3>
         <p>
-          We may update these terms at any time. Continued use of the service
-          constitutes acceptance of the updated terms.
+          We may update these terms at any time. Continued use of the service constitutes acceptance
+          of the updated terms.
         </p>
-        <button class="legal-close" onclick="closeLegal('terms')">
-          [ close ]
-        </button>
+        <button class="legal-close" onclick="closeLegal('terms')">[ close ]</button>
       </div>
     </div>
 
@@ -1967,54 +2558,31 @@
       <div class="help-content">
         <h2>HOW TO PLAY</h2>
         <h3>Gameplay</h3>
-        <p>
-          Each turn you have <strong>3 moves</strong> to spend freely across any
-          of your pegs.
-        </p>
+        <p>Each turn you have <strong>3 moves</strong> to spend freely across any of your pegs.</p>
         <ul>
-          <li>
-            Each move attempt costs 1 token (whether you answer correctly or
-            not).
-          </li>
+          <li>Each move attempt costs 1 token (whether you answer correctly or not).</li>
           <li>Answer correctly to move your peg to the target tile.</li>
           <li>Answer wrong and your peg stays put, but the token is spent.</li>
           <li>When all 3 tokens are spent, your turn ends.</li>
         </ul>
         <h3>HP System</h3>
-        <p>
-          Each peg starts with <strong>3 HP</strong>. HP never increases during
-          the game.
-        </p>
+        <p>Each peg starts with <strong>3 HP</strong>. HP never increases during the game.</p>
         <h3>Combat</h3>
-        <p>
-          Move onto a tile occupied by an enemy peg to attack. You get up to 3
-          questions.
-        </p>
+        <p>Move onto a tile occupied by an enemy peg to attack. You get up to 3 questions.</p>
         <ul>
           <li>Each correct answer deals 1 HP damage to the defender.</li>
-          <li>
-            First miss ends the fight — your peg stays put, defender keeps
-            remaining HP.
-          </li>
-          <li>
-            Reduce the defender to 0 HP to eliminate them and move into their
-            tile.
-          </li>
-          <li>
-            Combat always ends your turn, consuming all remaining move tokens.
-          </li>
+          <li>First miss ends the fight — your peg stays put, defender keeps remaining HP.</li>
+          <li>Reduce the defender to 0 HP to eliminate them and move into their tile.</li>
+          <li>Combat always ends your turn, consuming all remaining move tokens.</li>
         </ul>
         <h3>Flag Tiles</h3>
         <p>
-          Move onto a flag tile to attempt to capture it. Answer 3 questions
-          correctly to claim the flag. Capture all flags to win!
+          Move onto a flag tile to attempt to capture it. Answer 3 questions correctly to claim the
+          flag. Capture all flags to win!
         </p>
         <h3>Keyboard Controls</h3>
         <ul>
-          <li>
-            <strong>Arrow keys</strong> — navigate the board or cycle answer
-            options
-          </li>
+          <li><strong>Arrow keys</strong> — navigate the board or cycle answer options</li>
           <li><strong>A / B / C / D</strong> — pick an answer option</li>
           <li><strong>Enter</strong> — select peg/tile or confirm answer</li>
         </ul>
@@ -2058,12 +2626,7 @@
       <ul class="player-list" id="player-list"></ul>
       <div
         id="lobby-status"
-        style="
-          color: var(--muted);
-          font-size: 0.85rem;
-          margin-bottom: 1rem;
-          text-align: center;
-        "
+        style="color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; text-align: center"
       ></div>
       <button id="btn-start" disabled>Waiting for players…</button>
     </div>
@@ -2097,19 +2660,13 @@
         <div id="modal-question"></div>
         <div class="timer-bar-wrap">
           <div class="timer-bar-container">
-            <div
-              class="timer-bar-fill safe"
-              id="timer-fill"
-              style="width: 100%"
-            ></div>
+            <div class="timer-bar-fill safe" id="timer-fill" style="width: 100%"></div>
           </div>
           <div class="timer-text" id="timer-text">30s</div>
         </div>
         <div class="modal-options" id="modal-options"></div>
         <div id="modal-continue-wrap">
-          <button id="modal-continue-btn" onclick="continueAfterQuestion()">
-            CONTINUE
-          </button>
+          <button id="modal-continue-btn" onclick="continueAfterQuestion()">CONTINUE</button>
         </div>
       </div>
     </div>
@@ -2130,12 +2687,8 @@
     <script type="module">
       const serverUrl =
         window.WEEFLASH_SERVER_URL ||
-        (window.location.protocol === 'file:'
-          ? 'http://localhost:3000'
-          : window.location.origin);
-      const { io } = await import(
-        `${serverUrl}/socket.io/socket.io.esm.min.js`
-      );
+        (window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin);
+      const { io } = await import(`${serverUrl}/socket.io/socket.io.esm.min.js`);
 
       const socket = io(serverUrl, {
         transports: ['websocket'],
@@ -2153,9 +2706,7 @@
         const msgEl = $('auth-message');
         msgEl.textContent = msg;
         msgEl.style.display = 'block';
-        msgEl.style.background = isError
-          ? 'rgba(217,57,57,0.2)'
-          : 'rgba(67,160,71,0.2)';
+        msgEl.style.background = isError ? 'rgba(217,57,57,0.2)' : 'rgba(67,160,71,0.2)';
         msgEl.style.color = isError ? '#ff6b6b' : '#66bb6a';
       }
 
@@ -2206,8 +2757,7 @@
           tab.style.color = 'var(--text)';
           const which = tab.dataset.tab;
           $('auth-login-form').style.display = which === 'login' ? '' : 'none';
-          $('auth-register-form').style.display =
-            which === 'register' ? '' : 'none';
+          $('auth-register-form').style.display = which === 'register' ? '' : 'none';
           $('auth-forgot-form').style.display = 'none';
           $('auth-reset-form').style.display = 'none';
           $('auth-message').style.display = 'none';
@@ -2287,20 +2837,14 @@
           body: JSON.stringify({ email }),
         });
         const data = await res.json();
-        showAuthMessage(
-          data.message || 'If that email exists, a reset link has been sent',
-          false,
-        );
+        showAuthMessage(data.message || 'If that email exists, a reset link has been sent', false);
       });
 
       // Reset password (from URL param)
       $('btn-reset').addEventListener('click', async () => {
         const password = $('reset-password').value;
         if (!password || password.length < 6) {
-          return showAuthMessage(
-            'Password must be at least 6 characters',
-            true,
-          );
+          return showAuthMessage('Password must be at least 6 characters', true);
         }
 
         const res = await fetch(`${serverUrl}/auth/reset-password`, {
@@ -2339,15 +2883,13 @@
         }
 
         try {
-          const res = await fetch(
-            `${serverUrl}/auth/stats/${_currentUser.id}`,
-            { credentials: 'include' },
-          );
+          const res = await fetch(`${serverUrl}/auth/stats/${_currentUser.id}`, {
+            credentials: 'include',
+          });
 
           if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
-            const errorMsg =
-              errorData.error || `HTTP ${res.status}: ${res.statusText}`;
+            const errorMsg = errorData.error || `HTTP ${res.status}: ${res.statusText}`;
             showAuthMessage(`Server error: ${errorMsg}`, true);
             return;
           }
@@ -2400,21 +2942,25 @@
       socket.io.on('reconnect', () => {
         console.warn('Reconnected');
         showError('');
-        if (myToken && myRoom?.code) {
-          socket.emit(
-            'session:resume',
-            { token: myToken, code: myRoom.code },
-            (res) => {
-              if (res.error) {
-                console.warn('Session resume failed:', res.error);
-                return;
-              }
-              if (res.state) {
-                gameState = res.state;
-                renderAll(gameState);
-              }
-            },
-          );
+        if (qlasToken && qlasCode) {
+          socket.emit('session:resume', { token: qlasToken, code: qlasCode }, (res) => {
+            if (res.error || res.mode !== 'qlashique') {
+              console.warn('Qlashique session resume failed:', res.error);
+              return;
+            }
+            qlasRestoreFromReconnect(res);
+          });
+        } else if (myToken && myRoom?.code) {
+          socket.emit('session:resume', { token: myToken, code: myRoom.code }, (res) => {
+            if (res.error) {
+              console.warn('Session resume failed:', res.error);
+              return;
+            }
+            if (res.state) {
+              gameState = res.state;
+              renderAll(gameState);
+            }
+          });
         }
         // Re-check authentication status after reconnect
         checkAuth();
@@ -2456,6 +3002,7 @@
         history: 'History',
         geography: 'Geography',
         sports: 'Sports',
+        epl_2025: 'EPL 2025',
         other: 'Other',
       };
       const CAT_COLORS = {
@@ -2469,6 +3016,7 @@
         death_metal: '#37474F',
         entertainment: '#E65100',
         sports: '#bd1b8a',
+        epl_2025: '#38003C',
         other: '#546E7A',
       };
       const CATS = Object.keys(CAT_NAMES);
@@ -2531,7 +3079,8 @@
 
       // Populate category toggle buttons from CATS so adding/removing a category only requires updating CAT_NAMES
       el('cat-toggle-btns').innerHTML = CATS.map(
-        (cat) => `<button class="cat-toggle-btn active" data-cat="${cat}">${CAT_NAMES[cat]}</button>`
+        (cat) =>
+          `<button class="cat-toggle-btn active" data-cat="${cat}">${CAT_NAMES[cat]}</button>`,
       ).join('');
 
       // ============================================================
@@ -2540,8 +3089,9 @@
       function showScreen(id) {
         const isGame = id === 'screen-game';
         const isConnect = id === 'screen-connect';
-        el('main-title').style.display = isGame ? 'none' : '';
-        el('main-subtitle').style.display = isGame ? 'none' : '';
+        const isQlas = id === 'screen-qlashique';
+        el('main-title').style.display = isGame || isQlas ? 'none' : '';
+        el('main-subtitle').style.display = isGame || isQlas ? 'none' : '';
         el('site-footer').style.display = isConnect ? '' : 'none';
         [
           'screen-connect',
@@ -2549,11 +3099,12 @@
           'screen-game',
           'screen-gameover',
           'screen-leaderboard',
+          'screen-qlashique',
         ].forEach((s) => {
           el(s).style.display = 'none';
           el(s).classList.remove('show');
         });
-        if (isGame) {
+        if (isGame || isQlas) {
           el(id).style.display = 'flex';
         } else if (isConnect) {
           el(id).style.display = 'grid';
@@ -2597,20 +3148,16 @@
       // ============================================================
       socket.on('connect', () => {
         myId = socket.id;
-        if (
-          location.hostname === 'localhost' ||
-          location.hostname === '127.0.0.1'
-        ) {
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
           el('dev-quickstart-section').style.display = '';
         }
       });
 
       socket.on('room:player_joined', ({ players }) => {
-        renderPlayers(players, myRoom.settings.playerCount);
-        el('lobby-status').textContent =
-          `${players.length} / ${myRoom.settings.playerCount} players`;
+        renderPlayers(players, setupPlayerCount);
+        el('lobby-status').textContent = `${players.length} / ${setupPlayerCount} players`;
         // Recover start button if room is full again after a player left
-        if (players.length === myRoom.settings.playerCount && isHost) {
+        if (players.length === setupPlayerCount && isHost) {
           el('btn-start').disabled = false;
           el('btn-start').textContent = 'Start game';
         }
@@ -2631,15 +3178,15 @@
       });
 
       socket.on('room:player_left', ({ playerName, players }) => {
-        renderPlayers(players, myRoom.settings.playerCount);
+        renderPlayers(players, setupPlayerCount);
         el('lobby-status').textContent =
-          `${players.length} / ${myRoom.settings.playerCount} players — ${playerName} left`;
+          `${players.length} / ${setupPlayerCount} players — ${playerName} left`;
         el('btn-start').disabled = true;
         el('btn-start').textContent = 'Waiting for players…';
       });
 
       socket.on('room:full', ({ players }) => {
-        renderPlayers(players, myRoom.settings.playerCount);
+        renderPlayers(players, setupPlayerCount);
         el('lobby-status').textContent = 'Room full — host can start the game';
         if (isHost) {
           el('btn-start').disabled = false;
@@ -2696,22 +3243,11 @@
 
       socket.on(
         'state:update',
-        ({
-          state,
-          events,
-          gameOver,
-          winner,
-          validMoves,
-          results,
-          moreQuestionsInProgress,
-        }) => {
+        ({ state, events, gameOver, winner, validMoves, results, moreQuestionsInProgress }) => {
           // Show results if this player has pending questions (attacker or spectator)
-          const shouldShowResults =
-            results?.length && pendingQuestions.length > 0;
-          const isNormalAttackerFlow =
-            !spectatingQuestion && lastSubmittedMoveType === 'normal';
-          const isNormalSpectatorFlow =
-            spectatingQuestion && spectatingMoveType === 'normal';
+          const shouldShowResults = results?.length && pendingQuestions.length > 0;
+          const isNormalAttackerFlow = !spectatingQuestion && lastSubmittedMoveType === 'normal';
+          const isNormalSpectatorFlow = spectatingQuestion && spectatingMoveType === 'normal';
 
           if (
             shouldShowResults &&
@@ -2790,10 +3326,7 @@
             state.currentPlayerIdx === myPlayerIndex &&
             validMoves
           ) {
-            if (
-              lastSubmittedPegId &&
-              state.selectedPegId === lastSubmittedPegId
-            ) {
+            if (lastSubmittedPegId && state.selectedPegId === lastSubmittedPegId) {
               localPhase = PHASE.SELECT_PEG;
               localSelectedPegId = null;
               validMovesSet.clear();
@@ -2803,18 +3336,12 @@
               localSelectedPegId = state.selectedPegId;
               validMovesSet = new Set(validMoves);
             }
-          } else if (
-            !moreQuestionsInProgress &&
-            localPhase !== PHASE.SELECT_TILE
-          ) {
+          } else if (!moreQuestionsInProgress && localPhase !== PHASE.SELECT_TILE) {
             localPhase = null;
             localSelectedPegId = null;
             validMovesSet.clear();
           }
-          if (
-            state.currentPlayerIdx === myPlayerIndex &&
-            state.phase === PHASE.SELECT_PEG
-          ) {
+          if (state.currentPlayerIdx === myPlayerIndex && state.phase === PHASE.SELECT_PEG) {
             const preferredPegId =
               lastSubmittedPegId &&
               state.pegs[lastSubmittedPegId] &&
@@ -2834,8 +3361,7 @@
             lastSubmittedPegId = null;
             lastSubmittedMoveType = null;
           }
-          const navCursorChanged =
-            prevNavRow !== navCursor.row || prevNavCol !== navCursor.col;
+          const navCursorChanged = prevNavRow !== navCursor.row || prevNavCol !== navCursor.col;
 
           // Diff-based board update: only re-render tiles that changed
           if (navCursorChanged) {
@@ -2853,10 +3379,7 @@
           ) {
             const newPlayer = state.players[state.currentPlayerIdx];
             if (newPlayer) {
-              showTurnAnnounce(
-                newPlayer,
-                state.currentPlayerIdx === myPlayerIndex,
-              );
+              showTurnAnnounce(newPlayer, state.currentPlayerIdx === myPlayerIndex);
             }
           }
           if (gameOver) {
@@ -2867,13 +3390,7 @@
 
       socket.on(
         'game:question_start',
-        ({
-          playerIdx,
-          moveType,
-          question,
-          questionsTotal,
-          defenderPlayerIdx,
-        }) => {
+        ({ playerIdx, moveType, question, questionsTotal, defenderPlayerIdx }) => {
           if (myPlayerIndex === playerIdx) {
             return;
           }
@@ -2895,17 +3412,12 @@
         showQuestion(questionIdx);
       });
 
-      socket.on(
-        'game:answer_preview',
-        ({ questionIdx, answerIdx, correct }) => {
-          if (!spectatingQuestion || currentQIdx !== questionIdx) {
-            return;
-          }
-          gameModalOptionBtns[answerIdx]?.classList.add(
-            correct ? 'answer-correct' : 'answer-wrong',
-          );
-        },
-      );
+      socket.on('game:answer_preview', ({ questionIdx, answerIdx, correct }) => {
+        if (!spectatingQuestion || currentQIdx !== questionIdx) {
+          return;
+        }
+        gameModalOptionBtns[answerIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
+      });
 
       // ============================================================
       // BOARD INIT
@@ -2939,23 +3451,14 @@
               const pegId = pegEl.dataset.pegId;
               const phase = localPhase ?? gameState?.phase;
               const coord =
-                gameState?.board?.[+pegEl.parentElement.dataset.r]?.[
-                  +pegEl.parentElement.dataset.c
-                ]?.pegId === pegId
-                  ? +pegEl.parentElement.dataset.r * COORD_BASE +
-                    +pegEl.parentElement.dataset.c
+                gameState?.board?.[+pegEl.parentElement.dataset.r]?.[+pegEl.parentElement.dataset.c]
+                  ?.pegId === pegId
+                  ? +pegEl.parentElement.dataset.r * COORD_BASE + +pegEl.parentElement.dataset.c
                   : null;
 
               // In SELECT_TILE phase, if clicking on enemy peg that's a valid move, treat as tile click
-              if (
-                phase === PHASE.SELECT_TILE &&
-                coord !== null &&
-                validMovesSet.has(coord)
-              ) {
-                onTileClick(
-                  +pegEl.parentElement.dataset.r,
-                  +pegEl.parentElement.dataset.c,
-                );
+              if (phase === PHASE.SELECT_TILE && coord !== null && validMovesSet.has(coord)) {
+                onTileClick(+pegEl.parentElement.dataset.r, +pegEl.parentElement.dataset.c);
                 return;
               }
 
@@ -3048,12 +3551,7 @@
         // Render only changed tiles
         for (const key of changedTiles) {
           const [r, c] = key.split(',').map(Number);
-          if (
-            r >= 0 &&
-            r < newState.boardSize &&
-            c >= 0 &&
-            c < newState.boardSize
-          ) {
+          if (r >= 0 && r < newState.boardSize && c >= 0 && c < newState.boardSize) {
             updateTile(r, c, newState);
           }
         }
@@ -3072,9 +3570,7 @@
 
         // Base class
         tileEl.className =
-          tile.category === 'flag'
-            ? 'tile flag-tile'
-            : `tile cat-${tile.category}`;
+          tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
         tileEl.innerHTML = '';
 
         // Highlight states
@@ -3153,8 +3649,7 @@
           pegEl.style.background = player.color;
           const pegLetterIdx = player?.pegIds?.indexOf(tile.pegId) ?? -1;
           const letterEl = document.createElement('span');
-          letterEl.textContent =
-            pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : '';
+          letterEl.textContent = pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : '';
           pegEl.appendChild(letterEl);
           pegEl.title = `${sanitize(player.name)} — HP: ${peg.hp}`;
           const hpEl = document.createElement('span');
@@ -3176,13 +3671,9 @@
         const cp = state.players[state.currentPlayerIdx];
         const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
         el('turn-dot').style.background = cp?.color ?? '#444';
-        el('turn-dot').style.boxShadow = cp?.color
-          ? `0 0 8px 2px ${cp.color}66`
-          : 'none';
+        el('turn-dot').style.boxShadow = cp?.color ? `0 0 8px 2px ${cp.color}66` : 'none';
         el('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
-        el('turn-name').textContent = isMyTurn
-          ? 'Your turn'
-          : `${cp?.name}'s turn`;
+        el('turn-name').textContent = isMyTurn ? 'Your turn' : `${cp?.name}'s turn`;
         el('turn-name').style.color = cp?.color ?? '';
 
         const phase = localPhase ?? state.phase;
@@ -3190,15 +3681,11 @@
         if (phase === PHASE.SELECT_PEG) {
           const mr = state.movesRemaining;
           const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
-          phaseText = isMyTurn
-            ? `Select a peg (${movesText})`
-            : `${cp?.name} is choosing…`;
+          phaseText = isMyTurn ? `Select a peg (${movesText})` : `${cp?.name} is choosing…`;
         } else if (phase === PHASE.SELECT_TILE) {
           const mr = state.movesRemaining;
           const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
-          phaseText = isMyTurn
-            ? `Select a tile (${movesText})`
-            : `${cp?.name} is moving…`;
+          phaseText = isMyTurn ? `Select a tile (${movesText})` : `${cp?.name} is moving…`;
         } else if (phase === PHASE.GAME_OVER) {
           phaseText = 'Game over';
         }
@@ -3213,10 +3700,7 @@
               attempts += cat.attempts ?? 0;
               correct += cat.correct ?? 0;
             }
-            const pct =
-              attempts > 0
-                ? ((correct / attempts) * 100).toFixed(1) + '%'
-                : '—';
+            const pct = attempts > 0 ? ((correct / attempts) * 100).toFixed(1) + '%' : '—';
             return `<span class="player-stat-item" style="color:${p.color};opacity:${p.pegIds.length ? 1 : 0.4}">
         <span class="player-stat-ratio">${correct}/${attempts}</span>
         <span class="player-stat-pct">${pct}</span>
@@ -3297,14 +3781,7 @@
         socket.emit(
           'action:select_tile',
           { code: myRoom.code, pegId: localSelectedPegId, r, c },
-          ({
-            ok,
-            error,
-            moveType,
-            question,
-            questionsTotal,
-            defenderPlayerIdx,
-          }) => {
+          ({ ok, error, moveType, question, questionsTotal, defenderPlayerIdx }) => {
             if (error || !ok) {
               return;
             }
@@ -3337,15 +3814,11 @@
           return;
         }
 
-        const activeIdx = spectatingQuestion
-          ? spectatingPlayerIdx
-          : myPlayerIndex;
+        const activeIdx = spectatingQuestion ? spectatingPlayerIdx : myPlayerIndex;
         const player = gameState?.players[activeIdx];
         const catColor = CAT_COLORS[q.category] ?? '#0f3460';
         const catName = CAT_NAMES[q.category] ?? 'Question';
-        const moveType = spectatingQuestion
-          ? spectatingMoveType
-          : pendingMove?.moveType;
+        const moveType = spectatingQuestion ? spectatingMoveType : pendingMove?.moveType;
 
         el('modal-cat-badge').textContent = catName;
         el('modal-cat-badge').style.background = catColor;
@@ -3354,9 +3827,7 @@
         const playerLabel = el('modal-player-label');
         const combatLabel = el('modal-combat-label');
         if (moveType === 'combat') {
-          const defIdx = spectatingQuestion
-            ? spectatingDefenderIdx
-            : pendingCombatDefenderIdx;
+          const defIdx = spectatingQuestion ? spectatingDefenderIdx : pendingCombatDefenderIdx;
           const defPlayer = defIdx !== null ? gameState?.players[defIdx] : null;
           combatLabel.style.display = '';
           combatLabel.style.color = player?.color ?? '';
@@ -3534,10 +4005,7 @@
             });
             pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
             // Auto-submit on timeout instead of leaving the move abandoned
-            if (
-              pendingMove?.moveType === 'combat' ||
-              pendingMove?.moveType === 'flag'
-            ) {
+            if (pendingMove?.moveType === 'combat' || pendingMove?.moveType === 'flag') {
               submitTurn();
             } else {
               el('modal-continue-wrap').style.display = 'block';
@@ -3666,17 +4134,11 @@
           const key = e.key.toLowerCase();
           if (key in KEY_MAP) {
             const idx = KEY_MAP[key];
-            if (
-              gameModalOptionBtns[idx] &&
-              !gameModalOptionBtns[idx].disabled
-            ) {
+            if (gameModalOptionBtns[idx] && !gameModalOptionBtns[idx].disabled) {
               gameModalOptionBtns[idx].click();
             }
           }
-          if (
-            e.key === 'Enter' &&
-            el('modal-continue-wrap').style.display !== 'none'
-          ) {
+          if (e.key === 'Enter' && el('modal-continue-wrap').style.display !== 'none') {
             window.continueAfterQuestion();
           }
           // Arrow key option cycling (only when answering, not spectating)
@@ -3694,10 +4156,8 @@
             }
             const focused = document.activeElement;
             const cur = enabledBtns.indexOf(focused);
-            const delta =
-              e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
-            const next =
-              (cur + delta + enabledBtns.length) % enabledBtns.length;
+            const delta = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
+            const next = (cur + delta + enabledBtns.length) % enabledBtns.length;
             enabledBtns[next].focus();
           }
           return;
@@ -3718,14 +4178,8 @@
         if (e.key in NAV_DIRS) {
           e.preventDefault();
           const [dr, dc] = NAV_DIRS[e.key];
-          const newRow = Math.max(
-            0,
-            Math.min(gameState.boardSize - 1, navCursor.row + dr),
-          );
-          const newCol = Math.max(
-            0,
-            Math.min(gameState.boardSize - 1, navCursor.col + dc),
-          );
+          const newRow = Math.max(0, Math.min(gameState.boardSize - 1, navCursor.row + dr));
+          const newCol = Math.max(0, Math.min(gameState.boardSize - 1, navCursor.col + dc));
           navCursor = { row: newRow, col: newCol };
           renderAll(gameState);
           return;
@@ -3796,9 +4250,7 @@
           if (!btn) {
             return;
           }
-          group
-            .querySelectorAll('.opt-btn')
-            .forEach((b) => b.classList.remove('active'));
+          group.querySelectorAll('.opt-btn').forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
           setter(parseInt(btn.dataset.val));
         });
@@ -3830,20 +4282,16 @@
 
       el('btn-cats-all').addEventListener('click', () => {
         setupEnabledCats = [...CATS];
-        document
-          .querySelectorAll('#cat-toggle-btns .cat-toggle-btn')
-          .forEach((btn) => {
-            btn.classList.add('active');
-          });
+        document.querySelectorAll('#cat-toggle-btns .cat-toggle-btn').forEach((btn) => {
+          btn.classList.add('active');
+        });
       });
 
       el('btn-cats-none').addEventListener('click', () => {
         setupEnabledCats = [];
-        document
-          .querySelectorAll('#cat-toggle-btns .cat-toggle-btn')
-          .forEach((btn) => {
-            btn.classList.remove('active');
-          });
+        document.querySelectorAll('#cat-toggle-btns .cat-toggle-btn').forEach((btn) => {
+          btn.classList.remove('active');
+        });
       });
 
       el('btn-help').addEventListener('click', () => {
@@ -3851,10 +4299,7 @@
       });
       el('btn-hc').addEventListener('click', () => {
         document.body.classList.toggle('high-contrast');
-        el('btn-hc').classList.toggle(
-          'active',
-          document.body.classList.contains('high-contrast'),
-        );
+        el('btn-hc').classList.toggle('active', document.body.classList.contains('high-contrast'));
       });
       el('btn-advanced').addEventListener('click', () => {
         const sec = el('advanced-section');
@@ -3879,19 +4324,19 @@
         document.getElementById('modal-' + page).classList.remove('open');
       };
       ['privacy', 'cookies', 'terms'].forEach((page) => {
-        document
-          .getElementById('modal-' + page)
-          .addEventListener('click', (e) => {
-            if (e.target === document.getElementById('modal-' + page)) {
-              window.closeLegal(page);
-            }
-          });
+        document.getElementById('modal-' + page).addEventListener('click', (e) => {
+          if (e.target === document.getElementById('modal-' + page)) {
+            window.closeLegal(page);
+          }
+        });
       });
 
       el('btn-dev-quickstart').addEventListener('click', () => {
         myPlayerIndex = 0;
         socket.emit('dev:quickstart', { boardSize: 4 }, ({ ok, error }) => {
-          if (!ok) {showError(error ?? 'Dev quickstart failed');}
+          if (!ok) {
+            showError(error ?? 'Dev quickstart failed');
+          }
         });
       });
 
@@ -3948,28 +4393,23 @@
         if (code.length !== 5) {
           return showError('Room code must be 5 characters.');
         }
-        socket.emit(
-          'room:join',
-          { code, playerName },
-          ({ error, players, settings, token }) => {
-            if (error) {
-              return showError(error);
-            }
-            const me = players.find((p) => p.id === myId);
-            if (me) {
-              el('player-name').value = me.name;
-            }
-            myToken = token;
-            myPlayerIndex = me?.index ?? players.length - 1;
-            myRoom = { code, settings };
-            isHost = false;
-            el('lobby-code').textContent = code;
-            renderPlayers(players, settings.playerCount);
-            el('lobby-status').textContent =
-              `${players.length} / ${settings.playerCount} players`;
-            showScreen('screen-lobby');
-          },
-        );
+        socket.emit('room:join', { code, playerName }, ({ error, players, settings, token }) => {
+          if (error) {
+            return showError(error);
+          }
+          const me = players.find((p) => p.id === myId);
+          if (me) {
+            el('player-name').value = me.name;
+          }
+          myToken = token;
+          myPlayerIndex = me?.index ?? players.length - 1;
+          myRoom = { code, settings };
+          isHost = false;
+          el('lobby-code').textContent = code;
+          renderPlayers(players, settings.playerCount);
+          el('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
+          showScreen('screen-lobby');
+        });
       });
 
       el('btn-start').addEventListener('click', () => {
@@ -4061,30 +4501,28 @@
         loadMainLeaderboard();
       }
 
-      document
-        .getElementById('btn-quiz-start')
-        .addEventListener('click', () => {
-          document.getElementById('screen-connect').style.display = 'none';
-          document.getElementById('screen-lobby').style.display = 'none';
-          document.getElementById('screen-game').style.display = 'none';
+      document.getElementById('btn-quiz-start').addEventListener('click', () => {
+        document.getElementById('screen-connect').style.display = 'none';
+        document.getElementById('screen-lobby').style.display = 'none';
+        document.getElementById('screen-game').style.display = 'none';
 
-          // Clean up any lingering timers before starting fresh
-          clearInterval(quizState.timerInterval);
-          clearInterval(quizState.gameTimerInterval);
-          quizState.timerInterval = null;
-          quizState.gameTimerInterval = null;
+        // Clean up any lingering timers before starting fresh
+        clearInterval(quizState.timerInterval);
+        clearInterval(quizState.gameTimerInterval);
+        quizState.timerInterval = null;
+        quizState.gameTimerInterval = null;
 
-          socket.emit('quiz:start', (res) => {
-            if (res.error) {
-              console.error('Quiz start error:', res.error);
-              showError('Quiz error: ' + res.error);
-              return;
-            }
-            quizState.run = { answers: 0, startedAt: Date.now() };
-            startGameTimer();
-            showQuizQuestion(res);
-          });
+        socket.emit('quiz:start', (res) => {
+          if (res.error) {
+            console.error('Quiz start error:', res.error);
+            showError('Quiz error: ' + res.error);
+            return;
+          }
+          quizState.run = { answers: 0, startedAt: Date.now() };
+          startGameTimer();
+          showQuizQuestion(res);
         });
+      });
 
       function showQuizQuestion(q) {
         // Use exact same modal as game
@@ -4120,10 +4558,7 @@
       }
 
       function submitQuizAnswer(answerIdx) {
-        if (
-          document.getElementById('modal-options')?.dataset?.submitting ===
-          'true'
-        ) {
+        if (document.getElementById('modal-options')?.dataset?.submitting === 'true') {
           return;
         }
         document.getElementById('modal-options').dataset.submitting = 'true';
@@ -4137,17 +4572,13 @@
           quizModalOptionBtns.forEach((btn, i) => {
             btn.disabled = true;
             if (i === answerIdx) {
-              btn.classList.add(
-                res.correct ? 'answer-correct' : 'answer-wrong',
-              );
+              btn.classList.add(res.correct ? 'answer-correct' : 'answer-wrong');
             }
           });
 
           if (res.correct) {
-            document.getElementById('modal-continue-wrap').style.display =
-              'flex';
-            document.getElementById('modal-continue-btn').textContent =
-              'NEXT QUESTION';
+            document.getElementById('modal-continue-wrap').style.display = 'flex';
+            document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
             document.getElementById('modal-continue-btn').onclick = () => {
               socket.emit('quiz:next', (nextQ) => {
                 if (nextQ.ok) {
@@ -4157,16 +4588,12 @@
             };
           } else {
             stopGameTimer();
-            document.getElementById('modal-continue-btn').textContent =
-              'SEE RESULTS';
+            document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
             document.getElementById('modal-continue-btn').onclick = () => {
-              document
-                .getElementById('modal-overlay')
-                .classList.remove('visible');
+              document.getElementById('modal-overlay').classList.remove('visible');
               setTimeout(() => showLeaderboard(res), 300);
             };
-            document.getElementById('modal-continue-wrap').style.display =
-              'flex';
+            document.getElementById('modal-continue-wrap').style.display = 'flex';
           }
         });
       }
@@ -4185,20 +4612,15 @@
           if (secs === 0) {
             clearInterval(quizState.timerInterval);
             stopGameTimer();
-            document.getElementById('modal-options').dataset.submitting =
-              'true';
+            document.getElementById('modal-options').dataset.submitting = 'true';
             quizModalOptionBtns.forEach((btn) => (btn.disabled = true));
             socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {
-              document.getElementById('modal-continue-btn').textContent =
-                'SEE RESULTS';
+              document.getElementById('modal-continue-btn').textContent = 'SEE RESULTS';
               document.getElementById('modal-continue-btn').onclick = () => {
-                document
-                  .getElementById('modal-overlay')
-                  .classList.remove('visible');
+                document.getElementById('modal-overlay').classList.remove('visible');
                 setTimeout(() => showLeaderboard(res), 300);
               };
-              document.getElementById('modal-continue-wrap').style.display =
-                'flex';
+              document.getElementById('modal-continue-wrap').style.display = 'flex';
             });
           }
         }, 1000);
@@ -4238,17 +4660,14 @@
             const insertPos = res.top10.filter(
               (e) =>
                 e.answers > result.answers ||
-                (e.answers === result.answers &&
-                  e.time_ms < result.timeSec * 1000),
+                (e.answers === result.answers && e.time_ms < result.timeSec * 1000),
             ).length;
             container.insertBefore(newRow, container.children[insertPos]);
           }
         });
 
         document.getElementById('lb-play-again').onclick = () => {
-          document
-            .getElementById('screen-leaderboard')
-            .classList.remove('show');
+          document.getElementById('screen-leaderboard').classList.remove('show');
           // Clean up any lingering timers before starting fresh
           clearInterval(quizState.timerInterval);
           clearInterval(quizState.gameTimerInterval);
@@ -4263,9 +4682,7 @@
         };
 
         document.getElementById('lb-back').onclick = () => {
-          document
-            .getElementById('screen-leaderboard')
-            .classList.remove('show');
+          document.getElementById('screen-leaderboard').classList.remove('show');
           document.getElementById('screen-connect').style.display = '';
           // Reset leaderboard flag so it reloads fresh data
           leaderboardLoaded = false;
@@ -4339,16 +4756,14 @@
         </div>
       `;
           // Add event listener for close button
-          modalOverlay
-            .querySelector('#stats-modal-close')
-            .addEventListener('click', () => {
-              modalOverlay.classList.remove('visible');
-              setTimeout(() => {
-                if (modalOverlay.parentElement) {
-                  modalOverlay.parentElement.removeChild(modalOverlay);
-                }
-              }, 300);
-            });
+          modalOverlay.querySelector('#stats-modal-close').addEventListener('click', () => {
+            modalOverlay.classList.remove('visible');
+            setTimeout(() => {
+              if (modalOverlay.parentElement) {
+                modalOverlay.parentElement.removeChild(modalOverlay);
+              }
+            }, 300);
+          });
 
           // Add event listener for overlay click
           modalOverlay.addEventListener('click', (e) => {
@@ -4364,18 +4779,9 @@
         const _contentEl = modalOverlay.querySelector('#stats-modal-content');
 
         // Calculate totals
-        const totalAnswered = statsData.categories.reduce(
-          (sum, cat) => sum + cat.answered,
-          0,
-        );
-        const totalCorrect = statsData.categories.reduce(
-          (sum, cat) => sum + cat.correct,
-          0,
-        );
-        const accuracy =
-          totalAnswered > 0
-            ? Math.round((totalCorrect / totalAnswered) * 100)
-            : 0;
+        const totalAnswered = statsData.categories.reduce((sum, cat) => sum + cat.answered, 0);
+        const totalCorrect = statsData.categories.reduce((sum, cat) => sum + cat.correct, 0);
+        const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
 
         // Determine accuracy color
         let accuracyColor = '#ef4444'; // red
@@ -4435,20 +4841,10 @@
   `;
 
         // Add category stats with progress bars
-        const catColors = [
-          '#8b5cf6',
-          '#06b6d4',
-          '#f59e0b',
-          '#ec4899',
-          '#10b981',
-          '#3b82f6',
-        ];
+        const catColors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899', '#10b981', '#3b82f6'];
         statsData.categories.forEach((cat, idx) => {
           const catName = CAT_NAMES[cat.category] || cat.category;
-          const catAccuracy =
-            cat.answered > 0
-              ? Math.round((cat.correct / cat.answered) * 100)
-              : 0;
+          const catAccuracy = cat.answered > 0 ? Math.round((cat.correct / cat.answered) * 100) : 0;
           const barColor = catColors[idx % catColors.length];
 
           _statsHTML += `
@@ -4478,8 +4874,7 @@
     `;
 
         // Update modal content
-        modalOverlay.querySelector('#stats-modal-content').innerHTML =
-          _statsHTML;
+        modalOverlay.querySelector('#stats-modal-content').innerHTML = _statsHTML;
 
         // Show the modal - force visibility immediately
         modalOverlay.classList.add('visible');
@@ -4488,7 +4883,792 @@
         modalOverlay.style.opacity = '1';
         modalOverlay.style.pointerEvents = 'auto';
       }
+
+      // ============================================================
+      // QLASHIQUE
+      // ============================================================
+      const QLAS_CLASS_META = {
+        slowpoke: {
+          icon: '🐢',
+          name: 'SLOWPOKE',
+          tag: 'extra time · consistent',
+        },
+        reroll: { icon: '🎲', name: 'REROLL', tag: 'one shot · smart skip' },
+      };
+
+      let qlasCode = null;
+      let qlasMyIdx = null;
+      let qlasIsHost = false;
+      let qlasSelectedClass = null;
+      let qlasClassConfirmed = false;
+      let qlasPlayers = [
+        { name: '', classId: '' },
+        { name: '', classId: '' },
+      ];
+      let qlasHp = [30, 30];
+      let qlasScore = 0;
+      let qlasCurrentQ = null;
+      let qlasQIdx = 0;
+      let qlasTimerTotal = 5;
+      let qlasTimerLeft = 5;
+      let qlasTimerInterval = null;
+      let qlasGuessingActive = false;
+      let qlasLastAnswerIdx = -1;
+      let qlasToken = null;
+
+      // --- UI helpers ---
+
+      function qEl(id) {
+        return document.getElementById(id);
+      }
+
+      function qlasShowPhase(phase) {
+        ['qlas-phase-class', 'qlas-phase-combat', 'qlas-phase-gameover'].forEach((id) => {
+          qEl(id).style.display = 'none';
+        });
+        qEl('qlas-phase-' + phase).style.display = '';
+      }
+
+      function qlasSetHP(playerIdx, hp) {
+        hp = Math.max(0, Math.min(30, hp));
+        qlasHp[playerIdx] = hp;
+        qEl('qlas-p' + playerIdx + 'hp').textContent = hp;
+        qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / 30) * 100 + '%';
+      }
+
+      function qlasSetScore(score) {
+        qlasScore = score;
+        const scoreEl = qEl('qlas-turn-score');
+        if (scoreEl) {
+          scoreEl.textContent = score > 0 ? '+' + score : score === 0 ? '0' : '' + score;
+        }
+        qEl('qlas-heal-val').textContent = '+2 HP';
+      }
+
+      function qlasFlash(playerIdx, type) {
+        const bar = qEl('qlas-p' + playerIdx + 'bar');
+        bar.classList.add(type === 'dmg' ? 'qlas-take-dmg' : 'qlas-take-heal');
+        setTimeout(() => bar.classList.remove('qlas-take-dmg', 'qlas-take-heal'), 700);
+      }
+
+      function qlasRenderQuestion(q, idx) {
+        qlasCurrentQ = q;
+        qlasQIdx = idx;
+        qEl('qlas-question').textContent = q.q;
+        const opts = qEl('qlas-options');
+        opts.innerHTML = '';
+        q.opts.forEach((opt, i) => {
+          const btn = document.createElement('button');
+          btn.className = 'qlas-opt';
+          btn.innerHTML = '<span class="qlas-opt-key">' + 'ABCD'[i] + '</span>' + sanitize(opt);
+          btn.onclick = () => qlasSubmitAnswer(i);
+          opts.appendChild(btn);
+        });
+      }
+
+      function qlasStartTimer(seconds) {
+        qlasTimerTotal = seconds;
+        qlasTimerLeft = seconds;
+        clearInterval(qlasTimerInterval);
+        qlasTimerInterval = setInterval(() => {
+          qlasTimerLeft = Math.max(0, qlasTimerLeft - 0.1);
+          const pct = qlasTimerLeft / qlasTimerTotal;
+          qEl('qlas-timer-fill').style.width = pct * 100 + '%';
+          qEl('qlas-timer-fill').className =
+            'qlas-timer-fill' + (pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '');
+          const secs = Math.ceil(qlasTimerLeft);
+          const timerEl = qEl('qlas-turn-timer');
+          const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+          const ss = String(secs % 60).padStart(2, '0');
+          timerEl.textContent = mm + ':' + ss;
+          timerEl.className =
+            'qlas-turn-timer' + (pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '');
+          if (qlasTimerLeft <= 0) {
+            clearInterval(qlasTimerInterval);
+          }
+        }, 100);
+      }
+
+      function qlasStopTimer() {
+        clearInterval(qlasTimerInterval);
+        qlasTimerInterval = null;
+      }
+
+      function qlasRenderPlayerInfo() {
+        [0, 1].forEach((i) => {
+          const p = qlasPlayers[i];
+          const meta = QLAS_CLASS_META[p.classId] || {};
+          qEl('qlas-p' + i + 'name').textContent = p.name || 'Player ' + (i + 1);
+          qEl('qlas-p' + i + 'class').textContent = meta.name || '—';
+        });
+      }
+
+      // --- Reconnect restore ---
+
+      function qlasRestoreFromReconnect(res) {
+        qlasMyIdx = res.myIdx;
+        qlasCode = res.code;
+        qlasHp = res.hp;
+        qlasScore = res.currentScore || 0;
+        qlasPlayers = res.players.map((p, i) => ({
+          name: p.name || '',
+          classId: res.classSelections[i] || '',
+        }));
+
+        showScreen('screen-qlashique');
+
+        const QLAS_PHASE_GAMEOVER = 'game_over';
+        const QLAS_PHASE_OUTCOME = 'outcome';
+        const QLAS_PHASE_GUESSING = 'guessing';
+        const _QLAS_PHASE_DECISION = 'decision';
+
+        if (res.phase === QLAS_PHASE_GAMEOVER) {
+          qlasShowPhase('gameover');
+          return;
+        }
+
+        qlasShowPhase('combat');
+        qlasRenderPlayerInfo();
+        qlasSetHP(0, res.hp[0]);
+        qlasSetHP(1, res.hp[1]);
+
+        const isMyTurn = res.currentPlayerIdx === qlasMyIdx;
+
+        if (res.phase === QLAS_PHASE_OUTCOME) {
+          if (isMyTurn) {
+            qEl('btn-qlas-end').style.display = '';
+            qEl('btn-qlas-end').disabled = false;
+            qEl('qlas-action-row').style.display = '';
+            if (qlasScore >= 2) {
+              qEl('btn-qlas-heal').style.display = '';
+              qEl('btn-qlas-heal').disabled = false;
+            }
+          }
+          return;
+        }
+
+        if (res.phase === QLAS_PHASE_GUESSING && isMyTurn && res.currentQuestion) {
+          qlasGuessingActive = true;
+          qlasTimerTotal = res.timerSeconds;
+          const remaining = Math.max(1, res.timerSeconds - res.timerElapsed);
+          qEl('qlas-decision-panel').style.display = 'none';
+          qEl('qlas-qpanel').style.display = '';
+          qEl('qlas-action-row').style.display = '';
+          qEl('btn-qlas-end').disabled = false;
+          qlasRenderQuestion(res.currentQuestion, 0);
+          qlasStartTimer(remaining);
+          return;
+        }
+
+        // DECISION phase (or opponent's guessing turn)
+        if (isMyTurn) {
+          qEl('qlas-decision-panel').style.display = '';
+        } else {
+          qEl('qlas-decision-panel').style.display = 'none';
+        }
+      }
+
+      // --- Class selection (exposed on window for onclick handlers) ---
+
+      window.qlasSelectClass = function (classId) {
+        if (qlasClassConfirmed) {
+          return;
+        }
+        qlasSelectedClass = classId;
+        document.querySelectorAll('.qlas-card').forEach((c) => c.classList.remove('selected'));
+        qEl('qlas-card-' + classId).classList.add('selected');
+        const meta = QLAS_CLASS_META[classId];
+        const color = classId === 'slowpoke' ? '#5c9ee5' : '#c9a227';
+        qEl('qlas-confirm-icon').textContent = meta.icon;
+        qEl('qlas-confirm-icon').style.borderColor = color;
+        qEl('qlas-confirm-name').textContent = meta.name;
+        qEl('qlas-confirm-name').style.color = color;
+        qEl('qlas-confirm-tag').textContent = meta.tag;
+        const confirmBtn = qEl('qlas-btn-confirm');
+        confirmBtn.disabled = false;
+        confirmBtn.style.background = color;
+      };
+
+      window.qlasConfirm = function () {
+        if (!qlasSelectedClass) {
+          return;
+        }
+        qlasClassConfirmed = true;
+        qEl('qlas-btn-confirm').disabled = true;
+        document.querySelectorAll('.qlas-card').forEach((c) => {
+          c.style.pointerEvents = 'none';
+          c.style.opacity = '0.7';
+        });
+        const playerName = getPlayerName();
+        if (qlasIsHost) {
+          socket.emit('qlashique:create_room', { playerName }, (res) => {
+            if (res.error) {
+              qlasClassConfirmed = false;
+              qEl('qlas-btn-confirm').disabled = false;
+              return;
+            }
+            qlasCode = res.code;
+            qlasToken = res.token;
+            qlasMyIdx = 0;
+            qlasPlayers[0].name = playerName;
+            qEl('qlas-waiting-panel').style.display = '';
+            qEl('qlas-waiting-label').textContent = 'Waiting for opponent\u2026';
+            qEl('qlas-code-row').style.display = '';
+            qEl('qlas-code-val').textContent = res.code;
+            socket.emit(
+              'qlashique:select_class',
+              { code: qlasCode, classId: qlasSelectedClass },
+              () => {},
+            );
+          });
+        } else {
+          const code = qlasCode;
+          socket.emit('room:join', { code, playerName }, (res) => {
+            if (res.error) {
+              qlasClassConfirmed = false;
+              qEl('qlas-btn-confirm').disabled = false;
+              return;
+            }
+            qlasToken = res.token;
+            qlasMyIdx = res.myIdx;
+            qlasPlayers[0].name = res.players[0]?.name || '';
+            qlasPlayers[1].name = res.players[1]?.name || '';
+            qEl('qlas-waiting-panel').style.display = '';
+            qEl('qlas-waiting-label').textContent = 'Waiting for game to start\u2026';
+            socket.emit('qlashique:select_class', { code, classId: qlasSelectedClass }, () => {});
+          });
+        }
+      };
+
+      // --- Guessing phase ---
+
+      window.qlasStartGuessing = function () {
+        qlasGuessingActive = true;
+        qEl('qlas-decision-panel').style.display = 'none';
+        qEl('qlas-action-row').style.display = '';
+        qEl('btn-qlas-stop').style.display = '';
+        qEl('btn-qlas-stop').disabled = false;
+        qEl('btn-qlas-end').style.display = 'none';
+        qEl('btn-qlas-heal').style.display = 'none';
+        socket.emit('qlashique:start_guessing', { code: qlasCode }, (res) => {
+          if (res?.error) {
+            qlasGuessingActive = false;
+            qEl('qlas-decision-panel').style.display = '';
+            qEl('qlas-action-row').style.display = 'none';
+            qEl('btn-qlas-stop').style.display = 'none';
+            console.error('start_guessing failed:', res.error);
+          }
+        });
+      };
+
+      function qlasSubmitAnswer(answerIdx) {
+        if (!qlasGuessingActive || !qlasCurrentQ) {
+          return;
+        }
+        qlasLastAnswerIdx = answerIdx;
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+        socket.emit('qlashique:answer', { code: qlasCode, answerIdx }, () => {});
+      }
+
+      window.qlasReroll = function () {
+        socket.emit('qlashique:reroll', { code: qlasCode }, (res) => {
+          if (!res?.error) {
+            qEl('btn-qlas-reroll').disabled = true;
+          }
+        });
+      };
+
+      window.qlasStopAttack = function () {
+        if (!qlasGuessingActive) {
+          return;
+        }
+        qlasGuessingActive = false;
+        qEl('btn-qlas-stop').disabled = true;
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+        socket.emit('qlashique:stop_attack', { code: qlasCode }, (res) => {
+          if (res?.error) {
+            return;
+          }
+          qEl('btn-qlas-stop').style.display = 'none';
+          qEl('btn-qlas-end').style.display = '';
+          qEl('btn-qlas-end').disabled = false;
+          if (qlasScore >= 2) {
+            qEl('btn-qlas-heal').style.display = '';
+            qEl('btn-qlas-heal').disabled = false;
+          }
+        });
+      };
+
+      window.qlasEndTurn = function () {
+        qEl('btn-qlas-end').disabled = true;
+        qEl('btn-qlas-heal').disabled = true;
+        socket.emit('qlashique:end_turn', { code: qlasCode, choice: 'attack' }, () => {});
+      };
+
+      window.qlasHeal = function () {
+        qEl('btn-qlas-end').disabled = true;
+        qEl('btn-qlas-heal').disabled = true;
+        socket.emit('qlashique:end_turn', { code: qlasCode, choice: 'heal' }, () => {});
+      };
+
+      // --- Socket events ---
+
+      socket.on('qlashique:class_selected', ({ playerIdx, classId }) => {
+        qlasPlayers[playerIdx].classId = classId;
+      });
+
+      socket.on('room:player_joined', ({ players }) => {
+        if (qlasCode) {
+          players.forEach((p, i) => {
+            qlasPlayers[i].name = p.name || '';
+          });
+        }
+      });
+
+      socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds }) => {
+        qlasStopTimer();
+        qlasScore = 0;
+        qlasGuessingActive = false;
+        qEl('qlas-qpanel').style.display = 'none';
+        qEl('qlas-action-row').style.display = 'none';
+        qEl('btn-qlas-stop').style.display = 'none';
+        qEl('btn-qlas-end').style.display = 'none';
+        qEl('btn-qlas-heal').style.display = 'none';
+        qEl('qlas-waiting-panel').style.display = 'none';
+        qEl('qlas-phase-class').style.display = 'none';
+        qEl('qlas-phase-combat').style.display = '';
+        qEl('qlas-phase-gameover').style.display = 'none';
+        showScreen('screen-qlashique');
+
+        qlasRenderPlayerInfo();
+        [0, 1].forEach((i) => {
+          qlasSetScoreOther(i, null);
+        });
+        qlasSetScore(0);
+
+        qEl('qlas-p0bar').classList.toggle('active-turn', playerIdx === 0);
+        qEl('qlas-p1bar').classList.toggle('active-turn', playerIdx === 1);
+
+        const isMyTurn = playerIdx === qlasMyIdx;
+        const turnPlayerName = qlasPlayers[playerIdx].name || 'Player ' + (playerIdx + 1);
+        const activeColor = playerIdx === 0 ? '#00ff41' : '#00b8ff';
+        qEl('qlas-turn-bar').style.setProperty('--active-pc', activeColor);
+        qEl('qlas-turn-name').textContent = turnPlayerName;
+        const mm = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+        const ss = String(timerSeconds % 60).padStart(2, '0');
+        qEl('qlas-turn-timer').textContent = mm + ':' + ss;
+        qEl('qlas-turn-score').textContent = '0';
+
+        if (isMyTurn) {
+          qEl('qlas-decision-panel').style.display = '';
+          qlasTimerTotal = timerSeconds;
+          qlasTimerLeft = timerSeconds;
+        } else {
+          qEl('qlas-decision-panel').style.display = 'none';
+        }
+      });
+
+      function qlasSetScoreOther(playerIdx, score) {
+        if (playerIdx === qlasMyIdx) {
+          return;
+        }
+        const scoreEl2 = qEl('qlas-turn-score');
+        if (!scoreEl2) {
+          return;
+        }
+        if (score === null) {
+          scoreEl2.textContent = '0';
+          return;
+        }
+        scoreEl2.textContent = score > 0 ? '+' + score : '' + score;
+      }
+
+      socket.on('qlashique:question', ({ question, questionIdx, activePlayerIdx }) => {
+        const isMyTurn = activePlayerIdx === qlasMyIdx;
+        if (questionIdx === 0) {
+          qlasGuessingActive = isMyTurn;
+          qEl('qlas-decision-panel').style.display = 'none';
+          qEl('qlas-action-row').style.display = isMyTurn ? '' : 'none';
+          qEl('btn-qlas-stop').style.display = isMyTurn ? '' : 'none';
+          qEl('btn-qlas-end').style.display = 'none';
+          qEl('btn-qlas-heal').style.display = 'none';
+          qEl('qlas-qpanel').style.display = '';
+          qEl('qlas-qpanel').style.opacity = '1.0';
+          qEl('btn-qlas-reroll').style.display = 'none';
+          if (isMyTurn) {
+            qlasStartTimer(qlasTimerTotal);
+          }
+        } else if (isMyTurn) {
+          document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
+        }
+        qlasRenderQuestion(question, questionIdx);
+        if (!isMyTurn) {
+          document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+        }
+      });
+
+      socket.on('qlashique:answer_result', ({ correct, newScore, playerIdx }) => {
+        if (playerIdx === qlasMyIdx) {
+          const opts = document.querySelectorAll('.qlas-opt');
+          if (qlasLastAnswerIdx >= 0 && opts[qlasLastAnswerIdx]) {
+            opts[qlasLastAnswerIdx].classList.add(correct ? 'correct' : 'wrong');
+          }
+          qlasSetScore(newScore);
+        } else {
+          qlasSetScoreOther(playerIdx, newScore);
+        }
+      });
+
+      socket.on('qlashique:rerolled', ({ newQuestion }) => {
+        qlasRenderQuestion(newQuestion, qlasQIdx);
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
+      });
+
+      socket.on('qlashique:turn_end', () => {
+        qlasStopTimer();
+        qlasGuessingActive = false;
+        qEl('qlas-action-row').style.display = 'none';
+        qEl('qlas-qpanel').style.opacity = '0.4';
+      });
+
+      socket.on('qlashique:attack_stopped', ({ score }) => {
+        qlasGuessingActive = false;
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+        qEl('btn-qlas-stop').style.display = 'none';
+        qEl('btn-qlas-end').style.display = '';
+        qEl('btn-qlas-end').disabled = false;
+        if (score >= 2) {
+          qEl('btn-qlas-heal').style.display = '';
+          qEl('btn-qlas-heal').disabled = false;
+        }
+      });
+
+      socket.on('qlashique:timer_expired', () => {
+        if (!qlasGuessingActive) {
+          return;
+        }
+        qlasStopTimer();
+        qlasGuessingActive = false;
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+        qEl('btn-qlas-stop').style.display = 'none';
+        qEl('btn-qlas-end').style.display = '';
+        qEl('btn-qlas-end').disabled = false;
+        if (qlasScore >= 2) {
+          qEl('btn-qlas-heal').style.display = '';
+          qEl('btn-qlas-heal').disabled = false;
+        }
+      });
+
+      socket.on('qlashique:hp_update', ({ p0hp, p1hp }) => {
+        const prev0 = qlasHp[0];
+        const prev1 = qlasHp[1];
+        qlasSetHP(0, p0hp);
+        qlasSetHP(1, p1hp);
+        if (p0hp < prev0) {
+          qlasFlash(0, 'dmg');
+        }
+        if (p1hp < prev1) {
+          qlasFlash(1, 'dmg');
+        }
+        if (p0hp > prev0) {
+          qlasFlash(0, 'heal');
+        }
+        if (p1hp > prev1) {
+          qlasFlash(1, 'heal');
+        }
+      });
+
+      socket.on('qlashique:game_over', ({ winnerIdx, reason }) => {
+        qlasStopTimer();
+        qEl('qlas-phase-combat').style.display = 'none';
+        qEl('qlas-phase-gameover').style.display = '';
+        const isWinner = winnerIdx === qlasMyIdx;
+        const winnerName = qlasPlayers[winnerIdx]?.name || 'Player ' + (winnerIdx + 1);
+        qEl('qlas-winner-text').textContent = isWinner
+          ? '\uD83C\uDFC6 YOU WIN!'
+          : winnerName + ' WINS';
+        const reasonMap = {
+          hp: 'opponent ran out of HP',
+          instant_win: 'instant win \u2014 perfect streak of 10+',
+          self_destruct: 'self-destruct',
+          disconnect: 'opponent disconnected',
+        };
+        qEl('qlas-winner-reason').textContent = reasonMap[reason] || reason;
+      });
+
+      // --- Entry point ---
+
+      el('btn-show-triv-lb').addEventListener('click', () => {
+        const panel = el('triv-lb-panel');
+        const visible = panel.style.display !== 'none';
+        panel.style.display = visible ? 'none' : '';
+        el('btn-show-triv-lb').textContent = visible
+          ? 'Show Triviandom Leaderboard'
+          : 'Hide Leaderboard';
+      });
+
+      el('btn-qlas-start').addEventListener('click', () => {
+        const codeInput = el('qlas-join-code').value.trim().toUpperCase();
+        qlasIsHost = !codeInput;
+        qlasCode = codeInput || null;
+
+        if (!qlasIsHost && codeInput.length !== 5) {
+          showError('Enter a 5-letter Qlashique room code, or leave blank to create.');
+          return;
+        }
+
+        // Reset state
+        qlasSelectedClass = null;
+        qlasClassConfirmed = false;
+        qlasPlayers = [
+          { name: '', classId: '' },
+          { name: '', classId: '' },
+        ];
+        qlasHp = [30, 30];
+        qlasScore = 0;
+        qlasToken = null;
+        qlasGuessingActive = false;
+
+        const playerName = getPlayerName();
+        showScreen('screen-qlashique');
+        qlasShowPhase('class');
+        qEl('qlas-class-grid').style.display = 'none';
+        qEl('qlas-confirm-row').style.display = 'none';
+        qEl('qlas-waiting-panel').style.display = '';
+
+        if (qlasIsHost) {
+          socket.emit('qlashique:create_room', { playerName }, (res) => {
+            if (res.error) {
+              showError(res.error);
+              return;
+            }
+            qlasCode = res.code;
+            qlasToken = res.token;
+            qlasMyIdx = 0;
+            qlasPlayers[0].name = playerName;
+            qEl('qlas-waiting-label').textContent = 'Waiting for opponent\u2026';
+            qEl('qlas-code-row').style.display = '';
+            qEl('qlas-code-val').textContent = res.code;
+          });
+        } else {
+          socket.emit('room:join', { code: qlasCode, playerName }, (res) => {
+            if (res.error) {
+              showError(res.error);
+              return;
+            }
+            qlasToken = res.token;
+            qlasMyIdx = res.myIdx;
+            qlasPlayers[0].name = res.players[0]?.name || '';
+            qlasPlayers[1].name = res.players[1]?.name || '';
+            qEl('qlas-waiting-label').textContent = 'Waiting for game to start\u2026';
+          });
+        }
+      });
     </script>
+
+    <!-- Qlashique Screen -->
+    <div id="screen-qlashique">
+      <div class="qlas-inner">
+        <div style="text-align: center">
+          <h2 class="qlas-title">QLASHIQUE</h2>
+          <p class="qlas-subtitle">1v1 trivia duel — answer fast, attack harder</p>
+        </div>
+
+        <!-- Class select -->
+        <div id="qlas-phase-class">
+          <div class="qlas-class-grid" id="qlas-class-grid">
+            <div
+              class="qlas-card"
+              id="qlas-card-slowpoke"
+              style="--qc: #00b8ff"
+              onclick="qlasSelectClass('slowpoke')"
+            >
+              <div class="qlas-card-check">✓</div>
+              <span class="qlas-card-icon">🐢</span>
+              <div class="qlas-card-name">SLOWPOKE</div>
+              <div class="qlas-card-arch">Extra Time · Consistent</div>
+              <div class="qlas-card-desc">
+                You're not fast — you're thorough. Always gets 2 extra seconds on the timer every
+                single turn.
+              </div>
+              <div class="qlas-card-ability">
+                <strong>Passive — Slow &amp; Steady</strong>
+                Timer is always +2s above the current round's base. No activation needed.
+              </div>
+            </div>
+            <div
+              class="qlas-card"
+              id="qlas-card-reroll"
+              style="--qc: #c9a227"
+              onclick="qlasSelectClass('reroll')"
+            >
+              <div class="qlas-card-check">✓</div>
+              <span class="qlas-card-icon">🎲</span>
+              <div class="qlas-card-name">REROLL</div>
+              <div class="qlas-card-arch">One Shot · Smart Skip</div>
+              <div class="qlas-card-desc">
+                Once per turn, before answering, swap the current question for a fresh one. Resets
+                each turn.
+              </div>
+              <div class="qlas-card-ability">
+                <strong>Active — Replace Question</strong>
+                Press REROLL before answering. One use per turn. Don't waste it.
+              </div>
+            </div>
+          </div>
+          <div class="qlas-confirm-row" id="qlas-confirm-row" style="margin-top: 10px">
+            <div class="qlas-confirm-preview">
+              <div class="qlas-confirm-icon" id="qlas-confirm-icon">?</div>
+              <div>
+                <div class="qlas-confirm-name" id="qlas-confirm-name" style="color: #6b6b8a">
+                  No class selected
+                </div>
+                <div class="qlas-confirm-tag" id="qlas-confirm-tag">click a class above</div>
+              </div>
+            </div>
+            <button class="qlas-btn-confirm" id="qlas-btn-confirm" disabled onclick="qlasConfirm()">
+              CONFIRM →
+            </button>
+          </div>
+          <div id="qlas-waiting-panel" style="display: none">
+            <div class="qlas-waiting" style="margin-top: 10px">
+              <div class="qlas-waiting-msg" id="qlas-waiting-label">Waiting for opponent…</div>
+              <div id="qlas-code-row" style="display: none">
+                <div class="qlas-waiting-msg" style="margin-top: 8px">Share this code</div>
+                <div style="display: inline-flex; align-items: center; gap: 10px">
+                  <div class="qlas-code-display" id="qlas-code-val">—</div>
+                  <button
+                    onclick="
+                      navigator.clipboard.writeText(
+                        document.getElementById('qlas-code-val').textContent,
+                      )
+                    "
+                    style="
+                      background: #0d2e0d;
+                      border: 1px solid #00ff41;
+                      color: #00ff41;
+                      font-family: 'IBM Plex Mono', monospace;
+                      font-size: 0.75rem;
+                      padding: 4px 10px;
+                      border-radius: 2px;
+                      cursor: pointer;
+                    "
+                  >
+                    COPY
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Combat -->
+        <div id="qlas-phase-combat" style="display: none">
+          <div class="qlas-combat-layout">
+            <!-- Column 1: player boxes -->
+            <div class="qlas-col-players">
+              <div class="qlas-pbar" id="qlas-p0bar" style="--pc: #00ff41">
+                <div class="qlas-pb-grid">
+                  <div class="qlas-pb-name" id="qlas-p0name">Player 1</div>
+                  <div class="qlas-hp-num" id="qlas-p0hp" style="grid-row: span 2">30</div>
+                  <div class="qlas-pb-class" id="qlas-p0class">—</div>
+                </div>
+                <div class="qlas-hp-bar-bg">
+                  <div class="qlas-hp-bar-fill" id="qlas-p0hpbar" style="width: 100%"></div>
+                </div>
+              </div>
+              <div class="qlas-pbar" id="qlas-p1bar" style="--pc: #00b8ff">
+                <div class="qlas-pb-grid">
+                  <div class="qlas-pb-name" id="qlas-p1name">Player 2</div>
+                  <div class="qlas-hp-num" id="qlas-p1hp" style="grid-row: span 2">30</div>
+                  <div class="qlas-pb-class" id="qlas-p1class">—</div>
+                </div>
+                <div class="qlas-hp-bar-bg">
+                  <div class="qlas-hp-bar-fill" id="qlas-p1hpbar" style="width: 100%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Column 2: turn info + questions + buttons -->
+            <div class="qlas-col-game">
+              <div class="qlas-turn-bar" id="qlas-turn-bar">
+                <div class="qlas-turn-name" id="qlas-turn-name">—</div>
+                <div class="qlas-turn-score" id="qlas-turn-score"></div>
+                <div class="qlas-turn-timer" id="qlas-turn-timer">—</div>
+              </div>
+
+              <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
+                <div class="qlas-timer-bar">
+                  <div class="qlas-timer-fill" id="qlas-timer-fill" style="width: 100%"></div>
+                </div>
+                <div class="qlas-question" id="qlas-question"></div>
+                <div class="qlas-options" id="qlas-options"></div>
+              </div>
+
+              <div class="qlas-action-row" id="qlas-action-row" style="display: none">
+                <button
+                  class="btn-qlas-stop"
+                  id="btn-qlas-stop"
+                  style="display: none"
+                  onclick="qlasStopAttack()"
+                >
+                  END ATTACK
+                </button>
+                <button
+                  class="btn-qlas-reroll"
+                  id="btn-qlas-reroll"
+                  style="display: none"
+                  onclick="qlasReroll()"
+                >
+                  🎲 REROLL
+                </button>
+                <button
+                  class="btn-qlas-end"
+                  id="btn-qlas-end"
+                  style="display: none"
+                  onclick="qlasEndTurn()"
+                >
+                  END TURN
+                </button>
+                <button
+                  class="btn-qlas-heal"
+                  id="btn-qlas-heal"
+                  style="display: none"
+                  onclick="qlasHeal()"
+                >
+                  💊 HEAL
+                  <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
+                </button>
+              </div>
+
+              <div
+                id="qlas-decision-panel"
+                style="display: none; text-align: center; margin-top: 4px"
+              >
+                <button
+                  class="qlas-btn-confirm"
+                  id="btn-qlas-attack"
+                  onclick="qlasStartGuessing()"
+                  style="font-size: 1.3rem; width: 100%"
+                >
+                  ⚔ ATTACK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Game over -->
+        <div id="qlas-phase-gameover" style="display: none">
+          <div class="qlas-gameover">
+            <h1>GAME OVER</h1>
+            <div class="winner" id="qlas-winner-text"></div>
+            <div class="reason" id="qlas-winner-reason"></div>
+            <button class="qlas-btn-back" onclick="location.reload()">PLAY AGAIN</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Quiz Screen (overlay) -->
     <!-- Leaderboard Screen -->

@@ -59,8 +59,8 @@ const ADMIN_MAGIC_KEY = process.env.ADMIN_SECRET || '';
 // Rate limiting for failed admin access attempts: IP -> { count, windowStart, blockedUntil }
 const adminAttempts = new Map();
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 60_000;      // 1 minute window
-const BLOCK_MS   = 300_000;    // 5 minute block after exceeding limit
+const WINDOW_MS = 60_000; // 1 minute window
+const BLOCK_MS = 300_000; // 5 minute block after exceeding limit
 
 function recordFailedAttempt(ip) {
   const now = Date.now();
@@ -78,7 +78,9 @@ function recordFailedAttempt(ip) {
   entry.count++;
   if (entry.count >= MAX_ATTEMPTS) {
     entry.blockedUntil = now + BLOCK_MS;
-    console.warn(`[admin] IP ${ip} blocked for ${BLOCK_MS / 1000}s after ${entry.count} failed attempts`);
+    console.warn(
+      `[admin] IP ${ip} blocked for ${BLOCK_MS / 1000}s after ${entry.count} failed attempts`,
+    );
   } else {
     console.warn(`[admin] Failed admin access from IP ${ip} (${entry.count}/${MAX_ATTEMPTS})`);
   }
@@ -93,20 +95,26 @@ function recordFailedAttempt(ip) {
 setInterval(() => {
   const cutoff = Date.now() - (BLOCK_MS + WINDOW_MS);
   for (const [ip, entry] of adminAttempts) {
-    if (entry.windowStart < cutoff && entry.blockedUntil < Date.now()) {adminAttempts.delete(ip);}
+    if (entry.windowStart < cutoff && entry.blockedUntil < Date.now()) {
+      adminAttempts.delete(ip);
+    }
   }
 }, 10 * 60_000).unref();
 
 function getClientIp(req) {
-  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-    || req.headers['x-real-ip']
-    || req.socket.remoteAddress
-    || 'unknown';
+  return (
+    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+    req.headers['x-real-ip'] ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
 }
 
 function requireAdmin(req, res, next) {
   // Authenticated admin via session — fast path, no rate limiting
-  if (req.session.isAdmin) {return next();}
+  if (req.session.isAdmin) {
+    return next();
+  }
 
   // Check for magic key in header or query string
   const key = req.headers['x-admin-key'] || req.query.admin_key;
@@ -121,12 +129,24 @@ function requireAdmin(req, res, next) {
   const result = recordFailedAttempt(ip);
 
   if (result.blocked) {
-    return res.status(429).send(renderHTML('Too Many Requests',
-      `<h1>Too Many Requests</h1><p>Try again in ${result.retryAfter} seconds.</p>`));
+    return res
+      .status(429)
+      .send(
+        renderHTML(
+          'Too Many Requests',
+          `<h1>Too Many Requests</h1><p>Try again in ${result.retryAfter} seconds.</p>`,
+        ),
+      );
   }
 
-  return res.status(403).send(renderHTML('Access Denied',
-    '<h1>Access Denied</h1><p>You must be an admin to access this page.</p>'));
+  return res
+    .status(403)
+    .send(
+      renderHTML(
+        'Access Denied',
+        '<h1>Access Denied</h1><p>You must be an admin to access this page.</p>',
+      ),
+    );
 }
 
 router.use(requireAdmin);
@@ -136,7 +156,9 @@ router.get('/users', (_req, res) => {
   const db = getDb();
   const users = db.prepare('SELECT * FROM users ORDER BY id DESC').all();
 
-  const userRows = users.map(u => `
+  const userRows = users
+    .map(
+      (u) => `
     <tr>
       <td>${u.id}</td>
       <td><a href="/admin/users/${u.id}" style="color:#d93939">${u.username}</a></td>
@@ -157,7 +179,9 @@ router.get('/users', (_req, res) => {
         </form>
       </td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join('');
 
   const content = `
     <h1>Users</h1>
@@ -201,27 +225,47 @@ router.get('/users/:id', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
 
   if (!user) {
-    return res.send(renderHTML('User Not Found', '<h1>User Not Found</h1><p>The user does not exist.</p>'));
+    return res.send(
+      renderHTML('User Not Found', '<h1>User Not Found</h1><p>The user does not exist.</p>'),
+    );
   }
 
   // Get user stats
-  const userStats = db.prepare(`
+  const userStats = db
+    .prepare(
+      `
     SELECT category, SUM(answered) as answered, SUM(correct) as correct
     FROM user_stats WHERE user_id = ? GROUP BY category
-  `).all(userId);
+  `,
+    )
+    .all(userId);
 
   const totalAnswered = userStats.reduce((sum, s) => sum + s.answered, 0);
   const totalCorrect = userStats.reduce((sum, s) => sum + s.correct, 0);
   const overallAccuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
 
   // Get games won/lost
-  const gamesAsP1 = db.prepare('SELECT COUNT(*) as total, SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won FROM game_history WHERE player1_id = ?').get(userId, userId);
-  const gamesAsP2 = db.prepare('SELECT COUNT(*) as total, SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won FROM game_history WHERE player2_id = ?').get(userId, userId);
-  const totalGamesPlayed = (gamesAsP1?.total || 0) + (gamesAsP2?.total || 0);
-  const totalGamesWon = (gamesAsP1?.won || 0) + (gamesAsP2?.won || 0);
+  const weeqlashRow = db
+    .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
+    .get(userId);
+  const qlasRow = db
+    .prepare(
+      `
+    SELECT COUNT(*) as played, SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won
+    FROM game_history
+    WHERE (player1_id = ? OR player2_id = ?)
+      AND game_mode = 'qlashique'
+      AND json_extract(player1_stats, '$.finalHp') IS NOT NULL
+  `,
+    )
+    .get(userId, userId, userId);
+  const totalGamesPlayed = (weeqlashRow?.games_played || 0) + (qlasRow?.played || 0);
+  const totalGamesWon = (weeqlashRow?.games_won || 0) + (qlasRow?.won || 0);
 
   // Get recent games
-  const recentGames = db.prepare(`
+  const recentGames = db
+    .prepare(
+      `
     SELECT gh.*, 
            u1.username as p1_name, u2.username as p2_name,
            (SELECT username FROM users WHERE id = gh.winner_id) as winner_name
@@ -230,27 +274,33 @@ router.get('/users/:id', (req, res) => {
     LEFT JOIN users u2 ON gh.player2_id = u2.id
     WHERE gh.player1_id = ? OR gh.player2_id = ?
     ORDER BY gh.created_at DESC LIMIT 20
-  `).all(userId, userId);
+  `,
+    )
+    .all(userId, userId);
 
   // Stats rows
-  const statsRows = userStats.map(s => {
-    const acc = s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0;
-    return `<tr><td>${s.category}</td><td>${s.answered}</td><td>${s.correct}</td><td>${acc}%</td></tr>`;
-  }).join('');
+  const statsRows = userStats
+    .map((s) => {
+      const acc = s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0;
+      return `<tr><td>${s.category}</td><td>${s.answered}</td><td>${s.correct}</td><td>${acc}%</td></tr>`;
+    })
+    .join('');
 
   // Recent games rows
-  const gameRows = recentGames.map(g => {
-    const isWinner = g.winner_id === userId;
-    const isPlayer1 = g.player1_id === userId;
-    const opponent = isPlayer1 ? g.p2_name : g.p1_name;
-    return `<tr>
+  const gameRows = recentGames
+    .map((g) => {
+      const isWinner = g.winner_id === userId;
+      const isPlayer1 = g.player1_id === userId;
+      const opponent = isPlayer1 ? g.p2_name : g.p1_name;
+      return `<tr>
       <td>${opponent || 'Unknown'}</td>
       <td>${g.winner_id ? (isWinner ? '<span class="badge badge-success">Won</span>' : '<span class="badge badge-danger">Lost</span>') : '-'}</td>
       <td>${g.game_mode || '-'}</td>
       <td>${Math.round(g.duration_ms / 1000)}s</td>
       <td>${new Date(g.created_at).toLocaleDateString()}</td>
     </tr>`;
-  }).join('');
+    })
+    .join('');
 
   const content = `
     <h1>User: ${user.username}</h1>
@@ -322,7 +372,11 @@ router.get('/users/:id', (req, res) => {
 
 router.post('/users/update', express.urlencoded({ extended: true }), (req, res) => {
   const db = getDb();
-  db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(req.body.username, req.body.email, req.body.id);
+  db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(
+    req.body.username,
+    req.body.email,
+    req.body.id,
+  );
   res.redirect(`/admin/users/${req.body.id}`);
 });
 
@@ -348,12 +402,18 @@ router.get('/stats', (_req, res) => {
   const db = getDb();
 
   const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  const activeUsers = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_blocked = 0').get().count;
+  const activeUsers = db
+    .prepare('SELECT COUNT(*) as count FROM users WHERE is_blocked = 0')
+    .get().count;
   const totalGames = db.prepare('SELECT COUNT(*) as count FROM game_history').get().count;
-  const totalAdmins = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1').get().count;
+  const totalAdmins = db
+    .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
+    .get().count;
 
   // Recent games
-  const recentGames = db.prepare(`
+  const recentGames = db
+    .prepare(
+      `
     SELECT gh.*, 
            u1.username as p1_name, u2.username as p2_name, 
            (SELECT username FROM users WHERE id = gh.winner_id) as winner_name
@@ -362,17 +422,25 @@ router.get('/stats', (_req, res) => {
     LEFT JOIN users u2 ON gh.player2_id = u2.id
     ORDER BY gh.created_at DESC
     LIMIT 20
-  `).all();
+  `,
+    )
+    .all();
 
   // Category stats
-  const categoryStats = db.prepare(`
+  const categoryStats = db
+    .prepare(
+      `
     SELECT category, SUM(answered) as answered, SUM(correct) as correct
     FROM user_stats
     GROUP BY category
     ORDER BY answered DESC
-  `).all();
+  `,
+    )
+    .all();
 
-  const gameRows = recentGames.map(g => `
+  const gameRows = recentGames
+    .map(
+      (g) => `
     <tr>
       <td>${g.id}</td>
       <td>${g.p1_name || g.player1_id} vs ${g.p2_name || g.player2_id}</td>
@@ -382,11 +450,14 @@ router.get('/stats', (_req, res) => {
       <td>${Math.round(g.duration_ms / 1000)}s</td>
       <td>${new Date(g.created_at).toLocaleString()}</td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join('');
 
-  const catRows = categoryStats.map(c => {
-    const accuracy = c.answered > 0 ? Math.round((c.correct / c.answered) * 100) : 0;
-    return `
+  const catRows = categoryStats
+    .map((c) => {
+      const accuracy = c.answered > 0 ? Math.round((c.correct / c.answered) * 100) : 0;
+      return `
       <tr>
         <td>${c.category}</td>
         <td>${c.answered}</td>
@@ -394,7 +465,8 @@ router.get('/stats', (_req, res) => {
         <td>${accuracy}%</td>
       </tr>
     `;
-  }).join('');
+    })
+    .join('');
 
   const content = `
     <h1>Statistics</h1>
@@ -472,13 +544,19 @@ router.get('/admin', (_req, res) => {
 router.get('/users/:id/export', (req, res) => {
   const db = getDb();
   const userId = parseInt(req.params.id);
-  const user = db.prepare('SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users WHERE id = ?').get(userId);
+  const user = db
+    .prepare(
+      'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users WHERE id = ?',
+    )
+    .get(userId);
 
   if (!user) {
     return res.send('User does not exist');
   }
 
-  const userStats = db.prepare('SELECT category, answered, correct FROM user_stats WHERE user_id = ?').all(userId);
+  const userStats = db
+    .prepare('SELECT category, answered, correct FROM user_stats WHERE user_id = ?')
+    .all(userId);
 
   const exportData = {
     user,
