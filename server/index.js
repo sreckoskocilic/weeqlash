@@ -478,6 +478,47 @@ io.on('connection', (socket) => {
     socket.to(code).emit('room:player_reconnected', {
       players: room.players.map(publicPlayer),
     });
+    if (room.mode === 'qlashique') {
+      const qstate = room.state;
+      const timerElapsed = room.qlasGuessingStartedAt
+        ? Math.max(
+            0,
+            Math.floor((Date.now() - room.qlasGuessingStartedAt) / 1000),
+          )
+        : 0;
+      const reconnectData = {
+        ok: true,
+        mode: 'qlashique',
+        playerId: socket.id,
+        token: player.token,
+        myIdx: player.index,
+        code: room.code,
+        classSelections: room.classSelections,
+        players: room.players.map(publicPlayer),
+        phase: qstate.phase,
+        hp: [qstate.players[0].hp, qstate.players[1].hp],
+        currentPlayerIdx: qstate.currentPlayerIdx,
+        turnNumber: qstate.turnNumber,
+        currentScore: qstate.currentScore,
+        timerSeconds: room.qlasTimerSeconds || 5,
+        timerElapsed,
+      };
+      if (
+        qstate.phase === QLAS_PHASE.GUESSING &&
+        player.index === qstate.currentPlayerIdx &&
+        room.currentQuestion
+      ) {
+        const q = room.currentQuestion;
+        reconnectData.currentQuestion = {
+          id: q.id,
+          q: q.q,
+          opts: q.opts,
+          category: q.category,
+        };
+      }
+      return cb(reconnectData);
+    }
+
     cb({
       ok: true,
       playerId: socket.id,
@@ -990,6 +1031,42 @@ io.on('connection', (socket) => {
       questionIdx: 0,
     });
     cb({ ok: true });
+
+    // Server-side authoritative timer — fires if client never sends end_turn
+    room.qlasGuessingStartedAt = Date.now();
+    if (room.qlasTimer) {
+      clearTimeout(room.qlasTimer);
+    }
+    const _gracedMs = ((room.qlasTimerSeconds || 5) + 3) * 1000;
+    room.qlasTimer = setTimeout(() => {
+      room.qlasTimer = null;
+      if (room.state?.phase !== QLAS_PHASE.GUESSING) {
+        return;
+      }
+      const activeIdx = room.state.currentPlayerIdx;
+      const scoreBeforeEnd = room.state.currentScore;
+      const { outcome, error: _err } = endTurn(room.state);
+      if (_err) {
+        return;
+      }
+      io.to(code).emit('qlashique:turn_end', {
+        score: scoreBeforeEnd,
+        outcome,
+      });
+      io.to(code).emit('qlashique:hp_update', {
+        p0hp: room.state.players[0].hp,
+        p1hp: room.state.players[1].hp,
+      });
+      const winnerIdx = checkGameOver(room.state);
+      if (winnerIdx >= 0) {
+        room.state.phase = QLAS_PHASE.GAME_OVER;
+        const reason =
+          room.state.players[activeIdx].hp <= 0 ? 'self_destruct' : 'hp';
+        io.to(code).emit('qlashique:game_over', { winnerIdx, reason });
+      } else if (outcome !== 'choose') {
+        _emitQlasTurnStart(io, code, room);
+      }
+    }, _gracedMs);
   });
 
   socket.on('qlashique:answer', ({ code, answerIdx } = {}, cb) => {
@@ -1101,6 +1178,11 @@ io.on('connection', (socket) => {
     }
     if (room.state.currentPlayerIdx !== player.index) {
       return cb({ error: 'Not your turn' });
+    }
+
+    if (room.qlasTimer) {
+      clearTimeout(room.qlasTimer);
+      room.qlasTimer = null;
     }
 
     const scoreBeforeEnd = room.state.currentScore;
@@ -1407,6 +1489,7 @@ function _emitQlasTurnStart(ioServer, code, room) {
   const idx = state.currentPlayerIdx;
   const timerSeconds = calcTimer(state.turnNumber, classSelections[idx]);
   room.questionIdx = 0;
+  room.qlasTimerSeconds = timerSeconds;
   ioServer.to(code).emit('qlashique:turn_start', {
     playerIdx: idx,
     timerSeconds,

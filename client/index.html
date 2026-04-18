@@ -3262,7 +3262,19 @@
       socket.io.on('reconnect', () => {
         console.warn('Reconnected');
         showError('');
-        if (myToken && myRoom?.code) {
+        if (qlasToken && qlasCode) {
+          socket.emit(
+            'session:resume',
+            { token: qlasToken, code: qlasCode },
+            (res) => {
+              if (res.error || res.mode !== 'qlashique') {
+                console.warn('Qlashique session resume failed:', res.error);
+                return;
+              }
+              qlasRestoreFromReconnect(res);
+            },
+          );
+        } else if (myToken && myRoom?.code) {
           socket.emit(
             'session:resume',
             { token: myToken, code: myRoom.code },
@@ -5388,6 +5400,7 @@
       let qlasOutcomeChosen = false;
       let qlasAutoHeal = false;
       let qlasLastAnswerIdx = -1;
+      let qlasToken = null;
 
       // --- UI helpers ---
 
@@ -5553,6 +5566,80 @@
         });
       }
 
+      // --- Reconnect restore ---
+
+      function qlasRestoreFromReconnect(res) {
+        qlasMyIdx = res.myIdx;
+        qlasCode = res.code;
+        qlasHp = res.hp;
+        qlasScore = res.currentScore || 0;
+        qlasPlayers = res.players.map((p, i) => ({
+          name: p.name || '',
+          classId: res.classSelections[i] || '',
+        }));
+
+        showScreen('screen-qlashique');
+
+        const QLAS_PHASE_GAMEOVER = 'game_over';
+        const QLAS_PHASE_OUTCOME = 'outcome';
+        const QLAS_PHASE_GUESSING = 'guessing';
+        const QLAS_PHASE_DECISION = 'decision';
+
+        if (res.phase === QLAS_PHASE_GAMEOVER) {
+          qlasShowPhase('gameover');
+          return;
+        }
+
+        qlasShowPhase('combat');
+        qlasRenderPlayerInfo();
+        qlasSetHP(0, res.hp[0]);
+        qlasSetHP(1, res.hp[1]);
+
+        const isMyTurn = res.currentPlayerIdx === qlasMyIdx;
+
+        if (res.phase === QLAS_PHASE_OUTCOME) {
+          if (isMyTurn) {
+            qEl('qlas-outcome-panel').style.display = '';
+          }
+          qlasSetStatus('choose: attack or heal');
+          return;
+        }
+
+        if (
+          res.phase === QLAS_PHASE_GUESSING &&
+          isMyTurn &&
+          res.currentQuestion
+        ) {
+          qlasGuessingActive = true;
+          qlasTimerTotal = res.timerSeconds;
+          const remaining = Math.max(1, res.timerSeconds - res.timerElapsed);
+          qEl('qlas-decision-panel').style.display = 'none';
+          qEl('qlas-qpanel').style.display = '';
+          qEl('qlas-action-row').style.display = '';
+          qEl('btn-qlas-end').disabled = false;
+          qlasSetPhaseBar('guessing');
+          qlasRenderQuestion(res.currentQuestion, 0);
+          qlasStartTimer(remaining);
+          qlasSetStatus('reconnected \u2014 answer or end turn');
+          return;
+        }
+
+        // DECISION phase (or opponent's guessing turn)
+        qlasSetPhaseBar(
+          res.phase === QLAS_PHASE_DECISION ? 'decision' : 'guessing',
+        );
+        if (isMyTurn) {
+          qEl('qlas-decision-panel').style.display = '';
+          qlasSetStatus('reconnected \u2014 click ATTACK to start guessing');
+        } else {
+          qEl('qlas-decision-panel').style.display = 'none';
+          const name =
+            qlasPlayers[res.currentPlayerIdx].name ||
+            'Player ' + (res.currentPlayerIdx + 1);
+          qlasSetStatus(name + '\u2019s turn');
+        }
+      }
+
       // --- Class selection (exposed on window for onclick handlers) ---
 
       window.qlasSelectClass = function (classId) {
@@ -5595,6 +5682,7 @@
               return;
             }
             qlasCode = res.code;
+            qlasToken = res.token;
             qlasMyIdx = 0;
             qlasPlayers[0].name = playerName;
             qEl('qlas-waiting-panel').style.display = '';
@@ -5616,6 +5704,7 @@
               qEl('qlas-btn-confirm').disabled = false;
               return;
             }
+            qlasToken = res.token;
             qlasMyIdx = res.players.findIndex((p) => p.id === res.playerId);
             qlasPlayers[0].name = res.players[0]?.name || '';
             qlasPlayers[1].name = res.players[1]?.name || '';
@@ -5778,12 +5867,12 @@
 
           if (isMyTurn) {
             qEl('qlas-decision-panel').style.display = '';
-            qlasSetStatus('your turn \u2014 click ATTACK to start guessing');
+            qlasSetStatus('Your turn begins — click ATTACK to start guessing');
             qlasTimerTotal = timerSeconds;
             qlasTimerLeft = timerSeconds;
           } else {
             qEl('qlas-decision-panel').style.display = 'none';
-            qlasSetStatus(turnPlayerName + ' is deciding\u2026');
+            qlasSetStatus(`${turnPlayerName}'s turn is starting...`);
           }
         },
       );
@@ -5806,6 +5895,7 @@
           qlasGuessingActive = true;
           qEl('qlas-decision-panel').style.display = 'none';
           qEl('qlas-qpanel').style.display = '';
+          qEl('qlas-qpanel').style.opacity = '1.0';
           qEl('qlas-action-row').style.display = '';
           qEl('btn-qlas-end').disabled = false;
           qEl('btn-qlas-heal').disabled = true;
@@ -5865,11 +5955,13 @@
           qEl('qlas-outcome-panel').style.display = 'flex';
           qlasSetStatus('choose: attack or heal');
         } else if (outcome === 'self_damage') {
-          qlasSetStatus('negative score \u2014 self-damage!');
+          qlasSetStatus(
+            `Your turn ended: self‑damage from negative score (${score})`,
+          );
         } else if (outcome === 'attack') {
-          qlasSetStatus('dealt ' + score + ' damage!');
+          qlasSetStatus(`Your turn ended: you dealt ${score} damage`);
         } else {
-          qlasSetStatus('score 0 \u2014 nothing happens');
+          qlasSetStatus('Your turn ended: no effect (score 0)');
         }
       });
 
@@ -5943,6 +6035,7 @@
         ];
         qlasHp = [30, 30];
         qlasScore = 0;
+        qlasToken = null;
         qlasGuessingActive = false;
         qlasOutcomeChosen = false;
         document.querySelectorAll('.qlas-card').forEach((c) => {
