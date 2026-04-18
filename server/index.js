@@ -84,11 +84,7 @@ function createSessionMiddleware() {
 app.use(express.static(path.join(__dirname, '../client')));
 const CORS_ORIGIN = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
-  : [
-      'https://brawl.weeqlash.icu',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-    ];
+  : ['https://brawl.weeqlash.icu', 'http://localhost:3000', 'http://127.0.0.1:3000'];
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN },
   // Enable default cookie parsing
@@ -121,12 +117,7 @@ const QUIZ_RATE_LIMIT_MS = 2000;
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
 
 // Periodic cleanup of stale rate limit entries (every 30s)
-const rateLimitMaps = [
-  answerTimestamps,
-  lobbyTimestamps,
-  previewTimestamps,
-  quizTimestamps,
-];
+const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const map of rateLimitMaps) {
@@ -246,9 +237,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Serve client HTML for dev testing
 app.get('/', (_req, res) => {
-  res
-    .type('text/html')
-    .send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
+  res.type('text/html').send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
 });
 
 // ---------------------------------------------------------------------------
@@ -291,10 +280,7 @@ io.on('connection', (socket) => {
           );
           if (player) {
             player.userId = userId;
-            console.log(
-              '[auth] Updated player userId in room to:',
-              player.userId,
-            );
+            console.log('[auth] Updated player userId in room to:', player.userId);
           }
         }
       } else {
@@ -308,10 +294,7 @@ io.on('connection', (socket) => {
   // Client can emit this after login to refresh session
   socket.on('auth:refresh', (cb) => {
     const sess = socket.request.session;
-    console.log(
-      '[auth] refresh session received, full session:',
-      JSON.stringify(sess),
-    );
+    console.log('[auth] refresh session received, full session:', JSON.stringify(sess));
     if (sess?.userId) {
       socket.userId = sess.userId;
       socket.userName = sess.username;
@@ -334,38 +317,35 @@ io.on('connection', (socket) => {
 
   // --- Lobby ---
 
-  socket.on(
-    'room:create',
-    ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
-      if (checkLobbyRateLimit(socket.id, cb)) {
-        return;
-      }
-      // Clean up any lingering quiz session when joining a room game
-      quizRuns.delete(socket.id);
-      const room = createRoom({
-        playerCount,
-        boardSize,
-        timer,
-        enabledCats,
-      });
-      // Apply pending userId from earlier login if any
-      const userId = socket.userId || socket.pendingUserId;
-      const player = joinRoom(room.code, socket.id, playerName, userId || null);
-      if (!player) {
-        return cb({ error: 'Failed to create room' });
-      }
-      socket.join(room.code);
-      console.log(`[room] ${room.code} created by ${playerName}`);
-      const token = room.players.find((p) => p.id === socket.id)?.token;
-      cb({
-        ok: true,
-        code: room.code,
-        playerId: socket.id,
-        players: room.players.map(publicPlayer),
-        token,
-      });
-    },
-  );
+  socket.on('room:create', ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
+    if (checkLobbyRateLimit(socket.id, cb)) {
+      return;
+    }
+    // Clean up any lingering quiz session when joining a room game
+    quizRuns.delete(socket.id);
+    const room = createRoom({
+      playerCount,
+      boardSize,
+      timer,
+      enabledCats,
+    });
+    // Apply pending userId from earlier login if any
+    const userId = socket.userId || socket.pendingUserId;
+    const player = joinRoom(room.code, socket.id, playerName, userId || null);
+    if (!player) {
+      return cb({ error: 'Failed to create room' });
+    }
+    socket.join(room.code);
+    console.log(`[room] ${room.code} created by ${playerName}`);
+    const token = room.players.find((p) => p.id === socket.id)?.token;
+    cb({
+      ok: true,
+      code: room.code,
+      playerId: socket.id,
+      players: room.players.map(publicPlayer),
+      token,
+    });
+  });
 
   socket.on('room:join', ({ code, playerName }, cb) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
@@ -381,9 +361,7 @@ io.on('connection', (socket) => {
     }
     const room = getRoom(code);
     socket.join(code);
-    socket
-      .to(code)
-      .emit('room:player_joined', { players: room.players.map(publicPlayer) });
+    socket.to(code).emit('room:player_joined', { players: room.players.map(publicPlayer) });
     const joiningPlayer = room.players.find((p) => p.id === socket.id);
     cb({
       ok: true,
@@ -482,10 +460,7 @@ io.on('connection', (socket) => {
     if (room.mode === 'qlashique') {
       const qstate = room.state;
       const timerElapsed = room.qlasGuessingStartedAt
-        ? Math.max(
-            0,
-            Math.floor((Date.now() - room.qlasGuessingStartedAt) / 1000),
-          )
+        ? Math.max(0, Math.floor((Date.now() - room.qlasGuessingStartedAt) / 1000))
         : 0;
       const reconnectData = {
         ok: true,
@@ -566,20 +541,12 @@ io.on('connection', (socket) => {
       return cb({ error: 'Peg not selected' });
     }
 
-    const validMoves = getValidMoves(room.state, pegId).map(
-      (m) => m.r * COORD_BASE + m.c,
-    );
+    const validMoves = getValidMoves(room.state, pegId).map((m) => m.r * COORD_BASE + m.c);
     if (!validMoves.includes(r * COORD_BASE + c)) {
       return cb({ error: 'Invalid move target' });
     }
 
-    const { moveType, questionId } = planTurnQuestions(
-      room.state,
-      pegId,
-      r,
-      c,
-      questionsDb,
-    );
+    const { moveType, questionId } = planTurnQuestions(room.state, pegId, r, c, questionsDb);
 
     const q = questionsDb._byId?.[questionId];
     const question = q
@@ -662,8 +629,7 @@ io.on('connection', (socket) => {
     const timeSinceQuestionStart = Date.now() - (room.lastQuestionStart || 0);
     if (timeSinceQuestionStart < MIN_ANSWER_DELAY_MS) {
       return cb({
-        error:
-          'Answering too quickly. Wait for other players to see the question.',
+        error: 'Answering too quickly. Wait for other players to see the question.',
       });
     }
     if (timeSinceQuestionStart > MAX_ANSWER_TIME_MS) {
@@ -712,8 +678,7 @@ io.on('connection', (socket) => {
           }
         : null;
       const { correctIdx, ...nextPublic } = nextQuestion ?? {};
-      const qIdx =
-        pending.questionsTotal - room.state.pendingTurn.questionsRemaining + 1;
+      const qIdx = pending.questionsTotal - room.state.pendingTurn.questionsRemaining + 1;
 
       room.lastQuestionStart = Date.now();
 
@@ -735,9 +700,7 @@ io.on('connection', (socket) => {
     // Turn ended — broadcast final state
     const nextValidMoves =
       room.state.phase === PHASE.SELECT_TILE && room.state.selectedPegId
-        ? getValidMoves(room.state, room.state.selectedPegId).map(
-            (m) => m.r * COORD_BASE + m.c,
-          )
+        ? getValidMoves(room.state, room.state.selectedPegId).map((m) => m.r * COORD_BASE + m.c)
         : null;
 
     const payload = {
@@ -780,8 +743,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No questions available' });
     }
 
-    const randomQ =
-      allQuestions[Math.floor(Math.random() * allQuestions.length)];
+    const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
     const run = {
       startedAt: Date.now(),
       questionIds: [randomQ.id],
@@ -820,10 +782,7 @@ io.on('connection', (socket) => {
 
     if (!correct) {
       const timeSec = (Date.now() - run.startedAt) / 1000;
-      const qualifies = checkQualifiesTop10(
-        run.answers,
-        Date.now() - run.startedAt,
-      );
+      const qualifies = checkQualifiesTop10(run.answers, Date.now() - run.startedAt);
       return cb({
         ok: true,
         correct: false,
@@ -855,8 +814,7 @@ io.on('connection', (socket) => {
     }
     const usedIds = new Set(run.questionIds);
     const availableQuestions = allQuestions.filter((q) => !usedIds.has(q.id));
-    const pool =
-      availableQuestions.length > 0 ? availableQuestions : allQuestions;
+    const pool = availableQuestions.length > 0 ? availableQuestions : allQuestions;
     const randomQ = pool[Math.floor(Math.random() * pool.length)];
 
     run.questionIds.push(randomQ.id);
@@ -993,10 +951,11 @@ io.on('connection', (socket) => {
     if (room.classSelections[0] && room.classSelections[1]) {
       room.started = true;
       room.startedAt = Date.now();
-      room.state = createQlasGame(
-        room.classSelections[0],
-        room.classSelections[1],
-      );
+      room.state = createQlasGame(room.classSelections[0], room.classSelections[1]);
+      room.qlasStats = [
+        { answered: 0, correct: 0 },
+        { answered: 0, correct: 0 },
+      ];
       _emitQlasTurnStart(io, code, room);
     }
   });
@@ -1080,6 +1039,10 @@ io.on('connection', (socket) => {
 
     if (player.userId) {
       trackAnswer(player.userId, 'qlashique', result.correct);
+    }
+    if (room.qlasStats) {
+      room.qlasStats[player.index].answered++;
+      if (result.correct) room.qlasStats[player.index].correct++;
     }
 
     socket.emit('qlashique:answer_result', {
@@ -1330,11 +1293,7 @@ function recordGameStats(room) {
     })),
   });
 
-  if (
-    !room.startedAt ||
-    !room.state?.players ||
-    room.state.players.length < 2
-  ) {
+  if (!room.startedAt || !room.state?.players || room.state.players.length < 2) {
     console.log('[stats] Skipping - invalid game state');
     return; // Not a valid started game
   }
@@ -1398,9 +1357,7 @@ function recordGameStats(room) {
 
       const gameRoomCode = players[0].name + ' vs ' + players[1].name;
       const winnerStr = winnerId ? 'player' + (winnerIdx + 1) : 'draw';
-      console.log(
-        `[stats] Game recorded: ${gameRoomCode}, winner: ${winnerStr}`,
-      );
+      console.log(`[stats] Game recorded: ${gameRoomCode}, winner: ${winnerStr}`);
     } catch (err) {
       console.error('[stats] Failed to record game:', err.message);
     }
@@ -1470,8 +1427,11 @@ function _pickQlasQuestion(room, db) {
 
 function _saveQlasResult(room, winnerIdx) {
   const [p0, p1] = room.players;
-  if (!p0?.userId && !p1?.userId) {return;}
+  if (!p0?.userId && !p1?.userId) {
+    return;
+  }
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
+  const [s0, s1] = room.qlasStats ?? [{}, {}];
   try {
     insertGameResult({
       player1Id: p0?.userId ?? null,
@@ -1480,8 +1440,8 @@ function _saveQlasResult(room, winnerIdx) {
       gameMode: 'qlashique',
       boardSize: null,
       durationMs,
-      player1Stats: {},
-      player2Stats: {},
+      player1Stats: { ...s0, finalHp: room.state.players[0].hp, classId: room.classSelections[0] },
+      player2Stats: { ...s1, finalHp: room.state.players[1].hp, classId: room.classSelections[1] },
     });
   } catch (e) {
     console.warn('[qlashique] Failed to save game result:', e.message);
@@ -1490,10 +1450,7 @@ function _saveQlasResult(room, winnerIdx) {
 
 function _emitQlasTurnStart(ioServer, code, room) {
   const idx = room.state.currentPlayerIdx;
-  const timerSeconds = calcTimer(
-    room.state.turnNumber,
-    room.classSelections[idx],
-  );
+  const timerSeconds = calcTimer(room.state.turnNumber, room.classSelections[idx]);
   room.questionIdx = 0;
   room.qlasTimerSeconds = timerSeconds;
   room.qlasTimerExpired = false;

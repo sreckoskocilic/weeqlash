@@ -74,25 +74,19 @@ function applySchemaMigrations(db) {
 
     // Add games_played column if missing
     if (!columns.includes('games_played')) {
-      db.prepare(
-        'ALTER TABLE users ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0',
-      ).run();
+      db.prepare('ALTER TABLE users ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0').run();
       console.log('[auth] Added games_played column to users table');
     }
 
     // Add games_won column if missing
     if (!columns.includes('games_won')) {
-      db.prepare(
-        'ALTER TABLE users ADD COLUMN games_won INTEGER NOT NULL DEFAULT 0',
-      ).run();
+      db.prepare('ALTER TABLE users ADD COLUMN games_won INTEGER NOT NULL DEFAULT 0').run();
       console.log('[auth] Added games_won column to users table');
     }
 
     // Add is_admin column if missing
     if (!columns.includes('is_admin')) {
-      db.prepare(
-        'ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0',
-      ).run();
+      db.prepare('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0').run();
       console.log('[auth] Added is_admin column to users table');
     }
 
@@ -116,16 +110,12 @@ function applySchemaMigrations(db) {
           answered = user_stats.answered + excluded.answered,
           correct  = user_stats.correct  + excluded.correct
       `);
-      const deleteStmt = db.prepare(
-        'DELETE FROM user_stats WHERE category = ?',
-      );
+      const deleteStmt = db.prepare('DELETE FROM user_stats WHERE category = ?');
       db.transaction(() => {
         for (const [oldCat, newCat] of catRenames) {
           insertStmt.run(newCat, oldCat);
           deleteStmt.run(oldCat);
-          console.log(
-            `[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`,
-          );
+          console.log(`[auth] Migrated user_stats category: ${oldCat} -> ${newCat}`);
         }
       })();
     }
@@ -141,16 +131,12 @@ export function createUser({ username, email, password }) {
   const db = getDb();
   const now = Date.now();
 
-  const existingUser = db
-    .prepare('SELECT id FROM users WHERE username = ?')
-    .get(username);
+  const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (existingUser) {
     return { error: 'Username already taken' };
   }
 
-  const existingEmail = db
-    .prepare('SELECT id FROM users WHERE email = ?')
-    .get(email);
+  const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
   if (existingEmail) {
     return { error: 'Email already registered' };
   }
@@ -197,10 +183,7 @@ export function authenticateUser(usernameOrEmail, password) {
     };
   }
 
-  db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(
-    Date.now(),
-    user.id,
-  );
+  db.prepare('UPDATE users SET last_login = ? WHERE id = ?').run(Date.now(), user.id);
 
   return {
     ok: true,
@@ -217,7 +200,7 @@ export function getUserById(id) {
   const db = getDb();
   const user = db
     .prepare(
-      'SELECT id, username, email, email_confirmed, is_blocked, created_at, last_login FROM users WHERE id = ?',
+      'SELECT id, username, email, email_confirmed, is_blocked, is_admin, created_at, last_login FROM users WHERE id = ?',
     )
     .get(id);
   return user || null;
@@ -225,15 +208,13 @@ export function getUserById(id) {
 
 export function confirmEmail(token) {
   const db = getDb();
-  const user = db
-    .prepare('SELECT id FROM users WHERE confirmation_token = ?')
-    .get(token);
+  const user = db.prepare('SELECT id FROM users WHERE confirmation_token = ?').get(token);
   if (!user) {
     return { error: 'Invalid confirmation token' };
   }
-  db.prepare(
-    'UPDATE users SET email_confirmed = 1, confirmation_token = NULL WHERE id = ?',
-  ).run(user.id);
+  db.prepare('UPDATE users SET email_confirmed = 1, confirmation_token = NULL WHERE id = ?').run(
+    user.id,
+  );
   return { ok: true };
 }
 
@@ -248,9 +229,11 @@ export function createResetToken(email) {
   const resetToken = crypto.randomBytes(32).toString('hex');
   const expires = Date.now() + 3600000; // 1 hour
 
-  db.prepare(
-    'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
-  ).run(resetToken, expires, user.id);
+  db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(
+    resetToken,
+    expires,
+    user.id,
+  );
 
   return { ok: true, resetToken };
 }
@@ -258,9 +241,7 @@ export function createResetToken(email) {
 export function resetPassword(token, newPassword) {
   const db = getDb();
   const user = db
-    .prepare(
-      'SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > ?',
-    )
+    .prepare('SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > ?')
     .get(token, Date.now());
 
   if (!user) {
@@ -277,9 +258,7 @@ export function resetPassword(token, newPassword) {
 
 export function resendConfirmation(userId) {
   const db = getDb();
-  const user = db
-    .prepare('SELECT id, email_confirmed FROM users WHERE id = ?')
-    .get(userId);
+  const user = db.prepare('SELECT id, email_confirmed FROM users WHERE id = ?').get(userId);
   if (!user) {
     return { error: 'User not found' };
   }
@@ -288,10 +267,7 @@ export function resendConfirmation(userId) {
   }
 
   const confirmToken = crypto.randomBytes(32).toString('hex');
-  db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(
-    confirmToken,
-    userId,
-  );
+  db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(confirmToken, userId);
   return { ok: true, confirmToken };
 }
 
@@ -328,13 +304,25 @@ export function getUserStats(userId) {
     { totalAnswered: 0, totalCorrect: 0 },
   );
 
-  const gameWinRatio = db
-    .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
-    .get(userId);
+  const weeqlash = db.prepare('SELECT games_played, games_won FROM users WHERE id = ?').get(userId);
+
+  const qlasRow = db
+    .prepare(
+      `
+      SELECT
+        COUNT(*) as played,
+        SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won
+      FROM game_history
+      WHERE (player1_id = ? OR player2_id = ?)
+        AND game_mode = 'qlashique'
+        AND json_extract(player1_stats, '$.finalHp') IS NOT NULL
+    `,
+    )
+    .get(userId, userId, userId);
 
   const gameStats = {
-    gamesPlayed: gameWinRatio?.games_played || 0,
-    gamesWon: gameWinRatio?.games_won || 0,
+    gamesPlayed: (weeqlash?.games_played || 0) + (qlasRow?.played || 0),
+    gamesWon: (weeqlash?.games_won || 0) + (qlasRow?.won || 0),
   };
 
   return {
