@@ -6,13 +6,11 @@ import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, '..');
-const envPath = path.join(projectRoot, '.env');
-console.log('[index] Loading .env from:', envPath);
-console.log('[index] .env exists:', existsSync(envPath));
-const envResult = dotenv.config({ path: envPath });
-console.log('[index] dotenv result:', envResult?.error || 'loaded');
-console.log('[index] SMTP_HOST after dotenv:', process.env.SMTP_HOST);
+// Try __dirname first (Docker: files copied flat into /app), then parent (local dev: server/index.js)
+const envPath = existsSync(path.join(__dirname, '.env'))
+  ? path.join(__dirname, '.env')
+  : path.join(__dirname, '..', '.env');
+dotenv.config({ path: envPath });
 
 import session from 'express-session';
 
