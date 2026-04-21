@@ -48,9 +48,19 @@
           background-position: 200% center;
         }
       }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
       h1 {
         font-size: 3rem;
         letter-spacing: 0.3em;
+        font-family: 'IBM Plex Mono', monospace;
         background: linear-gradient(135deg, var(--accent), #ff8a65, var(--accent));
         background-size: 200% auto;
         color: transparent;
@@ -58,13 +68,13 @@
         background-clip: text;
         margin-bottom: 0.5rem;
       }
-      .subtitle {
+      h1 .cursor {
         color: var(--muted);
-        margin-bottom: 2rem;
-        font-size: 0.8rem;
-        letter-spacing: 3px;
-        text-transform: lowercase;
-        font-weight: 600;
+        -webkit-background-clip: unset;
+        background-clip: unset;
+        background: none;
+        animation: blink 1s step-end infinite;
+        font-weight: 400;
       }
 
       /* ===== ANNOUNCEMENTS ===== */
@@ -2018,10 +2028,7 @@
     </style>
   </head>
   <body>
-    <h1 id="main-title">weeqlash</h1>
-    <p class="subtitle" id="main-subtitle">
-      brawledge is not mating, buddies (sierra leonardo pro vertebrae)
-    </p>
+    <h1 id="main-title">weeqlash<span class="cursor">_</span></h1>
 
     <!-- Announcements — edit the <li> items to update -->
     <section id="announcements">
@@ -2039,7 +2046,7 @@
           >
         </li>
         <li>
-          <strong>EPL 2025 Triviandom</strong> — Premier League-only question mode with its own
+          <strong>EPL 2025 Triviandom</strong> — English Premier League-only question mode with its own
           leaderboard
         </li>
         <li>New question categories added</li>
@@ -3215,7 +3222,6 @@
         const isConnect = id === 'screen-connect';
         const isQlas = id === 'screen-qlashique';
         el('main-title').style.display = isGame || isQlas ? 'none' : '';
-        el('main-subtitle').style.display = isGame || isQlas ? 'none' : '';
         el('site-footer').style.display = isConnect ? '' : 'none';
         [
           'screen-connect',
