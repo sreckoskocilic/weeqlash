@@ -17,11 +17,11 @@ export const CLASSES = {
 // Public: create initial game state
 // ---------------------------------------------------------------------------
 
-export function createQlasGame(p0classId, p1classId) {
+export function createQlasGame(p0classId, p1classId, hp = 30) {
   return {
     players: [
-      { hp: 30, classId: p0classId, rerollUsed: false },
-      { hp: 30, classId: p1classId, rerollUsed: false },
+      { hp, classId: p0classId, rerollUsed: false },
+      { hp, classId: p1classId, rerollUsed: false },
     ],
     currentPlayerIdx: 0,
     turnNumber: 1,

@@ -12,6 +12,52 @@ import {
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
+// In-memory rate limiting for auth endpoints: 5 attempts per minute per IP
+const authRateLimits = new Map(); // ip -> { count, firstAttempt }
+const AUTH_RATE_LIMIT = 5;
+const AUTH_RATE_WINDOW_MS = 60_000;
+
+// Sweep expired entries every 10 minutes to prevent unbounded growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of authRateLimits) {
+    if (now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {authRateLimits.delete(ip);}
+  }
+}, 10 * 60_000).unref();
+
+function getClientIp(req) {
+  const raw = req.ip || req.socket?.remoteAddress || 'unknown';
+  // Normalize IPv6-mapped IPv4 (e.g. ::ffff:127.0.0.1 → 127.0.0.1)
+  return raw.startsWith('::ffff:') ? raw.slice(7) : raw;
+}
+
+function isLocalhostIp(ip) {
+  return ip === '::1' || ip.startsWith('127.');
+}
+
+function checkAuthRateLimit(ip) {
+  const now = Date.now();
+  const entry = authRateLimits.get(ip);
+  if (!entry || now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {
+    authRateLimits.set(ip, { count: 1, firstAttempt: now });
+    return true;
+  }
+  if (entry.count >= AUTH_RATE_LIMIT) {
+    return false;
+  }
+  entry.count++;
+  return true;
+}
+
+function applyAuthRateLimit(req, res) {
+  const ip = getClientIp(req);
+  if (!isLocalhostIp(ip) && !checkAuthRateLimit(ip)) {
+    res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    return false;
+  }
+  return true;
+}
+
 function getSmtpConfig() {
   return {
     host: process.env.SMTP_HOST,
@@ -25,7 +71,9 @@ function getSmtpConfig() {
 let transporter = null;
 
 async function getTransporter() {
-  if (transporter) { return transporter; }
+  if (transporter) {
+    return transporter;
+  }
   const cfg = getSmtpConfig();
   console.log('[smtp] getTransporter config:', cfg);
   if (!cfg.host) {
@@ -58,6 +106,8 @@ export function registerAuthRoutes(app) {
 
   // Register
   app.post('/auth/register', async (req, res) => {
+    if (!applyAuthRateLimit(req, res)) {return;}
+
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
@@ -67,7 +117,9 @@ export function registerAuthRoutes(app) {
       return res.status(400).json({ error: 'Username must be 3-20 characters' });
     }
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+      return res
+        .status(400)
+        .json({ error: 'Username can only contain letters, numbers, and underscores' });
     }
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -85,7 +137,7 @@ export function registerAuthRoutes(app) {
     await sendEmail(
       email,
       'Confirm your Weeqlash account',
-      `<h2>Welcome to Weeqlash!</h2><p>Click the link below to confirm your email:</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`
+      `<h2>Welcome to Weeqlash!</h2><p>Click the link below to confirm your email:</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`,
     );
 
     res.json({ ok: true, message: 'Check your email to confirm your account' });
@@ -93,6 +145,8 @@ export function registerAuthRoutes(app) {
 
   // Login
   app.post('/auth/login', (req, res) => {
+    if (!applyAuthRateLimit(req, res)) {return;}
+
     const { username, password, keepLoggedIn } = req.body;
 
     if (!username || !password) {
@@ -110,11 +164,15 @@ export function registerAuthRoutes(app) {
 
     // Keep logged in = 7 days, otherwise session expires when browser closes
     req.session.cookie.maxAge = keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : undefined;
-    req.session.cookie.expires = keepLoggedIn ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined;
+    req.session.cookie.expires = keepLoggedIn
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      : undefined;
 
     console.log('[auth] login set session:', { userId: result.user.id, keepLoggedIn });
     req.session.save((err) => {
-      if (err) {console.error('[auth] session save error:', err.message);}
+      if (err) {
+        console.error('[auth] session save error:', err.message);
+      }
       res.json({ ok: true, user: result.user });
     });
   });
@@ -136,7 +194,9 @@ export function registerAuthRoutes(app) {
       req.session.destroy(() => {});
       return res.json({ user: null });
     }
-    res.json({ user: { id: user.id, username: user.username, email: user.email, is_admin: user.is_admin } });
+    res.json({
+      user: { id: user.id, username: user.username, email: user.email, is_admin: user.is_admin },
+    });
   });
 
   // Get user stats
@@ -192,7 +252,7 @@ export function registerAuthRoutes(app) {
     sendEmail(
       user.email,
       'Confirm your Weeqlash account',
-      `<p>Click to confirm: <a href="${confirmUrl}">${confirmUrl}</a></p>`
+      `<p>Click to confirm: <a href="${confirmUrl}">${confirmUrl}</a></p>`,
     );
 
     res.json({ ok: true, message: 'Confirmation email sent' });
@@ -211,7 +271,7 @@ export function registerAuthRoutes(app) {
       sendEmail(
         email,
         'Reset your WEEQLASH password',
-        `<p>Click to reset your password: <a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`
+        `<p>Click to reset your password: <a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
       );
     }
 
@@ -226,6 +286,8 @@ export function registerAuthRoutes(app) {
 
   // Reset password
   app.post('/auth/reset-password', (req, res) => {
+    if (!applyAuthRateLimit(req, res)) {return;}
+
     const { token, password } = req.body;
     if (!token || !password) {
       return res.status(400).json({ error: 'Token and new password are required' });

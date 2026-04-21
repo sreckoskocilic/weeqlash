@@ -83,6 +83,16 @@ export function insertScoreForTable(table, name, answers, timeMs) {
   }
 }
 
+export function clearTestEntries(table) {
+  assertTable(table);
+  try {
+    // Delete entries with names prefixed 'e2e_' (created by e2e tests)
+    db.prepare(`DELETE FROM ${table} WHERE name LIKE 'e2e_%'`).run();
+  } catch (err) {
+    console.error(`[leaderboard] clearTestEntries(${table}) failed:`, err.message);
+  }
+}
+
 export function checkQualifiesTop10ForTable(table, answers, timeMs) {
   assertTable(table);
   try {

@@ -4,6 +4,8 @@ import { CATS } from './engine.js';
 // In-memory room store. Each room holds settings, player list, and game state.
 export const rooms = new Map(); // code -> room
 export const socketToRoom = new Map(); // socketId -> roomCode
+// O(1) lookup for sockets in active games (avoids iterating all rooms on quiz start)
+export const socketsInActiveGames = new Set();
 
 function generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -14,12 +16,7 @@ function generateCode() {
   return code;
 }
 
-export function createRoom({
-  playerCount = 2,
-  boardSize = 7,
-  timer = 30,
-  enabledCats,
-} = {}) {
+export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabledCats } = {}) {
   // Validate player count (engine supports 2-4)
   const PLAYER_COUNT = Math.max(2, Math.min(4, playerCount));
 
@@ -54,6 +51,7 @@ export function createRoom({
     code,
     settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats },
     players: [],
+    playersBySocket: new Map(), // O(1) socketId -> player lookup
     started: false,
     startedAt: null,
     state: null,
@@ -65,11 +63,7 @@ export function createRoom({
 export function joinRoom(code, socketId, playerName, userId = null) {
   const normalizedCode = code?.toUpperCase();
   // Validate room code format
-  if (
-    !normalizedCode ||
-    normalizedCode.length !== 5 ||
-    !/^[A-Z0-9]+$/.test(normalizedCode)
-  ) {
+  if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
     return { error: 'Invalid room code' };
   }
 
@@ -109,17 +103,14 @@ export function joinRoom(code, socketId, playerName, userId = null) {
     userId, // linked user account (null for guest)
   };
   room.players.push(player);
+  room.playersBySocket.set(socketId, player); // O(1) lookup
   socketToRoom.set(socketId, normalizedCode);
   return player;
 }
 
 export function getRoom(code) {
   const normalizedCode = code?.toUpperCase();
-  if (
-    !normalizedCode ||
-    normalizedCode.length !== 5 ||
-    !/^[A-Z0-9]+$/.test(normalizedCode)
-  ) {
+  if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
     return null;
   }
   return rooms.get(normalizedCode) ?? null;
@@ -135,7 +126,11 @@ export function removePlayerFromRoom(socketId) {
     return {};
   }
 
-  const player = room.players.find((p) => p.id === socketId);
+  // Use O(1) Map lookup instead of find
+  const player = room.playersBySocket.get(socketId);
+  if (player) {
+    room.playersBySocket.delete(socketId);
+  }
   room.players = room.players.filter((p) => p.id !== socketId);
   socketToRoom.delete(socketId);
 
@@ -158,6 +153,16 @@ export function removePlayerFromRoom(socketId) {
 export function reattachSocket(oldSocketId, newSocketId, code) {
   socketToRoom.delete(oldSocketId);
   socketToRoom.set(newSocketId, code);
+  // Also update the player lookups
+  const room = rooms.get(code);
+  if (room) {
+    const player = room.playersBySocket.get(oldSocketId);
+    if (player) {
+      room.playersBySocket.delete(oldSocketId);
+      player.id = newSocketId;
+      room.playersBySocket.set(newSocketId, player);
+    }
+  }
 }
 
 // Periodic cleanup of orphaned rooms (empty lobby rooms, abandoned games).
@@ -199,6 +204,7 @@ export function createQlasRoom() {
     mode: 'qlashique',
     settings: { playerCount: 2 },
     players: [],
+    playersBySocket: new Map(),
     started: false,
     startedAt: null,
     state: null,
@@ -212,11 +218,21 @@ export function createQlasRoom() {
 }
 
 // Check if a socket ID belongs to a player in an active (started) game.
+// Uses O(1) Set lookup instead of iterating all rooms.
 export function isInActiveGame(socketId) {
-  for (const room of rooms.values()) {
-    if (room.started && room.players.some((p) => p.id === socketId)) {
-      return true;
-    }
-  }
-  return false;
+  return socketsInActiveGames.has(socketId);
+}
+
+// Track socket as being in an active game (called when room starts)
+export function registerActiveSocket(socketId) {
+  socketsInActiveGames.add(socketId);
+}
+
+// Remove socket from active game tracking (called on disconnect)
+export function unregisterActiveSocket(socketId) {
+  socketsInActiveGames.delete(socketId);
+}
+
+export function getPlayerBySocket(room, socketId) {
+  return room.playersBySocket?.get(socketId) ?? room.players.find((p) => p.id === socketId);
 }

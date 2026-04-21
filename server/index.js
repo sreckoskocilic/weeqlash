@@ -23,6 +23,9 @@ import {
   reattachSocket,
   cleanupStaleRooms,
   isInActiveGame,
+  registerActiveSocket,
+  unregisterActiveSocket,
+  getPlayerBySocket,
 } from './game/rooms.js';
 import {
   createGame,
@@ -54,8 +57,16 @@ import {
   insertScoreForMode,
   checkQualifiesTop10ForMode,
   pruneAllModes,
+  clearTestEntries,
 } from './game/leaderboard.js';
-import { initAuthDb, insertGameResult, trackAnswer } from './game/auth.js';
+import {
+  initAuthDb,
+  insertGameResult,
+  trackAnswer,
+  createUser,
+  clearTestUsers,
+  clearTestHistory,
+} from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
 import adminRoutes from './routes/admin.js';
 import { rooms, socketToRoom } from './game/rooms.js';
@@ -193,6 +204,91 @@ io.engine.use(sessionMiddleware);
 
 // Test-only: teleport a peg to an adjacent position for E2E testing
 if (process.env.NODE_ENV !== 'production') {
+  // Clean up test entries from leaderboard tables
+  app.post('/test/clear-leaderboard', (_req, res) => {
+    clearTestEntries('leaderboard');
+    clearTestEntries('leaderboard_epl2025');
+    res.json({ ok: true });
+  });
+
+  // Test-only: clear ALL test data (leaderboard + users + history) in one call
+  app.post('/test/clear-all', (_req, res) => {
+    clearTestEntries('leaderboard');
+    clearTestEntries('leaderboard_epl2025');
+    clearTestUsers();
+    clearTestHistory();
+    res.json({ ok: true });
+  });
+
+  // Test-only: auto-confirm registration for e2e tests
+  app.post('/test/register', async (req, res) => {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+    const result = createUser({ username, email, password, autoConfirm: true });
+    if (result.error) {
+      return res.status(409).json({ error: result.error });
+    }
+    res.json({ ok: true });
+  });
+
+  // Test-only: create test users for e2e
+  app.post('/test/setup-users', async (_req, res) => {
+    const users = [
+      { username: 'e2e_attacker', email: 'e2e_attacker@test.invalid' },
+      { username: 'e2e_defender', email: 'e2e_defender@test.invalid' },
+      { username: 'e2e_normal_p1', email: 'e2e_normal_p1@test.invalid' },
+      { username: 'e2e_normal_p2', email: 'e2e_normal_p2@test.invalid' },
+      { username: 'e2e_quiz_player', email: 'e2e_quiz_player@test.invalid' },
+      { username: 'e2e_qlas_p1', email: 'e2e_qlas_p1@test.invalid' },
+      { username: 'e2e_qlas_p2', email: 'e2e_qlas_p2@test.invalid' },
+    ];
+    for (const u of users) {
+      createUser({
+        username: u.username,
+        email: u.email,
+        password: 'testpass123',
+        autoConfirm: true,
+      });
+    }
+    res.json({ ok: true, users: users.length });
+  });
+
+  // Test-only: lock next question to a specific qId so tests always know the correct answer
+  app.post('/test/set-question', (req, res) => {
+    const { qId } = req.body;
+    if (!qId) {
+      return res.status(400).json({ error: 'Missing qId' });
+    }
+    _testOverride = qId;
+    res.json({ ok: true, qId });
+  });
+
+  // Test-only: override HP for qlashique games (affects next createQlasGame call only)
+  app.post('/test/set-hp', (req, res) => {
+    const { hp } = req.body;
+    if (!Number.isInteger(hp) || hp < 1) {
+      return res.status(400).json({ error: 'hp must be a positive integer' });
+    }
+    _testHPOverride = hp;
+    res.json({ ok: true, hp });
+  });
+
+  // Test-only: list first question from each category with correct answer index
+  app.get('/test/questions-sample', (_req, res) => {
+    const sample = Object.entries(questionsDb)
+      .filter(([, qs]) => Array.isArray(qs) && qs.length > 0)
+      .map(([category, qs]) => ({
+        category,
+        qId: qs[0].id,
+        question: qs[0].q,
+        correctIdx: qs[0].a,
+        opts: qs[0].opts,
+      }));
+    res.json(sample);
+  });
+
   app.get('/test/peg-info/:code/:pegId', (req, res) => {
     const room = getRoom(req.params.code);
     if (!room?.state) {
@@ -270,7 +366,7 @@ io.on('connection', (socket) => {
         const room = rooms.get(code);
         console.log('[auth] room found:', room ? 'yes' : 'no');
         if (room) {
-          const player = room.players.find((p) => p.id === socket.id);
+          const player = getPlayerBySocket(room, socket.id);
           console.log(
             '[auth] player found:',
             player ? player.name : 'no',
@@ -303,7 +399,7 @@ io.on('connection', (socket) => {
       if (code) {
         const room = rooms.get(code);
         if (room) {
-          const player = room.players.find((p) => p.id === socket.id);
+          const player = getPlayerBySocket(room, socket.id);
           if (player) {
             player.userId = sess.userId;
             console.log('[auth] Updated player userId in room:', player.userId);
@@ -336,7 +432,7 @@ io.on('connection', (socket) => {
     }
     socket.join(room.code);
     console.log(`[room] ${room.code} created by ${playerName}`);
-    const token = room.players.find((p) => p.id === socket.id)?.token;
+    const token = getPlayerBySocket(room, socket.id)?.token;
     cb({
       ok: true,
       code: room.code,
@@ -361,7 +457,7 @@ io.on('connection', (socket) => {
     const room = getRoom(code);
     socket.join(code);
     socket.to(code).emit('room:player_joined', { players: room.players.map(publicPlayer) });
-    const joiningPlayer = room.players.find((p) => p.id === socket.id);
+    const joiningPlayer = getPlayerBySocket(room, socket.id);
     cb({
       ok: true,
       playerId: socket.id,
@@ -378,11 +474,16 @@ io.on('connection', (socket) => {
         room.classSelections[1] = 'none';
         room.started = true;
         room.startedAt = Date.now();
-        room.state = createQlasGame('none', 'none');
+        room.state = createQlasGame('none', 'none', _testHPOverride ?? 30);
+        _testHPOverride = null;
         room.qlasStats = [
           { answered: 0, correct: 0 },
           { answered: 0, correct: 0 },
         ];
+        // Register all player sockets as in an active game
+        for (const player of room.players) {
+          registerActiveSocket(player.id);
+        }
         _emitQlasTurnStart(io, code, room);
       }
     }
@@ -423,8 +524,9 @@ io.on('connection', (socket) => {
     room.startedAt = Date.now();
     room.state = gameState;
 
-    // Clean up any lingering quiz sessions for players starting a Weeqlash game
+    // Register all player sockets as in an active game
     for (const player of room.players) {
+      registerActiveSocket(player.id);
       quizRuns.delete(player.id);
     }
 
@@ -459,7 +561,9 @@ io.on('connection', (socket) => {
     quizRuns.delete(socket.id);
 
     const oldSocketId = player.id;
+    unregisterActiveSocket(oldSocketId);
     player.id = socket.id; // re-attach new socket id
+    registerActiveSocket(socket.id);
     reattachSocket(oldSocketId, socket.id, code);
     socket.join(code);
     console.log(`[reconnect] ${player.name} re-joined ${code}`);
@@ -521,7 +625,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No active game' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -540,7 +644,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No active game' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -591,17 +695,20 @@ io.on('connection', (socket) => {
     cb({ ok: true, moveType, question, questionsTotal, defenderPlayerIdx });
   });
 
-  socket.on('turn:answer_preview', ({ code, answerIdx }, cb) => {
+  socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }, cb) => {
     const room = getRoom(code);
     if (!room?.state) {
       return cb?.({ error: 'No active game' });
     }
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player || room.state.currentPlayerIdx !== player.index) {
       return cb?.({ error: 'Not your turn' });
     }
     if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {
       return cb?.({ error: 'Invalid answer index' });
+    }
+    if (typeof questionIdx !== 'number' || questionIdx < 0) {
+      return cb?.({ error: 'Invalid question index' });
     }
 
     const now = Date.now();
@@ -615,9 +722,9 @@ io.on('connection', (socket) => {
     const qId = pending?.questionId;
     const isCorrect = qId ? questionsDb._byId?.[qId]?.a === answerIdx : null;
     if (isCorrect) {
-      socket.to(code).emit('game:answer_preview', { answerIdx, correct: true });
+      socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correct: true });
     } else {
-      socket.to(code).emit('game:answer_preview', { answerIdx });
+      socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx });
     }
     cb?.({ ok: true });
   });
@@ -631,7 +738,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'Game over' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -768,7 +875,14 @@ io.on('connection', (socket) => {
       return cb({ error: 'No questions available for this mode.' });
     }
 
-    const randomQ = pool[Math.floor(Math.random() * pool.length)];
+    let randomQ = pool[Math.floor(Math.random() * pool.length)];
+    if (_testOverride) {
+      const override = questionsDb._byId[_testOverride];
+      if (override) {
+        randomQ = override;
+      }
+      _testOverride = null;
+    }
     quizRuns.set(socket.id, { startedAt: Date.now(), questionIds: [randomQ.id], answers: 0, mode });
 
     cb({ ok: true, id: randomQ.id, q: randomQ.q, opts: randomQ.opts, category: randomQ.category });
@@ -898,6 +1012,10 @@ io.on('connection', (socket) => {
       room.startedAt = Date.now();
       room.state = gameState;
 
+      for (const p of room.players) {
+        registerActiveSocket(p.id);
+      }
+
       socket.emit('game:start', {
         players: gameState.players,
         settings: room.settings,
@@ -921,7 +1039,7 @@ io.on('connection', (socket) => {
       return cb(player);
     }
     socket.join(room.code);
-    const token = room.players.find((p) => p.id === socket.id)?.token;
+    const token = getPlayerBySocket(room, socket.id)?.token;
     room.classSelections[0] = 'none';
     cb({
       ok: true,
@@ -944,7 +1062,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid class' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -959,11 +1077,20 @@ io.on('connection', (socket) => {
     if (room.classSelections[0] && room.classSelections[1]) {
       room.started = true;
       room.startedAt = Date.now();
-      room.state = createQlasGame(room.classSelections[0], room.classSelections[1]);
+      room.state = createQlasGame(
+        room.classSelections[0],
+        room.classSelections[1],
+        _testHPOverride ?? 30,
+      );
+      _testHPOverride = null;
       room.qlasStats = [
         { answered: 0, correct: 0 },
         { answered: 0, correct: 0 },
       ];
+      // Register all player sockets as in an active game
+      for (const p of room.players) {
+        registerActiveSocket(p.id);
+      }
       _emitQlasTurnStart(io, code, room);
     }
   });
@@ -974,7 +1101,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No active game' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -1024,7 +1151,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No active game' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -1099,7 +1226,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No active game' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -1134,7 +1261,7 @@ io.on('connection', (socket) => {
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });
     }
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -1160,7 +1287,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'No active game' });
     }
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
     }
@@ -1215,6 +1342,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`[-] ${socket.id}`);
     quizRuns.delete(socket.id);
+    unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {
       // If game was in progress, notify remaining players and end the game
@@ -1425,7 +1553,19 @@ function recordGameStats(room) {
   }
 }
 
+// Test override: set via POST /test/set-question
+let _testOverride = null;
+let _testHPOverride = null;
+
 function _pickQlasQuestion(room, db) {
+  if (_testOverride) {
+    const q = db._byId[_testOverride];
+    _testOverride = null; // one-shot
+    if (q) {
+      room.usedQIds.add(q.id);
+      return q;
+    }
+  }
   const all = getAllQuestions(db);
   if (!all.length) {
     return null;

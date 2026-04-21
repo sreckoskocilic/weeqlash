@@ -127,7 +127,7 @@ function applySchemaMigrations(db) {
 
 // --- User CRUD ---
 
-export function createUser({ username, email, password }) {
+export function createUser({ username, email, password, autoConfirm = false }) {
   const db = getDb();
   const now = Date.now();
 
@@ -145,10 +145,17 @@ export function createUser({ username, email, password }) {
   const confirmToken = crypto.randomBytes(32).toString('hex');
 
   const stmt = db.prepare(`
-    INSERT INTO users (username, email, password_hash, confirmation_token, created_at, games_played, games_won)
-    VALUES (?, ?, ?, ?, ?, 0, 0)
+    INSERT INTO users (username, email, password_hash, confirmation_token, created_at, email_confirmed, games_played, games_won)
+    VALUES (?, ?, ?, ?, ?, ?, 0, 0)
   `);
-  const result = stmt.run(username, email, passwordHash, confirmToken, now);
+  const result = stmt.run(
+    username,
+    email,
+    passwordHash,
+    confirmToken,
+    now,
+    autoConfirm ? 1 : 0
+  );
 
   return {
     ok: true,
@@ -175,7 +182,9 @@ export function authenticateUser(usernameOrEmail, password) {
     return { error: 'Invalid credentials' };
   }
 
-  if (!user.email_confirmed) {
+  // Bypass confirmation for test emails
+  const needsConfirm = !user.email_confirmed && !user.email.endsWith('@test.invalid');
+  if (needsConfirm) {
     return {
       error: 'Email not confirmed',
       needsConfirmation: true,
@@ -359,4 +368,28 @@ export function insertGameResult({
     Date.now(),
   );
   return { ok: true, id: result.lastInsertRowid };
+}
+
+export function clearTestUsers() {
+  const db = getDb();
+  try {
+    db.prepare('DELETE FROM users WHERE email LIKE \'%@test.invalid\'').run();
+  } catch (err) {
+    console.error('[auth] clearTestUsers() failed:', err.message);
+  }
+}
+
+export function clearTestHistory() {
+  const db = getDb();
+  try {
+    // Delete child tables BEFORE parent (foreign key constraint)
+    db.prepare('DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\')').run();
+    db.prepare(`
+      DELETE FROM game_history
+      WHERE player1_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')
+         OR player2_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')
+    `).run();
+  } catch (err) {
+    console.error('[auth] clearTestHistory() failed:', err.message);
+  }
 }

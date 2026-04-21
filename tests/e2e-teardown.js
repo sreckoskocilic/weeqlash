@@ -2,9 +2,8 @@ import { request } from '@playwright/test';
 
 const BASE = 'http://localhost:3000';
 
-// Create test users before tests run
-export default async function globalSetup() {
+export default async function globalTeardown() {
   const api = await request.newContext({ baseURL: BASE });
-  await api.post('/test/setup-users').catch(() => {});
+  await api.post('/test/clear-all').catch(() => {});
   await api.dispose();
 }
