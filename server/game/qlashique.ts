@@ -41,13 +41,14 @@ export interface QlashiqueState {
 // ---------------------------------------------------------------------------
 
 export function createQlasGame(
-  player0ClassId: string = 'slowpoke',
-  player1ClassId: string = 'slowpoke',
+  player0ClassId: ClassId = 'slowpoke',
+  player1ClassId: ClassId = 'slowpoke',
+  hp: number = 30,
 ): QlashiqueState {
   return {
     players: [
-      { hp: 30, classId: player0ClassId, rerollUsed: false },
-      { hp: 30, classId: player1ClassId, rerollUsed: false },
+      { hp: hp, classId: player0ClassId, rerollUsed: false },
+      { hp: hp, classId: player1ClassId, rerollUsed: false },
     ],
     currentPlayerIdx: 0,
     turnNumber: 1,

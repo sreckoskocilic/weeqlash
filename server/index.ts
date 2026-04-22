@@ -16,6 +16,10 @@ if (envPath) {
   dotenv.config({ path: envPath, override: true });
 }
 
+// Test overrides
+let _testOverride = null;
+let _testHPOverride: number | null = null;
+
 import session from 'express-session';
 
 import {
@@ -54,6 +58,7 @@ import {
   checkInstantWin,
   checkGameOver,
   PHASE as QLAS_PHASE,
+  ClassId,
 } from './game/qlashique.ts';
 import {
   initDb,
@@ -131,6 +136,16 @@ app.use(express.static(path.join(__dirname, '..', 'client')));
 // Health check endpoint
 app.get('/health', (_req: express.Request, res: express.Response) => {
   res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+// Test-only: set HP for Qlashique games
+app.post('/test/set-hp', (req: express.Request, res: express.Response) => {
+  const { hp } = req.body;
+  if (!Number.isInteger(hp) || hp < 1) {
+    return res.status(400).json({ error: 'hp must be a positive integer' });
+  }
+  _testHPOverride = hp;
+  res.json({ ok: true, hp });
 });
 
 // Admin routes
@@ -643,7 +658,12 @@ io.on('connection', (socket) => {
       // Check if both players have selected classes
       if (room.classSelections[0] !== null && room.classSelections[1] !== null) {
         // Both players have selected classes, start the game
-        room.state = createQlasGame();
+        room.state = createQlasGame(
+          (room.classSelections[0] ?? 'slowpoke') as ClassId,
+          (room.classSelections[1] ?? 'slowpoke') as ClassId,
+          _testHPOverride ?? 30,
+        );
+        _testHPOverride = null;
         room.started = true;
         room.startedAt = Date.now();
 
@@ -877,7 +897,13 @@ io.on('connection', (socket) => {
 
     try {
       // Create a fresh game state for reroll processing
-      const gameStateForReroll: QlashiqueState = createQlasGame();
+      const player0ClassId = (room.classSelections?.[0] ?? 'slowpoke') as ClassId;
+      const player1ClassId = (room.classSelections?.[1] ?? 'slowpoke') as ClassId;
+      const gameStateForReroll: QlashiqueState = createQlasGame(
+        player0ClassId,
+        player1ClassId,
+        _testHPOverride ?? 30,
+      );
       const rerollResult = processReroll(gameStateForReroll);
 
       // Update room state if reroll was successful
