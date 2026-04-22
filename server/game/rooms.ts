@@ -1,13 +1,48 @@
 import { randomUUID } from 'crypto';
 import { CATS } from './engine.ts';
+import type { Category } from './engine.ts';
 
 // In-memory room store. Each room holds settings, player list, and game state.
-export const rooms = new Map(); // code -> room
-export const socketToRoom = new Map(); // socketId -> roomCode
+export const rooms = new Map<string, RoomState>(); // code -> room
+export const socketToRoom = new Map<string, string>(); // socketId -> roomCode
 // O(1) lookup for sockets in active games (avoids iterating all rooms on quiz start)
-export const socketsInActiveGames = new Set();
+export const socketsInActiveGames = new Set<string>();
 
-function generateCode() {
+export interface RoomState {
+  code: string;
+  settings: RoomSettings;
+  players: PlayerInRoom[];
+  playersBySocket: Map<string, PlayerInRoom>; // O(1) socketId -> player lookup
+  started: boolean;
+  startedAt: number | null;
+  state: any | null; // GameState from engine.ts when started
+
+  // Qlashique-specific fields
+  mode?: string;
+  classSelections?: (string | null)[];
+  usedQIds?: Set<string>;
+  currentQuestion?: any;
+  questionIdx?: number;
+}
+
+export interface RoomSettings {
+  playerCount: number;
+  boardSize: number;
+  timer: number;
+  enabledCats: Category[] | undefined;
+}
+
+export interface PlayerInRoom {
+  id: string; // socketId
+  name: string;
+  color: string;
+  index: number;
+  isHost: boolean;
+  token: string; // reconnect token, sent only to this player
+  userId: string | null; // linked user account (null for guest)
+}
+
+function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 5; i++) {
@@ -16,7 +51,12 @@ function generateCode() {
   return code;
 }
 
-export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabledCats } = {}) {
+export function createRoom({
+  playerCount = 2,
+  boardSize = 7,
+  timer = 30,
+  enabledCats,
+} = {}): RoomState {
   // Validate player count (engine supports 2-4)
   const PLAYER_COUNT = Math.max(2, Math.min(4, playerCount));
 
@@ -33,25 +73,24 @@ export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabled
   }
 
   // Validate enabledCats — filter out any values not in the known category list
+  let validatedEnabledCats: Category[] | undefined = undefined;
   if (Array.isArray(enabledCats)) {
-    enabledCats = enabledCats.filter((c) => CATS.includes(c));
-    if (enabledCats.length === 0) {
-      enabledCats = undefined;
+    validatedEnabledCats = enabledCats.filter((c): c is Category => CATS.includes(c));
+    if (validatedEnabledCats.length === 0) {
+      validatedEnabledCats = undefined;
     }
-  } else {
-    enabledCats = undefined;
   }
 
-  let code;
+  let code: string;
   do {
     code = generateCode();
   } while (rooms.has(code));
 
-  const room = {
+  const room: RoomState = {
     code,
-    settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats },
+    settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats: validatedEnabledCats },
     players: [],
-    playersBySocket: new Map(), // O(1) socketId -> player lookup
+    playersBySocket: new Map(),
     started: false,
     startedAt: null,
     state: null,
@@ -60,7 +99,12 @@ export function createRoom({ playerCount = 2, boardSize = 7, timer = 30, enabled
   return room;
 }
 
-export function joinRoom(code, socketId, playerName, userId = null) {
+export function joinRoom(
+  code: string,
+  socketId: string,
+  playerName: string,
+  userId: string | null = null,
+): PlayerInRoom | { error: string } {
   const normalizedCode = code?.toUpperCase();
   // Validate room code format
   if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
@@ -93,7 +137,7 @@ export function joinRoom(code, socketId, playerName, userId = null) {
   }
 
   const COLORS = ['#FF4444', '#1E88E5', '#43A047', '#FB8C00'];
-  const player = {
+  const player: PlayerInRoom = {
     id: socketId,
     name: finalName,
     color: COLORS[room.players.length % COLORS.length],
@@ -108,7 +152,7 @@ export function joinRoom(code, socketId, playerName, userId = null) {
   return player;
 }
 
-export function getRoom(code) {
+export function getRoom(code: string): RoomState | null {
   const normalizedCode = code?.toUpperCase();
   if (!normalizedCode || normalizedCode.length !== 5 || !/^[A-Z0-9]+$/.test(normalizedCode)) {
     return null;
@@ -116,7 +160,9 @@ export function getRoom(code) {
   return rooms.get(normalizedCode) ?? null;
 }
 
-export function removePlayerFromRoom(socketId) {
+export function removePlayerFromRoom(
+  socketId: string,
+): { room: RoomState; player: PlayerInRoom } | {} {
   const code = socketToRoom.get(socketId);
   if (!code) {
     return {};
@@ -150,7 +196,7 @@ export function removePlayerFromRoom(socketId) {
   return { room, player };
 }
 
-export function reattachSocket(oldSocketId, newSocketId, code) {
+export function reattachSocket(oldSocketId: string, newSocketId: string, code: string): void {
   socketToRoom.delete(oldSocketId);
   socketToRoom.set(newSocketId, code);
   // Also update the player lookups
@@ -167,9 +213,9 @@ export function reattachSocket(oldSocketId, newSocketId, code) {
 
 // Periodic cleanup of orphaned rooms (empty lobby rooms, abandoned games).
 // Returns the number of rooms removed.
-export function cleanupStaleRooms() {
+export function cleanupStaleRooms(): number {
   let removed = 0;
-  const toDelete = [];
+  const toDelete: string[] = [];
 
   for (const [code, room] of rooms) {
     // Empty rooms — always safe to remove
@@ -193,16 +239,16 @@ export function cleanupStaleRooms() {
   return removed;
 }
 
-export function createQlasRoom() {
-  let code;
+export function createQlasRoom(): RoomState {
+  let code: string;
   do {
     code = generateCode();
   } while (rooms.has(code));
 
-  const room = {
+  const room: RoomState = {
     code,
     mode: 'qlashique',
-    settings: { playerCount: 2 },
+    settings: { playerCount: 2, boardSize: 7, timer: 30, enabledCats: undefined },
     players: [],
     playersBySocket: new Map(),
     started: false,
@@ -219,20 +265,20 @@ export function createQlasRoom() {
 
 // Check if a socket ID belongs to a player in an active (started) game.
 // Uses O(1) Set lookup instead of iterating all rooms.
-export function isInActiveGame(socketId) {
+export function isInActiveGame(socketId: string): boolean {
   return socketsInActiveGames.has(socketId);
 }
 
 // Track socket as being in an active game (called when room starts)
-export function registerActiveSocket(socketId) {
+export function registerActiveSocket(socketId: string): void {
   socketsInActiveGames.add(socketId);
 }
 
 // Remove socket from active game tracking (called on disconnect)
-export function unregisterActiveSocket(socketId) {
+export function unregisterActiveSocket(socketId: string): void {
   socketsInActiveGames.delete(socketId);
 }
 
-export function getPlayerBySocket(room, socketId) {
-  return room.playersBySocket?.get(socketId) ?? room.players.find((p) => p.id === socketId);
+export function getPlayerBySocket(room: RoomState, socketId: string): PlayerInRoom | undefined {
+  return room.playersBySocket.get(socketId) ?? room.players.find((p) => p.id === socketId);
 }

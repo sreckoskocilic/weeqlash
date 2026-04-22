@@ -30,7 +30,7 @@ import {
   registerActiveSocket,
   unregisterActiveSocket,
   getPlayerBySocket,
-} from './game/rooms.js';
+} from './game/rooms.ts';
 import {
   createGame,
   selectPeg,
@@ -73,7 +73,7 @@ import {
 } from './game/auth.js';
 import { registerAuthRoutes } from './game/auth-routes.js';
 import adminRoutes from './routes/admin.js';
-import { rooms, socketToRoom } from './game/rooms.js';
+import { rooms, socketToRoom } from './game/rooms.ts';
 
 const app = express();
 app.set('trust proxy', 1);

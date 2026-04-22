@@ -5,7 +5,7 @@ import {
   getRoom,
   removePlayerFromRoom,
   reattachSocket,
-} from '../server/game/rooms.js';
+} from '../server/game/rooms.ts';
 
 describe('Rooms: createRoom', () => {
   afterEach(() => {
