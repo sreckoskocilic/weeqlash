@@ -1538,6 +1538,24 @@ function recordGameStats(room) {
         player2Stats,
       });
 
+      for (const [cat, stat] of Object.entries(player1Stats.byCategory ?? {})) {
+        for (let i = 0; i < (stat.correct ?? 0); i += 1) {
+          trackAnswer(player1UserId, cat, true);
+        }
+        for (let i = stat.correct ?? 0; i < (stat.attempts ?? 0); i += 1) {
+          trackAnswer(player1UserId, cat, false);
+        }
+      }
+
+      for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
+        for (let i = 0; i < (stat.correct ?? 0); i += 1) {
+          trackAnswer(player2UserId, cat, true);
+        }
+        for (let i = stat.correct ?? 0; i < (stat.attempts ?? 0); i += 1) {
+          trackAnswer(player2UserId, cat, false);
+        }
+      }
+
       // Update games played and won for both players
       const db = getDb();
       if (db) {
@@ -1571,17 +1589,8 @@ function recordGameStats(room) {
     return;
   }
 
-  // If only one player has account, track their stats individually and update games played/won
-  const player1Stats = players[0]?.stats?.byCategory ?? {};
-  const player2Stats = players[1]?.stats?.byCategory ?? {};
-
   // Track player1's stats if they have an account
   if (player1UserId) {
-    for (const [cat, stat] of Object.entries(player1Stats)) {
-      if (stat.attempts > 0) {
-        trackAnswer(player1UserId, cat, stat.correct);
-      }
-    }
     // Update games played and won for player 1
     const db = getDb();
     if (db) {
@@ -1599,11 +1608,6 @@ function recordGameStats(room) {
 
   // Track player2's stats if they have an account
   if (player2UserId) {
-    for (const [cat, stat] of Object.entries(player2Stats)) {
-      if (stat.attempts > 0) {
-        trackAnswer(player2UserId, cat, stat.correct);
-      }
-    }
     // Update games played and won for player 2
     const db = getDb();
     if (db) {
