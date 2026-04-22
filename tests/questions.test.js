@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { loadQuestions, getAllQuestions, getQuestionsForCategories } from '../server/game/questions.js';
+import {
+  loadQuestions,
+  getAllQuestions,
+  getQuestionsForCategories,
+} from '../server/game/questions.ts';
 
 // Helper to XOR-encrypt data (matches questions.js decrypt logic)
 function encrypt(data) {
@@ -31,12 +35,15 @@ describe('questions.js', () => {
     it('loads and decrypts questions from file', () => {
       const data = {
         History: [
-          { id: 'H1', q: 'Who was first US president?', a: 0, opts: ['Washington', 'Lincoln', 'Adams', 'Jefferson'] },
+          {
+            id: 'H1',
+            q: 'Who was first US president?',
+            a: 0,
+            opts: ['Washington', 'Lincoln', 'Adams', 'Jefferson'],
+          },
           { id: 'H2', q: 'Year of US independence?', a: 2, opts: ['1776', '1789', '1783', '1775'] },
         ],
-        Science: [
-          { id: 'S1', q: 'H2O is?', a: 1, opts: ['Gold', 'Water', 'Air', 'Salt'] },
-        ],
+        Science: [{ id: 'S1', q: 'H2O is?', a: 1, opts: ['Gold', 'Water', 'Air', 'Salt'] }],
       };
       const encPath = path.join(tempDir, 'questions.enc');
       fs.writeFileSync(encPath, encrypt(data));
@@ -79,9 +86,7 @@ describe('questions.js', () => {
           { id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] },
           { id: 'H2', q: 'Q2', a: 1, opts: ['A', 'B', 'C', 'D'] },
         ],
-        Science: [
-          { id: 'S1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] },
-        ],
+        Science: [{ id: 'S1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] }],
       };
       const dataWithId = { ...data, _byId: {} };
       for (const cat of Object.keys(data)) {
@@ -119,9 +124,7 @@ describe('questions.js', () => {
           { id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] },
           { id: 'H2', q: 'Q2', a: 1, opts: ['A', 'B', 'C', 'D'] },
         ],
-        Science: [
-          { id: 'S1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] },
-        ],
+        Science: [{ id: 'S1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] }],
         _byId: {},
       };
       for (const cat of ['History', 'Science']) {

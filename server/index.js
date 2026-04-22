@@ -41,7 +41,7 @@ import {
   PHASE,
   COORD_BASE,
 } from './game/engine.ts';
-import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.js';
+import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.ts';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.js';
 import {
   createQlasGame,

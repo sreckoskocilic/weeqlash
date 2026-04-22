@@ -103,7 +103,7 @@ interface GameState {
 }
 
 // Questions DB shape (as used by questions.js)
-interface Question {
+export interface Question {
   id: string;
   a: number; // correct answer index
   category: Category;
@@ -112,10 +112,10 @@ interface Question {
   // other fields like question, options, etc. are ignored by engine
 }
 
-type QuestionsDbCategories = {
+export type QuestionsDbCategories = {
   [category in Category]: Question[];
 };
-type QuestionsDb = QuestionsDbCategories & {
+export type QuestionsDb = QuestionsDbCategories & {
   _byId?: Record<string, Question>;
 };
 
