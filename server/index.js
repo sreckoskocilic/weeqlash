@@ -62,7 +62,7 @@ import {
   checkQualifiesTop10ForMode,
   pruneAllModes,
   clearTestEntries,
-} from './game/leaderboard.js';
+} from './game/leaderboard.ts';
 import {
   initAuthDb,
   insertGameResult,

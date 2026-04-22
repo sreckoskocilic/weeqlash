@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDb } from '../game/leaderboard.js';
+import { getDb } from '../game/leaderboard.ts';
 
 const router = express.Router();
 
