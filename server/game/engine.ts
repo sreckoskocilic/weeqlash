@@ -85,7 +85,7 @@ interface PendingTurn {
   questionsTotal: number;
 }
 
-interface GameState {
+export interface GameState {
   boardSize: number;
   board: Tile[][];
   pegs: Record<string, Peg>;
@@ -120,7 +120,7 @@ export type QuestionsDb = QuestionsDbCategories & {
 };
 
 // Submission from client
-interface Submission {
+export interface Submission {
   pegId: string;
   targetR: number;
   targetC: number;
@@ -128,7 +128,7 @@ interface Submission {
 }
 
 // Turn result from applyTurn
-interface TurnResult {
+export interface TurnResult {
   ok: true;
   events: GameEvent[];
   gameOver: boolean;
@@ -137,7 +137,7 @@ interface TurnResult {
   combatContinues: boolean;
 }
 
-type GameResult = TurnResult | { error: string };
+export type GameResult = TurnResult | { error: string };
 
 // Game events
 interface GameEvent {

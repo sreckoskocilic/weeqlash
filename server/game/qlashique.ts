@@ -40,11 +40,14 @@ export interface QlashiqueState {
 // Public: create initial game state
 // ---------------------------------------------------------------------------
 
-export function createQlasGame(p0classId: ClassId, p1classId: ClassId, hp = 30): QlashiqueState {
+export function createQlasGame(
+  player0ClassId: string = 'slowpoke',
+  player1ClassId: string = 'slowpoke',
+): QlashiqueState {
   return {
     players: [
-      { hp, classId: p0classId, rerollUsed: false },
-      { hp, classId: p1classId, rerollUsed: false },
+      { hp: 30, classId: player0ClassId, rerollUsed: false },
+      { hp: 30, classId: player1ClassId, rerollUsed: false },
     ],
     currentPlayerIdx: 0,
     turnNumber: 1,
