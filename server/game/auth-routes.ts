@@ -9,6 +9,7 @@ import {
   getUserById,
   getUserStats,
 } from './auth.ts';
+import type { Transporter } from 'nodemailer';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
@@ -63,16 +64,16 @@ function applyAuthRateLimit(req: any, res: any): boolean {
 function getSmtpConfig() {
   return {
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
+    port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM || 'noreply@weeqlash.icu',
-  };
+  } as const;
 }
 
-let transporter = null;
+let transporter: Transporter | null = null;
 
-async function getTransporter(): Promise<any> {
+async function getTransporter(): Promise<Transporter | null> {
   if (transporter) {
     return transporter;
   }
@@ -82,12 +83,17 @@ async function getTransporter(): Promise<any> {
     console.warn('[auth] SMTP not configured — emails will be logged to console');
     return null;
   }
+  // At this point, we know cfg.host is not null/undefined, but TypeScript needs help
+  const host: string = cfg.host as string;
+  const port: number = cfg.port as number;
+  const user: string = cfg.user as string;
+  const pass: string = cfg.pass as string;
   const nodemailer = await import('nodemailer');
   transporter = nodemailer.createTransport({
-    host: cfg.host,
-    port: cfg.port,
-    secure: cfg.port === 465,
-    auth: { user: cfg.user, pass: cfg.pass },
+    host: host,
+    port: port,
+    secure: port === 465,
+    auth: { user: user, pass: pass },
   });
   return transporter;
 }
@@ -160,7 +166,7 @@ export function registerAuthRoutes(app: any): void {
     }
 
     const result = authenticateUser(username, password);
-    if (result.error) {
+    if ('error' in result) {
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
 
@@ -229,7 +235,7 @@ export function registerAuthRoutes(app: any): void {
       console.log('[auth-routes] Sending stats result:', stats);
       res.json(stats);
     } catch (err) {
-      console.error('[auth-routes] Error fetching user stats:', err.message);
+      console.error('[auth-routes] Error fetching user stats:', (err as Error).message);
       res.status(500).json({ error: 'Failed to fetch stats' });
     }
   });
@@ -254,6 +260,9 @@ export function registerAuthRoutes(app: any): void {
     }
 
     const user = getUserById(req.session.userId);
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
     const confirmUrl = `${CLIENT_URL}?confirm=${result.confirmToken}`;
     sendEmail(
       user.email,

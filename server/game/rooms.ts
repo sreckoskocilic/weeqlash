@@ -56,6 +56,11 @@ export function createRoom({
   boardSize = 7,
   timer = 30,
   enabledCats,
+}: {
+  playerCount?: number;
+  boardSize?: number;
+  timer?: number;
+  enabledCats?: Category[];
 } = {}): RoomState {
   // Validate player count (engine supports 2-4)
   const PLAYER_COUNT = Math.max(2, Math.min(4, playerCount));
@@ -88,7 +93,12 @@ export function createRoom({
 
   const room: RoomState = {
     code,
-    settings: { playerCount: PLAYER_COUNT, boardSize, timer, enabledCats: validatedEnabledCats },
+    settings: {
+      playerCount: PLAYER_COUNT,
+      boardSize,
+      timer,
+      enabledCats: validatedEnabledCats,
+    } as RoomSettings,
     players: [],
     playersBySocket: new Map(),
     started: false,
@@ -248,7 +258,12 @@ export function createQlasRoom(): RoomState {
   const room: RoomState = {
     code,
     mode: 'qlashique',
-    settings: { playerCount: 2, boardSize: 7, timer: 30, enabledCats: undefined },
+    settings: {
+      playerCount: 2,
+      boardSize: 7,
+      timer: 30,
+      enabledCats: undefined as Category[] | undefined,
+    },
     players: [],
     playersBySocket: new Map(),
     started: false,

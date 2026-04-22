@@ -87,7 +87,7 @@ export function getTop10ForTable(table: string): LeaderboardEntry[] {
       )
       .all() as LeaderboardEntry[];
   } catch (err) {
-    console.error(`[leaderboard] getTop10ForTable(${table}) failed:`, err.message);
+    console.error(`[leaderboard] getTop10ForTable(${table}) failed:`, (err as Error).message);
     return [];
   }
 }
@@ -121,7 +121,7 @@ export function insertScoreForTable(
     );
     return getTop10ForTable(table);
   } catch (err) {
-    console.error(`[leaderboard] insertScoreForTable(${table}) failed:`, err.message);
+    console.error(`[leaderboard] insertScoreForTable(${table}) failed:`, (err as Error).message);
     return [];
   }
 }
@@ -135,7 +135,7 @@ export function clearTestEntries(table: string): void {
     // Delete entries with names prefixed 'e2e_' (created by e2e tests)
     db.prepare(`DELETE FROM ${table} WHERE name LIKE 'e2e_%'`).run();
   } catch (err) {
-    console.error(`[leaderboard] clearTestEntries(${table}) failed:`, err.message);
+    console.error(`[leaderboard] clearTestEntries(${table}) failed:`, (err as Error).message);
   }
 }
 
@@ -153,10 +153,13 @@ export function checkQualifiesTop10ForTable(
       .prepare(
         `SELECT COUNT(*) as cnt FROM ${table} WHERE answers > ? OR (answers = ? AND time_ms < ?)`,
       )
-      .get(answers, answers, timeMs);
-    return better.cnt < 10;
+      .get(answers, answers, timeMs) as { cnt: number } | undefined;
+    return better === undefined || better === null ? false : better.cnt < 10;
   } catch (err) {
-    console.error(`[leaderboard] checkQualifiesTop10ForTable(${table}) failed:`, err.message);
+    console.error(
+      `[leaderboard] checkQualifiesTop10ForTable(${table}) failed:`,
+      (err as Error).message,
+    );
     return false;
   }
 }
@@ -171,7 +174,7 @@ export function pruneTable(table: string): void {
       `DELETE FROM ${table} WHERE id NOT IN (SELECT id FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 100)`,
     ).run();
   } catch (err) {
-    console.error(`[leaderboard] pruneTable(${table}) failed:`, err.message);
+    console.error(`[leaderboard] pruneTable(${table}) failed:`, (err as Error).message);
   }
 }
 

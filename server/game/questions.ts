@@ -14,11 +14,8 @@ interface Question {
   // other fields like question, options, etc. are ignored by engine
 }
 
-interface QuestionsDbCategories {
-  [category: string]: Question[];
-}
-
-interface QuestionsDb extends QuestionsDbCategories {
+interface QuestionsDb {
+  [category: string]: Question[] | Record<string, Question> | undefined;
   _byId?: Record<string, Question>;
 }
 
@@ -57,7 +54,7 @@ export function loadQuestions(encPath?: string): QuestionsDb {
     throw new Error(
       `questions.enc not found at ${resolved}. ` +
         'Set QUESTIONS_PATH env var or place file in server/questions.enc: ' +
-        err.message,
+        (err as Error).message,
     );
   }
   const data = JSON.parse(decrypt(raw)) as QuestionsDb;
@@ -75,7 +72,7 @@ export function loadQuestions(encPath?: string): QuestionsDb {
     }
   }
 
-  const total = Object.values(data)
+  const total = (Object.values(data) as Question[][])
     .filter(Array.isArray)
     .reduce((n, qs) => n + qs.length, 0);
 
