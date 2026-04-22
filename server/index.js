@@ -40,7 +40,7 @@ import {
   getValidMoves,
   PHASE,
   COORD_BASE,
-} from './game/engine.js';
+} from './game/engine.ts';
 import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.js';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.js';
 import {

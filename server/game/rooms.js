@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { CATS } from './engine.js';
+import { CATS } from './engine.ts';
 
 // In-memory room store. Each room holds settings, player list, and game state.
 export const rooms = new Map(); // code -> room
