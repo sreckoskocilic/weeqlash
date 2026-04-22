@@ -12,6 +12,25 @@ import { app } from '../server/index.js';
  * 3. Client Security (CSP headers, XSS protection, input sanitization)
  */
 
+describe('Duel Stats Recording', () => {
+  // Test that the stats API endpoints work correctly
+  // Full duel game stats are recorded via recordGameStats (similar to qlashique)
+
+  it('✓ game_history endpoint works (404 for non-existent user)', async () => {
+    const res = await request(app)
+      .get('/test/game-history/nonexistent@test.invalid');
+    // Returns 404 if user doesn't exist
+    expect(res.status).toBe(404);
+  });
+
+  it('✓ user-stats endpoint works (404 for non-existent user)', async () => {
+    const res = await request(app)
+      .get('/test/user-stats/nonexistent@test.invalid');
+    // Returns 404 if user doesn't exist
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('Security Tests', () => {
 
   // ============================================================
