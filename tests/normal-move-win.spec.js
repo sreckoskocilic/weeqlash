@@ -1,7 +1,9 @@
-// normal-move-win.spec.js – extended win test
-// Reuses logic from normal-move.spec.js but loops until a winner
+// @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
+import { loadQuestions } from '../server/game/questions.ts';
+
 const BASE = 'http://localhost:3000';
+
 async function registerAndLogin(browser, username) {
   const ctx = await browser.newContext({ baseURL: BASE });
   const page = await ctx.newPage();
@@ -10,87 +12,312 @@ async function registerAndLogin(browser, username) {
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill('testpass123');
   await page.locator('#btn-login').click();
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1200);
   return { ctx, page };
 }
-async function getUserStats(email) {
-  const stats_api = await playwrightRequest.newContext({ baseURL: BASE });
-  const res = await stats_api.get(`/auth/stats/${email}`);
-  const data = await res.json();
-  await stats_api.dispose();
-  return data.totalAnswered || 0;
+
+async function getUserQuestionStats(page) {
+  const meRes = await page.request.get('/auth/me');
+  const meData = await meRes.json();
+  const userId = meData?.user?.id;
+  expect(userId).toBeTruthy();
+
+  const statsRes = await page.request.get(`/auth/stats/${userId}`);
+  expect(statsRes.ok()).toBe(true);
+  const statsData = await statsRes.json();
+  return statsData.totalAnswered || 0;
 }
-async function getUserGamesPlayed(email) {
-  const api = await playwrightRequest.newContext({ baseURL: BASE });
+
+async function getUserStats(api, email) {
   const res = await api.get(`/test/user-stats/${email}`);
-  const data = await res.json();
-  await api.dispose();
-  return data.games_played || 0;
+  return res.json();
 }
-// Helper: play turns for current player until no valid moves or game over
-async function playUntilWin(page) {
-  while (true) {
-    const pegs = page.locator('.peg.can-move');
-    if ((await pegs.count()) === 0) {return false;}
-    const pegId = await pegs.first().getAttribute('data-peg-id');
-    await page.locator(`.peg[data-peg-id="${pegId}"]`).click();
-    await page.waitForTimeout(300);
-    const tiles = page.locator('.tile:not(.corner).can-move');
-    if ((await tiles.count()) === 0) {return false;}
-    await tiles.first().click();
-    await page.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
-    await page.locator('#modal-options .modal-option').nth(0).click();
-    await page.waitForTimeout(1200);
-    if (await page.locator('#screen-gameover').isVisible()) {return true;}
+
+async function getPegPosition(page, pegId) {
+  return page.evaluate((id) => {
+    const peg = document.querySelector(`.peg[data-peg-id="${id}"]`);
+    const tile = peg?.parentElement;
+    return tile ? { r: Number(tile.dataset.r), c: Number(tile.dataset.c) } : null;
+  }, pegId);
+}
+
+function normalizeText(value) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function findCorrectAnswerIndex(questionText, options) {
+  const normalizedQuestion = normalizeText(questionText);
+  const normalizedOptions = options.map(normalizeText);
+
+  for (const questions of Object.values(QUESTION_BANK)) {
+    if (!Array.isArray(questions)) {
+      continue;
+    }
+    const match = questions.find((question) => {
+      if (normalizeText(question.q) !== normalizedQuestion) {
+        return false;
+      }
+      return question.opts.every((opt, idx) => normalizeText(opt) === normalizedOptions[idx]);
+    });
+    if (match) {
+      return match.a;
+    }
   }
+
+  return null;
 }
+
+async function getPegIdAt(page, r, c) {
+  return page.evaluate(
+    ({ row, col }) => {
+      const tile = document.querySelector(`.tile[data-r="${row}"][data-c="${col}"]`);
+      return tile?.querySelector('.peg')?.getAttribute('data-peg-id') ?? null;
+    },
+    { row: r, col: c },
+  );
+}
+
+async function getPegOwnerAt(page, r, c) {
+  return page.evaluate(
+    ({ row, col }) => {
+      const tile = document.querySelector(`.tile[data-r="${row}"][data-c="${col}"]`);
+      const peg = tile?.querySelector('.peg');
+      const pegId = peg?.getAttribute('data-peg-id');
+      if (!pegId) {
+        return null;
+      }
+      return pegId.startsWith('p0_') ? 0 : pegId.startsWith('p1_') ? 1 : null;
+    },
+    { row: r, col: c },
+  );
+}
+
+async function selectPreferredMove(page, preferredDirections) {
+  const pegs = page.locator('.peg.can-move');
+  const pegCount = await pegs.count();
+
+  for (let i = 0; i < pegCount; i += 1) {
+    const pegId = await pegs.nth(i).getAttribute('data-peg-id');
+    if (!pegId) {
+      continue;
+    }
+
+    const position = await getPegPosition(page, pegId);
+    if (!position) {
+      continue;
+    }
+
+    await page.locator(`.peg[data-peg-id="${pegId}"]`).click();
+    await page.waitForTimeout(200);
+
+    const validMoves = await page.locator('.tile.valid-move').evaluateAll((tiles) =>
+      tiles.map((tile) => ({
+        r: Number(tile.getAttribute('data-r')),
+        c: Number(tile.getAttribute('data-c')),
+      })),
+    );
+
+    for (const direction of preferredDirections) {
+      const target = validMoves.find(({ r, c }) => r === position.r + direction.dr && c === position.c + direction.dc);
+      if (target) {
+        return { pegId, from: position, to: target };
+      }
+    }
+
+    if (validMoves.length > 0) {
+      return { pegId, from: position, to: validMoves[0] };
+    }
+  }
+
+  return null;
+}
+
+async function playMove(page, preferredDirections) {
+  const selected = await selectPreferredMove(page, preferredDirections);
+  expect(selected).not.toBeNull();
+  let questionCount = 0;
+
+  const { pegId, from, to } = selected;
+  const positionBefore = await getPegPosition(page, pegId);
+  const attackerId = pegId.startsWith('p0_') ? 0 : 1;
+  const targetOwnerBefore = await getPegOwnerAt(page, to.r, to.c);
+  const isCombat = targetOwnerBefore !== null && targetOwnerBefore !== attackerId;
+
+  const targetTile = page.locator(`.tile.valid-move[data-r="${to.r}"][data-c="${to.c}"]`);
+  await expect(targetTile).toBeVisible({ timeout: 5000 });
+  await targetTile.click();
+
+  for (let i = 0; i < 3; i += 1) {
+    await page.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
+    const questionText = (await page.locator('#modal-question').textContent()) ?? '';
+    const options = await page.locator('#modal-options .modal-option').evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const key = node.querySelector('.option-key');
+        return (node.textContent || '').replace(key?.textContent || '', '').trim();
+      }),
+    );
+    const correctIdx = findCorrectAnswerIndex(questionText, options);
+    expect(correctIdx).not.toBeNull();
+    await page.locator('#modal-options .modal-option').nth(correctIdx).click();
+    questionCount += 1;
+
+    const continueButton = page.locator('#modal-continue-btn');
+    if (!isCombat) {
+      await expect(continueButton).toBeVisible({ timeout: 5000 });
+      await expect(continueButton).toBeEnabled({ timeout: 5000 });
+      await continueButton.click();
+      break;
+    }
+
+    const nextState = await Promise.race([
+      page
+        .locator('#modal-overlay:not(.visible)')
+        .waitFor({ timeout: 5000 })
+        .then(() => 'closed')
+        .catch(() => null),
+      page
+        .locator('#modal-options .modal-option:not([disabled])')
+        .first()
+        .waitFor({ timeout: 5000 })
+        .then(() => 'next-question')
+        .catch(() => null),
+    ]);
+
+    if (nextState === 'closed') {
+      break;
+    }
+  }
+
+  await page.locator('#modal-overlay:not(.visible)').waitFor({ timeout: 5000 });
+  if (!isCombat && positionBefore) {
+    await expect
+      .poll(async () => {
+        const positionAfter = await getPegPosition(page, pegId);
+        if (!positionAfter) {
+          return false;
+        }
+        return (
+          positionAfter.r !== positionBefore.r || positionAfter.c !== positionBefore.c
+        );
+      }, { timeout: 5000 })
+      .toBe(true);
+  }
+  return { ok: true, questionCount };
+}
+
+async function playTurn(page, preferredDirections) {
+  let moves = 0;
+  let questionCount = 0;
+
+  while (moves < 3) {
+    if (await page.locator('#screen-gameover').isVisible()) {
+      return { gameOver: true, moves, questionCount };
+    }
+
+    const moveResult = await playMove(page, preferredDirections);
+    if (!moveResult.ok) {
+      break;
+    }
+    questionCount += moveResult.questionCount;
+    moves += 1;
+  }
+
+  return { gameOver: await page.locator('#screen-gameover').isVisible(), moves, questionCount };
+}
+
+async function findCurrentTurnPage(p1, p2) {
+  for (let i = 0; i < 20; i += 1) {
+    if (await p1.locator('#screen-gameover').isVisible()) {
+      return p1;
+    }
+    if (await p2.locator('#screen-gameover').isVisible()) {
+      return p2;
+    }
+
+    if ((await p1.locator('.peg.can-move').count()) > 0) {
+      return p1;
+    }
+    if ((await p2.locator('.peg.can-move').count()) > 0) {
+      return p2;
+    }
+
+    await p1.waitForTimeout(250);
+  }
+
+  return null;
+}
+
 test('normal move: play until one player wins', async ({ browser }) => {
+  const api = await playwrightRequest.newContext({ baseURL: BASE });
+
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1');
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2');
-  const p1Initial = await getUserGamesPlayed('e2e_normal_p1@test.invalid');
-  const p2Initial = await getUserGamesPlayed('e2e_normal_p2@test.invalid');
+
+  const p1Initial = await getUserStats(api, 'e2e_normal_p1@test.invalid');
+  const p2Initial = await getUserStats(api, 'e2e_normal_p2@test.invalid');
+  const p1Stats = await getUserQuestionStats(p1);
+  const p2Stats = await getUserQuestionStats(p2);
+
   await p1.locator('[data-val="4"]').click();
   await p1.locator('#btn-create').click();
   await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
   const code = await p1.locator('#lobby-code').innerText();
+
   await p2.locator('#join-code').fill(code);
   await p2.locator('#btn-join').click();
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
+
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
   await p1.waitForTimeout(1200);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });
-  const maxTurns = 100;
-  let turn = 0;
-  let current = p1;
-  while (turn < maxTurns) {
-    const went = await playUntilWin(current);
-    if (went) {break;}
-    turn++;
-    console.log(turn);
-    // check if either side now shows gameover
-    if ((await p1.locator('#screen-gameover').isVisible()) ||
-        (await p2.locator('#screen-gameover').isVisible())) {
-      break;
-    }
-    current = current === p1 ? p2 : p1;
-  }
-  expect(turn).toBeGreaterThanOrEqual(0);
-  // Verify a game was completed
-  const p1After = await getUserGamesPlayed('e2e_normal_p1@test.invalid');
-  const p2After = await getUserGamesPlayed('e2e_normal_p2@test.invalid');
-  expect(p1After).toBeGreaterThanOrEqual(p1Initial);
-  expect(p2After).toBeGreaterThanOrEqual(p2Initial);
 
-  // Verify one winner
-  const p1Stats = await getUserStats('e2e_normal_p1@test.invalid');
-  const p2Stats = await getUserStats('e2e_normal_p2@test.invalid');
-  const p1Won = (p1After.games_won ?? 0);
-  const p2Won = (p2After.games_won ?? 0);
-  expect(p1Won + p2Won).toBe(1);
-  expect(p1Stats).toBeGreaterThan(0);
-  expect(p2Stats).toBeGreaterThan(0);
+  const strategies = new Map([
+    [p1, [{ dr: 0, dc: 1 }, { dr: 1, dc: 0 }]],
+    [p2, [{ dr: -1, dc: 0 }, { dr: 0, dc: -1 }]],
+  ]);
+  let gameOver = false;
+  let p1Questions = 0;
+  let p2Questions = 0;
+  const maxTurns = 6;
+
+  for (let i = 0; i < maxTurns && !gameOver; i += 1) {
+    const currentPage = await findCurrentTurnPage(p1, p2);
+    expect(currentPage).not.toBeNull();
+    const turnResult = await playTurn(currentPage, strategies.get(currentPage) ?? []);
+    expect(turnResult.moves).toBeGreaterThan(0);
+    if (currentPage === p1) {
+      p1Questions += turnResult.questionCount;
+    } else {
+      p2Questions += turnResult.questionCount;
+    }
+    gameOver = turnResult.gameOver;
+
+    if (!gameOver) {
+      await currentPage.waitForTimeout(500);
+    }
+  }
+
+  await expect(p1.locator('#screen-gameover')).toBeVisible({ timeout: 10000 });
+  await expect(p2.locator('#screen-gameover')).toBeVisible({ timeout: 10000 });
+
+  const p1After = await getUserStats(api, 'e2e_normal_p1@test.invalid');
+  const p2After = await getUserStats(api, 'e2e_normal_p2@test.invalid');
+
+  const p1AfterStats = await getUserQuestionStats(p1);
+  const p2AfterStats = await getUserQuestionStats(p2);
+  expect(p1AfterStats - p1Stats).toBe(p1Questions);
+  expect(p2AfterStats - p2Stats).toBe(p2Questions);
+  expect(p1After.games_played).toBeGreaterThan(p1Initial.games_played);
+  expect(p2After.games_played).toBeGreaterThan(p2Initial.games_played);
+  expect((p1After.games_won ?? 0) + (p2After.games_won ?? 0)).toBeGreaterThan(
+    (p1Initial.games_won ?? 0) + (p2Initial.games_won ?? 0),
+  );
+
+  await api.dispose();
   await ctx1.close();
   await ctx2.close();
 });
+
+const QUESTION_BANK = loadQuestions();
