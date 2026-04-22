@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   getClientIp,
   isLocalhostIp,
@@ -56,7 +56,7 @@ describe('auth-routes.js helpers', () => {
 it('blocks after 5 requests from same IP', () => {
       // Use a unique IP for this test to avoid state pollution from other tests
       const uniqueIp = '192.168.99.' + Math.floor(Math.random() * 255);
-      let results = [];
+      const results = [];
       for (let i = 0; i < 6; i++) {
         results.push(checkAuthRateLimit(uniqueIp));
       }
