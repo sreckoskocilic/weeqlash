@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = existsSync(path.join(__dirname, '.env'))
   ? path.join(__dirname, '.env')
   : path.join(__dirname, '..', '.env');
-dotenv.config({ path: envPath });
+dotenv.config({ path: envPath, override: true });
 
 import session from 'express-session';
 
