@@ -304,4 +304,4 @@ export function registerAuthRoutes(app) {
   });
 }
 
-export { applyAuthRateLimit };
+export { applyAuthRateLimit, getClientIp, isLocalhostIp, checkAuthRateLimit };
