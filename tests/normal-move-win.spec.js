@@ -69,6 +69,11 @@ test('normal move: play until one player wins', async ({ browser }) => {
     if (went) {break;}
     turn++;
     console.log(turn);
+    // check if either side now shows gameover
+    if ((await p1.locator('#screen-gameover').isVisible()) ||
+        (await p2.locator('#screen-gameover').isVisible())) {
+      break;
+    }
     current = current === p1 ? p2 : p1;
   }
   expect(turn).toBeGreaterThanOrEqual(0);
