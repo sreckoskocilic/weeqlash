@@ -3,13 +3,26 @@
 import fs from 'fs';
 import path from 'path';
 
-const KEY = Buffer.from(process.env.QUESTIONS_KEY, 'utf8');
+// KEY is lazy-loaded on first use to ensure dotenv has been configured
+let KEY = null;
+
+function getKey() {
+  if (!KEY) {
+    const questionsKey = process.env.QUESTIONS_KEY;
+    if (!questionsKey) {
+      throw new Error('QUESTIONS_KEY environment variable is not set');
+    }
+    KEY = Buffer.from(questionsKey, 'utf8');
+  }
+  return KEY;
+}
 
 function decrypt(base64) {
   const enc = Buffer.from(base64, 'base64');
   const dec = Buffer.alloc(enc.length);
+  const key = getKey();
   for (let i = 0; i < enc.length; i++) {
-    dec[i] = enc[i] ^ KEY[i % KEY.length];
+    dec[i] = enc[i] ^ key[i % key.length];
   }
   return dec.toString('utf8');
 }
