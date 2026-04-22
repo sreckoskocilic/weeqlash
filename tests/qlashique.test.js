@@ -10,7 +10,7 @@ import {
   checkGameOver,
   PHASE,
   CLASSES,
-} from '../server/game/qlashique.js';
+} from '../server/game/qlashique.ts';
 
 // ---------------------------------------------------------------------------
 // createQlasGame

@@ -53,7 +53,7 @@ import {
   checkInstantWin,
   checkGameOver,
   PHASE as QLAS_PHASE,
-} from './game/qlashique.js';
+} from './game/qlashique.ts';
 import {
   initDb,
   getDb,

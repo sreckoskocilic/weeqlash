@@ -6,18 +6,41 @@ export const PHASE = {
   GUESSING: 'guessing',
   OUTCOME: 'outcome',
   GAME_OVER: 'game_over',
-};
+} as const;
+
+export type Phase = (typeof PHASE)[keyof typeof PHASE];
 
 export const CLASSES = {
   SLOWPOKE: 'slowpoke',
   REROLL: 'reroll',
-};
+} as const;
+
+export type ClassId = (typeof CLASSES)[keyof typeof CLASSES];
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface PlayerState {
+  hp: number;
+  classId: ClassId;
+  rerollUsed: boolean;
+}
+
+export interface QlashiqueState {
+  players: [PlayerState, PlayerState];
+  currentPlayerIdx: number; // 0 or 1
+  turnNumber: number;
+  currentScore: number;
+  correctStreak: number;
+  phase: Phase;
+}
 
 // ---------------------------------------------------------------------------
 // Public: create initial game state
 // ---------------------------------------------------------------------------
 
-export function createQlasGame(p0classId, p1classId, hp = 30) {
+export function createQlasGame(p0classId: ClassId, p1classId: ClassId, hp = 30): QlashiqueState {
   return {
     players: [
       { hp, classId: p0classId, rerollUsed: false },
@@ -35,7 +58,7 @@ export function createQlasGame(p0classId, p1classId, hp = 30) {
 // Public: calculate timer for a given turn + class
 // ---------------------------------------------------------------------------
 
-export function calcTimer(turnNumber, classId) {
+export function calcTimer(turnNumber: number, classId: ClassId): number {
   const base = Math.min(5 + (turnNumber - 1) * 3, 25);
   return classId === CLASSES.SLOWPOKE ? base + 2 : base;
 }
@@ -45,7 +68,11 @@ export function calcTimer(turnNumber, classId) {
 // correctIdx is the correct answer index for the current question
 // ---------------------------------------------------------------------------
 
-export function processAnswer(state, answerIdx, correctIdx) {
+export function processAnswer(
+  state: QlashiqueState,
+  answerIdx: number,
+  correctIdx: number,
+): { state: QlashiqueState; correct: boolean } | { error: string } {
   if (state.phase !== PHASE.GUESSING) {
     return { error: 'Not in guessing phase' };
   }
@@ -66,7 +93,9 @@ export function processAnswer(state, answerIdx, correctIdx) {
 // Public: use reroll ability (Reroll class only, once per turn)
 // ---------------------------------------------------------------------------
 
-export function processReroll(state) {
+export function processReroll(
+  state: QlashiqueState,
+): { state: QlashiqueState } | { error: string } {
   if (state.phase !== PHASE.GUESSING) {
     return { error: 'Not in guessing phase' };
   }
@@ -89,13 +118,17 @@ export function processReroll(state) {
 // For 'choose', caller must follow up with applyOutcome().
 // ---------------------------------------------------------------------------
 
-export function endTurn(state) {
+export function endTurn(
+  state: QlashiqueState,
+):
+  | { state: QlashiqueState; outcome: 'self_damage' | 'nothing' | 'attack' | 'choose' }
+  | { error: string } {
   if (state.phase !== PHASE.GUESSING) {
     return { error: 'Not in guessing phase' };
   }
 
   const score = state.currentScore;
-  let outcome;
+  let outcome: 'self_damage' | 'nothing' | 'attack' | 'choose';
 
   if (score < 0) {
     outcome = 'self_damage';
@@ -127,7 +160,10 @@ export function endTurn(state) {
 // choice: 'attack' | 'heal'
 // ---------------------------------------------------------------------------
 
-export function applyOutcome(state, choice) {
+export function applyOutcome(
+  state: QlashiqueState,
+  choice: 'attack' | 'heal',
+): { state: QlashiqueState; p0hp: number; p1hp: number } | { error: string } {
   if (state.phase !== PHASE.OUTCOME) {
     return { error: 'Not in outcome phase' };
   }
@@ -157,7 +193,7 @@ export function applyOutcome(state, choice) {
 // Must be called at end of guessing phase, before endTurn() mutates state.
 // ---------------------------------------------------------------------------
 
-export function checkInstantWin(state) {
+export function checkInstantWin(state: QlashiqueState): boolean {
   return state.currentScore >= 10 && state.correctStreak === state.currentScore;
 }
 
@@ -166,7 +202,7 @@ export function checkInstantWin(state) {
 // Returns winnerIdx (0 or 1) or -1 if game continues
 // ---------------------------------------------------------------------------
 
-export function checkGameOver(state) {
+export function checkGameOver(state: QlashiqueState): number {
   const [p0, p1] = state.players;
   if (p0.hp <= 0 && p1.hp <= 0) {
     // Both dead simultaneously: current player loses (self-damage scenario)
@@ -185,7 +221,7 @@ export function checkGameOver(state) {
 // Internal: advance to next player's turn and reset per-turn state
 // ---------------------------------------------------------------------------
 
-function _advanceTurn(state) {
+function _advanceTurn(state: QlashiqueState): void {
   state.currentPlayerIdx = 1 - state.currentPlayerIdx;
   state.turnNumber += 1;
   state.currentScore = 0;
