@@ -373,6 +373,9 @@ export function insertGameResult({
 export function clearTestUsers() {
   const db = getDb();
   try {
+    // Delete child tables BEFORE parent (foreign key constraint)
+    db.prepare('DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\')').run();
+    db.prepare('DELETE FROM game_history WHERE player1_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\') OR player2_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\')').run();
     db.prepare('DELETE FROM users WHERE email LIKE \'%@test.invalid\'').run();
   } catch (err) {
     console.error('[auth] clearTestUsers() failed:', err.message);
