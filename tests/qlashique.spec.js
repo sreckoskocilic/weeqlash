@@ -102,6 +102,25 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
   expect(winner1).toMatch(/WIN/i);
   expect(winner2).toMatch(/WIN/i);
 
+  // Verify game stats were recorded after game ends with a winner
+  const p1Stats = await api.get('/test/user-stats/e2e_qlas_p1@test.invalid');
+  const p2Stats = await api.get('/test/user-stats/e2e_qlas_p2@test.invalid');
+  const p1Data = await p1Stats.json();
+  const p2Data = await p2Stats.json();
+
+  // Both players should have games_played = 1, winner should have games_won = 1
+  expect(p1Data.games_played).toBe(1);
+  expect(p2Data.games_played).toBe(1);
+
+  // P0 is winner (they attack and win)
+  expect(p1Data.games_won).toBe(1);
+  expect(p2Data.games_won).toBe(0);
+
+  // Verify game_history entry was created
+  const p1History = await api.get('/test/game-history/e2e_qlas_p1@test.invalid');
+  const p1HistoryData = await p1History.json();
+  expect(p1HistoryData.gamesPlayed).toBe(1);
+
   await api.dispose();
   await ctx1.close();
   await ctx2.close();

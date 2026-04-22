@@ -358,6 +358,42 @@ if (process.env.NODE_ENV !== 'production') {
       socketsInRoom: sockets ? sockets.size : 0,
     });
   });
+
+  // Test-only: get user stats by email
+  app.get('/test/user-stats/:email', (req, res) => {
+    const { email } = req.params;
+    const db = getDb();
+    if (!db) {
+      return res.status(500).json({ error: 'DB not initialized' });
+    }
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const stats = db
+      .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
+      .get(user.id);
+    res.json({ email, ...stats });
+  });
+
+  // Test-only: get game history count
+  app.get('/test/game-history/:email', (req, res) => {
+    const { email } = req.params;
+    const db = getDb();
+    if (!db) {
+      return res.status(500).json({ error: 'DB not initialized' });
+    }
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const count = db
+      .prepare(
+        'SELECT COUNT(*) as cnt FROM game_history WHERE player1_id = ? OR player2_id = ?',
+      )
+      .get(user.id, user.id);
+    res.json({ email, gamesPlayed: count.cnt });
+  });
 }
 
 // Serve client HTML for dev testing
@@ -1614,6 +1650,8 @@ function _saveQlasResult(room, winnerIdx) {
   }
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
   const [s0, s1] = room.qlasStats ?? [{}, {}];
+  const db = getDb();
+
   try {
     insertGameResult({
       player1Id: p0?.userId ?? null,
@@ -1625,6 +1663,18 @@ function _saveQlasResult(room, winnerIdx) {
       player1Stats: { ...s0, finalHp: room.state.players[0].hp, classId: room.classSelections[0] },
       player2Stats: { ...s1, finalHp: room.state.players[1].hp, classId: room.classSelections[1] },
     });
+
+    // Update games_played and games_won for both players
+    if (db && p0?.userId) {
+      db.prepare(
+        'UPDATE users SET games_played = COALESCE(games_played, 0) + 1, games_won = COALESCE(games_won, 0) + ? WHERE id = ?',
+      ).run(winnerIdx === 0 ? 1 : 0, p0.userId);
+    }
+    if (db && p1?.userId) {
+      db.prepare(
+        'UPDATE users SET games_played = COALESCE(games_played, 0) + 1, games_won = COALESCE(games_won, 0) + ? WHERE id = ?',
+      ).run(winnerIdx === 1 ? 1 : 0, p1.userId);
+    }
   } catch (e) {
     console.warn('[qlashique] Failed to save game result:', e.message);
   }
