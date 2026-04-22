@@ -1,8 +1,15 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.js';
 
 const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data/leaderboard.db');
+
+// Ensure data directory exists
+const dataDir = path.dirname(dbPath);
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
 let db;
 
@@ -10,7 +17,13 @@ const ALLOWED_TABLES = new Set(QUIZ_MODES.map((m) => m.table));
 
 function assertTable(table) {
   if (!ALLOWED_TABLES.has(table)) {
+    console.error('[leaderboard] Attempted access to invalid table:', table);
     throw new Error(`Unknown leaderboard table: ${table}`);
+  }
+  // Additional security: ensure table name is alphanumeric with underscores
+  if (!/^[a-zA-Z0-9_]+$/.test(table)) {
+    console.error('[leaderboard] Invalid table name:', table);
+    throw new Error(`Invalid table name: ${table}`);
   }
 }
 
@@ -46,6 +59,7 @@ export function initDb() {
 
 export function getTop10ForTable(table) {
   assertTable(table);
+  // Table existence validated by assertTable + initDb creates all tables on startup
   try {
     return db
       .prepare(
@@ -70,6 +84,7 @@ export function insertScoreForTable(table, name, answers, timeMs) {
     return [];
   }
   try {
+    // Use parameterized query to prevent SQL injection
     db.prepare(`INSERT INTO ${table} (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run(
       name,
       answers,

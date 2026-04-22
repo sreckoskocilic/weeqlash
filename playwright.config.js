@@ -1,4 +1,11 @@
 import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load .env before any tests run
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '.env'), override: true });
 
 export default defineConfig({
   globalSetup: './tests/e2e-setup.js',

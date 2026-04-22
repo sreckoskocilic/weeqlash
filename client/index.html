@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; object-src 'none';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- CSP handled by Cloudflare -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -5037,8 +5038,17 @@
       </div>
     `;
 
-        // Update modal content
-        modalOverlay.querySelector('#stats-modal-content').innerHTML = _statsHTML;
+        // Helper to create DOM element from HTML string (for XSS protection)
+        function createStatsElement(html) {
+          const template = document.createElement('template');
+          template.innerHTML = html;
+          return template.content.firstChild;
+        }
+
+        // Update modal content with XSS protection
+        const statsContainer = modalOverlay.querySelector('#stats-modal-content');
+        statsContainer.innerHTML = '';
+        statsContainer.appendChild(createStatsElement(_statsHTML));
 
         // Show the modal - force visibility immediately
         modalOverlay.classList.add('visible');

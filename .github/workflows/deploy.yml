@@ -21,6 +21,10 @@ jobs:
       - run: npm ci
 
       - name: Run tests
+        env:
+          QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
+          SESSION_SECRET: test-secret-for-ci
+          NODE_ENV: test
         run: npm test
 
   deploy:

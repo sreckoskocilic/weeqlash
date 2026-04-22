@@ -9,8 +9,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Try __dirname first (Docker: files copied flat into /app), then parent (local dev: server/index.js)
 const envPath = existsSync(path.join(__dirname, '.env'))
   ? path.join(__dirname, '.env')
-  : path.join(__dirname, '..', '.env');
-dotenv.config({ path: envPath });
+  : existsSync(path.join(__dirname, '..', '.env'))
+    ? path.join(__dirname, '..', '.env')
+    : null;
+if (envPath) {
+  dotenv.config({ path: envPath, override: true });
+}
 
 import session from 'express-session';
 
@@ -75,20 +79,56 @@ const app = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
+// =============================================================================
+// SECURITY MIDDLEWARE
+// =============================================================================
+
+// CSP Header - Content Security Policy
+const CSP_HEADER = 'default-src \'self\'; ' +
+  'style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; ' +
+  'font-src \'self\' https://fonts.gstatic.com; ' +
+  'img-src \'self\' data:; ' +
+  'connect-src \'self\' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; ' +
+  'script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' http://localhost:3000; ' +
+  'frame-ancestors \'none\'; ' +
+  'object-src \'none\'; ' +
+  'base-uri \'self\'; ' +
+  'form-action \'self\';';
+
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', CSP_HEADER);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 // Session store function - use MemoryStore (sessions persist while server runs)
 function createSessionMiddleware() {
-  const isSecure = process.env.NODE_ENV === 'production';
   return session({
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
-      secure: isSecure,
+      secure: 'auto',
+      httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: 'lax',
     },
   });
 }
+
+// Initialize session middleware BEFORE static files
+const sessionMiddleware = createSessionMiddleware();
+app.use(sessionMiddleware);
+
+// Initialize session on every request to ensure cookie is set
+app.use((req, res, next) => {
+  if (req.session) {
+    req.session.visited = req.session.visited || Date.now();
+  }
+  next();
+});
 
 // Serve client files for browser access
 app.use(express.static(path.join(__dirname, '../client')));
@@ -186,12 +226,6 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 const questionsDb = loadQuestions();
 initDb();
 initAuthDb();
-
-// Initialize session middleware
-const sessionMiddleware = createSessionMiddleware();
-
-// Session middleware must come BEFORE routes that use sessions
-app.use(sessionMiddleware);
 
 // Parse JSON bodies
 app.use(express.json());
@@ -327,6 +361,42 @@ if (process.env.NODE_ENV !== 'production') {
       pegCol: peg.col,
       socketsInRoom: sockets ? sockets.size : 0,
     });
+  });
+
+  // Test-only: get user stats by email
+  app.get('/test/user-stats/:email', (req, res) => {
+    const { email } = req.params;
+    const db = getDb();
+    if (!db) {
+      return res.status(500).json({ error: 'DB not initialized' });
+    }
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const stats = db
+      .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
+      .get(user.id);
+    res.json({ email, ...stats });
+  });
+
+  // Test-only: get game history count
+  app.get('/test/game-history/:email', (req, res) => {
+    const { email } = req.params;
+    const db = getDb();
+    if (!db) {
+      return res.status(500).json({ error: 'DB not initialized' });
+    }
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const count = db
+      .prepare(
+        'SELECT COUNT(*) as cnt FROM game_history WHERE player1_id = ? OR player2_id = ?',
+      )
+      .get(user.id, user.id);
+    res.json({ email, gamesPlayed: count.cnt });
   });
 }
 
@@ -1584,6 +1654,8 @@ function _saveQlasResult(room, winnerIdx) {
   }
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
   const [s0, s1] = room.qlasStats ?? [{}, {}];
+  const db = getDb();
+
   try {
     insertGameResult({
       player1Id: p0?.userId ?? null,
@@ -1595,6 +1667,18 @@ function _saveQlasResult(room, winnerIdx) {
       player1Stats: { ...s0, finalHp: room.state.players[0].hp, classId: room.classSelections[0] },
       player2Stats: { ...s1, finalHp: room.state.players[1].hp, classId: room.classSelections[1] },
     });
+
+    // Update games_played and games_won for both players
+    if (db && p0?.userId) {
+      db.prepare(
+        'UPDATE users SET games_played = COALESCE(games_played, 0) + 1, games_won = COALESCE(games_won, 0) + ? WHERE id = ?',
+      ).run(winnerIdx === 0 ? 1 : 0, p0.userId);
+    }
+    if (db && p1?.userId) {
+      db.prepare(
+        'UPDATE users SET games_played = COALESCE(games_played, 0) + 1, games_won = COALESCE(games_won, 0) + ? WHERE id = ?',
+      ).run(winnerIdx === 1 ? 1 : 0, p1.userId);
+    }
   } catch (e) {
     console.warn('[qlashique] Failed to save game result:', e.message);
   }
@@ -1614,3 +1698,5 @@ function _emitQlasTurnStart(ioServer, code, room) {
 }
 
 httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
+
+export { app };

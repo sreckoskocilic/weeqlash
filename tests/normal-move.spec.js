@@ -1,5 +1,5 @@
 // @ts-check
-import { test, expect } from '@playwright/test';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
 
 const BASE = 'http://localhost:3000';
 
@@ -15,6 +15,14 @@ async function registerAndLogin(browser, username) {
   await page.locator('#btn-login').click();
   await page.waitForTimeout(2000);
   return { ctx, page };
+}
+
+async function getUserGamesPlayed(email) {
+  const api = await playwrightRequest.newContext({ baseURL: BASE });
+  const res = await api.get(`/test/user-stats/${email}`);
+  const data = await res.json();
+  await api.dispose();
+  return data.games_played || 0;
 }
 
 test('normal move: select peg → click empty tile → peg moves', async ({ browser }) => {
@@ -85,6 +93,15 @@ test('normal move: select peg → click empty tile → peg moves', async ({ brow
   // Verify position changed
   expect(newPos.r).not.toBe(startPos.r);
   expect(newPos.c).not.toBe(startPos.c);
+
+  // Wait for game end
+  await p1.waitForTimeout(3000);
+
+  // Verify stats were updated after game
+  const p1GamesAfter = await getUserGamesPlayed('e2e_normal_p1@test.invalid');
+  const p2GamesAfter = await getUserGamesPlayed('e2e_normal_p2@test.invalid');
+  expect(p1GamesAfter).toBeGreaterThan(0);
+  expect(p2GamesAfter).toBeGreaterThan(0);
 
   await ctx1.close();
   await ctx2.close();

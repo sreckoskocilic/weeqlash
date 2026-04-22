@@ -77,6 +77,9 @@ test('combat: Q1/3 → Q2/3 → Q3/3 sequential flow, outcome matches answers', 
     }
   }
 
+  // Note: Stats are only updated when game ends with a winner.
+  // This test doesn't play to completion, so skip stats check.
+
   await ctx1.close();
   await ctx2.close();
 });
