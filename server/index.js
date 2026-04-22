@@ -70,7 +70,7 @@ import {
   createUser,
   clearTestUsers,
   clearTestHistory,
-} from './game/auth.js';
+} from './game/auth.ts';
 import { registerAuthRoutes } from './game/auth-routes.js';
 import adminRoutes from './routes/admin.js';
 import { rooms, socketToRoom } from './game/rooms.ts';

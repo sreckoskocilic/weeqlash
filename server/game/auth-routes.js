@@ -8,7 +8,7 @@ import {
   resendConfirmation,
   getUserById,
   getUserStats,
-} from './auth.js';
+} from './auth.ts';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
@@ -21,7 +21,9 @@ const AUTH_RATE_WINDOW_MS = 60_000;
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of authRateLimits) {
-    if (now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {authRateLimits.delete(ip);}
+    if (now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {
+      authRateLimits.delete(ip);
+    }
   }
 }, 10 * 60_000).unref();
 
@@ -106,7 +108,9 @@ export function registerAuthRoutes(app) {
 
   // Register
   app.post('/auth/register', async (req, res) => {
-    if (!applyAuthRateLimit(req, res)) {return;}
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
 
     const { username, email, password } = req.body;
 
@@ -145,7 +149,9 @@ export function registerAuthRoutes(app) {
 
   // Login
   app.post('/auth/login', (req, res) => {
-    if (!applyAuthRateLimit(req, res)) {return;}
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
 
     const { username, password, keepLoggedIn } = req.body;
 
@@ -286,7 +292,9 @@ export function registerAuthRoutes(app) {
 
   // Reset password
   app.post('/auth/reset-password', (req, res) => {
-    if (!applyAuthRateLimit(req, res)) {return;}
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
 
     const { token, password } = req.body;
     if (!token || !password) {
