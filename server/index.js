@@ -9,8 +9,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Try __dirname first (Docker: files copied flat into /app), then parent (local dev: server/index.js)
 const envPath = existsSync(path.join(__dirname, '.env'))
   ? path.join(__dirname, '.env')
-  : path.join(__dirname, '..', '.env');
-dotenv.config({ path: envPath, override: true });
+  : existsSync(path.join(__dirname, '..', '.env'))
+    ? path.join(__dirname, '..', '.env')
+    : null;
+if (envPath) {
+  dotenv.config({ path: envPath, override: true });
+}
 
 import session from 'express-session';
 
