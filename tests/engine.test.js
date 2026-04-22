@@ -8,59 +8,8 @@ import {
   checkWinCondition,
   getValidMoves,
   PHASE,
-  CATS,
 } from '../server/game/engine.js';
-
-// Helper to create mock questions DB
-function createQuestionsDb() {
-  const q = {};
-  for (const cat of CATS) {
-    q[cat] = [
-      {
-        id: `${cat}_1`,
-        a: 0,
-        q: 'Test?',
-        opts: ['A', 'B', 'C', 'D'],
-        category: cat,
-      },
-      {
-        id: `${cat}_2`,
-        a: 1,
-        q: 'Test2?',
-        opts: ['A', 'B', 'C', 'D'],
-        category: cat,
-      },
-      {
-        id: `${cat}_3`,
-        a: 2,
-        q: 'Test3?',
-        opts: ['A', 'B', 'C', 'D'],
-        category: cat,
-      },
-    ];
-  }
-  q._byId = {};
-  for (const cat of CATS) {
-    for (const qq of q[cat]) {
-      q._byId[qq.id] = qq;
-    }
-  }
-  return q;
-}
-
-function createSparseQuestionsDb(overrides = {}) {
-  const q = Object.fromEntries(CATS.map((cat) => [cat, []]));
-  for (const [cat, questions] of Object.entries(overrides)) {
-    q[cat] = questions;
-  }
-  q._byId = {};
-  for (const cat of CATS) {
-    for (const qq of q[cat]) {
-      q._byId[qq.id] = qq;
-    }
-  }
-  return q;
-}
+import { createQuestionsDb, createSparseQuestionsDb } from './test-utils.js';
 
 // Helper: apply one combat round (single answer), optionally advance to next question
 function combatRound(state, playerIdx, p1PegId, p2Peg, answerIdx, questionsDb) {
@@ -170,51 +119,24 @@ describe('Engine: Game Creation', () => {
 
     selectPeg(state, 0, p1PegId);
     const questionsDb = createQuestionsDb();
-    const planResult = planTurnQuestions(
-      state,
-      p1PegId,
-      p2Peg.row,
-      p2Peg.col,
-      questionsDb,
-    );
+    const planResult = planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
     expect(planResult.moveType).toBe('combat');
 
     // Round 1
     let qId = state.pendingTurn.questionId;
-    const r1 = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    const r1 = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r1.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Round 2
     qId = state.pendingTurn.questionId;
-    const r2 = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    const r2 = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r2.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Round 3
     qId = state.pendingTurn.questionId;
-    const r3 = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    const r3 = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r3.ok).toBe(true);
     expect(r3.combatContinues).toBe(false);
 
@@ -392,13 +314,7 @@ describe('Engine: Question Selection', () => {
 
     expect(target).toBeDefined();
 
-    const planResult = planTurnQuestions(
-      state,
-      pegId,
-      target.r,
-      target.c,
-      questionsDb,
-    );
+    const planResult = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
 
     expect(planResult.questionId).toBe('science_1');
     expect(state.pendingTurn.questionId).toBe('science_1');
@@ -440,20 +356,8 @@ describe('Engine: Question Selection', () => {
 
     expect(target).toBeDefined();
 
-    const first = planTurnQuestions(
-      state,
-      pegId,
-      target.r,
-      target.c,
-      questionsDb,
-    );
-    const second = planTurnQuestions(
-      state,
-      pegId,
-      target.r,
-      target.c,
-      questionsDb,
-    );
+    const first = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+    const second = planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
 
     expect(first.questionId).toBe('history_1');
     expect(second.questionId).toBe('history_1');
@@ -479,13 +383,7 @@ describe('Engine: HP-Based Combat', () => {
 
     selectPeg(state, 0, p1PegId);
     const questionsDb = createQuestionsDb();
-    const planResult = planTurnQuestions(
-      state,
-      p1PegId,
-      p2Peg.row,
-      p2Peg.col,
-      questionsDb,
-    );
+    const planResult = planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
 
     return { state, p1PegId, p2PegId, p2Peg, questionsDb, planResult };
   }
@@ -524,40 +422,19 @@ describe('Engine: HP-Based Combat', () => {
 
     // Round 1 correct
     let qId = state.pendingTurn.questionId;
-    let r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    let r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Round 2 correct
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Round 3 wrong
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      (questionsDb._byId[qId].a + 1) % 4,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, (questionsDb._byId[qId].a + 1) % 4, questionsDb);
 
     expect(r.ok).toBe(true);
     expect(r.combatContinues).toBe(false);
@@ -571,40 +448,19 @@ describe('Engine: HP-Based Combat', () => {
 
     // Round 1
     let qId = state.pendingTurn.questionId;
-    let r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    let r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Round 2
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Round 3
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
 
     expect(r.ok).toBe(true);
     expect(r.combatContinues).toBe(false);
@@ -625,14 +481,7 @@ describe('Engine: HP-Based Combat', () => {
 
     // Round 1 correct
     let qId = state.pendingTurn.questionId;
-    let r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    let r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.events).toContainEqual({
       type: 'combat_hit',
       defPegId: p2PegId,
@@ -642,14 +491,7 @@ describe('Engine: HP-Based Combat', () => {
 
     // Round 2 correct
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.events).toContainEqual({
       type: 'combat_hit',
       defPegId: p2PegId,
@@ -659,14 +501,7 @@ describe('Engine: HP-Based Combat', () => {
 
     // Round 3 wrong — no hit event
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      (questionsDb._byId[qId].a + 1) % 4,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, (questionsDb._byId[qId].a + 1) % 4, questionsDb);
     expect(r.events.filter((e) => e.type === 'combat_hit')).toHaveLength(0);
   });
 
@@ -678,14 +513,7 @@ describe('Engine: HP-Based Combat', () => {
     expect(state.pendingTurn.questionsTotal).toBe(1);
 
     const qId = state.pendingTurn.questionId;
-    const r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    const r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     // After 1 correct answer with questionsTotal=1: combatContinues must be false
     expect(r.combatContinues).toBe(false);
   });
@@ -838,27 +666,13 @@ describe('Engine: Combat - Bug Fix Validation', () => {
 
     // Q1 correct
     let qId = state.pendingTurn.questionId;
-    let r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      questionsDb._byId[qId].a,
-      questionsDb,
-    );
+    let r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
     expect(r.combatContinues).toBe(true);
     advancePendingQuestion(state, questionsDb);
 
     // Q2 wrong
     qId = state.pendingTurn.questionId;
-    r = combatRound(
-      state,
-      0,
-      p1PegId,
-      p2Peg,
-      (questionsDb._byId[qId].a + 1) % 4,
-      questionsDb,
-    );
+    r = combatRound(state, 0, p1PegId, p2Peg, (questionsDb._byId[qId].a + 1) % 4, questionsDb);
 
     expect(r.ok).toBe(true);
     expect(r.combatContinues).toBe(false);
@@ -887,14 +701,7 @@ describe('Engine: Combat - Bug Fix Validation', () => {
 
     for (let i = 0; i < 3; i++) {
       const qId = state.pendingTurn.questionId;
-      const r = combatRound(
-        state,
-        0,
-        p1PegId,
-        p2Peg,
-        questionsDb._byId[qId].a,
-        questionsDb,
-      );
+      const r = combatRound(state, 0, p1PegId, p2Peg, questionsDb._byId[qId].a, questionsDb);
       if (i < 2) {
         expect(r.combatContinues).toBe(true);
         advancePendingQuestion(state, questionsDb);

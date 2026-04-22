@@ -173,7 +173,7 @@ const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const map of rateLimitMaps) {
     for (const [socketId, time] of map) {
-      if (now - time > 60_000) {
+      if (now - time > 30_000) {
         map.delete(socketId);
       }
     }
