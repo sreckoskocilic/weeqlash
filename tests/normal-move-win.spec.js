@@ -67,16 +67,6 @@ function findCorrectAnswerIndex(questionText, options) {
   return null;
 }
 
-async function getPegIdAt(page, r, c) {
-  return page.evaluate(
-    ({ row, col }) => {
-      const tile = document.querySelector(`.tile[data-r="${row}"][data-c="${col}"]`);
-      return tile?.querySelector('.peg')?.getAttribute('data-peg-id') ?? null;
-    },
-    { row: r, col: c },
-  );
-}
-
 async function getPegOwnerAt(page, r, c) {
   return page.evaluate(
     ({ row, col }) => {
@@ -137,7 +127,7 @@ async function playMove(page, preferredDirections) {
   expect(selected).not.toBeNull();
   let questionCount = 0;
 
-  const { pegId, from, to } = selected;
+  const { pegId, to } = selected;
   const positionBefore = await getPegPosition(page, pegId);
   const attackerId = pegId.startsWith('p0_') ? 0 : 1;
   const targetOwnerBefore = await getPegOwnerAt(page, to.r, to.c);
