@@ -13,11 +13,12 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint server/ client/ tests/",
+    "lint": "npm run tsc:check && eslint server/ client/ tests/",
     "lint:fix": "eslint server/ client/ tests/ --fix",
     "lint:css": "node scripts/check-unused-selectors.js",
     "lint:all": "npm run lint && npm run lint:css",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "tsc:check": "tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
