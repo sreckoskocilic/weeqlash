@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.js';
+import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.ts';
 
 const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data/leaderboard.db');
 

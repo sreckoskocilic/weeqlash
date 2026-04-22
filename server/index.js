@@ -42,7 +42,7 @@ import {
   COORD_BASE,
 } from './game/engine.ts';
 import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.ts';
-import { QUIZ_MODES_BY_ID } from './game/quiz-modes.js';
+import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
 import {
   createQlasGame,
   calcTimer,
