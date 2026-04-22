@@ -239,6 +239,52 @@ export function checkWinCondition(state) {
 // Turn helpers (match desktop game mechanics)
 // ---------------------------------------------------------------------------
 
+function handleCorrectAnswer(state, pegId, targetR, targetC, events) {
+  movePeg(state, pegId, targetR, targetC);
+  events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+}
+
+function handleIncorrectAnswer(state, questionId) {
+  state.wrongQ.add(questionId);
+}
+
+function updatePlayerStats(state, playerId, questionId, correct, questionsDb) {
+  const cp = state.players[playerId];
+  if (cp?.stats) {
+    const question = questionsDb._byId?.[questionId];
+    const cat = question?.category || 'unknown';
+    if (!cp.stats.byCategory) {
+      cp.stats.byCategory = {};
+    }
+    if (!cp.stats.byCategory[cat]) {
+      cp.stats.byCategory[cat] = { attempts: 0, correct: 0 };
+    }
+    cp.stats.byCategory[cat].attempts++;
+    if (correct) {
+      cp.stats.byCategory[cat].correct++;
+    }
+  }
+}
+
+function checkAndHandleGameOver(state, winnerIdx, events) {
+  state.players.forEach((p, i) => {
+    p.stats.gamesPlayed++;
+    if (i === winnerIdx) {
+      p.stats.gamesWon++;
+    }
+  });
+  state.phase = PHASE.GAME_OVER;
+  state.winner = winnerIdx;
+  return {
+    ok: true,
+    events,
+    gameOver: true,
+    winner: winnerIdx,
+    correct: false,
+    combatContinues: false,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Question selection
 // ---------------------------------------------------------------------------
@@ -460,28 +506,12 @@ export function applyTurn(state, playerId, submission, questionsDb) {
   const events = [];
 
   events.push({ type: 'answer', questionId, correct });
-  if (!correct) {
-    state.wrongQ.add(questionId);
-  }
-  const cp = state.players[state.currentPlayerIdx];
-  if (cp?.stats) {
-    const cat = q?.category || 'unknown';
-    if (!cp.stats.byCategory) {
-      cp.stats.byCategory = {};
-    }
-    if (!cp.stats.byCategory[cat]) {
-      cp.stats.byCategory[cat] = { attempts: 0, correct: 0 };
-    }
-    cp.stats.byCategory[cat].attempts++;
-    if (correct) {
-      cp.stats.byCategory[cat].correct++;
-    }
-  }
+  handleIncorrectAnswer(state, questionId);
+  updatePlayerStats(state, state.currentPlayerIdx, questionId, correct, questionsDb);
 
   if (moveType === 'normal') {
     if (correct) {
-      movePeg(state, pegId, targetR, targetC);
-      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      handleCorrectAnswer(state, pegId, targetR, targetC, events);
     }
     state.pendingTurn = null;
     state.movesRemaining--;
@@ -509,8 +539,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
     if (defEliminated) {
       eliminatePeg(state, defPegId);
       events.push({ type: 'peg_eliminated', pegId: defPegId });
-      movePeg(state, pegId, targetR, targetC);
-      events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+      handleCorrectAnswer(state, pegId, targetR, targetC, events);
     }
 
     const combatContinues = correct && !defEliminated && pending.questionsRemaining > 1;
@@ -520,15 +549,7 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       state.movesRemaining = 0;
       const winner = checkWinCondition(state);
       if (winner >= 0) {
-        state.players.forEach((p, i) => {
-          p.stats.gamesPlayed++;
-          if (i === winner) {
-            p.stats.gamesWon++;
-          }
-        });
-        state.phase = PHASE.GAME_OVER;
-        state.winner = winner;
-        return { ok: true, events, gameOver: true, winner, correct, combatContinues: false };
+        return checkAndHandleGameOver(state, winner, events);
       }
       advanceTurn(state);
     }
@@ -539,25 +560,9 @@ export function applyTurn(state, playerId, submission, questionsDb) {
       state.pendingTurn = null;
       if (allCorrect) {
         const winnerIdx = state.currentPlayerIdx;
-        movePeg(state, pegId, targetR, targetC);
-        events.push({ type: 'peg_moved', pegId, r: targetR, c: targetC });
+        handleCorrectAnswer(state, pegId, targetR, targetC, events);
         events.push({ type: 'flag_captured', pegId, winnerIdx });
-        state.players.forEach((p, i) => {
-          p.stats.gamesPlayed++;
-          if (i === winnerIdx) {
-            p.stats.gamesWon++;
-          }
-        });
-        state.phase = PHASE.GAME_OVER;
-        state.winner = winnerIdx;
-        return {
-          ok: true,
-          events,
-          gameOver: true,
-          winner: winnerIdx,
-          correct,
-          combatContinues: false,
-        };
+        return checkAndHandleGameOver(state, winnerIdx, events);
       }
       advanceTurn(state);
       return { ok: true, events, gameOver: false, correct, combatContinues: false };

@@ -84,16 +84,17 @@ const httpServer = createServer(app);
 // =============================================================================
 
 // CSP Header - Content Security Policy
-const CSP_HEADER = 'default-src \'self\'; ' +
-  'style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; ' +
-  'font-src \'self\' https://fonts.gstatic.com; ' +
-  'img-src \'self\' data:; ' +
-  'connect-src \'self\' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; ' +
-  'script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' http://localhost:3000; ' +
-  'frame-ancestors \'none\'; ' +
-  'object-src \'none\'; ' +
-  'base-uri \'self\'; ' +
-  'form-action \'self\';';
+const CSP_HEADER =
+  "default-src 'self'; " +
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+  "font-src 'self' https://fonts.gstatic.com; " +
+  "img-src 'self' data:; " +
+  "connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; " +
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; " +
+  "frame-ancestors 'none'; " +
+  "object-src 'none'; " +
+  "base-uri 'self'; " +
+  "form-action 'self';";
 
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', CSP_HEADER);
@@ -374,9 +375,7 @@ if (process.env.NODE_ENV !== 'production') {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    const stats = db
-      .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
-      .get(user.id);
+    const stats = db.prepare('SELECT games_played, games_won FROM users WHERE id = ?').get(user.id);
     res.json({ email, ...stats });
   });
 
@@ -392,9 +391,7 @@ if (process.env.NODE_ENV !== 'production') {
       return res.status(404).json({ error: 'User not found' });
     }
     const count = db
-      .prepare(
-        'SELECT COUNT(*) as cnt FROM game_history WHERE player1_id = ? OR player2_id = ?',
-      )
+      .prepare('SELECT COUNT(*) as cnt FROM game_history WHERE player1_id = ? OR player2_id = ?')
       .get(user.id, user.id);
     res.json({ email, gamesPlayed: count.cnt });
   });
