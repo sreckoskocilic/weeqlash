@@ -1,8 +1,15 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.js';
 
 const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data/leaderboard.db');
+
+// Ensure data directory exists
+const dataDir = path.dirname(dbPath);
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
 let db;
 
