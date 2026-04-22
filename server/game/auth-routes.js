@@ -303,3 +303,5 @@ export function registerAuthRoutes(app) {
     res.json({ ok: true, message: 'Password reset successfully' });
   });
 }
+
+export { applyAuthRateLimit };

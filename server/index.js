@@ -75,20 +75,56 @@ const app = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
+// =============================================================================
+// SECURITY MIDDLEWARE
+// =============================================================================
+
+// CSP Header - Content Security Policy
+const CSP_HEADER = 'default-src \'self\'; ' +
+  'style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; ' +
+  'font-src \'self\' https://fonts.gstatic.com; ' +
+  'img-src \'self\' data:; ' +
+  'connect-src \'self\' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; ' +
+  'script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' http://localhost:3000; ' +
+  'frame-ancestors \'none\'; ' +
+  'object-src \'none\'; ' +
+  'base-uri \'self\'; ' +
+  'form-action \'self\';';
+
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', CSP_HEADER);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 // Session store function - use MemoryStore (sessions persist while server runs)
 function createSessionMiddleware() {
-  const isSecure = process.env.NODE_ENV === 'production';
   return session({
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
-      secure: isSecure,
+      secure: 'auto',
+      httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: 'lax',
     },
   });
 }
+
+// Initialize session middleware BEFORE static files
+const sessionMiddleware = createSessionMiddleware();
+app.use(sessionMiddleware);
+
+// Initialize session on every request to ensure cookie is set
+app.use((req, res, next) => {
+  if (req.session) {
+    req.session.visited = req.session.visited || Date.now();
+  }
+  next();
+});
 
 // Serve client files for browser access
 app.use(express.static(path.join(__dirname, '../client')));
@@ -186,12 +222,6 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 const questionsDb = loadQuestions();
 initDb();
 initAuthDb();
-
-// Initialize session middleware
-const sessionMiddleware = createSessionMiddleware();
-
-// Session middleware must come BEFORE routes that use sessions
-app.use(sessionMiddleware);
 
 // Parse JSON bodies
 app.use(express.json());
@@ -1614,3 +1644,5 @@ function _emitQlasTurnStart(ioServer, code, room) {
 }
 
 httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
+
+export { app };
