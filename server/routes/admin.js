@@ -4,6 +4,18 @@ import { getDb } from '../game/leaderboard.ts';
 
 const router = express.Router();
 
+function esc(v) {
+  if (v === null || v === undefined) {
+    return '';
+  }
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Helper to render simple HTML
 function renderHTML(title, content, extra = '') {
   return `
@@ -162,8 +174,8 @@ router.get('/users', (_req, res) => {
       (u) => `
     <tr>
       <td>${u.id}</td>
-      <td><a href="/admin/users/${u.id}" style="color:#d93939">${u.username}</a></td>
-      <td>${u.email}</td>
+      <td><a href="/admin/users/${u.id}" style="color:#d93939">${esc(u.username)}</a></td>
+      <td>${esc(u.email)}</td>
       <td>${u.is_admin ? '<span class="badge badge-success">Admin</span>' : '-'}</td>
       <td>${u.is_blocked ? '<span class="badge badge-danger">Blocked</span>' : '<span class="badge badge-success">Active</span>'}</td>
       <td>${u.email_confirmed ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-warning">No</span>'}</td>
@@ -294,22 +306,24 @@ router.get('/users/:id', (req, res) => {
       const isPlayer1 = g.player1_id === userId;
       const opponent = isPlayer1 ? g.p2_name : g.p1_name;
       return `<tr>
-      <td>${opponent || 'Unknown'}</td>
+      <td>${esc(opponent || 'Unknown')}</td>
       <td>${g.winner_id ? (isWinner ? '<span class="badge badge-success">Won</span>' : '<span class="badge badge-danger">Lost</span>') : '-'}</td>
-      <td>${g.game_mode || '-'}</td>
+      <td>${esc(g.game_mode || '-')}</td>
       <td>${Math.round(g.duration_ms / 1000)}s</td>
       <td>${new Date(g.created_at).toLocaleDateString()}</td>
     </tr>`;
     })
     .join('');
 
-  const resetLink = typeof req.query.reset_link === 'string' ? req.query.reset_link : '';
-  const resetBanner = resetLink
-    ? `<div class="card" style="border:1px solid #22c55e"><strong>Password reset link generated</strong> (expires in 1 hour). Share with user:<br><code style="word-break:break-all;color:#fff">${resetLink}</code></div>`
-    : '';
+  const flash = req.session.resetLinkFlash;
+  let resetBanner = '';
+  if (flash && flash.userId === userId && typeof flash.url === 'string') {
+    resetBanner = `<div class="card" style="border:1px solid #22c55e"><strong>Password reset link generated</strong> (expires in 1 hour). Share with user:<br><code style="word-break:break-all;color:#fff">${esc(flash.url)}</code></div>`;
+    delete req.session.resetLinkFlash;
+  }
 
   const content = `
-    <h1>User: ${user.username}</h1>
+    <h1>User: ${esc(user.username)}</h1>
     <p><a href="/admin/users" style="color:#a4b2a0">← Back to Users</a></p>
     ${resetBanner}
 
@@ -319,11 +333,11 @@ router.get('/users/:id', (req, res) => {
         <input type="hidden" name="id" value="${user.id}">
         <div class="form-group">
           <label>Username</label>
-          <input type="text" name="username" value="${user.username}">
+          <input type="text" name="username" value="${esc(user.username)}">
         </div>
         <div class="form-group">
           <label>Email</label>
-          <input type="email" name="email" value="${user.email}">
+          <input type="email" name="email" value="${esc(user.email)}">
         </div>
         <button type="submit" class="btn btn-primary">Save Changes</button>
       </form>
@@ -376,14 +390,15 @@ router.get('/users/:id', (req, res) => {
         <button class="btn btn-secondary">Export Statistics (JSON)</button>
       </form>
       <form method="post" action="/admin/users/delete" style="display:inline"
-            onsubmit="return (prompt('Type the username &quot;${user.username}&quot; to confirm permanent deletion of this user and all their stats/game history:') === '${user.username}')">
+            data-username="${esc(user.username)}"
+            onsubmit="var u=this.dataset.username; return prompt('Type the username &quot;'+u+'&quot; to confirm permanent deletion of this user and all their stats/game history:') === u">
         <input type="hidden" name="id" value="${user.id}">
         <button class="btn btn-primary" style="background:#ef4444">Delete User (Cascade)</button>
       </form>
     </div>
   `;
 
-  res.send(renderHTML('User: ' + user.username, content));
+  res.send(renderHTML('User: ' + esc(user.username), content));
 });
 
 router.post('/users/update', express.urlencoded({ extended: true }), (req, res) => {
@@ -455,8 +470,11 @@ router.post('/users/reset-password', express.urlencoded({ extended: true }), (re
   );
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
   const resetLink = `${clientUrl}/?reset=${token}`;
-  console.log(`[admin] Generated password reset link for user id=${userId}`);
-  res.redirect(`/admin/users/${userId}?reset_link=${encodeURIComponent(resetLink)}`);
+  req.session.resetLinkFlash = { userId, url: resetLink };
+  req.session.save(() => {
+    console.log(`[admin] Generated password reset link for user id=${userId}`);
+    res.redirect(`/admin/users/${userId}`);
+  });
 });
 
 router.post('/users/resend-email', express.urlencoded({ extended: true }), (req, res) => {
