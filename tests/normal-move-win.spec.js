@@ -10,11 +10,11 @@ async function registerAndLogin(browser, username) {
   const ctx = await browser.newContext({ baseURL: BASE });
   const page = await ctx.newPage();
   await page.goto('/');
-  await page.waitForTimeout(500);
+  await page.locator('#login-username').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill('testpass123');
   await page.locator('#btn-login').click();
-  await page.waitForTimeout(1000);
+  await page.locator('#user-bar').waitFor({ state: 'visible', timeout: 5000 });
   return { ctx, page };
 }
 
@@ -252,7 +252,9 @@ test('normal move: play until one player wins', async ({ browser }) => {
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
 
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
-  await p1.waitForTimeout(1200);
+  // Host socket must respect LOBBY_RATE_LIMIT_MS=1000 between room:create and room:start;
+  // a smaller delay causes the server to reject the start event and the game never begins.
+  await p1.waitForTimeout(1100);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });

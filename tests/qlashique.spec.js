@@ -7,11 +7,11 @@ async function loginPlayer(browser, username) {
   const ctx = await browser.newContext({ baseURL: BASE });
   const page = await ctx.newPage();
   await page.goto('/');
-  await page.waitForTimeout(500);
+  await page.locator('#login-username').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill('testpass123');
   await page.locator('#btn-login').click();
-  await page.waitForTimeout(1200);
+  await page.locator('#user-bar').waitFor({ state: 'visible', timeout: 5000 });
   return { ctx, page };
 }
 
@@ -21,12 +21,12 @@ async function playTurn(page, api, qId, answerIdx) {
   // Force the known question so we control the outcome
   await api.post('/test/set-question', { data: { qId } });
   await page.locator('#btn-qlas-attack').click();
-  await page.locator('#qlas-qpanel').waitFor({ state: 'visible', timeout: 8000 });
+  await page.locator('#qlas-qpanel').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('.qlas-opt').nth(answerIdx).click();
-  await page.waitForTimeout(300);
-  // END ATTACK stops the timer; END TURN submits the score
+  // END ATTACK stops the timer; END TURN submits the score.
+  // btn-qlas-stop.click() auto-waits for actionability, so no manual sleep needed.
   await page.locator('#btn-qlas-stop').click();
-  await page.locator('#btn-qlas-end').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#btn-qlas-end').waitFor({ state: 'visible', timeout: 3000 });
   await page.locator('#btn-qlas-end').click();
 }
 
@@ -80,7 +80,8 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
     } else if (p2Turn) {
       await playTurn(p2, api, qId, wrongIdx); // P1: wrong → self-damage
     } else {
-      await p1.waitForTimeout(400);
+      // Brief poll fallback: neither decision panel is visible yet (server turn transition in flight)
+      await p1.waitForTimeout(150);
       continue;
     }
 
