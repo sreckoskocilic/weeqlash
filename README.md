@@ -6,12 +6,28 @@ To win some answers find you must!!!
 
 Never overrandom, juxtaposers outh!!!
 
-https://brawl.weeqlash.icu
-Create an account or banish yourself to nothingness, learn your 0s.
+Play at **https://brawl.weeqlash.icu** — create an account or banish yourself to nothingness, learn your 0s.
 
-## How to Play
+## Getting In
+
+- Open the site. The landing screen is split: **Brawl** setup on the left, **Triviandom / Qlashique** on the right.
+- **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
+- To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
+
+There are three modes. Pick your poison.
+
+---
+
+## 1. Weeqlash Brawl — the main event
 
 Deploy your pegs across a board of knowledge tiles. Answer trivia. Crush your opponents with the sheer brute force of knowing things they don't. Every tile has a category. Every move demands an answer. Every wrong answer is a small gift you hand your enemy with both trembling hands.
+
+### Setup
+
+- **Board size**: 4×4, 5×5, 6×6, 7×7, 8×8 (default) or 10×10.
+- **Question timer** (under `Settings`): 15 / 30 / 45 seconds per question.
+- **Categories** (under `Settings`): toggle any subset of categories on or off before creating the room.
+- Hit **Create game** → a 5-char room code appears in the lobby. Share it. Wait for humans.
 
 ### Turn Structure
 
@@ -41,13 +57,48 @@ Four corners. Four flags. One throne.
 
 ---
 
-## Triviandom
+## 2. Qlashique — 1v1 trivia duel ⚔
+
+A head-to-head knife fight over a single question queue. No board, no pegs, no mercy. Each duelist starts with **30 HP**. First to 0 is dust.
+
+### Before the bell
+
+- Either player clicks **⚔ QLASHIQUE** to open a room and shares the code; the other pastes it into the `Qlashique` join input.
+- Both pick a **class**:
+  - 🐢 **SLOWPOKE** — +2 seconds on every question timer. Boring. Effective.
+  - 🎲 **REROLL** — one free skip per turn. Save it for the one you don't know.
+
+### How a turn works
+
+You get a batch of questions under a timer that **starts at 5 seconds and grows by 3 each turn** (cap 25; Slowpoke adds 2 on top). Your running **score** for the turn goes up +1 per correct answer and down −1 per miss. When you end the turn:
+
+| Score | What happens                                                  |
+| ----- | ------------------------------------------------------------- |
+| `< 0` | **Self-damage** — you take `abs(score)` HP. Humbling.         |
+| `= 0` | Nothing happens. Next duelist's turn.                         |
+| `= 1` | **Automatic attack** for 1 damage.                            |
+| `≥ 2` | **Choose**: `attack` (deal `score` damage) or `heal` (+2 HP). |
+
+### Instant win
+
+Clear **10+ correct answers in a single turn with zero misses** (perfect streak ≥ 10) and you win on the spot. Flawless victory. Insufferable bragging rights.
+
+---
+
+## 3. Triviandom — solo arena
 
 _No opponents? No problem. Just you, your clicking finger, and the void._
 
 Triviandom is the single-player arena for those who have no one to blame but themselves. Answer as many questions as you can, as fast as you can. Your score and your time both go on the board — under **DEM QWIZZACKS**, where the real ones live.
 
 Hunt for that second digit. You know the one.
+
+- **Start Triviandom** — the full question pool.
+- **⚽ EPL 2025 Triviandom** — same format, narrowed to an English Premier League 2025 set. Its own separate leaderboard.
+
+Both leaderboards are visible from the landing screen via `Show Triviandom Leaderboard` / `Show EPL 2025 Leaderboard`.
+
+---
 
 ## Screenshots
 
