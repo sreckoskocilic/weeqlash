@@ -989,7 +989,7 @@
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.6);
-        z-index: 1000;
+        z-index: 5000;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -4883,7 +4883,7 @@
           modalOverlay = document.createElement('div');
           modalOverlay.id = 'stats-modal-overlay';
           modalOverlay.style.cssText = `
-        position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 5000;
         display: flex; align-items: center; justify-content: center;
         opacity: 0; pointer-events: none; transition: opacity 0.3s;
       `;
@@ -4895,7 +4895,7 @@
           padding: 32px; max-width: 520px; width: 92%;
           max-height: 90vh; overflow-y: auto;
           box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
-          z-index: 1001;
+          z-index: 5001;
           font-family: 'Montserrat', 'Segoe UI', sans-serif;
         ">
           <div style="text-align: center; margin-bottom: 28px;">
@@ -4965,33 +4965,34 @@
 
         // Build stats HTML with cards and visuals
         let _statsHTML = `
-    <!-- Main stats row: games won, games played, accuracy -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-      <div style="
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 10px; padding: 16px; text-align: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        border: 1px solid #2a2a4a;
-      ">
-        <div style="font-size: 2.2rem; font-weight: 700; color: #fa5e2e; line-height: 1;">${statsData.gamesWon}</div>
-        <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Won</div>
-      </div>
-      <div style="
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 10px; padding: 16px; text-align: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        border: 1px solid #2a2a4a;
-      ">
-        <div style="font-size: 2.2rem; font-weight: 700; color: #34dfd0; line-height: 1;">${statsData.gamesPlayed}</div>
-        <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Played</div>
-      </div>
-      <div style="
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 10px; padding: 16px; text-align: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        border: 1px solid #2a2a4a;
-      ">
-        <div style="font-size: 2rem; font-weight: 700; color: ${accuracyColor}; line-height: 1;">${accuracy}%</div>
+    <div>
+      <!-- Main stats row: games won, games played, accuracy -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+        <div style="
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+          border-radius: 10px; padding: 16px; text-align: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          border: 1px solid #2a2a4a;
+        ">
+          <div style="font-size: 2.2rem; font-weight: 700; color: #fa5e2e; line-height: 1;">${statsData.gamesWon}</div>
+          <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Won</div>
+        </div>
+        <div style="
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+          border-radius: 10px; padding: 16px; text-align: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          border: 1px solid #2a2a4a;
+        ">
+          <div style="font-size: 2.2rem; font-weight: 700; color: #34dfd0; line-height: 1;">${statsData.gamesPlayed}</div>
+          <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Played</div>
+        </div>
+        <div style="
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+          border-radius: 10px; padding: 16px; text-align: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          border: 1px solid #2a2a4a;
+        ">
+          <div style="font-size: 2rem; font-weight: 700; color: ${accuracyColor}; line-height: 1;">${accuracy}%</div>
         <div style="font-size: 0.95rem; color: #b9d0f8; margin-top: 8px;">${totalCorrect}/${totalAnswered}</div>
       </div>
     </div>
@@ -5038,14 +5039,17 @@
 
         _statsHTML += `
         </div>
+        </div>
       </div>
+    </div>
     `;
 
         // Helper to create DOM element from HTML string (for XSS protection)
         function createStatsElement(html) {
           const template = document.createElement('template');
           template.innerHTML = html;
-          return template.content.firstChild;
+          // Use querySelector to get the first element, not text nodes
+          return template.content.querySelector('div') || template.content.firstChild;
         }
 
         // Update modal content with XSS protection
