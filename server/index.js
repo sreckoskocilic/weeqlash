@@ -900,8 +900,10 @@ io.on('connection', (socket) => {
     cb({ ok: true });
 
     if (result.gameOver) {
-      console.log(`[game] ${code} over — winner player ${result.winner}`);
-      recordGameStats(getRoom(code));
+      console.log(`[game] ${code} over — winner player ${result.winner}, calling recordGameStats`);
+      const roomForStats = getRoom(code);
+      console.log('[game] roomForStats:', roomForStats ? 'found' : 'NOT FOUND');
+      recordGameStats(roomForStats);
     }
   });
 
@@ -1487,18 +1489,23 @@ function publicState(state) {
 
 // Record game result to database (only for regular game ends, not disconnects)
 function recordGameStats(room) {
-  console.log('[stats] recordGameStats called', {
-    startedAt: room?.startedAt,
-    playersCount: room?.state?.players?.length,
-    roomPlayers: room?.players?.map((p) => ({
-      name: p.name,
-      userId: p.userId,
-    })),
-    statePlayers: room?.state?.players?.map((p) => ({
-      name: p.name,
-      userId: p.userId,
-    })),
-  });
+  console.log('[stats] ========== recordGameStats called ==========');
+  console.log('[stats] room exists:', !!room);
+  if (!room) {
+    console.log('[stats] room is null, returning');
+    return;
+  }
+  console.log('[stats] startedAt:', room?.startedAt);
+  console.log('[stats] playersCount:', room?.state?.players?.length);
+  console.log('[stats] roomPlayers:', room?.players?.map((p) => ({
+    name: p.name,
+    userId: p.userId,
+    socketId: p.id,
+  })));
+  console.log('[stats] statePlayers:', room?.state?.players?.map((p) => ({
+    name: p.name,
+    userId: p.userId,
+  })));
 
   if (!room.startedAt || !room.state?.players || room.state.players.length < 2) {
     console.log('[stats] Skipping - invalid game state');
@@ -1511,6 +1518,10 @@ function recordGameStats(room) {
   const player1UserId = room.players[0]?.userId;
   const player2UserId = room.players[1]?.userId;
   console.log('[stats] userIds:', player1UserId, player2UserId);
+  console.log('[stats] room.players[0].name:', room.players[0]?.name, 'socketId:', room.players[0]?.id);
+  console.log('[stats] room.players[1].name:', room.players[1]?.name, 'socketId:', room.players[1]?.id);
+  console.log('[stats] room.state.players[0].userId:', room.state.players[0]?.userId);
+  console.log('[stats] room.state.players[1].userId:', room.state.players[1]?.userId);
 
   // Determine winner index for stats updating (accessible to all sections)
   const winnerIdx = room.state.winner;
@@ -1518,6 +1529,7 @@ function recordGameStats(room) {
 
   // If both have accounts, record full game history and update games played/won
   if (player1UserId && player2UserId) {
+    console.log('[stats] Both players have userIds, recording stats...');
     let winnerId = null;
     if (winnerIdx !== null && winnerIdx < players.length) {
       winnerId = winnerIdx === 0 ? player1UserId : player2UserId;
@@ -1525,6 +1537,8 @@ function recordGameStats(room) {
 
     const player1Stats = players[0]?.stats ?? { byCategory: {} };
     const player2Stats = players[1]?.stats ?? { byCategory: {} };
+    console.log('[stats] player1Stats:', JSON.stringify(player1Stats));
+    console.log('[stats] player2Stats:', JSON.stringify(player2Stats));
 
     try {
       insertGameResult({
@@ -1539,6 +1553,7 @@ function recordGameStats(room) {
       });
 
       for (const [cat, stat] of Object.entries(player1Stats.byCategory ?? {})) {
+        console.log('[stats] p1 category:', cat, 'correct:', stat.correct, 'attempts:', stat.attempts);
         for (let i = 0; i < (stat.correct ?? 0); i += 1) {
           trackAnswer(player1UserId, cat, true);
         }
@@ -1548,6 +1563,7 @@ function recordGameStats(room) {
       }
 
       for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
+        console.log('[stats] p2 category:', cat, 'correct:', stat.correct, 'attempts:', stat.attempts);
         for (let i = 0; i < (stat.correct ?? 0); i += 1) {
           trackAnswer(player2UserId, cat, true);
         }

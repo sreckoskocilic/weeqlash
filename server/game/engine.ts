@@ -677,12 +677,16 @@ export function applyTurn(
 
   const { pegId, targetR, targetC, moveType, questionId } = pending;
   const q = questionsDb._byId?.[questionId];
-  const correct = q ? q.a === submission.answerIdx : false;
+  const noAnswer = submission.answerIdx === -1;
+  const correct = noAnswer ? false : q ? q.a === submission.answerIdx : false;
   const events: GameEvent[] = [];
 
   events.push({ type: 'answer', questionId, correct });
-  handleIncorrectAnswer(state, questionId);
-  updatePlayerStats(state, state.currentPlayerIdx, questionId, correct, questionsDb);
+  if (!noAnswer) {
+    // Only update stats if player actually gave an answer (not timeout)
+    handleIncorrectAnswer(state, questionId);
+    updatePlayerStats(state, state.currentPlayerIdx, questionId, correct, questionsDb);
+  }
 
   if (moveType === 'normal') {
     if (correct) {
