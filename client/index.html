@@ -31,7 +31,7 @@
         --text: #bdb5b5;
         --muted: #b4b78b;
         --radius: 8px;
-        --bs: min(calc(100svh - 100px), calc(100svw - 24px));
+        --bs: min(calc(100dvh - 140px), calc(100svw - 24px));
         --ts: 40px;
       }
 
@@ -39,12 +39,13 @@
         background: var(--bg);
         color: var(--text);
         font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
-        min-height: 100svh;
+        min-height: 100dvh;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 2rem;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
       }
 
       @keyframes shine {
@@ -510,52 +511,68 @@
       }
       #turn-panel {
         flex: 1;
-        background: var(--bg2);
-        border-radius: var(--radius);
-        padding: 8px 14px;
-        border: 2px solid var(--bg3);
-        border-left: 4px solid #444;
+        background: #0a0a0a;
+        border: 2px solid #444;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        font-family: 'Courier New', monospace;
+        font-size: 18px;
+        color: #ccc;
+        min-height: 64px;
+      }
+      #turn-player-box {
         display: flex;
         align-items: center;
-        gap: 12px;
-        transition: border-left-color 0.2s;
+        padding: 8px 16px;
       }
-      #turn-dot {
-        width: 14px;
-        height: 14px;
-        border-radius: 4px;
-        flex-shrink: 0;
-        background: #444;
-        transition: background 0.2s;
-      }
-      #turn-name {
-        font-size: 1.4rem;
+      #turn-player-name {
+        font-size: 25px;
         font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
       }
-      #turn-phase {
-        font-size: 1rem;
-        color: var(--muted);
+      #turn-moves {
+        font-size: 19px;
+        color: #888;
+        padding-left: 18px;
+      }
+      #turn-info {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 8px 20px;
+      }
+      #turn-number {
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        line-height: 1;
+        color: #0f0;
       }
       #player-stats {
-        margin-left: auto;
         display: flex;
-        gap: 10px;
-        align-items: center;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-end;
         flex-shrink: 0;
+        padding: 8px 16px;
+        font-size: 16px;
       }
       .player-stat-item {
         display: flex;
-        flex-direction: column;
         align-items: center;
+        gap: 8px;
         font-weight: 700;
         line-height: 1.2;
-        padding-right: 10px;
       }
       .player-stat-ratio {
-        font-size: 1.8rem;
+        font-size: 20px;
       }
       .player-stat-pct {
-        font-size: 1.2rem;
+        font-size: 17px;
         opacity: 0.8;
       }
 
@@ -2770,10 +2787,12 @@
     <div id="screen-game">
       <div id="top-bar">
         <div id="turn-panel">
-          <div id="turn-dot"></div>
-          <div>
-            <div id="turn-name">—</div>
-            <div id="turn-phase">—</div>
+          <div id="turn-player-box">
+            <div id="turn-player-name">—</div>
+            <div id="turn-moves">3 moves</div>
+          </div>
+          <div id="turn-info">
+            <div id="turn-number">TURN 1</div>
           </div>
           <div id="player-stats"></div>
         </div>
@@ -3804,26 +3823,15 @@
       function updateTurnUI(state) {
         const cp = state.players[state.currentPlayerIdx];
         const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
-        el('turn-dot').style.background = cp?.color ?? '#444';
-        el('turn-dot').style.boxShadow = cp?.color ? `0 0 8px 2px ${cp.color}66` : 'none';
-        el('turn-panel').style.borderLeftColor = cp?.color ?? '#444';
-        el('turn-name').textContent = isMyTurn ? 'Your turn' : `${cp?.name}'s turn`;
-        el('turn-name').style.color = cp?.color ?? '';
+        el('turn-player-box').style.borderColor = cp?.color ?? '#444';
+        el('turn-player-name').textContent = cp?.name ?? '—';
+        el('turn-player-name').style.color = cp?.color ?? '';
 
-        const phase = localPhase ?? state.phase;
-        let phaseText = '';
-        if (phase === PHASE.SELECT_PEG) {
-          const mr = state.movesRemaining;
-          const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
-          phaseText = isMyTurn ? `Select a peg (${movesText})` : `${cp?.name} is choosing…`;
-        } else if (phase === PHASE.SELECT_TILE) {
-          const mr = state.movesRemaining;
-          const movesText = mr === 1 ? '1 move left' : `${mr} moves left`;
-          phaseText = isMyTurn ? `Select a tile (${movesText})` : `${cp?.name} is moving…`;
-        } else if (phase === PHASE.GAME_OVER) {
-          phaseText = 'Game over';
-        }
-        el('turn-phase').textContent = phaseText;
+        const mr = state.movesRemaining;
+        const movesText = mr === 1 ? '1 move' : `${mr} moves`;
+        el('turn-moves').textContent = movesText;
+
+        el('turn-number').textContent = `TURN ${state.turnNumber ?? 1}`;
 
         el('player-stats').innerHTML = state.players
           .map((p) => {
@@ -3834,8 +3842,8 @@
               attempts += cat.attempts ?? 0;
               correct += cat.correct ?? 0;
             }
-            const pct = attempts > 0 ? ((correct / attempts) * 100).toFixed(1) + '%' : '—';
-            return `<span class="player-stat-item" style="color:${p.color};opacity:${p.pegIds.length ? 1 : 0.4}">
+            const pct = attempts > 0 ? ((correct / attempts) * 100).toFixed(0) + '%' : '—';
+            return `<span class="player-stat-item" style="color:${p.color}">
         <span class="player-stat-ratio">${correct}/${attempts}</span>
         <span class="player-stat-pct">${pct}</span>
       </span>`;

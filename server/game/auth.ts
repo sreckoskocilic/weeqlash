@@ -145,20 +145,26 @@ export function createUser({
   if (!db) {
     throw new Error('Database not initialized');
   }
+
+  // Validate password strength
+  if (!password || password.length < 8) {
+    return { error: 'Password must be at least 8 characters' };
+  }
+
   const now = Date.now();
 
   const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username) as
     | { id: number }
     | undefined;
   if (existingUser) {
-    return { error: 'Username already taken' };
+    return { error: 'Registration failed' };
   }
 
   const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as
     | { id: number }
     | undefined;
   if (existingEmail) {
-    return { error: 'Email already registered' };
+    return { error: 'Registration failed' };
   }
 
   const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);

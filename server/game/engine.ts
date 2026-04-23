@@ -34,6 +34,20 @@ export const CATS = [
   'other',
 ] as const;
 
+// Default categories for new games - excludes niche categories
+export const DEFAULT_CATS = CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025') as readonly [
+  'arts',
+  'music',
+  'entertainment',
+  'literature',
+  'science',
+  'nature',
+  'history',
+  'geography',
+  'sports',
+  'other',
+];
+
 export type Category = (typeof CATS)[number];
 
 export const COORD_BASE = 100;
@@ -96,6 +110,7 @@ export interface GameState {
   selectedPegId: string | null;
   pendingTurn: PendingTurn | null;
   movesRemaining: number;
+  turnNumber: number;
   winner: number | null;
   enabledCats: readonly Category[];
   usedQ: Record<Category, Set<string>>;
@@ -698,11 +713,9 @@ export function applyTurn(
       advanceTurn(state);
     } else if (correct && getValidMoves(state, pegId).length > 0) {
       state.phase = PHASE.SELECT_TILE;
-      return { ok: true, events, gameOver: false, correct, combatContinues: false, winner: null };
     } else {
       state.selectedPegId = null;
       state.phase = PHASE.SELECT_PEG;
-      return { ok: true, events, gameOver: false, correct, combatContinues: false, winner: null };
     }
     return { ok: true, events, gameOver: false, correct, combatContinues: false, winner: null };
   } else if (moveType === 'combat') {
@@ -796,6 +809,7 @@ function advanceTurn(state: GameState): void {
     tries++;
   }
   state.currentPlayerIdx = next;
+  state.turnNumber++;
   // Reset all per-turn state for the new player
   resetTurnState(state);
 }
@@ -813,7 +827,7 @@ export function createGame(
   } = {},
 ): GameState {
   const { boardSize = 7, enabledCats, boardLayout } = settings;
-  const activeCats = enabledCats?.length ? enabledCats : CATS;
+  const activeCats = enabledCats?.length ? enabledCats : DEFAULT_CATS;
   const numPlayers = players.length;
   const layoutMap = boardLayout || generateLayoutMap(boardSize, activeCats);
   const cornerMap = getCornerOwnerMap(numPlayers, boardSize);
@@ -868,6 +882,7 @@ export function createGame(
     selectedPegId: null,
     pendingTurn: null,
     movesRemaining: 3,
+    turnNumber: 1,
     winner: null,
     enabledCats: activeCats,
     usedQ: Object.fromEntries(CATS.map((c) => [c, new Set()])) as Record<Category, Set<string>>,

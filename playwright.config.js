@@ -19,9 +19,9 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'node -r ts-node/register server/index.js',
+    command: 'ENABLE_TEST_ROUTES=1 node -r ts-node/register server/index.js',
     url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 15000,
   },
 });

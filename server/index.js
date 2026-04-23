@@ -101,6 +101,10 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
+  // Additional security headers
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 });
 
@@ -125,8 +129,8 @@ app.use(sessionMiddleware);
 
 // Initialize session on every request to ensure cookie is set
 app.use((req, res, next) => {
-  if (req.session) {
-    req.session.visited = req.session.visited || Date.now();
+  if (req.session && !req.session.visited) {
+    req.session.visited = Date.now();
   }
   next();
 });
@@ -142,6 +146,9 @@ const io = new Server(httpServer, {
   cookie: true,
 });
 const PORT = process.env.PORT || 3000;
+
+// Debug mode - enables verbose socket/auth logging (default: false in production)
+const DEBUG = process.env.DEBUG === 'true' || process.env.NODE_ENV !== 'production';
 
 // Minimum delay before accepting answers to ensure other players see the question
 const MIN_ANSWER_DELAY_MS = 300;
@@ -238,7 +245,8 @@ app.use('/admin', adminRoutes);
 io.engine.use(sessionMiddleware);
 
 // Test-only: teleport a peg to an adjacent position for E2E testing
-if (process.env.NODE_ENV !== 'production') {
+// NEVER expose test endpoints in production - requires ENABLE_TEST_ROUTES=1
+if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === '1') {
   // Clean up test entries from leaderboard tables
   app.post('/test/clear-leaderboard', (_req, res) => {
     clearTestEntries('leaderboard');
@@ -352,7 +360,7 @@ if (process.env.NODE_ENV !== 'production') {
     room.state.board[row][col].pegId = pegId;
     const sockets = io.sockets.adapter.rooms.get(code);
     io.to(code).emit('state:update', {
-      state: JSON.parse(JSON.stringify(room.state)),
+      state: structuredClone(room.state),
       events: [],
       gameOver: false,
     });
@@ -411,44 +419,55 @@ io.on('connection', (socket) => {
 
   // Associate socket with authenticated user if available
   const socketSession = socket.request.session;
-  console.log('[auth] socket session full:', JSON.stringify(socketSession));
+  if (DEBUG) {
+    console.log('[auth] socket session full:', JSON.stringify(socketSession));
+  }
   if (socketSession?.userId) {
     socket.userId = socketSession.userId;
     socket.userName = socketSession.username;
-    console.log(
-      `[auth] ${socket.id} linked to user ${socketSession.userId} (${socketSession.username})`,
-    );
+    if (DEBUG) {
+      console.log(`[auth] ${socket.id} linked to user ${socketSession.userId} (${socketSession.username})`);
+    }
   }
 
   // Client sends userId directly after login (workaround for session issues)
   socket.on('auth:setUserId', (userId) => {
-    console.log('[auth] auth:setUserId received:', userId);
+    if (DEBUG) {
+      console.log('[auth] auth:setUserId received:', userId);
+    }
     if (userId) {
       socket.userId = userId;
-      console.log(`[auth] ${socket.id} set userId to ${userId}`);
+      if (DEBUG) {
+        console.log(`[auth] ${socket.id} set userId to ${userId}`);
+      }
       // Update the player's userId in ALL rooms this socket might be in
       const code = socketToRoom.get(socket.id);
-      console.log('[auth] socketToRoom lookup, code:', code);
+      if (DEBUG) {
+        console.log('[auth] socketToRoom lookup, code:', code);
+      }
       if (code) {
         const room = rooms.get(code);
-        console.log('[auth] room found:', room ? 'yes' : 'no');
+        if (DEBUG) {
+          console.log('[auth] room found:', room ? 'yes' : 'no');
+        }
         if (room) {
           const player = getPlayerBySocket(room, socket.id);
-          console.log(
-            '[auth] player found:',
-            player ? player.name : 'no',
-            'current userId:',
-            player?.userId,
-          );
+          if (DEBUG) {
+            console.log('[auth] player found:', player ? player.name : 'no', 'current userId:', player?.userId);
+          }
           if (player) {
             player.userId = userId;
-            console.log('[auth] Updated player userId in room to:', player.userId);
+            if (DEBUG) {
+              console.log('[auth] Updated player userId in room to:', player.userId);
+            }
           }
         }
       } else {
         // Socket not in any room yet - store for when they join
         socket.pendingUserId = userId;
-        console.log('[auth] No room yet, stored pendingUserId:', userId);
+        if (DEBUG) {
+          console.log('[auth] No room yet, stored pendingUserId:', userId);
+        }
       }
     }
   });
@@ -456,11 +475,15 @@ io.on('connection', (socket) => {
   // Client can emit this after login to refresh session
   socket.on('auth:refresh', (cb) => {
     const sess = socket.request.session;
-    console.log('[auth] refresh session received, full session:', JSON.stringify(sess));
+    if (DEBUG) {
+      console.log('[auth] refresh session received, full session:', JSON.stringify(sess));
+    }
     if (sess?.userId) {
       socket.userId = sess.userId;
       socket.userName = sess.username;
-      console.log(`[auth] ${socket.id} refreshed to user ${sess.userId}`);
+      if (DEBUG) {
+        console.log(`[auth] ${socket.id} refreshed to user ${sess.userId}`);
+      }
       // Update the player's userId in the room if they're in one
       const code = socketToRoom.get(socket.id);
       if (code) {
@@ -469,7 +492,9 @@ io.on('connection', (socket) => {
           const player = getPlayerBySocket(room, socket.id);
           if (player) {
             player.userId = sess.userId;
-            console.log('[auth] Updated player userId in room:', player.userId);
+            if (DEBUG) {
+              console.log('[auth] Updated player userId in room:', player.userId);
+            }
           }
         }
       }
@@ -1484,6 +1509,7 @@ function publicState(state) {
     selectedPegId: state.selectedPegId,
     winner: state.winner,
     movesRemaining: state.movesRemaining,
+    turnNumber: state.turnNumber,
   };
 }
 
@@ -1644,6 +1670,9 @@ function recordGameStats(room) {
 let _testOverride = null;
 let _testHPOverride = null;
 
+// Categories to exclude from qlashique by default
+const EXCLUDED_CATS = new Set(['death_metal', 'epl_2025']);
+
 function _pickQlasQuestion(room, db) {
   if (_testOverride) {
     const q = db._byId[_testOverride];
@@ -1653,7 +1682,8 @@ function _pickQlasQuestion(room, db) {
       return q;
     }
   }
-  const all = getAllQuestions(db);
+  // Get all questions, then filter out excluded categories
+  const all = getAllQuestions(db).filter((q) => !EXCLUDED_CATS.has(q.category));
   if (!all.length) {
     return null;
   }

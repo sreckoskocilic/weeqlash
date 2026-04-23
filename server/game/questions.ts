@@ -98,11 +98,18 @@ export function getAllQuestions(db: QuestionsDb): Question[] {
 }
 
 // Filtered pool for a specific set of categories. Cached per db+category key.
+// Uses LRU-style eviction to prevent unbounded memory growth.
+const MAX_CACHED_KEYS = 20;
 const _catCacheByDb = new Map<QuestionsDb, Map<string, Question[]>>();
 export function getQuestionsForCategories(db: QuestionsDb, categories: Category[]): Question[] {
   const key = categories.slice().sort().join(',');
   if (!_catCacheByDb.has(db)) {
     _catCacheByDb.set(db, new Map());
+    // Evict oldest if we have too many DB references
+    if (_catCacheByDb.size > MAX_CACHED_KEYS) {
+      const firstKey = _catCacheByDb.keys().next().value;
+      if (firstKey) _catCacheByDb.delete(firstKey);
+    }
   }
   const dbCache = _catCacheByDb.get(db)!;
   if (!dbCache.has(key)) {
@@ -112,6 +119,11 @@ export function getQuestionsForCategories(db: QuestionsDb, categories: Category[
         Array.isArray(db[cat]) ? db[cat].filter((q): q is Question => q.id !== undefined) : [],
       ),
     );
+    // Evict oldest entry if cache is too large for this db
+    if (dbCache.size > MAX_CACHED_KEYS) {
+      const firstEntryKey = dbCache.keys().next().value;
+      if (firstEntryKey) dbCache.delete(firstEntryKey);
+    }
   }
   return dbCache.get(key)!;
 }
