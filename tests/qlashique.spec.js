@@ -125,3 +125,60 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
   await ctx1.close();
   await ctx2.close();
 });
+
+test('qlashique: live recap populates after a few turns', async ({ browser }) => {
+  const api = await playwrightRequest.newContext({ baseURL: BASE });
+
+  const sampleRes = await api.get('/test/questions-sample');
+  const sample = await sampleRes.json();
+  expect(sample.length).toBeGreaterThan(0);
+  const { qId, correctIdx } = sample[0];
+  const wrongIdx = (correctIdx + 1) % 4;
+
+  const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
+  const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
+
+  await p1.locator('#btn-qlas-start').click();
+  await p1.waitForFunction(
+    // eslint-disable-next-line no-undef
+    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
+    { timeout: 8000 },
+  );
+  const code = await p1.locator('#qlas-code-val').textContent();
+
+  // Use HP=20 so two turns won't end the game — we need the match alive to open recap.
+  await api.post('/test/set-hp', { data: { hp: 20 } });
+
+  await p2.locator('#qlas-join-code').fill(code.trim());
+  await p2.locator('#btn-qlas-start').click();
+
+  await p1.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 10000 });
+
+  // Play 2 turns (P0 correct → attack, P1 wrong → self-damage). Neither kills at HP=20.
+  for (let i = 0; i < 2; i++) {
+    const p1Turn = await p1.locator('#qlas-decision-panel').isVisible();
+    if (p1Turn) {
+      await playTurn(p1, api, qId, correctIdx);
+    } else {
+      await playTurn(p2, api, qId, wrongIdx);
+    }
+    await Promise.race([
+      p1.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 12000 }),
+      p2.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 12000 }),
+    ]).catch(() => {});
+  }
+
+  // Open the live recap on whichever page is now on its decision panel
+  const active = (await p1.locator('#qlas-decision-panel').isVisible()) ? p1 : p2;
+  await active.locator('#qlas-recap-live-btn').click();
+  await active.locator('#qlas-recap-modal.show').waitFor({ state: 'visible', timeout: 5000 });
+
+  // Recap must NOT be the empty placeholder; must have at least one card
+  await expect(active.locator('#qlas-recap-live .qlas-recap-empty')).toHaveCount(0);
+  const cardCount = await active.locator('#qlas-recap-live .qlas-recap-card').count();
+  expect(cardCount).toBeGreaterThan(0);
+
+  await api.dispose();
+  await ctx1.close();
+  await ctx2.close();
+});

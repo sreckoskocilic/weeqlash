@@ -608,6 +608,7 @@ io.on('connection', (socket) => {
           { answered: 0, correct: 0 },
           { answered: 0, correct: 0 },
         ];
+        room.qlasHistory = [];
         // Register all player sockets as in an active game
         for (const player of room.players) {
           registerActiveSocket(player.id);
