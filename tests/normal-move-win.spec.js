@@ -14,7 +14,7 @@ async function registerAndLogin(browser, username) {
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill('testpass123');
   await page.locator('#btn-login').click();
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1000);
   return { ctx, page };
 }
 
@@ -139,11 +139,11 @@ async function playMove(page, preferredDirections) {
   const isCombat = targetOwnerBefore !== null && targetOwnerBefore !== attackerId;
 
   const targetTile = page.locator(`.tile.valid-move[data-r="${to.r}"][data-c="${to.c}"]`);
-  await expect(targetTile).toBeVisible({ timeout: 5000 });
+  await expect(targetTile).toBeVisible({ timeout: 1000 });
   await targetTile.click();
 
   for (let i = 0; i < 3; i += 1) {
-    await page.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
+    await page.locator('#modal-overlay.visible').waitFor({ timeout: 1000 });
     const questionText = (await page.locator('#modal-question').textContent()) ?? '';
     const options = await page.locator('#modal-options .modal-option').evaluateAll((nodes) =>
       nodes.map((node) => {
@@ -159,8 +159,8 @@ async function playMove(page, preferredDirections) {
 
     const continueButton = page.locator('#modal-continue-btn');
     if (!isCombat) {
-      await expect(continueButton).toBeVisible({ timeout: 5000 });
-      await expect(continueButton).toBeEnabled({ timeout: 5000 });
+      await expect(continueButton).toBeVisible({ timeout: 500 });
+      await expect(continueButton).toBeEnabled({ timeout: 500 });
       await continueButton.click();
       break;
     }
@@ -168,13 +168,13 @@ async function playMove(page, preferredDirections) {
     const nextState = await Promise.race([
       page
         .locator('#modal-overlay:not(.visible)')
-        .waitFor({ timeout: 5000 })
+        .waitFor({ timeout: 2000 })
         .then(() => 'closed')
         .catch(() => null),
       page
         .locator('#modal-options .modal-option:not([disabled])')
         .first()
-        .waitFor({ timeout: 5000 })
+        .waitFor({ timeout: 2000 })
         .then(() => 'next-question')
         .catch(() => null),
     ]);
@@ -184,7 +184,7 @@ async function playMove(page, preferredDirections) {
     }
   }
 
-  await page.locator('#modal-overlay:not(.visible)').waitFor({ timeout: 5000 });
+  await page.locator('#modal-overlay:not(.visible)').waitFor({ timeout: 2000 });
   await page.waitForTimeout(250);
   return { ok: true, questionCount };
 }
@@ -294,25 +294,16 @@ test('normal move: play until one player wins', async ({ browser }) => {
     }
   }
 
-  await expect(p1.locator('#screen-gameover')).toBeVisible({ timeout: 10000 });
-  await expect(p2.locator('#screen-gameover')).toBeVisible({ timeout: 10000 });
-
-  const p1GameOverVisible = await p1.locator('#screen-gameover').isVisible();
-  const p2GameOverVisible = await p2.locator('#screen-gameover').isVisible();
-  console.log('TEST: game over visible - p1:', p1GameOverVisible, 'p2:', p2GameOverVisible);
-
-  // Wait a bit for stats to be recorded
-  await p1.waitForTimeout(1000);
-
+  await expect(p1.locator('#screen-gameover')).toBeVisible({ timeout: 20000 });
+  await expect(p2.locator('#screen-gameover')).toBeVisible({ timeout: 20000 });
   const p1After = await getUserStats(api, 'e2e_normal_p1@test.invalid');
   const p2After = await getUserStats(api, 'e2e_normal_p2@test.invalid');
-
   // debug discrepancy in tracked answers
   const p1AfterStats = await getUserQuestionStats(p1);
   const p2AfterStats = await getUserQuestionStats(p2);
-  console.log('TEST: p1Questions (from test):', p1Questions, 'p2Questions:', p2Questions);
-  console.log('TEST: p1AfterStats:', p1AfterStats, 'p1Stats:', p1Stats);
-  console.log('TEST: p2AfterStats:', p2AfterStats, 'p2Stats:', p2Stats);
+  // console.log('TEST: p1Questions (from test):', p1Questions, 'p2Questions:', p2Questions);
+  // console.log('TEST: p1AfterStats:', p1AfterStats, 'p1Stats:', p1Stats);
+  // console.log('TEST: p2AfterStats:', p2AfterStats, 'p2Stats:', p2Stats);
   // Stats only count answered questions (not timeouts), so stats <= questionCount
   expect(p1AfterStats - p1Stats).toBeLessThanOrEqual(p1Questions);
   expect(p2AfterStats - p2Stats).toBeLessThanOrEqual(p2Questions);
