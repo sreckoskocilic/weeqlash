@@ -3230,8 +3230,8 @@
       // Reset password (from URL param)
       $('btn-reset').addEventListener('click', async () => {
         const password = $('reset-password').value;
-        if (!password || password.length < 6) {
-          return showAuthMessage('Password must be at least 6 characters', true);
+        if (!password || password.length < 8) {
+          return showAuthMessage('Password must be at least 8 characters', true);
         }
 
         const res = await fetch(`${serverUrl}/auth/reset-password`, {

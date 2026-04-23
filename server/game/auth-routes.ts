@@ -131,8 +131,8 @@ export function registerAuthRoutes(app: any): void {
         .status(400)
         .json({ error: 'Username can only contain letters, numbers, and underscores' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Invalid email address' });
@@ -309,8 +309,8 @@ export function registerAuthRoutes(app: any): void {
     if (!token || !password) {
       return res.status(400).json({ error: 'Token and new password are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
     const result = resetPassword(token, password);

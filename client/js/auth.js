@@ -172,8 +172,8 @@ export function setResetToken(token) {
 export function initResetPassword() {
   $('btn-reset').addEventListener('click', async () => {
     const password = $('reset-password').value;
-    if (!password || password.length < 6) {
-      return showAuthMessage('Password must be at least 6 characters', true);
+    if (!password || password.length < 8) {
+      return showAuthMessage('Password must be at least 8 characters', true);
     }
 
     const res = await fetch(`${serverUrl}/auth/reset-password`, {
@@ -245,7 +245,7 @@ export function initViewStats() {
 // Handle URL params (email confirmation, password reset)
 export function handleUrlParams() {
   const urlParams = new URLSearchParams(window.location.search);
-  
+
   if (urlParams.get('confirm')) {
     fetch(`${serverUrl}/auth/confirm/${urlParams.get('confirm')}`)
       .then((r) => r.json())

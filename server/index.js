@@ -248,6 +248,19 @@ io.engine.use(sessionMiddleware);
 // Test-only: teleport a peg to an adjacent position for E2E testing
 // NEVER expose test endpoints in production - requires ENABLE_TEST_ROUTES=1
 if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === '1') {
+  // Inject a synthetic question with a known correct answer so tests can
+  // assert answer-correct / answer-wrong UI behavior deterministically.
+  const TEST_QUESTION = {
+    id: 'TEST_Q_CORRECT_A',
+    a: 0,
+    q: 'I am test question',
+    opts: ['Correct', 'Wrong', 'Wrong', 'Wrong'],
+    category: 'history',
+  };
+  // Keep it out of the category pool so planTurnQuestions never picks it
+  // randomly; it's only reachable via /test/set-question.
+  questionsDb._byId[TEST_QUESTION.id] = TEST_QUESTION;
+
   // Clean up test entries from leaderboard tables
   app.post('/test/clear-leaderboard', (_req, res) => {
     clearTestEntries('leaderboard');
@@ -760,7 +773,16 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid move target' });
     }
 
-    const { moveType, questionId } = planTurnQuestions(room.state, pegId, r, c, questionsDb);
+    let { moveType, questionId } = planTurnQuestions(room.state, pegId, r, c, questionsDb);
+
+    // Test-only: swap planned question for the one locked via /test/set-question
+    if (_testOverride && questionsDb._byId?.[_testOverride]) {
+      questionId = _testOverride;
+      _testOverride = null;
+      if (room.state.pendingTurn) {
+        room.state.pendingTurn.questionId = questionId;
+      }
+    }
 
     const q = questionsDb._byId?.[questionId];
     const question = q
@@ -792,7 +814,7 @@ io.on('connection', (socket) => {
     });
 
     room.lastQuestionStart = Date.now();
-    cb({ ok: true, moveType, question: questionPublic, questionsTotal, defenderPlayerIdx });
+    cb({ ok: true, moveType, question, questionsTotal, defenderPlayerIdx });
   });
 
   socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }, cb) => {
@@ -900,7 +922,7 @@ io.on('connection', (socket) => {
       room.lastQuestionStart = Date.now();
 
       socket.emit('game:next_question', {
-        question: nextPublic,
+        question: nextQuestion,
         questionIdx: qIdx,
         correct: result.correct,
       });
