@@ -99,6 +99,16 @@ describe('processAnswer', () => {
     const result = processAnswer(s, 0, 0);
     expect(result.error).toBeTruthy();
   });
+
+  it('treats timer-expiry sentinel (-1) as a wrong answer', () => {
+    const s = guessingState();
+    s.currentScore = 2;
+    s.correctStreak = 2;
+    const { correct } = processAnswer(s, -1, 2);
+    expect(correct).toBe(false);
+    expect(s.currentScore).toBe(1);
+    expect(s.correctStreak).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -186,6 +196,15 @@ describe('endTurn', () => {
   it('returns error outside guessing phase', () => {
     const s = createQlasGame('reroll', 'reroll');
     expect(endTurn(s).error).toBeTruthy();
+  });
+
+  it('rejects endTurn in every non-GUESSING phase', () => {
+    for (const phase of [PHASE.CLASS_SELECT, PHASE.DECISION, PHASE.OUTCOME, PHASE.GAME_OVER]) {
+      const s = createQlasGame('reroll', 'reroll');
+      s.phase = phase;
+      const result = endTurn(s);
+      expect(result.error, `phase ${phase} should be rejected`).toBeTruthy();
+    }
   });
 });
 

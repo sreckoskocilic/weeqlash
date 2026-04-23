@@ -5792,7 +5792,7 @@
               q,
               opts,
               answerIdx,
-              correctIdx,
+              correctIdx: typeof correctIdx === 'number' ? correctIdx : null,
               correct,
               scoreAfter: newScore,
             });
@@ -5805,11 +5805,14 @@
         document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
       });
 
-      socket.on('qlashique:turn_end', () => {
+      socket.on('qlashique:turn_end', ({ history } = {}) => {
         qlasStopTimer();
         qlasGuessingActive = false;
         qEl('qlas-action-row').style.display = 'none';
         qEl('qlas-qpanel').style.opacity = '0.4';
+        if (Array.isArray(history)) {
+          qlasLiveHistory = history.slice();
+        }
       });
 
       socket.on('qlashique:attack_stopped', ({ score }) => {

@@ -110,6 +110,14 @@ app.use((req, res, next) => {
 });
 
 // Session store function - use MemoryStore (sessions persist while server runs)
+// DO NOT flip saveUninitialized to false without also reworking socket auth.
+// The socket handshake captures socket.request.session at connection time —
+// which for this client happens on page load, BEFORE login. If the initial GET
+// creates no session/cookie, the socket binds to an ephemeral session whose ID
+// never matches the one POST /auth/login later creates, and auth:setUserId's
+// sess.reload() finds nothing. Net result: player.userId stays null, game
+// stats (recordGameStats / _saveQlasResult) skip the DB writes, and e2e tests
+// that assert games_played/games_won/trackAnswer coverage fail silently.
 function createSessionMiddleware() {
   return session({
     secret: process.env.SESSION_SECRET || 'dev-secret',
@@ -128,7 +136,10 @@ function createSessionMiddleware() {
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
 
-// Initialize session on every request to ensure cookie is set
+// Force a session write on first request so the Set-Cookie lands before the
+// Socket.IO handshake. Paired with saveUninitialized:true above — together
+// they guarantee the socket and subsequent HTTP requests share one session ID.
+// Do not remove this middleware; see note on createSessionMiddleware.
 app.use((req, res, next) => {
   if (req.session && !req.session.visited) {
     req.session.visited = Date.now();
@@ -1288,7 +1299,7 @@ io.on('connection', (socket) => {
     if (room.state.phase !== QLAS_PHASE.GUESSING) {
       return cb({ error: 'Not in guessing phase' });
     }
-    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) {
+    if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
       return cb({ error: 'Invalid answer' });
     }
     if (!room.currentQuestion) {
@@ -1327,17 +1338,18 @@ io.on('connection', (socket) => {
       });
     }
 
-    io.to(code).emit('qlashique:answer_result', {
+    const answerPayload = {
       correct: result.correct,
       newScore: room.state.currentScore,
       playerIdx: player.index,
       answerIdx,
-      correctIdx: cq.a,
       category: cq.category,
       q: cq.q,
       opts: cq.opts,
       turn: room.state.turnNumber,
-    });
+    };
+    socket.emit('qlashique:answer_result', { ...answerPayload, correctIdx: cq.a });
+    socket.to(code).emit('qlashique:answer_result', answerPayload);
 
     if (checkInstantWin(room.state)) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
@@ -1433,7 +1445,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('qlashique:end_turn', ({ code, choice = 'attack' } = {}, cb) => {
-    console.log('[qlashique:end_turn] code:', code, 'socket.id:', socket.id);
     const room = getRoom(code);
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });
@@ -1445,6 +1456,9 @@ io.on('connection', (socket) => {
     }
     if (room.state.currentPlayerIdx !== player.index) {
       return cb({ error: 'Not your turn' });
+    }
+    if (room.state.phase !== QLAS_PHASE.GUESSING) {
+      return cb({ error: 'Not in guessing phase' });
     }
 
     if (room.qlasTimer) {
@@ -1471,6 +1485,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('qlashique:turn_end', {
       score: scoreBeforeEnd,
       outcome: finalOutcome,
+      history: room.qlasHistory ?? [],
     });
     io.to(code).emit('qlashique:hp_update', {
       p0hp: room.state.players[0].hp,
@@ -1585,63 +1600,17 @@ function publicState(state) {
 
 // Record game result to database (only for regular game ends, not disconnects)
 function recordGameStats(room) {
-  console.log('[stats] ========== recordGameStats called ==========');
-  console.log('[stats] room exists:', !!room);
-  if (!room) {
-    console.log('[stats] room is null, returning');
+  if (!room || !room.startedAt || !room.state?.players || room.state.players.length < 2) {
     return;
-  }
-  console.log('[stats] startedAt:', room?.startedAt);
-  console.log('[stats] playersCount:', room?.state?.players?.length);
-  console.log(
-    '[stats] roomPlayers:',
-    room?.players?.map((p) => ({
-      name: p.name,
-      userId: p.userId,
-      socketId: p.id,
-    })),
-  );
-  console.log(
-    '[stats] statePlayers:',
-    room?.state?.players?.map((p) => ({
-      name: p.name,
-      userId: p.userId,
-    })),
-  );
-
-  if (!room.startedAt || !room.state?.players || room.state.players.length < 2) {
-    console.log('[stats] Skipping - invalid game state');
-    return; // Not a valid started game
   }
 
   const players = room.state.players;
-
-  // Get userIds from room players (linked at join time)
   const player1UserId = room.players[0]?.userId;
   const player2UserId = room.players[1]?.userId;
-  console.log('[stats] userIds:', player1UserId, player2UserId);
-  console.log(
-    '[stats] room.players[0].name:',
-    room.players[0]?.name,
-    'socketId:',
-    room.players[0]?.id,
-  );
-  console.log(
-    '[stats] room.players[1].name:',
-    room.players[1]?.name,
-    'socketId:',
-    room.players[1]?.id,
-  );
-  console.log('[stats] room.state.players[0].userId:', room.state.players[0]?.userId);
-  console.log('[stats] room.state.players[1].userId:', room.state.players[1]?.userId);
-
-  // Determine winner index for stats updating (accessible to all sections)
   const winnerIdx = room.state.winner;
   const durationMs = Date.now() - room.startedAt;
 
-  // If both have accounts, record full game history and update games played/won
   if (player1UserId && player2UserId) {
-    console.log('[stats] Both players have userIds, recording stats...');
     let winnerId = null;
     if (winnerIdx !== null && winnerIdx < players.length) {
       winnerId = winnerIdx === 0 ? player1UserId : player2UserId;
@@ -1649,8 +1618,6 @@ function recordGameStats(room) {
 
     const player1Stats = players[0]?.stats ?? { byCategory: {} };
     const player2Stats = players[1]?.stats ?? { byCategory: {} };
-    console.log('[stats] player1Stats:', JSON.stringify(player1Stats));
-    console.log('[stats] player2Stats:', JSON.stringify(player2Stats));
 
     try {
       insertGameResult({
@@ -1683,10 +1650,6 @@ function recordGameStats(room) {
         updateGames.run(winnerIdx === 0 ? 1 : 0, player1UserId);
         updateGames.run(winnerIdx === 1 ? 1 : 0, player2UserId);
       }
-
-      const gameRoomCode = players[0].name + ' vs ' + players[1].name;
-      const winnerStr = winnerId ? 'player' + (winnerIdx + 1) : 'draw';
-      console.log(`[stats] Game recorded: ${gameRoomCode}, winner: ${winnerStr}`);
     } catch (err) {
       console.error('[stats] Failed to record game:', err.message);
     }
@@ -1702,12 +1665,10 @@ function recordGameStats(room) {
 
   if (player1UserId) {
     updateGames?.run(winnerIdx === 0 ? 1 : 0, player1UserId);
-    console.log('[stats] Recorded player1 stats:', players[0].name);
   }
 
   if (player2UserId) {
     updateGames?.run(winnerIdx === 1 ? 1 : 0, player2UserId);
-    console.log('[stats] Recorded player2 stats:', players[1].name);
   }
 }
 
