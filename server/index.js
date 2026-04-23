@@ -1189,6 +1189,7 @@ io.on('connection', (socket) => {
         { answered: 0, correct: 0 },
         { answered: 0, correct: 0 },
       ];
+      room.qlasHistory = [];
       // Register all player sockets as in an active game
       for (const p of room.players) {
         registerActiveSocket(p.id);
@@ -1284,11 +1285,34 @@ io.on('connection', (socket) => {
         room.qlasStats[player.index].correct++;
       }
     }
+    const cq = room.currentQuestion;
+    if (room.qlasHistory) {
+      room.qlasHistory.push({
+        turn: room.state.turnNumber,
+        playerIdx: player.index,
+        questionId: cq.id,
+        category: cq.category,
+        q: cq.q,
+        opts: cq.opts,
+        answerIdx,
+        correctIdx: cq.a,
+        correct: result.correct,
+        scoreAfter: room.state.currentScore,
+        p0hp: room.state.players[0].hp,
+        p1hp: room.state.players[1].hp,
+      });
+    }
 
     io.to(code).emit('qlashique:answer_result', {
       correct: result.correct,
       newScore: room.state.currentScore,
       playerIdx: player.index,
+      answerIdx,
+      correctIdx: cq.a,
+      category: cq.category,
+      q: cq.q,
+      opts: cq.opts,
+      turn: room.state.turnNumber,
     });
 
     if (checkInstantWin(room.state)) {
@@ -1297,6 +1321,8 @@ io.on('connection', (socket) => {
       io.to(code).emit('qlashique:game_over', {
         winnerIdx: player.index,
         reason: 'instant_win',
+        history: room.qlasHistory ?? [],
+        stats: room.qlasStats ?? null,
       });
       return cb({ ok: true });
     }
@@ -1431,7 +1457,12 @@ io.on('connection', (socket) => {
     if (winnerIdx >= 0 && winnerIdx < 2) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
       _saveQlasResult(room, winnerIdx);
-      io.to(code).emit('qlashique:game_over', { winnerIdx, reason: 'hp' });
+      io.to(code).emit('qlashique:game_over', {
+        winnerIdx,
+        reason: 'hp',
+        history: room.qlasHistory ?? [],
+        stats: room.qlasStats ?? null,
+      });
       return cb({ ok: true });
     }
 
@@ -1473,6 +1504,8 @@ io.on('connection', (socket) => {
             io.to(room.code).emit('qlashique:game_over', {
               winnerIdx: winner.index,
               reason: 'disconnect',
+              history: room.qlasHistory ?? [],
+              stats: room.qlasStats ?? null,
             });
           } else {
             room.state.phase = PHASE.GAME_OVER;
