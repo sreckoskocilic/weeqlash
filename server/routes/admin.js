@@ -1,8 +1,20 @@
 import express from 'express';
 import crypto from 'crypto';
 import { getDb } from '../game/leaderboard.ts';
+import { resendConfirmation } from '../game/auth.ts';
 
 const router = express.Router();
+
+const FLASH_TTL_MS = 5 * 60_000;
+
+function parseId(raw) {
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function badRequest(res, msg) {
+  return res.status(400).send(renderHTML('Bad Request', `<h1>Bad Request</h1><p>${esc(msg)}</p>`));
+}
 
 function esc(v) {
   if (v === null || v === undefined) {
@@ -129,11 +141,22 @@ function requireAdmin(req, res, next) {
     return next();
   }
 
-  // Check for magic key in header or query string
+  // Check for magic key in header or query string (timing-safe compare)
   const key = req.headers['x-admin-key'] || req.query.admin_key;
-  if (key && ADMIN_MAGIC_KEY && key === ADMIN_MAGIC_KEY) {
-    req.session.isAdmin = true;
-    req.session.save(() => next());
+  if (
+    typeof key === 'string' &&
+    ADMIN_MAGIC_KEY &&
+    key.length === ADMIN_MAGIC_KEY.length &&
+    crypto.timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_MAGIC_KEY))
+  ) {
+    // Regenerate session to prevent fixation — attacker can't pre-plant the session id
+    req.session.regenerate((err) => {
+      if (err) {
+        return next(err);
+      }
+      req.session.isAdmin = true;
+      req.session.save(() => next());
+    });
     return;
   }
 
@@ -220,21 +243,46 @@ router.get('/users', (_req, res) => {
 });
 
 router.post('/users/toggle-admin', express.urlencoded({ extended: true }), (req, res) => {
-  const db = getDb();
-  db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(req.body.is_admin, req.body.id);
+  const id = parseId(req.body.id);
+  if (id === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
+  const flag = req.body.is_admin === '1' || req.body.is_admin === 1 ? 1 : 0;
+  if (flag === 0) {
+    if (req.session.userId === id) {
+      return badRequest(res, 'You cannot remove admin from the account you are signed in as.');
+    }
+    const adminCount = getDb()
+      .prepare('SELECT COUNT(*) as c FROM users WHERE is_admin = 1')
+      .get().c;
+    if (adminCount <= 1) {
+      return badRequest(res, 'Cannot remove the last remaining admin.');
+    }
+  }
+  getDb().prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(flag, id);
   res.redirect('/admin/users');
 });
 
 router.post('/users/toggle-block', express.urlencoded({ extended: true }), (req, res) => {
-  const db = getDb();
-  db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(req.body.is_blocked, req.body.id);
+  const id = parseId(req.body.id);
+  if (id === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
+  const flag = req.body.is_blocked === '1' || req.body.is_blocked === 1 ? 1 : 0;
+  if (flag === 1 && req.session.userId === id) {
+    return badRequest(res, 'You cannot block the account you are signed in as.');
+  }
+  getDb().prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(flag, id);
   res.redirect('/admin/users');
 });
 
 // ========== USER DETAIL PAGE ==========
 router.get('/users/:id', (req, res) => {
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
   const db = getDb();
-  const userId = parseInt(req.params.id);
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
 
   if (!user) {
@@ -315,12 +363,28 @@ router.get('/users/:id', (req, res) => {
     })
     .join('');
 
-  const flash = req.session.resetLinkFlash;
-  let resetBanner = '';
-  if (flash && flash.userId === userId && typeof flash.url === 'string') {
-    resetBanner = `<div class="card" style="border:1px solid #22c55e"><strong>Password reset link generated</strong> (expires in 1 hour). Share with user:<br><code style="word-break:break-all;color:#fff">${esc(flash.url)}</code></div>`;
-    delete req.session.resetLinkFlash;
-  }
+  const flashBanners = [
+    ['resetLinkFlash', 'Password reset link generated'],
+    ['confirmLinkFlash', 'Email confirmation link generated'],
+  ]
+    .map(([key, label]) => {
+      const f = req.session[key];
+      if (!f) {
+        return '';
+      }
+      const expired = typeof f.expiresAt === 'number' && f.expiresAt < Date.now();
+      if (expired || f.userId !== userId) {
+        delete req.session[key];
+        return '';
+      }
+      if (typeof f.url !== 'string') {
+        return '';
+      }
+      delete req.session[key];
+      return `<div class="card" style="border:1px solid #22c55e"><strong>${label}</strong> (expires in 1 hour). Share with user:<br><code style="word-break:break-all;color:#fff">${esc(f.url)}</code></div>`;
+    })
+    .join('');
+  const resetBanner = flashBanners;
 
   const content = `
     <h1>User: ${esc(user.username)}</h1>
@@ -386,6 +450,14 @@ router.get('/users/:id', (req, res) => {
         <input type="hidden" name="id" value="${user.id}">
         <button class="btn btn-secondary" onclick="return confirm('Generate a password reset link for this user?')">Send Reset Link</button>
       </form>
+      ${
+        user.email_confirmed
+          ? ''
+          : `<form method="post" action="/admin/users/resend-email" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-secondary" onclick="return confirm('Generate an email confirmation link for this user?')">Resend Confirmation</button>
+      </form>`
+      }
       <form method="get" action="/admin/users/${user.id}/export" style="display:inline;margin-right:10px">
         <button class="btn btn-secondary">Export Statistics (JSON)</button>
       </form>
@@ -402,22 +474,31 @@ router.get('/users/:id', (req, res) => {
 });
 
 router.post('/users/update', express.urlencoded({ extended: true }), (req, res) => {
+  const id = parseId(req.body.id);
+  if (id === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  if (!username || !email) {
+    return badRequest(res, 'Username and email are required.');
+  }
   const db = getDb();
-  db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(
-    req.body.username,
-    req.body.email,
-    req.body.id,
-  );
-  res.redirect(`/admin/users/${req.body.id}`);
+  const dupe = db
+    .prepare('SELECT id, username, email FROM users WHERE (username = ? OR email = ?) AND id <> ?')
+    .get(username, email, id);
+  if (dupe) {
+    const field = dupe.username === username ? 'username' : 'email';
+    return badRequest(res, `Another user already has that ${field}.`);
+  }
+  db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(username, email, id);
+  res.redirect(`/admin/users/${id}`);
 });
 
 router.post('/users/delete', express.urlencoded({ extended: true }), (req, res) => {
-  const db = getDb();
-  const userId = parseInt(req.body.id, 10);
-  if (!Number.isFinite(userId)) {
-    return res
-      .status(400)
-      .send(renderHTML('Bad Request', '<h1>Bad Request</h1><p>Invalid user id.</p>'));
+  const userId = parseId(req.body.id);
+  if (userId === null) {
+    return badRequest(res, 'Invalid user id.');
   }
   if (req.session.userId === userId) {
     return res
@@ -429,6 +510,7 @@ router.post('/users/delete', express.urlencoded({ extended: true }), (req, res) 
         ),
       );
   }
+  const db = getDb();
   const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId);
   if (!user) {
     return res.redirect('/admin/users');
@@ -444,19 +526,24 @@ router.post('/users/delete', express.urlencoded({ extended: true }), (req, res) 
 });
 
 router.post('/users/reset-stats', express.urlencoded({ extended: true }), (req, res) => {
+  const id = parseId(req.body.id);
+  if (id === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
   const db = getDb();
-  db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(req.body.id);
-  res.redirect(`/admin/users/${req.body.id}`);
+  db.transaction(() => {
+    db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(id);
+    db.prepare('UPDATE users SET games_played = 0, games_won = 0 WHERE id = ?').run(id);
+  })();
+  res.redirect(`/admin/users/${id}`);
 });
 
 router.post('/users/reset-password', express.urlencoded({ extended: true }), (req, res) => {
-  const db = getDb();
-  const userId = parseInt(req.body.id, 10);
-  if (!Number.isFinite(userId)) {
-    return res
-      .status(400)
-      .send(renderHTML('Bad Request', '<h1>Bad Request</h1><p>Invalid user id.</p>'));
+  const userId = parseId(req.body.id);
+  if (userId === null) {
+    return badRequest(res, 'Invalid user id.');
   }
+  const db = getDb();
   const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
   if (!user) {
     return res.redirect('/admin/users');
@@ -470,7 +557,7 @@ router.post('/users/reset-password', express.urlencoded({ extended: true }), (re
   );
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
   const resetLink = `${clientUrl}/?reset=${token}`;
-  req.session.resetLinkFlash = { userId, url: resetLink };
+  req.session.resetLinkFlash = { userId, url: resetLink, expiresAt: Date.now() + FLASH_TTL_MS };
   req.session.save(() => {
     console.log(`[admin] Generated password reset link for user id=${userId}`);
     res.redirect(`/admin/users/${userId}`);
@@ -478,13 +565,25 @@ router.post('/users/reset-password', express.urlencoded({ extended: true }), (re
 });
 
 router.post('/users/resend-email', express.urlencoded({ extended: true }), (req, res) => {
-  const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.body.id);
-  if (user) {
-    const token = crypto.randomBytes(32).toString('hex');
-    db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(token, req.body.id);
+  const id = parseId(req.body.id);
+  if (id === null) {
+    return badRequest(res, 'Invalid user id.');
   }
-  res.redirect(`/admin/users/${req.body.id}`);
+  const result = resendConfirmation(id);
+  if (result.error) {
+    return badRequest(res, result.error);
+  }
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const confirmLink = `${clientUrl}/?confirm=${result.confirmToken}`;
+  req.session.confirmLinkFlash = {
+    userId: id,
+    url: confirmLink,
+    expiresAt: Date.now() + FLASH_TTL_MS,
+  };
+  req.session.save(() => {
+    console.log(`[admin] Generated email confirmation link for user id=${id}`);
+    res.redirect(`/admin/users/${id}`);
+  });
 });
 
 // ========== STATISTICS PAGE ==========
@@ -533,9 +632,9 @@ router.get('/stats', (_req, res) => {
       (g) => `
     <tr>
       <td>${g.id}</td>
-      <td>${g.p1_name || g.player1_id} vs ${g.p2_name || g.player2_id}</td>
-      <td>${g.winner_name || '-'}</td>
-      <td>${g.game_mode || '-'}</td>
+      <td>${esc(g.p1_name || g.player1_id)} vs ${esc(g.p2_name || g.player2_id)}</td>
+      <td>${esc(g.winner_name || '-')}</td>
+      <td>${esc(g.game_mode || '-')}</td>
       <td>${g.board_size}x${g.board_size}</td>
       <td>${Math.round(g.duration_ms / 1000)}s</td>
       <td>${new Date(g.created_at).toLocaleString()}</td>
@@ -549,7 +648,7 @@ router.get('/stats', (_req, res) => {
       const accuracy = c.answered > 0 ? Math.round((c.correct / c.answered) * 100) : 0;
       return `
       <tr>
-        <td>${c.category}</td>
+        <td>${esc(c.category)}</td>
         <td>${c.answered}</td>
         <td>${c.correct}</td>
         <td>${accuracy}%</td>
@@ -632,8 +731,11 @@ router.get('/admin', (_req, res) => {
 
 // ========== EXPORT STATISTICS ==========
 router.get('/users/:id/export', (req, res) => {
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
   const db = getDb();
-  const userId = parseInt(req.params.id);
   const user = db
     .prepare(
       'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users WHERE id = ?',
@@ -641,7 +743,9 @@ router.get('/users/:id/export', (req, res) => {
     .get(userId);
 
   if (!user) {
-    return res.send('User does not exist');
+    return res
+      .status(404)
+      .send(renderHTML('User Not Found', '<h1>User Not Found</h1><p>The user does not exist.</p>'));
   }
 
   const userStats = db

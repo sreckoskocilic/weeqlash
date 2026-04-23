@@ -3,6 +3,18 @@ import { getDb } from '../game/leaderboard.ts';
 
 const router = express.Router();
 
+function esc(v: unknown): string {
+  if (v === null || v === undefined) {
+    return '';
+  }
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Helper to render simple HTML
 function renderHTML(title: string, content: string, extra = ''): string {
   return `
@@ -235,8 +247,8 @@ router.get('/users', (req: express.Request, res: express.Response) => {
               (user) => `
             <tr>
               <td>${user.id}</td>
-              <td>${user.username}</td>
-              <td>${user.email}</td>
+              <td>${esc(user.username)}</td>
+              <td>${esc(user.email)}</td>
               <td>${user.email_confirmed === 1 ? 'Yes' : 'No'}</td>
               <td>${user.is_blocked === 1 ? 'Yes' : 'No'}</td>
               <td>${user.is_admin === 1 ? 'Yes' : 'No'}</td>
@@ -329,7 +341,7 @@ router.get('/stats', (req: express.Request, res: express.Response) => {
             .map(
               (stat) => `
             <tr>
-              <td>${stat.game_mode}</td>
+              <td>${esc(stat.game_mode)}</td>
               <td>${stat.total_games}</td>
               <td>${stat.player1_wins}</td>
               <td>${stat.player2_wins}</td>
@@ -355,7 +367,7 @@ router.get('/stats', (req: express.Request, res: express.Response) => {
             .map(
               (player) => `
             <tr>
-              <td>${player.username}</td>
+              <td>${esc(player.username)}</td>
               <td>${player.games_played}</td>
               <td>${player.games_won}</td>
               <td>${((player.games_won / player.games_played) * 100).toFixed(1)}%</td>
@@ -535,15 +547,15 @@ router.get('/user/:id', (req: express.Request, res: express.Response) => {
     }>;
 
     const html = renderHTML(
-      `User ${user.username}`,
+      `User ${esc(user.username)}`,
       `
       <h1>User Details</h1>
       <div class="stat-card">
-        <div class="stat-value">${user.username}</div>
+        <div class="stat-value">${esc(user.username)}</div>
         <div class="stat-label">Username</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">${user.email}</div>
+        <div class="stat-value">${esc(user.email)}</div>
         <div class="stat-label">Email</div>
       </div>
       <div class="stat-card">
@@ -589,7 +601,7 @@ router.get('/user/:id', (req: express.Request, res: express.Response) => {
               .map(
                 (stat) => `
               <tr>
-                <td>${stat.category}</td>
+                <td>${esc(stat.category)}</td>
                 <td>${stat.answered}</td>
                 <td>${stat.correct}</td>
                 <td>${stat.answered > 0 ? ((stat.correct / stat.answered) * 100).toFixed(1) + '%' : '0%'}</td>
