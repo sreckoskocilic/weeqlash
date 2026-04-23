@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import { getDb } from '../game/leaderboard.ts';
 
 const router = express.Router();
@@ -302,10 +303,16 @@ router.get('/users/:id', (req, res) => {
     })
     .join('');
 
+  const resetLink = typeof req.query.reset_link === 'string' ? req.query.reset_link : '';
+  const resetBanner = resetLink
+    ? `<div class="card" style="border:1px solid #22c55e"><strong>Password reset link generated</strong> (expires in 1 hour). Share with user:<br><code style="word-break:break-all;color:#fff">${resetLink}</code></div>`
+    : '';
+
   const content = `
     <h1>User: ${user.username}</h1>
     <p><a href="/admin/users" style="color:#a4b2a0">← Back to Users</a></p>
-    
+    ${resetBanner}
+
     <div class="card">
       <h2>Account Details</h2>
       <form method="post" action="/admin/users/update">
@@ -361,8 +368,17 @@ router.get('/users/:id', (req, res) => {
         <input type="hidden" name="id" value="${user.id}">
         <button class="btn btn-secondary" onclick="return confirm('Reset all statistics for this user?')">Reset Statistics</button>
       </form>
-      <form method="get" action="/admin/users/${user.id}/export" style="display:inline">
+      <form method="post" action="/admin/users/reset-password" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-secondary" onclick="return confirm('Generate a password reset link for this user?')">Send Reset Link</button>
+      </form>
+      <form method="get" action="/admin/users/${user.id}/export" style="display:inline;margin-right:10px">
         <button class="btn btn-secondary">Export Statistics (JSON)</button>
+      </form>
+      <form method="post" action="/admin/users/delete" style="display:inline"
+            onsubmit="return (prompt('Type the username &quot;${user.username}&quot; to confirm permanent deletion of this user and all their stats/game history:') === '${user.username}')">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-primary" style="background:#ef4444">Delete User (Cascade)</button>
       </form>
     </div>
   `;
@@ -380,17 +396,73 @@ router.post('/users/update', express.urlencoded({ extended: true }), (req, res) 
   res.redirect(`/admin/users/${req.body.id}`);
 });
 
+router.post('/users/delete', express.urlencoded({ extended: true }), (req, res) => {
+  const db = getDb();
+  const userId = parseInt(req.body.id, 10);
+  if (!Number.isFinite(userId)) {
+    return res
+      .status(400)
+      .send(renderHTML('Bad Request', '<h1>Bad Request</h1><p>Invalid user id.</p>'));
+  }
+  if (req.session.userId === userId) {
+    return res
+      .status(400)
+      .send(
+        renderHTML(
+          'Forbidden',
+          '<h1>Forbidden</h1><p>You cannot delete the account you are signed in as.</p>',
+        ),
+      );
+  }
+  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId);
+  if (!user) {
+    return res.redirect('/admin/users');
+  }
+  const cascade = db.transaction((uid) => {
+    db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(uid);
+    db.prepare('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?').run(uid, uid);
+    db.prepare('DELETE FROM users WHERE id = ?').run(uid);
+  });
+  cascade(userId);
+  console.log(`[admin] Cascade-deleted user id=${userId} username=${user.username}`);
+  res.redirect('/admin/users');
+});
+
 router.post('/users/reset-stats', express.urlencoded({ extended: true }), (req, res) => {
   const db = getDb();
   db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(req.body.id);
   res.redirect(`/admin/users/${req.body.id}`);
 });
 
-router.post('/users/resend-email', express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/users/reset-password', express.urlencoded({ extended: true }), (req, res) => {
+  const db = getDb();
+  const userId = parseInt(req.body.id, 10);
+  if (!Number.isFinite(userId)) {
+    return res
+      .status(400)
+      .send(renderHTML('Bad Request', '<h1>Bad Request</h1><p>Invalid user id.</p>'));
+  }
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+  if (!user) {
+    return res.redirect('/admin/users');
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = Date.now() + 3600000; // 1 hour
+  db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(
+    token,
+    expires,
+    userId,
+  );
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const resetLink = `${clientUrl}/?reset=${token}`;
+  console.log(`[admin] Generated password reset link for user id=${userId}`);
+  res.redirect(`/admin/users/${userId}?reset_link=${encodeURIComponent(resetLink)}`);
+});
+
+router.post('/users/resend-email', express.urlencoded({ extended: true }), (req, res) => {
   const db = getDb();
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.body.id);
   if (user) {
-    const crypto = await import('crypto');
     const token = crypto.randomBytes(32).toString('hex');
     db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(token, req.body.id);
   }
