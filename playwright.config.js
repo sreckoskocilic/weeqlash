@@ -19,7 +19,7 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'node server/index.js',
+    command: 'node -r ts-node/register server/index.js',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 15000,

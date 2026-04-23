@@ -8,7 +8,8 @@ import {
   resendConfirmation,
   getUserById,
   getUserStats,
-} from './auth.js';
+} from './auth.ts';
+import type { Transporter } from 'nodemailer';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
@@ -21,21 +22,23 @@ const AUTH_RATE_WINDOW_MS = 60_000;
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of authRateLimits) {
-    if (now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {authRateLimits.delete(ip);}
+    if (now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {
+      authRateLimits.delete(ip);
+    }
   }
 }, 10 * 60_000).unref();
 
-function getClientIp(req) {
+function getClientIp(req: any): string {
   const raw = req.ip || req.socket?.remoteAddress || 'unknown';
   // Normalize IPv6-mapped IPv4 (e.g. ::ffff:127.0.0.1 → 127.0.0.1)
   return raw.startsWith('::ffff:') ? raw.slice(7) : raw;
 }
 
-function isLocalhostIp(ip) {
+function isLocalhostIp(ip: string): boolean {
   return ip === '::1' || ip.startsWith('127.');
 }
 
-function checkAuthRateLimit(ip) {
+function checkAuthRateLimit(ip: string): boolean {
   const now = Date.now();
   const entry = authRateLimits.get(ip);
   if (!entry || now - entry.firstAttempt > AUTH_RATE_WINDOW_MS) {
@@ -49,7 +52,7 @@ function checkAuthRateLimit(ip) {
   return true;
 }
 
-function applyAuthRateLimit(req, res) {
+function applyAuthRateLimit(req: any, res: any): boolean {
   const ip = getClientIp(req);
   if (!isLocalhostIp(ip) && !checkAuthRateLimit(ip)) {
     res.status(429).json({ error: 'Too many requests. Please try again later.' });
@@ -61,16 +64,16 @@ function applyAuthRateLimit(req, res) {
 function getSmtpConfig() {
   return {
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
+    port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM || 'noreply@weeqlash.icu',
-  };
+  } as const;
 }
 
-let transporter = null;
+let transporter: Transporter | null = null;
 
-async function getTransporter() {
+async function getTransporter(): Promise<Transporter | null> {
   if (transporter) {
     return transporter;
   }
@@ -80,17 +83,22 @@ async function getTransporter() {
     console.warn('[auth] SMTP not configured — emails will be logged to console');
     return null;
   }
+  // At this point, we know cfg.host is not null/undefined, but TypeScript needs help
+  const host: string = cfg.host as string;
+  const port: number = cfg.port as number;
+  const user: string = cfg.user as string;
+  const pass: string = cfg.pass as string;
   const nodemailer = await import('nodemailer');
   transporter = nodemailer.createTransport({
-    host: cfg.host,
-    port: cfg.port,
-    secure: cfg.port === 465,
-    auth: { user: cfg.user, pass: cfg.pass },
+    host: host,
+    port: port,
+    secure: port === 465,
+    auth: { user: user, pass: pass },
   });
   return transporter;
 }
 
-async function sendEmail(to, subject, html) {
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const t = await getTransporter();
   const cfg = getSmtpConfig();
   if (!t) {
@@ -100,13 +108,15 @@ async function sendEmail(to, subject, html) {
   await t.sendMail({ from: cfg.from, to, subject, html });
 }
 
-export function registerAuthRoutes(app) {
+export function registerAuthRoutes(app: any): void {
   console.log('[auth-routes] SMTP_HOST at registration:', process.env.SMTP_HOST);
   console.log('[auth-routes] SMTP_USER at registration:', process.env.SMTP_USER);
 
   // Register
-  app.post('/auth/register', async (req, res) => {
-    if (!applyAuthRateLimit(req, res)) {return;}
+  app.post('/auth/register', async (req: any, res: any) => {
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
 
     const { username, email, password } = req.body;
 
@@ -144,8 +154,10 @@ export function registerAuthRoutes(app) {
   });
 
   // Login
-  app.post('/auth/login', (req, res) => {
-    if (!applyAuthRateLimit(req, res)) {return;}
+  app.post('/auth/login', (req: any, res: any) => {
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
 
     const { username, password, keepLoggedIn } = req.body;
 
@@ -154,7 +166,7 @@ export function registerAuthRoutes(app) {
     }
 
     const result = authenticateUser(username, password);
-    if (result.error) {
+    if ('error' in result) {
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
 
@@ -169,7 +181,7 @@ export function registerAuthRoutes(app) {
       : undefined;
 
     console.log('[auth] login set session:', { userId: result.user.id, keepLoggedIn });
-    req.session.save((err) => {
+    req.session.save((err: any) => {
       if (err) {
         console.error('[auth] session save error:', err.message);
       }
@@ -178,14 +190,14 @@ export function registerAuthRoutes(app) {
   });
 
   // Logout
-  app.post('/auth/logout', (req, res) => {
+  app.post('/auth/logout', (req: any, res: any) => {
     req.session.destroy(() => {
       res.json({ ok: true });
     });
   });
 
   // Get current user
-  app.get('/auth/me', (req, res) => {
+  app.get('/auth/me', (req: any, res: any) => {
     if (!req.session.userId) {
       return res.json({ user: null });
     }
@@ -200,7 +212,7 @@ export function registerAuthRoutes(app) {
   });
 
   // Get user stats
-  app.get('/auth/stats/:userId', async (req, res) => {
+  app.get('/auth/stats/:userId', async (req: any, res: any) => {
     // Verify the logged-in user matches the requested userId (or is admin)
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -223,13 +235,13 @@ export function registerAuthRoutes(app) {
       console.log('[auth-routes] Sending stats result:', stats);
       res.json(stats);
     } catch (err) {
-      console.error('[auth-routes] Error fetching user stats:', err.message);
+      console.error('[auth-routes] Error fetching user stats:', (err as Error).message);
       res.status(500).json({ error: 'Failed to fetch stats' });
     }
   });
 
   // Confirm email
-  app.get('/auth/confirm/:token', (req, res) => {
+  app.get('/auth/confirm/:token', (req: any, res: any) => {
     const result = confirmEmail(req.params.token);
     if (result.error) {
       return res.status(400).json(result);
@@ -238,7 +250,7 @@ export function registerAuthRoutes(app) {
   });
 
   // Resend confirmation
-  app.post('/auth/resend-confirmation', (req, res) => {
+  app.post('/auth/resend-confirmation', (req: any, res: any) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not logged in' });
     }
@@ -248,6 +260,9 @@ export function registerAuthRoutes(app) {
     }
 
     const user = getUserById(req.session.userId);
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
     const confirmUrl = `${CLIENT_URL}?confirm=${result.confirmToken}`;
     sendEmail(
       user.email,
@@ -259,7 +274,7 @@ export function registerAuthRoutes(app) {
   });
 
   // Request password reset
-  app.post('/auth/forgot-password', (req, res) => {
+  app.post('/auth/forgot-password', (req: any, res: any) => {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -280,13 +295,15 @@ export function registerAuthRoutes(app) {
   });
 
   // Reset password page (serve client for direct URL access)
-  app.get('/auth/reset-password', (_req, res) => {
+  app.get('/auth/reset-password', (_req: any, res: any) => {
     res.sendFile(path.join(__dirname, '../../client/index.html'));
   });
 
   // Reset password
-  app.post('/auth/reset-password', (req, res) => {
-    if (!applyAuthRateLimit(req, res)) {return;}
+  app.post('/auth/reset-password', (req: any, res: any) => {
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
 
     const { token, password } = req.body;
     if (!token || !password) {

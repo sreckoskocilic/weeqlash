@@ -1,6 +1,6 @@
 // Shared test utilities for weeqlash tests
 
-import { CATS } from '../server/game/engine.js';
+import { CATS } from '../server/game/engine.ts';
 
 /**
  * Create a mock questions database for testing

@@ -1,11 +1,12 @@
-import { getDb } from './leaderboard.js';
+import { getDb } from './leaderboard.ts';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import Database from 'better-sqlite3';
 
 const SALT_ROUNDS = 10;
 
 export function initAuthDb() {
-  const db = getDb();
+  const db: Database.Database | null = getDb();
   if (!db) {
     return { error: 'Database not initialized — call initDb() first' };
   }
@@ -66,11 +67,13 @@ export function initAuthDb() {
   return { ok: true };
 }
 
-function applySchemaMigrations(db) {
+function applySchemaMigrations(db: Database.Database) {
   try {
     // Check if games_played column exists, add if not
     const tableInfo = db.prepare('PRAGMA table_info(users)').all();
-    const columns = tableInfo.map((col) => col.name);
+    const columns = tableInfo.map((col) => {
+      return (col as { name: string }).name;
+    });
 
     // Add games_played column if missing
     if (!columns.includes('games_played')) {
@@ -120,23 +123,40 @@ function applySchemaMigrations(db) {
       })();
     }
   } catch (error) {
-    console.warn('[auth] Schema migration warning:', error.message);
+    console.warn('[auth] Schema migration warning:', (error as Error).message);
     // Don't fail initialization if migration has issues
   }
 }
 
 // --- User CRUD ---
 
-export function createUser({ username, email, password, autoConfirm = false }) {
-  const db = getDb();
+export function createUser({
+  username,
+  email,
+  password,
+  autoConfirm = false,
+}: {
+  username: string;
+  email: string;
+  password: string;
+  autoConfirm?: boolean;
+}) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   const now = Date.now();
 
-  const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username) as
+    | { id: number }
+    | undefined;
   if (existingUser) {
     return { error: 'Username already taken' };
   }
 
-  const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as
+    | { id: number }
+    | undefined;
   if (existingEmail) {
     return { error: 'Email already registered' };
   }
@@ -148,14 +168,7 @@ export function createUser({ username, email, password, autoConfirm = false }) {
     INSERT INTO users (username, email, password_hash, confirmation_token, created_at, email_confirmed, games_played, games_won)
     VALUES (?, ?, ?, ?, ?, ?, 0, 0)
   `);
-  const result = stmt.run(
-    username,
-    email,
-    passwordHash,
-    confirmToken,
-    now,
-    autoConfirm ? 1 : 0
-  );
+  const result = stmt.run(username, email, passwordHash, confirmToken, now, autoConfirm ? 1 : 0);
 
   return {
     ok: true,
@@ -164,11 +177,31 @@ export function createUser({ username, email, password, autoConfirm = false }) {
   };
 }
 
-export function authenticateUser(usernameOrEmail, password) {
-  const db = getDb();
+export function authenticateUser(
+  usernameOrEmail: string,
+  password: string,
+):
+  | { error: string; needsConfirmation?: boolean; userId?: number }
+  | { ok: true; user: { id: number; username: string; email: string; is_admin: number } } {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   const user = db
     .prepare('SELECT * FROM users WHERE username = ? OR email = ?')
-    .get(usernameOrEmail, usernameOrEmail);
+    .get(usernameOrEmail, usernameOrEmail) as
+    | {
+        id: number;
+        username: string;
+        email: string;
+        password_hash: string;
+        email_confirmed: number;
+        is_blocked: number;
+        is_admin: number;
+        created_at: number;
+        last_login: number | null;
+      }
+    | undefined;
 
   if (!user) {
     return { error: 'Invalid credentials' };
@@ -205,19 +238,47 @@ export function authenticateUser(usernameOrEmail, password) {
   };
 }
 
-export function getUserById(id) {
-  const db = getDb();
+export function getUserById(id: number): {
+  id: number;
+  username: string;
+  email: string;
+  email_confirmed: number;
+  is_blocked: number;
+  is_admin: number;
+  created_at: number;
+  last_login: number | null;
+} | null {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   const user = db
     .prepare(
       'SELECT id, username, email, email_confirmed, is_blocked, is_admin, created_at, last_login FROM users WHERE id = ?',
     )
-    .get(id);
+    .get(id) as
+    | {
+        id: number;
+        username: string;
+        email: string;
+        email_confirmed: number;
+        is_blocked: number;
+        is_admin: number;
+        created_at: number;
+        last_login: number | null;
+      }
+    | undefined;
   return user || null;
 }
 
-export function confirmEmail(token) {
-  const db = getDb();
-  const user = db.prepare('SELECT id FROM users WHERE confirmation_token = ?').get(token);
+export function confirmEmail(token: string) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  const user = db.prepare('SELECT id FROM users WHERE confirmation_token = ?').get(token) as
+    | { id: number }
+    | undefined;
   if (!user) {
     return { error: 'Invalid confirmation token' };
   }
@@ -227,9 +288,14 @@ export function confirmEmail(token) {
   return { ok: true };
 }
 
-export function createResetToken(email) {
-  const db = getDb();
-  const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+export function createResetToken(email: string) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as
+    | { id: number }
+    | undefined;
   if (!user) {
     // Don't reveal if email exists
     return { ok: true };
@@ -247,11 +313,14 @@ export function createResetToken(email) {
   return { ok: true, resetToken };
 }
 
-export function resetPassword(token, newPassword) {
-  const db = getDb();
+export function resetPassword(token: string, newPassword: string) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   const user = db
     .prepare('SELECT id FROM users WHERE reset_token = ? AND reset_token_expires > ?')
-    .get(token, Date.now());
+    .get(token, Date.now()) as { id: number } | undefined;
 
   if (!user) {
     return { error: 'Invalid or expired reset token' };
@@ -265,9 +334,17 @@ export function resetPassword(token, newPassword) {
   return { ok: true };
 }
 
-export function resendConfirmation(userId) {
-  const db = getDb();
-  const user = db.prepare('SELECT id, email_confirmed FROM users WHERE id = ?').get(userId);
+export function resendConfirmation(userId: number) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  const user = db.prepare('SELECT id, email_confirmed FROM users WHERE id = ?').get(userId) as
+    | {
+        id: number;
+        email_confirmed: number;
+      }
+    | undefined;
   if (!user) {
     return { error: 'User not found' };
   }
@@ -282,8 +359,11 @@ export function resendConfirmation(userId) {
 
 // --- Stats ---
 
-export function trackAnswer(userId, category, correct) {
-  const db = getDb();
+export function trackAnswer(userId: number, category: string, correct: boolean) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   db.prepare(
     `
     INSERT INTO user_stats (user_id, category, answered, correct)
@@ -295,14 +375,17 @@ export function trackAnswer(userId, category, correct) {
   ).run(userId, category, correct ? 1 : 0);
 }
 
-export function getUserStats(userId) {
-  const db = getDb();
+export function getUserStats(userId: number) {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
 
   const categoryStats = db
     .prepare(
       'SELECT category, answered, correct FROM user_stats WHERE user_id = ? ORDER BY category',
     )
-    .all(userId);
+    .all(userId) as { category: string; answered: number; correct: number }[];
 
   const totals = categoryStats.reduce(
     (acc, s) => {
@@ -313,7 +396,9 @@ export function getUserStats(userId) {
     { totalAnswered: 0, totalCorrect: 0 },
   );
 
-  const weeqlash = db.prepare('SELECT games_played, games_won FROM users WHERE id = ?').get(userId);
+  const weeqlash = db
+    .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
+    .get(userId) as { games_played: number; games_won: number } | null;
 
   const qlasRow = db
     .prepare(
@@ -327,7 +412,7 @@ export function getUserStats(userId) {
         AND json_extract(player1_stats, '$.finalHp') IS NOT NULL
     `,
     )
-    .get(userId, userId, userId);
+    .get(userId, userId, userId) as { played: number; won: number } | null;
 
   const gameStats = {
     gamesPlayed: (weeqlash?.games_played || 0) + (qlasRow?.played || 0),
@@ -350,8 +435,20 @@ export function insertGameResult({
   durationMs,
   player1Stats,
   player2Stats,
+}: {
+  player1Id: number;
+  player2Id: number;
+  winnerId: number;
+  gameMode: string;
+  boardSize: number;
+  durationMs: number;
+  player1Stats: any;
+  player2Stats: any;
 }) {
-  const db = getDb();
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   const stmt = db.prepare(`
     INSERT INTO game_history (player1_id, player2_id, winner_id, game_mode, board_size, duration_ms, player1_stats, player2_stats, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -371,28 +468,42 @@ export function insertGameResult({
 }
 
 export function clearTestUsers() {
-  const db = getDb();
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   try {
     // Delete child tables BEFORE parent (foreign key constraint)
-    db.prepare('DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\')').run();
-    db.prepare('DELETE FROM game_history WHERE player1_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\') OR player2_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\')').run();
-    db.prepare('DELETE FROM users WHERE email LIKE \'%@test.invalid\'').run();
+    db.prepare(
+      "DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')",
+    ).run();
+    db.prepare(
+      "DELETE FROM game_history WHERE player1_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid') OR player2_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')",
+    ).run();
+    db.prepare("DELETE FROM users WHERE email LIKE '%@test.invalid'").run();
   } catch (err) {
-    console.error('[auth] clearTestUsers() failed:', err.message);
+    console.error('[auth] clearTestUsers() failed:', (err as Error).message);
   }
 }
 
 export function clearTestHistory() {
-  const db = getDb();
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   try {
     // Delete child tables BEFORE parent (foreign key constraint)
-    db.prepare('DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'%@test.invalid\')').run();
-    db.prepare(`
+    db.prepare(
+      "DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')",
+    ).run();
+    db.prepare(
+      `
       DELETE FROM game_history
       WHERE player1_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')
          OR player2_id IN (SELECT id FROM users WHERE email LIKE '%@test.invalid')
-    `).run();
+    `,
+    ).run();
   } catch (err) {
-    console.error('[auth] clearTestHistory() failed:', err.message);
+    console.error('[auth] clearTestHistory() failed:', (err as Error).message);
   }
 }

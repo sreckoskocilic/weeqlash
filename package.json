@@ -13,21 +13,29 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint server/ client/ tests/",
+    "lint": "npm run tsc:check && eslint server/ client/ tests/",
     "lint:fix": "eslint server/ client/ tests/ --fix",
     "lint:css": "node scripts/check-unused-selectors.js",
     "lint:all": "npm run lint && npm run lint:css",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "tsc:check": "tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@playwright/test": "^1.59.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
+    "@types/node": "^25.6.0",
+    "@types/nodemailer": "^8.0.0",
     "concurrently": "^9.1.2",
     "eslint": "^9.21.0",
     "eslint-plugin-html": "^8.1.4",
     "globals": "^17.4.0",
     "socket.io-client": "^4.8.3",
     "supertest": "^7.2.2",
+    "ts-node": "^10.9.2",
     "vitest": "^3.0.0"
   }
 }

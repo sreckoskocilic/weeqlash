@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.js';
+import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.ts';
 
 const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data/leaderboard.db');
 
@@ -11,11 +11,11 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-let db;
+let db: Database.Database | null = null;
 
 const ALLOWED_TABLES = new Set(QUIZ_MODES.map((m) => m.table));
 
-function assertTable(table) {
+function assertTable(table: string): void {
   if (!ALLOWED_TABLES.has(table)) {
     console.error('[leaderboard] Attempted access to invalid table:', table);
     throw new Error(`Unknown leaderboard table: ${table}`);
@@ -27,11 +27,28 @@ function assertTable(table) {
   }
 }
 
-export function getDb() {
+// Leaderboard entry structure
+export interface LeaderboardEntry {
+  id: number;
+  name: string;
+  answers: number;
+  time_ms: number;
+  created_at: number;
+}
+
+// Quiz mode structure (matching quiz-modes.js)
+export interface QuizMode {
+  id: string;
+  label: string;
+  categories: string[] | null;
+  table: string;
+}
+
+export function getDb(): Database.Database | null {
   return db;
 }
 
-export function initDb() {
+export function initDb(): void {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
 
@@ -57,22 +74,30 @@ export function initDb() {
 
 // --- Generic table operations ---
 
-export function getTop10ForTable(table) {
+export function getTop10ForTable(table: string): LeaderboardEntry[] {
   assertTable(table);
   // Table existence validated by assertTable + initDb creates all tables on startup
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   try {
     return db
       .prepare(
         `SELECT id, name, answers, time_ms, created_at FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 10`,
       )
-      .all();
+      .all() as LeaderboardEntry[];
   } catch (err) {
-    console.error(`[leaderboard] getTop10ForTable(${table}) failed:`, err.message);
+    console.error(`[leaderboard] getTop10ForTable(${table}) failed:`, (err as Error).message);
     return [];
   }
 }
 
-export function insertScoreForTable(table, name, answers, timeMs) {
+export function insertScoreForTable(
+  table: string,
+  name: string,
+  answers: number,
+  timeMs: number,
+): LeaderboardEntry[] {
   assertTable(table);
   if (
     !name ||
@@ -82,6 +107,9 @@ export function insertScoreForTable(table, name, answers, timeMs) {
     typeof timeMs !== 'number'
   ) {
     return [];
+  }
+  if (!db) {
+    throw new Error('Database not initialized');
   }
   try {
     // Use parameterized query to prevent SQL injection
@@ -93,48 +121,64 @@ export function insertScoreForTable(table, name, answers, timeMs) {
     );
     return getTop10ForTable(table);
   } catch (err) {
-    console.error(`[leaderboard] insertScoreForTable(${table}) failed:`, err.message);
+    console.error(`[leaderboard] insertScoreForTable(${table}) failed:`, (err as Error).message);
     return [];
   }
 }
 
-export function clearTestEntries(table) {
+export function clearTestEntries(table: string): void {
   assertTable(table);
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   try {
     // Delete entries with names prefixed 'e2e_' (created by e2e tests)
     db.prepare(`DELETE FROM ${table} WHERE name LIKE 'e2e_%'`).run();
   } catch (err) {
-    console.error(`[leaderboard] clearTestEntries(${table}) failed:`, err.message);
+    console.error(`[leaderboard] clearTestEntries(${table}) failed:`, (err as Error).message);
   }
 }
 
-export function checkQualifiesTop10ForTable(table, answers, timeMs) {
+export function checkQualifiesTop10ForTable(
+  table: string,
+  answers: number,
+  timeMs: number,
+): boolean {
   assertTable(table);
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   try {
     const better = db
       .prepare(
         `SELECT COUNT(*) as cnt FROM ${table} WHERE answers > ? OR (answers = ? AND time_ms < ?)`,
       )
-      .get(answers, answers, timeMs);
-    return better.cnt < 10;
+      .get(answers, answers, timeMs) as { cnt: number } | undefined;
+    return better === undefined || better === null ? false : better.cnt < 10;
   } catch (err) {
-    console.error(`[leaderboard] checkQualifiesTop10ForTable(${table}) failed:`, err.message);
+    console.error(
+      `[leaderboard] checkQualifiesTop10ForTable(${table}) failed:`,
+      (err as Error).message,
+    );
     return false;
   }
 }
 
-export function pruneTable(table) {
+export function pruneTable(table: string): void {
   assertTable(table);
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
   try {
     db.prepare(
       `DELETE FROM ${table} WHERE id NOT IN (SELECT id FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 100)`,
     ).run();
   } catch (err) {
-    console.error(`[leaderboard] pruneTable(${table}) failed:`, err.message);
+    console.error(`[leaderboard] pruneTable(${table}) failed:`, (err as Error).message);
   }
 }
 
-export function pruneAllModes() {
+export function pruneAllModes(): void {
   for (const mode of QUIZ_MODES) {
     pruneTable(mode.table);
   }
@@ -142,7 +186,7 @@ export function pruneAllModes() {
 
 // --- Mode-based convenience wrappers ---
 
-export function getTop10ForMode(modeId) {
+export function getTop10ForMode(modeId: string): LeaderboardEntry[] {
   const mode = QUIZ_MODES_BY_ID[modeId];
   if (!mode) {
     return [];
@@ -150,7 +194,12 @@ export function getTop10ForMode(modeId) {
   return getTop10ForTable(mode.table);
 }
 
-export function insertScoreForMode(modeId, name, answers, timeMs) {
+export function insertScoreForMode(
+  modeId: string,
+  name: string,
+  answers: number,
+  timeMs: number,
+): LeaderboardEntry[] {
   const mode = QUIZ_MODES_BY_ID[modeId];
   if (!mode) {
     return [];
@@ -158,7 +207,11 @@ export function insertScoreForMode(modeId, name, answers, timeMs) {
   return insertScoreForTable(mode.table, name, answers, timeMs);
 }
 
-export function checkQualifiesTop10ForMode(modeId, answers, timeMs) {
+export function checkQualifiesTop10ForMode(
+  modeId: string,
+  answers: number,
+  timeMs: number,
+): boolean {
   const mode = QUIZ_MODES_BY_ID[modeId];
   if (!mode) {
     return false;

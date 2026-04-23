@@ -8,7 +8,7 @@ import {
   checkWinCondition,
   getValidMoves,
   PHASE,
-} from '../server/game/engine.js';
+} from '../server/game/engine.ts';
 import { createQuestionsDb, createSparseQuestionsDb } from './test-utils.js';
 
 // Helper: apply one combat round (single answer), optionally advance to next question

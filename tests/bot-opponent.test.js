@@ -7,7 +7,7 @@ import {
   advancePendingQuestion,
   getValidMoves,
   CATS,
-} from '../server/game/engine.js';
+} from '../server/game/engine.ts';
 
 describe('Bot opponent – turn flow and state handling', () => {
   const baseConfig = { boardSize: 4, enabledCats: ['general'] };
@@ -58,9 +58,7 @@ describe('Bot opponent – turn flow and state handling', () => {
     for (let i = 0; i < answers.length; i++) {
       const qId = state.pendingTurn.questionId;
       const answerIdx =
-        answers[i] === 'correct'
-          ? questionsDb._byId[qId].a
-          : (questionsDb._byId[qId].a + 1) % 4;
+        answers[i] === 'correct' ? questionsDb._byId[qId].a : (questionsDb._byId[qId].a + 1) % 4;
 
       lastResult = applyTurn(
         state,
@@ -74,7 +72,9 @@ describe('Bot opponent – turn flow and state handling', () => {
         questionsDb,
       );
 
-      if (!lastResult.combatContinues) {break;}
+      if (!lastResult.combatContinues) {
+        break;
+      }
       advancePendingQuestion(state, questionsDb);
     }
     return lastResult;
@@ -120,11 +120,7 @@ describe('Bot opponent – turn flow and state handling', () => {
     planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
 
     // 3 correct answers eliminate defender (3 HP)
-    const result = runCombat(state, questionsDb, p1PegId, p2Peg, [
-      'correct',
-      'correct',
-      'correct',
-    ]);
+    const result = runCombat(state, questionsDb, p1PegId, p2Peg, ['correct', 'correct', 'correct']);
 
     // On 4x4 with 1 peg per player, combat that eliminates opponent ends game
     expect(result.gameOver).toBe(true);
@@ -155,7 +151,9 @@ describe('Bot opponent – turn flow and state handling', () => {
         },
         questionsDb,
       );
-      if (state.currentPlayerIdx !== 0) {break;}
+      if (state.currentPlayerIdx !== 0) {
+        break;
+      }
     }
 
     expect(state.pendingTurn).toBeNull();
@@ -205,11 +203,7 @@ describe('Bot opponent – turn flow and state handling', () => {
     planTurnQuestions(state, p1PegId, p2Peg.row, p2Peg.col, questionsDb);
 
     // Bot answers all 3 correctly
-    const result = runCombat(state, questionsDb, p1PegId, p2Peg, [
-      'correct',
-      'correct',
-      'correct',
-    ]);
+    const result = runCombat(state, questionsDb, p1PegId, p2Peg, ['correct', 'correct', 'correct']);
 
     expect(result.gameOver).toBe(true);
     expect(result.winner).toBe(0);

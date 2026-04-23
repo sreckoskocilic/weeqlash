@@ -17,28 +17,24 @@ describe('Duel Stats Recording', () => {
   // Full duel game stats are recorded via recordGameStats (similar to qlashique)
 
   it('✓ game_history endpoint works (404 for non-existent user)', async () => {
-    const res = await request(app)
-      .get('/test/game-history/nonexistent@test.invalid');
+    const res = await request(app).get('/test/game-history/nonexistent@test.invalid');
     // Returns 404 if user doesn't exist
     expect(res.status).toBe(404);
   });
 
   it('✓ user-stats endpoint works (404 for non-existent user)', async () => {
-    const res = await request(app)
-      .get('/test/user-stats/nonexistent@test.invalid');
+    const res = await request(app).get('/test/user-stats/nonexistent@test.invalid');
     // Returns 404 if user doesn't exist
     expect(res.status).toBe(404);
   });
 });
 
 describe('Security Tests', () => {
-
   // ============================================================
   // 1. SESSION SECURITY TESTS (SECURITY_FIXES.md §1)
   // ============================================================
 
   describe('Session Security', () => {
-
     // §1.1 Session Secret Validation
     it('✓ Validates session secret from environment', () => {
       const sessionSecret = process.env.SESSION_SECRET;
@@ -64,9 +60,7 @@ describe('Security Tests', () => {
           const setCookieHeader = response.headers['set-cookie'];
           expect(setCookieHeader).toBeDefined();
 
-          const hasHttpOnly = setCookieHeader.some(cookie =>
-            cookie.includes('HttpOnly')
-          );
+          const hasHttpOnly = setCookieHeader.some((cookie) => cookie.includes('HttpOnly'));
           expect(hasHttpOnly).toBe(true);
         });
     });
@@ -107,30 +101,30 @@ describe('Security Tests', () => {
   // ============================================================
 
   describe('Database Security', () => {
-
     // §2.2 Parameterized Queries
     it('✓ Uses parameterized queries for all database operations', () => {
-      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.js', 'utf8');
+      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
       expect(leaderboardContent).toContain('db.prepare');
     });
 
     it('✓ Database operations use safe parameterized queries', () => {
-      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.js', 'utf8');
-      const hasParameterizedQueries = leaderboardContent.includes('db.prepare') &&
-                               leaderboardContent.includes('VALUES (?, ?, ?, ?)');
+      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
+      const hasParameterizedQueries =
+        leaderboardContent.includes('db.prepare') &&
+        leaderboardContent.includes('VALUES (?, ?, ?, ?)');
       expect(hasParameterizedQueries).toBe(true);
     });
 
     // §2.3 Table Name Validation / §2.1 Input Validation
     it('✓ Validates table names against allowed list', () => {
-      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.js', 'utf8');
+      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
       // Should have table validation function
       expect(leaderboardContent).toMatch(/(assertTable|validateTable|table)/);
     });
 
     // §2.4 SQL Injection Prevention
     it('✓ Prevents SQL injection in table names', () => {
-      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.js', 'utf8');
+      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
       // Should use parameterized queries
       expect(leaderboardContent).toContain('VALUES');
     });
@@ -141,14 +135,14 @@ describe('Security Tests', () => {
         "users' OR '1'='1",
         '../../etc/passwd',
       ];
-      maliciousInputs.forEach(input => {
+      maliciousInputs.forEach((input) => {
         expect(input).not.toMatch(/^[a-zA-Z_]+$/);
       });
     });
 
     // §2.4 Safe table creation
     it('✓ Uses safe table creation with validation', () => {
-      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.js', 'utf8');
+      const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
       expect(leaderboardContent).toContain('initDb');
     });
   });
@@ -158,8 +152,7 @@ describe('Security Tests', () => {
   // ============================================================
 
   describe('Client Security', () => {
-
-// §3.1 CSP Headers - Note: Handled by Cloudflare in production
+    // §3.1 CSP Headers - Note: Handled by Cloudflare in production
     it('✓ Content Security Policy is configured', () => {
       // CSP is configured either in code or handled by Cloudflare in production
       expect(process.env.NODE_ENV).toBeDefined();
@@ -179,7 +172,7 @@ describe('Security Tests', () => {
         '<img src=x onerror=alert(1)>',
         '<a href="javascript:alert(1)">click</a>',
       ];
-      testCases.forEach(testCase => {
+      testCases.forEach((testCase) => {
         expect(testCase).toMatch(/</);
         const sanitized = testCase
           .replace(/&/g, '&amp;')
@@ -206,7 +199,6 @@ describe('Security Tests', () => {
   // ============================================================
 
   describe('Security Integration', () => {
-
     it('✓ All security features are integrated', () => {
       return request(app)
         .get('/')

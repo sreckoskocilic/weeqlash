@@ -3,7 +3,14 @@
 // 2. Add a matching entry to QUIZ_MODES in client/index.html.
 // categories: null = all questions; array of category keys = filtered pool.
 
-export const QUIZ_MODES = [
+export interface QuizMode {
+  id: string;
+  label: string;
+  categories: string[] | null;
+  table: string;
+}
+
+export const QUIZ_MODES: QuizMode[] = [
   {
     id: 'triviandom',
     label: 'Triviandom',
@@ -18,4 +25,6 @@ export const QUIZ_MODES = [
   },
 ];
 
-export const QUIZ_MODES_BY_ID = Object.fromEntries(QUIZ_MODES.map((m) => [m.id, m]));
+export const QUIZ_MODES_BY_ID: Record<string, QuizMode> = Object.fromEntries(
+  QUIZ_MODES.map((m) => [m.id, m]),
+);
