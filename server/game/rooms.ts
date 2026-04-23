@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { CATS } from './engine.ts';
-import type { Category } from './engine.ts';
+import type { Category, GameState, Question } from './engine.ts';
+import type { QlashiqueState } from './qlashique.ts';
 
 // In-memory room store. Each room holds settings, player list, and game state.
 export const rooms = new Map<string, RoomState>(); // code -> room
@@ -15,7 +16,7 @@ export interface RoomState {
   playersBySocket: Map<string, PlayerInRoom>; // O(1) socketId -> player lookup
   started: boolean;
   startedAt: number | null;
-  state: any | null; // GameState from engine.ts when started
+  state: GameState | QlashiqueState | null;
 
   // Board-game runtime
   lastQuestionStart?: number; // ms timestamp, used for min/max answer delay checks
@@ -24,15 +25,30 @@ export interface RoomState {
   mode?: string;
   classSelections?: (string | null)[];
   usedQIds?: Set<string>;
-  currentQuestion?: any;
+  currentQuestion?: Question | null;
   questionIdx?: number;
   qlasTimer?: ReturnType<typeof setTimeout> | null;
   qlasTimerExpired?: boolean;
   qlasTimerSeconds?: number;
   qlasGuessingStartedAt?: number;
-  qlasHistory?: Record<string, unknown>[];
+  qlasHistory?: QlashiqueHistoryEntry[];
   qlasStats?: { answered: number; correct: number }[];
-  qlasPool?: unknown[]; // cached Question[] from questions.ts (filtered to non-excluded cats)
+  qlasPool?: Question[]; // cached, filtered to non-excluded cats
+}
+
+export interface QlashiqueHistoryEntry {
+  turn: number;
+  playerIdx: number;
+  questionId: string;
+  category: string;
+  q: string;
+  opts: string[];
+  answerIdx: number;
+  correctIdx: number;
+  correct: boolean;
+  scoreAfter: number;
+  p0hp: number;
+  p1hp: number;
 }
 
 export interface RoomSettings {

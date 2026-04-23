@@ -10,6 +10,18 @@ import {
   getUserStats,
 } from './auth.ts';
 import type { Transporter } from 'nodemailer';
+import type { Request, Response, Express } from 'express';
+import 'express-session';
+
+// Declaration-merged fields on the session; matches the writes in /auth/login.
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+    username?: string;
+    isAdmin?: boolean;
+    visited?: number;
+  }
+}
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
@@ -28,7 +40,7 @@ setInterval(() => {
   }
 }, 10 * 60_000).unref();
 
-function getClientIp(req: any): string {
+function getClientIp(req: Request): string {
   const raw = req.ip || req.socket?.remoteAddress || 'unknown';
   // Normalize IPv6-mapped IPv4 (e.g. ::ffff:127.0.0.1 → 127.0.0.1)
   return raw.startsWith('::ffff:') ? raw.slice(7) : raw;
@@ -52,7 +64,7 @@ function checkAuthRateLimit(ip: string): boolean {
   return true;
 }
 
-function applyAuthRateLimit(req: any, res: any): boolean {
+function applyAuthRateLimit(req: Request, res: Response): boolean {
   const ip = getClientIp(req);
   if (!isLocalhostIp(ip) && !checkAuthRateLimit(ip)) {
     res.status(429).json({ error: 'Too many requests. Please try again later.' });
@@ -108,12 +120,12 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   await t.sendMail({ from: cfg.from, to, subject, html });
 }
 
-export function registerAuthRoutes(app: any): void {
+export function registerAuthRoutes(app: Express): void {
   console.log('[auth-routes] SMTP_HOST at registration:', process.env.SMTP_HOST);
   console.log('[auth-routes] SMTP_USER at registration:', process.env.SMTP_USER);
 
   // Register
-  app.post('/auth/register', async (req: any, res: any) => {
+  app.post('/auth/register', async (req: Request, res: Response) => {
     if (!applyAuthRateLimit(req, res)) {
       return;
     }
@@ -154,7 +166,7 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Login
-  app.post('/auth/login', (req: any, res: any) => {
+  app.post('/auth/login', (req: Request, res: Response) => {
     if (!applyAuthRateLimit(req, res)) {
       return;
     }
@@ -181,7 +193,7 @@ export function registerAuthRoutes(app: any): void {
       : undefined;
 
     console.log('[auth] login set session:', { userId: result.user.id, keepLoggedIn });
-    req.session.save((err: any) => {
+    req.session.save((err) => {
       if (err) {
         console.error('[auth] session save error:', err.message);
       }
@@ -190,14 +202,14 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Logout
-  app.post('/auth/logout', (req: any, res: any) => {
+  app.post('/auth/logout', (req: Request, res: Response) => {
     req.session.destroy(() => {
       res.json({ ok: true });
     });
   });
 
   // Get current user
-  app.get('/auth/me', (req: any, res: any) => {
+  app.get('/auth/me', (req: Request, res: Response) => {
     if (!req.session.userId) {
       return res.json({ user: null });
     }
@@ -212,12 +224,12 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Get user stats
-  app.get('/auth/stats/:userId', async (req: any, res: any) => {
+  app.get('/auth/stats/:userId', async (req: Request, res: Response) => {
     // Verify the logged-in user matches the requested userId (or is admin)
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    const requestedId = parseInt(req.params.userId);
+    const requestedId = parseInt(String(req.params.userId));
     if (isNaN(requestedId)) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
@@ -229,8 +241,8 @@ export function registerAuthRoutes(app: any): void {
     }
 
     try {
-      console.log('[auth-routes] Fetching stats for userId:', req.params.userId);
-      const stats = getUserStats(req.params.userId);
+      console.log('[auth-routes] Fetching stats for userId:', requestedId);
+      const stats = getUserStats(requestedId);
 
       console.log('[auth-routes] Sending stats result:', stats);
       res.json(stats);
@@ -241,8 +253,8 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Confirm email
-  app.get('/auth/confirm/:token', (req: any, res: any) => {
-    const result = confirmEmail(req.params.token);
+  app.get('/auth/confirm/:token', (req: Request, res: Response) => {
+    const result = confirmEmail(String(req.params.token));
     if (result.error) {
       return res.status(400).json(result);
     }
@@ -250,7 +262,7 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Resend confirmation
-  app.post('/auth/resend-confirmation', (req: any, res: any) => {
+  app.post('/auth/resend-confirmation', (req: Request, res: Response) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not logged in' });
     }
@@ -274,7 +286,7 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Request password reset
-  app.post('/auth/forgot-password', (req: any, res: any) => {
+  app.post('/auth/forgot-password', (req: Request, res: Response) => {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -295,12 +307,12 @@ export function registerAuthRoutes(app: any): void {
   });
 
   // Reset password page (serve client for direct URL access)
-  app.get('/auth/reset-password', (_req: any, res: any) => {
+  app.get('/auth/reset-password', (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, '../../client/index.html'));
   });
 
   // Reset password
-  app.post('/auth/reset-password', (req: any, res: any) => {
+  app.post('/auth/reset-password', (req: Request, res: Response) => {
     if (!applyAuthRateLimit(req, res)) {
       return;
     }
