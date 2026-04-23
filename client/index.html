@@ -6,7 +6,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; object-src 'none';"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- CSP handled by Cloudflare -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Weeqlash — Multiplayer</title>
@@ -45,7 +45,10 @@
         align-items: center;
         justify-content: center;
         padding: 1rem;
+        padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+        padding-right: calc(1rem + env(safe-area-inset-right, 0px));
         padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        padding-left: calc(1rem + env(safe-area-inset-left, 0px));
       }
 
       @keyframes shine {
@@ -1836,7 +1839,8 @@
         width: 14px;
       }
       .btn-qlas-reroll {
-        padding: 6px 12px;
+        padding: 10px 14px;
+        min-height: 44px;
         background: rgba(255, 230, 0, 0.1);
         border: 1px solid rgba(255, 230, 0, 0.3);
         border-radius: 2px;
