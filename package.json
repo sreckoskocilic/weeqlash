@@ -8,6 +8,7 @@
   ],
   "type": "module",
   "scripts": {
+    "apk": "npx cap sync android && cd android && ./gradlew assembleDebug",
     "server": "npm run dev --workspace=server",
     "client": "npm start --workspace=client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -37,5 +38,11 @@
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1"
   }
 }

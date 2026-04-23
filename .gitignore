@@ -10,3 +10,5 @@ data/
 test-results/
 playwright-report/
 qlashique
+android
+ios
