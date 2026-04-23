@@ -3229,7 +3229,7 @@
       const setupPlayerCount = 2;
       let setupBoardSize = 8;
       let setupTimer = 30;
-      let setupEnabledCats = [...CATS];
+      let setupEnabledCats = CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025');
 
       // Populate category toggle buttons from CATS so adding/removing a category only requires updating CAT_NAMES
       el('cat-toggle-btns').innerHTML = CATS.map(
@@ -3822,7 +3822,6 @@
 
       function updateTurnUI(state) {
         const cp = state.players[state.currentPlayerIdx];
-        const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
         el('turn-player-box').style.borderColor = cp?.color ?? '#444';
         el('turn-player-name').textContent = cp?.name ?? '—';
         el('turn-player-name').style.color = cp?.color ?? '';

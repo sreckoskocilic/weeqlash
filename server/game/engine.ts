@@ -35,7 +35,7 @@ export const CATS = [
 ] as const;
 
 // Default categories for new games - excludes niche categories
-export const DEFAULT_CATS = CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025') as readonly [
+export const DEFAULT_CATS = CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025') as unknown as readonly [
   'arts',
   'music',
   'entertainment',
