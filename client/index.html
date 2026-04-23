@@ -1712,19 +1712,55 @@
         margin-left: auto;
         padding-right: 20px;
         font-variant-numeric: tabular-nums;
+        transition:
+          color 0.2s,
+          text-shadow 0.2s,
+          transform 0.2s;
+        display: inline-block;
       }
-      .qlas-turn-timer {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 1.4rem;
-        letter-spacing: 0.04em;
-        margin-left: auto;
-        font-variant-numeric: tabular-nums;
+      .qlas-turn-score.combo-up {
+        animation: qlas-score-pop 0.35s ease-out;
       }
-      .qlas-turn-timer.warn {
-        color: #ffff00;
+      .qlas-turn-score.combo-2 {
+        color: #ffe600;
+        text-shadow: 0 0 6px rgba(255, 230, 0, 0.5);
       }
-      .qlas-turn-timer.danger {
+      .qlas-turn-score.combo-5 {
+        color: #ff9a3c;
+        text-shadow: 0 0 10px rgba(255, 154, 60, 0.6);
+        font-size: 1.55rem;
+      }
+      .qlas-turn-score.combo-8 {
         color: #ff5555;
+        text-shadow:
+          0 0 14px rgba(255, 85, 85, 0.75),
+          0 0 3px #fff;
+        font-size: 1.7rem;
+        animation: qlas-combo-pulse 0.8s ease-in-out infinite;
+      }
+      @keyframes qlas-score-pop {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.35);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes qlas-combo-pulse {
+        0%,
+        100% {
+          text-shadow:
+            0 0 14px rgba(255, 85, 85, 0.75),
+            0 0 3px #fff;
+        }
+        50% {
+          text-shadow:
+            0 0 22px rgba(255, 85, 85, 1),
+            0 0 6px #fff;
+        }
       }
       /* Combat two-column layout */
       .qlas-combat-layout {
@@ -1749,27 +1785,6 @@
         border: 2px solid #00ff41;
         border-radius: 2px;
         padding: 18px 20px;
-      }
-      .qlas-timer-bar {
-        height: 8px;
-        background: #030803;
-        border-radius: 2px;
-        overflow: hidden;
-        margin-bottom: 14px;
-      }
-      .qlas-timer-fill {
-        height: 100%;
-        border-radius: 2px;
-        background: #00ff41;
-        transition:
-          width 0.1s linear,
-          background 0.3s;
-      }
-      .qlas-timer-fill.warn {
-        background: #ffe600;
-      }
-      .qlas-timer-fill.danger {
-        background: #ff5555;
       }
       .qlas-question {
         font-size: 0.96rem;
@@ -1846,6 +1861,8 @@
       .qlas-action-row {
         display: flex;
         gap: 8px;
+        min-height: 50px;
+        align-items: stretch;
       }
       .btn-qlas-end {
         flex: 2;
@@ -5359,10 +5376,24 @@
       }
 
       function qlasSetScore(score) {
+        const prev = qlasScore;
         qlasScore = score;
         const scoreEl = qEl('qlas-turn-score');
         if (scoreEl) {
           scoreEl.textContent = score > 0 ? '+' + score : score === 0 ? '0' : '' + score;
+          scoreEl.classList.remove('combo-2', 'combo-5', 'combo-8');
+          if (score >= 8) {
+            scoreEl.classList.add('combo-8');
+          } else if (score >= 5) {
+            scoreEl.classList.add('combo-5');
+          } else if (score >= 2) {
+            scoreEl.classList.add('combo-2');
+          }
+          if (score > prev && score > 0) {
+            scoreEl.classList.remove('combo-up');
+            void scoreEl.offsetWidth;
+            scoreEl.classList.add('combo-up');
+          }
         }
         qEl('qlas-heal-val').textContent = '+2 HP';
       }
@@ -5398,8 +5429,6 @@
           qlasTimerLeft = Math.max(0, qlasTimerLeft - 0.1);
           const pct = qlasTimerLeft / qlasTimerTotal;
           const state = pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '';
-          qEl('qlas-timer-fill').style.width = pct * 100 + '%';
-          qEl('qlas-timer-fill').className = 'qlas-timer-fill' + state;
           const secs = Math.ceil(qlasTimerLeft);
           qEl('qlas-turn-timer').className = 'qlas-timer-ring' + state;
           qEl('qlas-timer-ring-label').textContent = secs + 's';
@@ -5704,11 +5733,19 @@
         if (!scoreEl2) {
           return;
         }
+        scoreEl2.classList.remove('combo-2', 'combo-5', 'combo-8');
         if (score === null) {
           scoreEl2.textContent = '0';
           return;
         }
         scoreEl2.textContent = score > 0 ? '+' + score : '' + score;
+        if (score >= 8) {
+          scoreEl2.classList.add('combo-8');
+        } else if (score >= 5) {
+          scoreEl2.classList.add('combo-5');
+        } else if (score >= 2) {
+          scoreEl2.classList.add('combo-2');
+        }
       }
 
       socket.on('qlashique:question', ({ question, questionIdx, activePlayerIdx }) => {
@@ -5856,11 +5893,13 @@
 
       function qlasBuildRecapCard(group) {
         const playerName = qlasPlayers[group.playerIdx]?.name || 'Player ' + (group.playerIdx + 1);
-        const playerClass = group.playerIdx === 0 ? 'qlas-recap-p0' : 'qlas-recap-p1';
         const lastEntry = group.entries[group.entries.length - 1];
         const card = document.createElement('div');
-        card.className =
-          'qlas-recap-card p' + group.playerIdx + (lastEntry.correct ? '' : ' wrong');
+        card.classList.add('qlas-recap-card');
+        card.classList.add(group.playerIdx === 0 ? 'p0' : 'p1');
+        if (!lastEntry.correct) {
+          card.classList.add('wrong');
+        }
         const scoreSign = lastEntry.scoreAfter > 0 ? '+' : '';
         let entriesHtml = '';
         for (const e of group.entries) {
@@ -5870,6 +5909,9 @@
               : '—';
           const correctLabel =
             'ABCD'[e.correctIdx] + '. ' + sanitize(e.opts?.[e.correctIdx] ?? '?');
+          const pickedSpan = e.correct
+            ? '<span class="ok">✓ ' + pickedLabel + '</span>'
+            : '<span class="bad">✗ picked ' + pickedLabel + '</span>';
           entriesHtml +=
             '<div class="qlas-recap-entry">' +
             '<div class="qlas-recap-q">' +
@@ -5879,12 +5921,7 @@
             sanitize(e.q || '') +
             '</div>' +
             '<div class="qlas-recap-ans">' +
-            '<span class="' +
-            (e.correct ? 'ok' : 'bad') +
-            '">' +
-            (e.correct ? '✓ ' : '✗ picked ') +
-            pickedLabel +
-            '</span>' +
+            pickedSpan +
             (e.correct
               ? ''
               : '<span class="muted">·</span><span class="ok">correct ' +
@@ -5893,16 +5930,16 @@
             '</div>' +
             '</div>';
         }
+        const playerSpan =
+          group.playerIdx === 0
+            ? '<span class="qlas-recap-p0">' + sanitize(playerName) + '</span>'
+            : '<span class="qlas-recap-p1">' + sanitize(playerName) + '</span>';
         card.innerHTML =
           '<div class="qlas-recap-head">' +
           '<span class="qlas-recap-turn">T' +
           group.turn +
           '</span>' +
-          '<span class="' +
-          playerClass +
-          '">' +
-          sanitize(playerName) +
-          '</span>' +
+          playerSpan +
           '<span class="qlas-recap-score">' +
           scoreSign +
           lastEntry.scoreAfter +
@@ -6184,9 +6221,6 @@
               </div>
 
               <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
-                <div class="qlas-timer-bar">
-                  <div class="qlas-timer-fill" id="qlas-timer-fill" style="width: 100%"></div>
-                </div>
                 <div class="qlas-question" id="qlas-question"></div>
                 <div class="qlas-options" id="qlas-options"></div>
               </div>

@@ -773,7 +773,9 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid move target' });
     }
 
-    let { moveType, questionId } = planTurnQuestions(room.state, pegId, r, c, questionsDb);
+    const planned = planTurnQuestions(room.state, pegId, r, c, questionsDb);
+    const moveType = planned.moveType;
+    let questionId = planned.questionId;
 
     // Test-only: swap planned question for the one locked via /test/set-question
     if (_testOverride && questionsDb._byId?.[_testOverride]) {
