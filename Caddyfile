@@ -2,6 +2,25 @@
     admin off
 }
 brawl.weeqlash.icu {
+    # SEO headers
+    header /* {
+        X-Robots-Tag "all"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # robots.txt
+    handle /robots.txt {
+        respond * "User-agent: *\nAllow: /\nSitemap: https://brawl.weeqlash.icu/sitemap.xml"
+    }
+
+    # sitemap.xml (serve from disk)
+    handle /sitemap.xml {
+        root * /opt/weeqlash/client
+        try_files {path}
+    }
+
     handle /socket.io/* {
         reverse_proxy localhost:3000
     }
