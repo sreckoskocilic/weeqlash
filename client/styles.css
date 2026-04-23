@@ -1488,7 +1488,7 @@ body.high-contrast {
   color: var(--qc, #88ff88);
 }
 .qlas-card-arch {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   color: #ffe600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1555,7 +1555,7 @@ body.high-contrast {
   letter-spacing: 0.08em;
 }
 .qlas-confirm-tag {
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   color: #ffe600;
   letter-spacing: 0.12em;
   padding-top: 4px;
@@ -1829,7 +1829,7 @@ body.high-contrast {
   border-radius: 2px;
   color: #ffe600;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   letter-spacing: 0.1em;
   cursor: pointer;
   transition: all 0.15s;

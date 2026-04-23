@@ -173,10 +173,31 @@ test('qlashique: live recap populates after a few turns', async ({ browser }) =>
   await active.locator('#qlas-recap-live-btn').click();
   await active.locator('#qlas-recap-modal.show').waitFor({ state: 'visible', timeout: 5000 });
 
-  // Recap must NOT be the empty placeholder; must have at least one card
+  // Recap must NOT be the empty placeholder
   await expect(active.locator('#qlas-recap-live .qlas-recap-empty')).toHaveCount(0);
-  const cardCount = await active.locator('#qlas-recap-live .qlas-recap-card').count();
-  expect(cardCount).toBeGreaterThan(0);
+
+  // Two turns played → two cards: T1 (P0 correct attack) and T2 (P1 wrong self-damage)
+  const cards = active.locator('#qlas-recap-live .qlas-recap-card');
+  await expect(cards).toHaveCount(2);
+
+  // First card: P0 attack, correct (no .wrong), header shows T1 and positive score
+  const t1 = cards.nth(0);
+  await expect(t1).toHaveClass(/\bp0\b/);
+  await expect(t1).not.toHaveClass(/\bwrong\b/);
+  await expect(t1.locator('.qlas-recap-turn')).toHaveText('T1');
+  await expect(t1.locator('.qlas-recap-entry')).toHaveCount(1);
+  await expect(t1.locator('.qlas-recap-entry .ok')).toHaveCount(1);
+  await expect(t1.locator('.qlas-recap-entry .bad')).toHaveCount(0);
+  expect((await t1.locator('.qlas-recap-score').textContent())?.trim()).toMatch(/^\+/);
+
+  // Second card: P1 self-damage, wrong (.wrong class), header shows T2 and negative score
+  const t2 = cards.nth(1);
+  await expect(t2).toHaveClass(/\bp1\b/);
+  await expect(t2).toHaveClass(/\bwrong\b/);
+  await expect(t2.locator('.qlas-recap-turn')).toHaveText('T2');
+  await expect(t2.locator('.qlas-recap-entry')).toHaveCount(1);
+  await expect(t2.locator('.qlas-recap-entry .bad')).toHaveCount(1);
+  expect((await t2.locator('.qlas-recap-score').textContent())?.trim()).toMatch(/^-/);
 
   await api.dispose();
   await ctx1.close();

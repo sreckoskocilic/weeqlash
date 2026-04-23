@@ -600,19 +600,7 @@ io.on('connection', (socket) => {
       });
       if (room.mode === 'qlashique' && !room.started) {
         room.classSelections[1] = 'none';
-        room.started = true;
-        room.startedAt = Date.now();
-        room.state = createQlasGame('none', 'none', _testHPOverride ?? 30);
-        _testHPOverride = null;
-        room.qlasStats = [
-          { answered: 0, correct: 0 },
-          { answered: 0, correct: 0 },
-        ];
-        room.qlasHistory = [];
-        // Register all player sockets as in an active game
-        for (const player of room.players) {
-          registerActiveSocket(player.id);
-        }
+        _initQlasRoomState(room, 'none', 'none');
         _emitQlasTurnStart(io, code, room);
       }
     }
@@ -1220,23 +1208,7 @@ io.on('connection', (socket) => {
     cb({ ok: true });
 
     if (room.classSelections[0] && room.classSelections[1]) {
-      room.started = true;
-      room.startedAt = Date.now();
-      room.state = createQlasGame(
-        room.classSelections[0],
-        room.classSelections[1],
-        _testHPOverride ?? 30,
-      );
-      _testHPOverride = null;
-      room.qlasStats = [
-        { answered: 0, correct: 0 },
-        { answered: 0, correct: 0 },
-      ];
-      room.qlasHistory = [];
-      // Register all player sockets as in an active game
-      for (const p of room.players) {
-        registerActiveSocket(p.id);
-      }
+      _initQlasRoomState(room, room.classSelections[0], room.classSelections[1]);
       _emitQlasTurnStart(io, code, room);
     }
   });
@@ -1748,6 +1720,21 @@ function _saveQlasResult(room, winnerIdx) {
     }
   } catch (e) {
     console.warn('[qlashique] Failed to save game result:', e.message);
+  }
+}
+
+function _initQlasRoomState(room, class0, class1) {
+  room.started = true;
+  room.startedAt = Date.now();
+  room.state = createQlasGame(class0, class1, _testHPOverride ?? 30);
+  _testHPOverride = null;
+  room.qlasStats = [
+    { answered: 0, correct: 0 },
+    { answered: 0, correct: 0 },
+  ];
+  room.qlasHistory = [];
+  for (const p of room.players) {
+    registerActiveSocket(p.id);
   }
 }
 
