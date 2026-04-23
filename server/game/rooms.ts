@@ -17,12 +17,22 @@ export interface RoomState {
   startedAt: number | null;
   state: any | null; // GameState from engine.ts when started
 
+  // Board-game runtime
+  lastQuestionStart?: number; // ms timestamp, used for min/max answer delay checks
+
   // Qlashique-specific fields
   mode?: string;
   classSelections?: (string | null)[];
   usedQIds?: Set<string>;
   currentQuestion?: any;
   questionIdx?: number;
+  qlasTimer?: ReturnType<typeof setTimeout> | null;
+  qlasTimerExpired?: boolean;
+  qlasTimerSeconds?: number;
+  qlasGuessingStartedAt?: number;
+  qlasHistory?: Record<string, unknown>[];
+  qlasStats?: { answered: number; correct: number }[];
+  qlasPool?: unknown[]; // cached Question[] from questions.ts (filtered to non-excluded cats)
 }
 
 export interface RoomSettings {

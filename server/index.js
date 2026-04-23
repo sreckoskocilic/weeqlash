@@ -903,6 +903,9 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not your turn' });
     }
 
+    if (!submission || typeof submission !== 'object') {
+      return cb({ error: 'Invalid submission' });
+    }
     if (
       typeof submission.answerIdx !== 'number' ||
       submission.answerIdx < -1 ||
@@ -1434,6 +1437,9 @@ io.on('connection', (socket) => {
     }
     if (room.state.phase !== QLAS_PHASE.GUESSING) {
       return cb({ error: 'Not in guessing phase' });
+    }
+    if (room.qlasTimerExpired) {
+      return cb({ ok: true });
     }
     if (room.qlasTimer) {
       clearTimeout(room.qlasTimer);
