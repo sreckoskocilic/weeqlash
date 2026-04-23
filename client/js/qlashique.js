@@ -35,6 +35,9 @@ let qlasTimerInterval = null;
 let qlasGuessingActive = false;
 let qlasLastAnswerIdx = -1;
 let qlasToken = null;
+let qlasLiveHistory = [];
+
+const QLAS_TIMER_RING_CIRC = 175.93; // 2 * PI * r where r=28
 
 // --- UI helpers ---
 
@@ -93,16 +96,16 @@ export function qlasStartTimer(seconds) {
   qlasTimerInterval = setInterval(() => {
     qlasTimerLeft = Math.max(0, qlasTimerLeft - 0.1);
     const pct = qlasTimerLeft / qlasTimerTotal;
+    const state = pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '';
     qEl('qlas-timer-fill').style.width = pct * 100 + '%';
-    qEl('qlas-timer-fill').className =
-      'qlas-timer-fill' + (pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '');
+    qEl('qlas-timer-fill').className = 'qlas-timer-fill' + state;
     const secs = Math.ceil(qlasTimerLeft);
-    const timerEl = qEl('qlas-turn-timer');
-    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
-    const ss = String(secs % 60).padStart(2, '0');
-    timerEl.textContent = mm + ':' + ss;
-    timerEl.className =
-      'qlas-turn-timer' + (pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '');
+    qEl('qlas-turn-timer').className = 'qlas-timer-ring' + state;
+    qEl('qlas-timer-ring-label').textContent = secs + 's';
+    const progress = qEl('qlas-timer-ring-progress');
+    if (progress) {
+      progress.setAttribute('stroke-dashoffset', String((1 - pct) * QLAS_TIMER_RING_CIRC));
+    }
     if (qlasTimerLeft <= 0) {
       clearInterval(qlasTimerInterval);
     }
@@ -232,6 +235,7 @@ export function qlasConfirm() {
     c.style.pointerEvents = 'none';
     c.style.opacity = '0.7';
   });
+  qlasLiveHistory = [];
   const socket = getSocket();
   const playerName = getPlayerName();
   if (qlasIsHost) {
@@ -249,7 +253,11 @@ export function qlasConfirm() {
       qEl('qlas-waiting-label').textContent = 'Waiting for opponent…';
       qEl('qlas-code-row').style.display = '';
       qEl('qlas-code-val').textContent = res.code;
-      socket.emit('qlashique:select_class', { code: qlasCode, classId: qlasSelectedClass }, () => {});
+      socket.emit(
+        'qlashique:select_class',
+        { code: qlasCode, classId: qlasSelectedClass },
+        () => {},
+      );
     });
   } else {
     const code = qlasCode;
@@ -347,6 +355,107 @@ export function qlasHeal() {
   socket.emit('qlashique:end_turn', { code: qlasCode, choice: 'heal' }, () => {});
 }
 
+// --- Recap ---
+
+function qlasGroupHistoryByTurn(history) {
+  const groups = [];
+  for (const entry of history) {
+    const last = groups[groups.length - 1];
+    if (last && last.turn === entry.turn && last.playerIdx === entry.playerIdx) {
+      last.entries.push(entry);
+    } else {
+      groups.push({ turn: entry.turn, playerIdx: entry.playerIdx, entries: [entry] });
+    }
+  }
+  return groups;
+}
+
+function qlasBuildRecapCard(group) {
+  const playerName = qlasPlayers[group.playerIdx]?.name || 'Player ' + (group.playerIdx + 1);
+  const playerClass = group.playerIdx === 0 ? 'qlas-recap-p0' : 'qlas-recap-p1';
+  const lastEntry = group.entries[group.entries.length - 1];
+  const card = document.createElement('div');
+  card.className = 'qlas-recap-card p' + group.playerIdx + (lastEntry.correct ? '' : ' wrong');
+  const scoreSign = lastEntry.scoreAfter > 0 ? '+' : '';
+  let entriesHtml = '';
+  for (const e of group.entries) {
+    const pickedLabel =
+      typeof e.answerIdx === 'number' && e.answerIdx >= 0
+        ? 'ABCD'[e.answerIdx] + '. ' + sanitize(e.opts?.[e.answerIdx] ?? '?')
+        : '—';
+    const correctLabel = 'ABCD'[e.correctIdx] + '. ' + sanitize(e.opts?.[e.correctIdx] ?? '?');
+    entriesHtml +=
+      '<div class="qlas-recap-entry">' +
+      '<div class="qlas-recap-q">' +
+      (e.category ? '<span class="qlas-recap-cat">' + sanitize(e.category) + '</span> ' : '') +
+      sanitize(e.q || '') +
+      '</div>' +
+      '<div class="qlas-recap-ans">' +
+      '<span class="' +
+      (e.correct ? 'ok' : 'bad') +
+      '">' +
+      (e.correct ? '✓ ' : '✗ picked ') +
+      pickedLabel +
+      '</span>' +
+      (e.correct
+        ? ''
+        : '<span class="muted">·</span><span class="ok">correct ' + correctLabel + '</span>') +
+      '</div>' +
+      '</div>';
+  }
+  card.innerHTML =
+    '<div class="qlas-recap-head">' +
+    '<span class="qlas-recap-turn">T' +
+    group.turn +
+    '</span>' +
+    '<span class="' +
+    playerClass +
+    '">' +
+    sanitize(playerName) +
+    '</span>' +
+    '<span class="qlas-recap-score">' +
+    scoreSign +
+    lastEntry.scoreAfter +
+    '</span>' +
+    '</div>' +
+    entriesHtml;
+  return card;
+}
+
+function qlasPopulateRecap(containerId, history) {
+  const container = qEl(containerId);
+  if (!container) {
+    return;
+  }
+  container.innerHTML = '';
+  if (!history.length) {
+    container.innerHTML = '<div class="qlas-recap-empty">no rounds played yet</div>';
+    return;
+  }
+  for (const group of qlasGroupHistoryByTurn(history)) {
+    container.appendChild(qlasBuildRecapCard(group));
+  }
+}
+
+function qlasRenderRecap(history) {
+  const container = qEl('qlas-recap');
+  const toggle = qEl('qlas-recap-toggle');
+  if (!container || !toggle) {
+    return;
+  }
+  container.innerHTML = '';
+  container.style.display = 'none';
+  toggle.textContent = '[ show recap ]';
+  if (!history.length) {
+    toggle.style.display = 'none';
+    return;
+  }
+  toggle.style.display = '';
+  for (const group of qlasGroupHistoryByTurn(history)) {
+    container.appendChild(qlasBuildRecapCard(group));
+  }
+}
+
 // --- Initialize Qlashique handlers ---
 
 export function initQlashique(socket) {
@@ -358,6 +467,29 @@ export function initQlashique(socket) {
   window.qlasStopAttack = qlasStopAttack;
   window.qlasEndTurn = qlasEndTurn;
   window.qlasHeal = qlasHeal;
+
+  window.qlasToggleRecap = function () {
+    const container = qEl('qlas-recap');
+    const toggle = qEl('qlas-recap-toggle');
+    if (!container || !toggle) {
+      return;
+    }
+    const hidden = container.style.display === 'none';
+    container.style.display = hidden ? 'flex' : 'none';
+    toggle.textContent = hidden ? '[ hide recap ]' : '[ show recap ]';
+  };
+
+  window.qlasOpenLiveRecap = function () {
+    qlasPopulateRecap('qlas-recap-live', qlasLiveHistory);
+    qEl('qlas-recap-modal')?.classList.add('show');
+  };
+
+  window.qlasCloseLiveRecap = function (event) {
+    if (event && event.target && event.currentTarget && event.target !== event.currentTarget) {
+      return;
+    }
+    qEl('qlas-recap-modal')?.classList.remove('show');
+  };
 
   // Socket events
   socket.on('qlashique:class_selected', ({ playerIdx, classId }) => {
@@ -401,9 +533,12 @@ export function initQlashique(socket) {
     const activeColor = playerIdx === 0 ? '#00ff41' : '#00b8ff';
     qEl('qlas-turn-bar').style.setProperty('--active-pc', activeColor);
     qEl('qlas-turn-name').textContent = turnPlayerName;
-    const mm = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-    const ss = String(timerSeconds % 60).padStart(2, '0');
-    qEl('qlas-turn-timer').textContent = mm + ':' + ss;
+    qEl('qlas-turn-timer').className = 'qlas-timer-ring';
+    qEl('qlas-timer-ring-label').textContent = timerSeconds + 's';
+    const progress0 = qEl('qlas-timer-ring-progress');
+    if (progress0) {
+      progress0.setAttribute('stroke-dashoffset', '0');
+    }
     qEl('qlas-turn-score').textContent = '0';
 
     if (isMyTurn) {
@@ -439,17 +574,33 @@ export function initQlashique(socket) {
     }
   });
 
-  socket.on('qlashique:answer_result', ({ correct, newScore, playerIdx }) => {
-    if (playerIdx === qlasMyIdx) {
-      const opts = document.querySelectorAll('.qlas-opt');
-      if (qlasLastAnswerIdx >= 0 && opts[qlasLastAnswerIdx]) {
-        opts[qlasLastAnswerIdx].classList.add(correct ? 'correct' : 'wrong');
+  socket.on(
+    'qlashique:answer_result',
+    ({ correct, newScore, playerIdx, answerIdx, correctIdx, category, q, opts, turn }) => {
+      if (playerIdx === qlasMyIdx) {
+        const btns = document.querySelectorAll('.qlas-opt');
+        if (qlasLastAnswerIdx >= 0 && btns[qlasLastAnswerIdx]) {
+          btns[qlasLastAnswerIdx].classList.add(correct ? 'correct' : 'wrong');
+        }
+        qlasSetScore(newScore);
+      } else {
+        qlasSetScoreOther(playerIdx, newScore);
       }
-      qlasSetScore(newScore);
-    } else {
-      qlasSetScoreOther(playerIdx, newScore);
-    }
-  });
+      if (typeof q === 'string') {
+        qlasLiveHistory.push({
+          turn,
+          playerIdx,
+          category,
+          q,
+          opts,
+          answerIdx,
+          correctIdx,
+          correct,
+          scoreAfter: newScore,
+        });
+      }
+    },
+  );
 
   socket.on('qlashique:rerolled', ({ newQuestion }) => {
     qlasRenderQuestion(newQuestion, qlasQIdx);
@@ -502,7 +653,7 @@ export function initQlashique(socket) {
     if (p1hp > prev1) qlasFlash(1, 'heal');
   });
 
-  socket.on('qlashique:game_over', ({ winnerIdx, reason }) => {
+  socket.on('qlashique:game_over', ({ winnerIdx, reason, history }) => {
     qlasStopTimer();
     qEl('qlas-phase-combat').style.display = 'none';
     qEl('qlas-phase-gameover').style.display = '';
@@ -516,6 +667,7 @@ export function initQlashique(socket) {
       disconnect: 'opponent disconnected',
     };
     qEl('qlas-winner-reason').textContent = reasonMap[reason] || reason;
+    qlasRenderRecap(Array.isArray(history) ? history : []);
   });
 
   // Start button handler
@@ -541,8 +693,7 @@ export function initQlashique(socket) {
     qlasToken = null;
     qlasGuessingActive = false;
 
-    // Note: Need to get playerName from dom.js
-    const playerName = window._currentUser?.username || 'Player';
+    const playerName = getPlayerName();
     showScreen('screen-qlashique');
     qlasShowPhase('class');
     qEl('qlas-class-grid').style.display = 'none';
@@ -580,6 +731,12 @@ export function initQlashique(socket) {
 }
 
 // Export state getters for other modules
-export function getQlasMyIdx() { return qlasMyIdx; }
-export function getQlasCode() { return qlasCode; }
-export function getQlasIsHost() { return qlasIsHost; }
+export function getQlasMyIdx() {
+  return qlasMyIdx;
+}
+export function getQlasCode() {
+  return qlasCode;
+}
+export function getQlasIsHost() {
+  return qlasIsHost;
+}
