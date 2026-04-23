@@ -17,15 +17,15 @@
  * - CSS classes used only in external stylesheets
  */
 
-import { readFileSync } from "fs";
-import { resolve, dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync } from 'fs';
+import { resolve, dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Project root is 2 directories up from scripts/
-const projectRoot = resolve(__dirname, "..");
+const projectRoot = resolve(__dirname, '..');
 
 /**
  * Extract selectors from CSS text
@@ -39,9 +39,9 @@ function extractSelectors(cssText) {
     const selector = match[1].trim();
     // Skip keyframes, media queries, and special selectors
     if (
-      selector.startsWith("@") ||
-      selector.includes("@media") ||
-      selector.includes("@keyframes")
+      selector.startsWith('@') ||
+      selector.includes('@media') ||
+      selector.includes('@keyframes')
     ) {
       continue;
     }
@@ -67,9 +67,7 @@ function parseCssSelectors(cssText) {
     }
 
     // Class selectors: .foo (but skip pseudo-classes like .foo:hover)
-    const classMatches = selector.matchAll(
-      /\.([a-zA-Z_-][a-zA-Z0-9_-]*)(?![a-zA-Z0-9_-])/g,
-    );
+    const classMatches = selector.matchAll(/\.([a-zA-Z_-][a-zA-Z0-9_-]*)(?![a-zA-Z0-9_-])/g);
     for (const m of classMatches) {
       classes.add(m[1]);
     }
@@ -93,7 +91,7 @@ function parseHtmlUsage(htmlText) {
     const classList = match[1].split(/\s+/).filter(Boolean);
     for (const cls of classList) {
       // Skip dynamically generated class names
-      if (!cls.includes("${") && !cls.includes("{{")) {
+      if (!cls.includes('${') && !cls.includes('{{')) {
         classes.add(cls);
       }
     }
@@ -123,15 +121,14 @@ function parseJsUsage(htmlText) {
     const jsCode = match[1];
 
     // classList.add('foo'), classList.remove('foo'), classList.toggle('foo')
-    const classListRegex =
-      /\.classList\.(add|remove|toggle|contains)\(?['"]([^'"]+)['"]\)?/g;
+    const classListRegex = /\.classList\.(add|remove|toggle|contains)\(?['"]([^'"]+)['"]\)?/g;
     let classMatch;
     while ((classMatch = classListRegex.exec(jsCode)) !== null) {
       const classStr = classMatch[2];
       // Handle multiple classes: add('foo', 'bar')
       const classParts = classStr.split(/[\s,]+/).filter(Boolean);
       for (const cls of classParts) {
-        if (!cls.includes("${") && !cls.includes("{{")) {
+        if (!cls.includes('${') && !cls.includes('{{')) {
           classes.add(cls);
         }
       }
@@ -147,14 +144,13 @@ function parseJsUsage(htmlText) {
     }
 
     // className = 'foo', className += ' foo'
-    const classNameRegex =
-      /\.className\s*=\s*['"]([^'"]*)['"]|className\s*\+=\s*['"]([^'"]*)['"]/g;
+    const classNameRegex = /\.className\s*=\s*['"]([^'"]*)['"]|className\s*\+=\s*['"]([^'"]*)['"]/g;
     let classNameMatch;
     while ((classNameMatch = classNameRegex.exec(jsCode)) !== null) {
-      const classStr = classNameMatch[1] || classNameMatch[2] || "";
+      const classStr = classNameMatch[1] || classNameMatch[2] || '';
       const classParts = classStr.split(/\s+/).filter(Boolean);
       for (const cls of classParts) {
-        if (!cls.startsWith("${") && !cls.startsWith("{{") && cls !== "") {
+        if (!cls.startsWith('${') && !cls.startsWith('{{') && cls !== '') {
           classes.add(cls);
         }
       }
@@ -164,9 +160,7 @@ function parseJsUsage(htmlText) {
     const classNameTernaryRegex =
       /\.className\s*=\s*[^?]+\?\s*['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g;
     let classNameTernaryMatch;
-    while (
-      (classNameTernaryMatch = classNameTernaryRegex.exec(jsCode)) !== null
-    ) {
+    while ((classNameTernaryMatch = classNameTernaryRegex.exec(jsCode)) !== null) {
       const parts = classNameTernaryMatch[1].split(/\s+/).filter(Boolean);
       for (const cls of parts) {
         classes.add(cls);
@@ -226,19 +220,47 @@ function extractStyleBlocks(htmlText) {
 }
 
 /**
+ * Extract CSS from local <link rel="stylesheet"> references
+ */
+function extractLinkedStylesheets(htmlText, htmlPath) {
+  const blocks = [];
+  const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*>/gi;
+  const hrefRegex = /href=["']([^"']+)["']/i;
+  const htmlDir = dirname(htmlPath);
+  let match;
+  while ((match = linkRegex.exec(htmlText)) !== null) {
+    const hrefMatch = match[0].match(hrefRegex);
+    if (!hrefMatch) continue;
+    const href = hrefMatch[1];
+    if (/^https?:|^\/\//i.test(href)) continue;
+    const cssPath = href.startsWith('/')
+      ? join(projectRoot, 'client', href.replace(/^\/+/, ''))
+      : join(htmlDir, href);
+    try {
+      blocks.push(readFileSync(cssPath, 'utf-8'));
+    } catch {
+      // missing file — let the main scan report it as "no selectors"
+    }
+  }
+  return blocks;
+}
+
+/**
  * Main check function
  */
 function checkUnusedSelectors(htmlPath) {
-  const htmlText = readFileSync(htmlPath, "utf-8");
+  const htmlText = readFileSync(htmlPath, 'utf-8');
   const styleBlocks = extractStyleBlocks(htmlText);
+  const linkedBlocks = extractLinkedStylesheets(htmlText, htmlPath);
+  const allBlocks = [...styleBlocks, ...linkedBlocks];
 
-  if (styleBlocks.length === 0) {
-    console.log("No CSS style blocks found in", htmlPath);
+  if (allBlocks.length === 0) {
+    console.log('No CSS sources found for', htmlPath);
     return { unusedClasses: [], unusedIds: [] };
   }
 
-  // Combine all CSS from style blocks
-  const combinedCss = styleBlocks.join("\n");
+  // Combine all CSS from inline + linked sources
+  const combinedCss = allBlocks.join('\n');
 
   // Parse CSS selectors
   const { classes: cssClasses, ids: cssIds } = parseCssSelectors(combinedCss);
@@ -270,12 +292,9 @@ function isKnownDynamicPattern(cls) {
   // Categories like cat-art, cat-science (dynamic via cat-${category})
   // Base tile and flag-tile (dynamic via className assignment)
   // Qlashique classes set via string concatenation (e.g. 'qlas-pip' + (i >= hp ? ' empty' : ''))
-  const qlasDynamic = ["empty", "pos", "neg", "warn", "negative"];
+  const qlasDynamic = ['empty', 'pos', 'neg', 'warn', 'negative'];
   return (
-    cls.startsWith("cat-") ||
-    cls === "tile" ||
-    cls === "flag-tile" ||
-    qlasDynamic.includes(cls)
+    cls.startsWith('cat-') || cls === 'tile' || cls === 'flag-tile' || qlasDynamic.includes(cls)
   );
 }
 
@@ -284,15 +303,13 @@ function isKnownDynamicPattern(cls) {
  */
 function main() {
   const args = process.argv.slice(2);
-  const htmlFiles = args.length > 0 ? args : ["client/index.html"];
+  const htmlFiles = args.length > 0 ? args : ['client/index.html'];
 
   let totalUnused = 0;
 
   for (const htmlFile of htmlFiles) {
     const filePath =
-      args.length > 0
-        ? resolve(process.cwd(), htmlFile)
-        : join(projectRoot, htmlFile);
+      args.length > 0 ? resolve(process.cwd(), htmlFile) : join(projectRoot, htmlFile);
     const { unusedClasses, unusedIds } = checkUnusedSelectors(filePath);
 
     const fileTotal = unusedClasses.length + unusedIds.length;
@@ -302,14 +319,14 @@ function main() {
       console.log(`\n${htmlFile}:`);
 
       if (unusedIds.length > 0) {
-        console.log("  Unused IDs:");
+        console.log('  Unused IDs:');
         for (const id of unusedIds) {
           console.log(`    #${id}`);
         }
       }
 
       if (unusedClasses.length > 0) {
-        console.log("  Unused classes:");
+        console.log('  Unused classes:');
         for (const cls of unusedClasses) {
           console.log(`    .${cls}`);
         }
@@ -323,7 +340,7 @@ function main() {
     console.log(`\n${totalUnused} unused selector(s) found.`);
     process.exit(1);
   } else {
-    console.log("\nAll selectors are in use.");
+    console.log('\nAll selectors are in use.');
     process.exit(0);
   }
 }

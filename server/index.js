@@ -17,6 +17,7 @@ if (envPath) {
 }
 
 import session from 'express-session';
+import compression from 'compression';
 
 import {
   createRoom,
@@ -146,6 +147,9 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Gzip/br responses (index.html, styles.css, and any /api JSON)
+app.use(compression());
 
 // Serve client files for browser access
 app.use(express.static(path.join(__dirname, '../client')));
