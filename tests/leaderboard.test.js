@@ -1,7 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { QUIZ_MODES, QUIZ_MODES_BY_ID } from '../server/game/quiz-modes.ts';
-import path from 'path';
 import fs from 'fs';
 
 describe('Quiz Modes', () => {
@@ -52,9 +51,13 @@ describe('Leaderboard: Integration Tests', () => {
   afterEach(() => {
     // Clean up test DB files
     for (const dbPath of testDbs) {
-      try { fs.unlinkSync(dbPath); } catch {}
-      try { fs.unlinkSync(dbPath + '-wal'); } catch {}
-      try { fs.unlinkSync(dbPath + '-shm'); } catch {}
+      for (const suffix of ['', '-wal', '-shm']) {
+        try {
+          fs.unlinkSync(dbPath + suffix);
+        } catch {
+          // file may not exist; ignore
+        }
+      }
     }
     testDbs = [];
   });
@@ -74,7 +77,9 @@ describe('Leaderboard: Integration Tests', () => {
           created_at INTEGER NOT NULL
         )
       `);
-      const result = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='${mode.table}'`).get();
+      const result = db
+        .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='${mode.table}'`)
+        .get();
       expect(result).toBeDefined();
     }
     db.close();
@@ -96,9 +101,13 @@ describe('Leaderboard: Integration Tests', () => {
       )
     `);
 
-    db.prepare(`INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run('TestPlayer', 10, 5000, Date.now());
+    db.prepare(
+      'INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)',
+    ).run('TestPlayer', 10, 5000, Date.now());
 
-    const result = db.prepare(`SELECT * FROM leaderboard ORDER BY answers DESC, time_ms ASC LIMIT 10`).all();
+    const result = db
+      .prepare('SELECT * FROM leaderboard ORDER BY answers DESC, time_ms ASC LIMIT 10')
+      .all();
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('TestPlayer');
     expect(result[0].answers).toBe(10);
@@ -121,11 +130,19 @@ describe('Leaderboard: Integration Tests', () => {
       )
     `);
 
-    db.prepare(`INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run('P1', 5, 5000, Date.now());
-    db.prepare(`INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run('P2', 10, 3000, Date.now());
-    db.prepare(`INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run('P3', 10, 5000, Date.now());
+    db.prepare(
+      'INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)',
+    ).run('P1', 5, 5000, Date.now());
+    db.prepare(
+      'INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)',
+    ).run('P2', 10, 3000, Date.now());
+    db.prepare(
+      'INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)',
+    ).run('P3', 10, 5000, Date.now());
 
-    const result = db.prepare(`SELECT * FROM leaderboard ORDER BY answers DESC, time_ms ASC LIMIT 10`).all();
+    const result = db
+      .prepare('SELECT * FROM leaderboard ORDER BY answers DESC, time_ms ASC LIMIT 10')
+      .all();
     expect(result[0].name).toBe('P2'); // 10 answers, less time
     expect(result[1].name).toBe('P3'); // 10 answers, more time
     expect(result[2].name).toBe('P1'); // 5 answers
@@ -150,11 +167,17 @@ describe('Leaderboard: Integration Tests', () => {
 
     // Add 10 entries descending from 9 to 0
     for (let i = 0; i < 10; i++) {
-      db.prepare(`INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run(`P${i}`, 9 - i, 1000 + i * 100, Date.now());
+      db.prepare(
+        'INSERT INTO leaderboard (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)',
+      ).run(`P${i}`, 9 - i, 1000 + i * 100, Date.now());
     }
 
     // A good score: answer=8 with fast time
-    const result = db.prepare(`SELECT COUNT(*) as cnt FROM leaderboard WHERE answers > 8 OR (answers = 8 AND time_ms < 1500)`).get();
+    const result = db
+      .prepare(
+        'SELECT COUNT(*) as cnt FROM leaderboard WHERE answers > 8 OR (answers = 8 AND time_ms < 1500)',
+      )
+      .get();
     // answers > 8: only entry with 9 (answers: 9-0 = 9,8,7,6,5,4,3,2,1,0)
     // Wait, 9-i means: P0=9, P1=8, P2=7, P3=6, P4=5, P5=4, P6=3, P7=2, P8=1, P9=0
     // answers > 8: only P0 with 9 (1 entry)
@@ -165,7 +188,7 @@ describe('Leaderboard: Integration Tests', () => {
     // Not qualifying: score of 1 when table is full with higher scores
     // With 9-i, scores are 9,8,7,6,5,4,3,2,1,0
     // answers > 1: 9,8,7,6,5,4,3,2 = 8 entries
-    const result2 = db.prepare(`SELECT COUNT(*) as cnt FROM leaderboard WHERE answers > 1`).get();
+    const result2 = db.prepare('SELECT COUNT(*) as cnt FROM leaderboard WHERE answers > 1').get();
     expect(result2.cnt).toBe(8);
 
     db.close();

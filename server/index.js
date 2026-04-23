@@ -67,6 +67,7 @@ import {
   initAuthDb,
   insertGameResult,
   trackAnswer,
+  trackAnswersBatch,
   createUser,
   clearTestUsers,
   clearTestHistory,
@@ -426,50 +427,57 @@ io.on('connection', (socket) => {
     socket.userId = socketSession.userId;
     socket.userName = socketSession.username;
     if (DEBUG) {
-      console.log(`[auth] ${socket.id} linked to user ${socketSession.userId} (${socketSession.username})`);
+      console.log(
+        `[auth] ${socket.id} linked to user ${socketSession.userId} (${socketSession.username})`,
+      );
     }
   }
 
-  // Client sends userId directly after login (workaround for session issues)
-  socket.on('auth:setUserId', (userId) => {
-    if (DEBUG) {
-      console.log('[auth] auth:setUserId received:', userId);
-    }
-    if (userId) {
+  // Client hint after login; authoritative userId always comes from the session.
+  // The socket was usually established before login, so the snapshot on
+  // socket.request.session is stale — reload from the store first.
+  socket.on('auth:setUserId', (_clientUserId) => {
+    const sess = socket.request.session;
+    const applyUserId = (userId) => {
       socket.userId = userId;
-      if (DEBUG) {
-        console.log(`[auth] ${socket.id} set userId to ${userId}`);
-      }
-      // Update the player's userId in ALL rooms this socket might be in
       const code = socketToRoom.get(socket.id);
-      if (DEBUG) {
-        console.log('[auth] socketToRoom lookup, code:', code);
-      }
       if (code) {
         const room = rooms.get(code);
-        if (DEBUG) {
-          console.log('[auth] room found:', room ? 'yes' : 'no');
-        }
-        if (room) {
-          const player = getPlayerBySocket(room, socket.id);
-          if (DEBUG) {
-            console.log('[auth] player found:', player ? player.name : 'no', 'current userId:', player?.userId);
-          }
-          if (player) {
-            player.userId = userId;
-            if (DEBUG) {
-              console.log('[auth] Updated player userId in room to:', player.userId);
-            }
-          }
+        const player = room ? getPlayerBySocket(room, socket.id) : null;
+        if (player) {
+          player.userId = userId;
         }
       } else {
-        // Socket not in any room yet - store for when they join
         socket.pendingUserId = userId;
-        if (DEBUG) {
-          console.log('[auth] No room yet, stored pendingUserId:', userId);
-        }
       }
+    };
+
+    const reload = typeof sess?.reload === 'function' ? sess.reload.bind(sess) : null;
+    if (!reload) {
+      if (sess?.userId) {
+        applyUserId(sess.userId);
+      } else if (DEBUG) {
+        console.log('[auth] auth:setUserId rejected — no session available');
+      }
+      return;
     }
+
+    reload((err) => {
+      if (err) {
+        if (DEBUG) {
+          console.log('[auth] auth:setUserId reload error:', err.message);
+        }
+        return;
+      }
+      const sessionUserId = socket.request.session?.userId;
+      if (!sessionUserId) {
+        if (DEBUG) {
+          console.log('[auth] auth:setUserId rejected — session has no userId after reload');
+        }
+        return;
+      }
+      applyUserId(sessionUserId);
+    });
   });
 
   // Client can emit this after login to refresh session
@@ -784,7 +792,7 @@ io.on('connection', (socket) => {
     });
 
     room.lastQuestionStart = Date.now();
-    cb({ ok: true, moveType, question, questionsTotal, defenderPlayerIdx });
+    cb({ ok: true, moveType, question: questionPublic, questionsTotal, defenderPlayerIdx });
   });
 
   socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }, cb) => {
@@ -892,7 +900,7 @@ io.on('connection', (socket) => {
       room.lastQuestionStart = Date.now();
 
       socket.emit('game:next_question', {
-        question: nextQuestion,
+        question: nextPublic,
         questionIdx: qIdx,
         correct: result.correct,
       });
@@ -1456,6 +1464,11 @@ io.on('connection', (socket) => {
         if (room.players.length === 1) {
           const winner = room.players[0];
           if (room.mode === 'qlashique') {
+            if (room.qlasTimer) {
+              clearTimeout(room.qlasTimer);
+              room.qlasTimer = null;
+            }
+            room.qlasTimerExpired = true;
             room.state.phase = QLAS_PHASE.GAME_OVER;
             io.to(room.code).emit('qlashique:game_over', {
               winnerIdx: winner.index,
@@ -1523,15 +1536,21 @@ function recordGameStats(room) {
   }
   console.log('[stats] startedAt:', room?.startedAt);
   console.log('[stats] playersCount:', room?.state?.players?.length);
-  console.log('[stats] roomPlayers:', room?.players?.map((p) => ({
-    name: p.name,
-    userId: p.userId,
-    socketId: p.id,
-  })));
-  console.log('[stats] statePlayers:', room?.state?.players?.map((p) => ({
-    name: p.name,
-    userId: p.userId,
-  })));
+  console.log(
+    '[stats] roomPlayers:',
+    room?.players?.map((p) => ({
+      name: p.name,
+      userId: p.userId,
+      socketId: p.id,
+    })),
+  );
+  console.log(
+    '[stats] statePlayers:',
+    room?.state?.players?.map((p) => ({
+      name: p.name,
+      userId: p.userId,
+    })),
+  );
 
   if (!room.startedAt || !room.state?.players || room.state.players.length < 2) {
     console.log('[stats] Skipping - invalid game state');
@@ -1544,8 +1563,18 @@ function recordGameStats(room) {
   const player1UserId = room.players[0]?.userId;
   const player2UserId = room.players[1]?.userId;
   console.log('[stats] userIds:', player1UserId, player2UserId);
-  console.log('[stats] room.players[0].name:', room.players[0]?.name, 'socketId:', room.players[0]?.id);
-  console.log('[stats] room.players[1].name:', room.players[1]?.name, 'socketId:', room.players[1]?.id);
+  console.log(
+    '[stats] room.players[0].name:',
+    room.players[0]?.name,
+    'socketId:',
+    room.players[0]?.id,
+  );
+  console.log(
+    '[stats] room.players[1].name:',
+    room.players[1]?.name,
+    'socketId:',
+    room.players[1]?.id,
+  );
   console.log('[stats] room.state.players[0].userId:', room.state.players[0]?.userId);
   console.log('[stats] room.state.players[1].userId:', room.state.players[1]?.userId);
 
@@ -1579,47 +1608,23 @@ function recordGameStats(room) {
       });
 
       for (const [cat, stat] of Object.entries(player1Stats.byCategory ?? {})) {
-        console.log('[stats] p1 category:', cat, 'correct:', stat.correct, 'attempts:', stat.attempts);
-        for (let i = 0; i < (stat.correct ?? 0); i += 1) {
-          trackAnswer(player1UserId, cat, true);
-        }
-        for (let i = stat.correct ?? 0; i < (stat.attempts ?? 0); i += 1) {
-          trackAnswer(player1UserId, cat, false);
-        }
+        trackAnswersBatch(player1UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
       }
-
       for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
-        console.log('[stats] p2 category:', cat, 'correct:', stat.correct, 'attempts:', stat.attempts);
-        for (let i = 0; i < (stat.correct ?? 0); i += 1) {
-          trackAnswer(player2UserId, cat, true);
-        }
-        for (let i = stat.correct ?? 0; i < (stat.attempts ?? 0); i += 1) {
-          trackAnswer(player2UserId, cat, false);
-        }
+        trackAnswersBatch(player2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
       }
 
       // Update games played and won for both players
       const db = getDb();
       if (db) {
-        // Player 1: increment games played, and games won if they won
-        db.prepare(
-          `
-          UPDATE users SET
+        const updateGames = db.prepare(
+          `UPDATE users SET
           games_played = COALESCE(games_played, 0) + 1,
-          games_won = COALESCE(games_won, 0) + ${winnerIdx === 0 ? 1 : 0}
-          WHERE id = ?
-        `,
-        ).run(player1UserId);
-
-        // Player 2: increment games played, and games won if they won
-        db.prepare(
-          `
-          UPDATE users SET
-          games_played = COALESCE(games_played, 0) + 1,
-          games_won = COALESCE(games_won, 0) + ${winnerIdx === 1 ? 1 : 0}
-          WHERE id = ?
-        `,
-        ).run(player2UserId);
+          games_won = COALESCE(games_won, 0) + ?
+          WHERE id = ?`,
+        );
+        updateGames.run(winnerIdx === 0 ? 1 : 0, player1UserId);
+        updateGames.run(winnerIdx === 1 ? 1 : 0, player2UserId);
       }
 
       const gameRoomCode = players[0].name + ' vs ' + players[1].name;
@@ -1631,37 +1636,20 @@ function recordGameStats(room) {
     return;
   }
 
-  // Track player1's stats if they have an account
+  const updateGames = getDb()?.prepare(
+    `UPDATE users SET
+      games_played = COALESCE(games_played, 0) + 1,
+      games_won = COALESCE(games_won, 0) + ?
+      WHERE id = ?`,
+  );
+
   if (player1UserId) {
-    // Update games played and won for player 1
-    const db = getDb();
-    if (db) {
-      db.prepare(
-        `
-        UPDATE users SET
-        games_played = COALESCE(games_played, 0) + 1,
-        games_won = COALESCE(games_won, 0) + ${winnerIdx === 0 ? 1 : 0}
-        WHERE id = ?
-      `,
-      ).run(player1UserId);
-    }
+    updateGames?.run(winnerIdx === 0 ? 1 : 0, player1UserId);
     console.log('[stats] Recorded player1 stats:', players[0].name);
   }
 
-  // Track player2's stats if they have an account
   if (player2UserId) {
-    // Update games played and won for player 2
-    const db = getDb();
-    if (db) {
-      db.prepare(
-        `
-        UPDATE users SET
-        games_played = COALESCE(games_played, 0) + 1,
-        games_won = COALESCE(games_won, 0) + ${winnerIdx === 1 ? 1 : 0}
-        WHERE id = ?
-      `,
-      ).run(player2UserId);
-    }
+    updateGames?.run(winnerIdx === 1 ? 1 : 0, player2UserId);
     console.log('[stats] Recorded player2 stats:', players[1].name);
   }
 }
@@ -1682,8 +1670,11 @@ function _pickQlasQuestion(room, db) {
       return q;
     }
   }
-  // Get all questions, then filter out excluded categories
-  const all = getAllQuestions(db).filter((q) => !EXCLUDED_CATS.has(q.category));
+  // Cache excluded-cat filter on the room; questions DB is immutable per process.
+  if (!room.qlasPool) {
+    room.qlasPool = getAllQuestions(db).filter((q) => !EXCLUDED_CATS.has(q.category));
+  }
+  const all = room.qlasPool;
   if (!all.length) {
     return null;
   }

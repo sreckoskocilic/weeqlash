@@ -8,6 +8,9 @@ test('triviandom: answer Q1 correctly, answer until wrong, submit to leaderboard
 }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
 
+  // Clear leaderboard so a score of 1 is guaranteed to qualify for top-10.
+  await api.post('/test/clear-leaderboard', {});
+
   // Force Q1 to a known question so we can reliably click the correct answer
   const sampleRes = await api.get('/test/questions-sample');
   const sample = await sampleRes.json();
@@ -48,7 +51,9 @@ test('triviandom: answer Q1 correctly, answer until wrong, submit to leaderboard
     await page.locator('.modal-option:not([disabled])').nth(wrongIdx).click();
     await page.locator('#modal-continue-btn').waitFor({ state: 'visible', timeout: 5000 });
     const btnText = await page.locator('#modal-continue-btn').textContent();
-    if (btnText?.includes('SEE RESULTS')) {break;}
+    if (btnText?.includes('SEE RESULTS')) {
+      break;
+    }
     // Answered correctly by chance — move to the next question
     await page.locator('#modal-continue-btn').click();
   }

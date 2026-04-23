@@ -366,6 +366,18 @@ export function resendConfirmation(userId: number) {
 // --- Stats ---
 
 export function trackAnswer(userId: number, category: string, correct: boolean) {
+  trackAnswersBatch(userId, category, 1, correct ? 1 : 0);
+}
+
+export function trackAnswersBatch(
+  userId: number,
+  category: string,
+  answered: number,
+  correct: number,
+) {
+  if (answered <= 0) {
+    return;
+  }
   const db: Database.Database | null = getDb();
   if (!db) {
     throw new Error('Database not initialized');
@@ -373,12 +385,12 @@ export function trackAnswer(userId: number, category: string, correct: boolean) 
   db.prepare(
     `
     INSERT INTO user_stats (user_id, category, answered, correct)
-    VALUES (?, ?, 1, ?)
+    VALUES (?, ?, ?, ?)
     ON CONFLICT(user_id, category) DO UPDATE SET
-      answered = answered + 1,
+      answered = answered + excluded.answered,
       correct = correct + excluded.correct
   `,
-  ).run(userId, category, correct ? 1 : 0);
+  ).run(userId, category, answered, correct);
 }
 
 export function getUserStats(userId: number) {

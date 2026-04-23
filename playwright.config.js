@@ -19,7 +19,8 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'ENABLE_TEST_ROUTES=1 node -r ts-node/register server/index.js',
+    command:
+      'ENABLE_TEST_ROUTES=1 DB_PATH=./server/data/e2e.db node -r ts-node/register server/index.js',
     url: 'http://localhost:3000',
     reuseExistingServer: false,
     timeout: 15000,
