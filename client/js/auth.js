@@ -14,6 +14,19 @@ let socket = null;
 export function initAuth(svrUrl, sock) {
   serverUrl = svrUrl;
   socket = sock;
+
+  // Server kicks us off when the same account logs in from another browser.
+  // Clear local auth state and surface a message so the user knows why.
+  socket.on('auth:kicked', ({ reason }) => {
+    hideUserBar();
+    state.qlasToken = null;
+    const msg =
+      reason === 'logged_in_elsewhere'
+        ? 'Prijavljeni ste s drugog uređaja. Ova sesija je zatvorena.'
+        : 'Sesija je zatvorena.';
+    showAuthMessage(msg, true);
+    showScreen('setup-screen');
+  });
 }
 
 export function showAuthMessage(msg, isError) {

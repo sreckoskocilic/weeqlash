@@ -17,7 +17,13 @@ if (envPath) {
 }
 
 import session from 'express-session';
+import { RedisStore } from 'connect-redis';
 import compression from 'compression';
+import { initRedis, waitForRedisReady, isRedisReady, SESSION_PREFIX } from './game/redis.ts';
+
+// Initialize Redis client after dotenv has loaded REDIS_URL. This must happen
+// before createSessionMiddleware() runs (RedisStore captures the client instance).
+const redisClient = initRedis();
 
 import {
   createRoom,
@@ -110,7 +116,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Session store function - use MemoryStore (sessions persist while server runs)
+// Session store - Redis-backed. Fail-closed: if Redis is unreachable at
+// startup, the server exits; if it dies at runtime, /auth and socket connects
+// return 503 (see isRedisReady() gates below).
 // DO NOT flip saveUninitialized to false without also reworking socket auth.
 // The socket handshake captures socket.request.session at connection time —
 // which for this client happens on page load, BEFORE login. If the initial GET
@@ -121,6 +129,7 @@ app.use((req, res, next) => {
 // that assert games_played/games_won/trackAnswer coverage fail silently.
 function createSessionMiddleware() {
   return session({
+    store: new RedisStore({ client: redisClient, prefix: SESSION_PREFIX + 'session:' }),
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: true,
@@ -227,7 +236,7 @@ function gracefulShutdown(signal) {
   clearInterval(leaderboardPruneInterval);
   httpServer.close(() => {
     console.log('[shutdown] HTTP server closed');
-    process.exit(0);
+    redisClient.quit().finally(() => process.exit(0));
   });
 }
 
@@ -254,11 +263,30 @@ initAuthDb();
 // Parse JSON bodies
 app.use(express.json());
 
-registerAuthRoutes(app);
+// Fail-closed gate: if Redis is not ready, auth/admin cannot read/write sessions.
+// Applied before auth and admin routes so 503 lands on the HTTP boundary,
+// not deep inside route handlers that would otherwise proceed with a broken session.
+app.use(['/auth', '/admin'], (req, res, next) => {
+  if (!isRedisReady()) {
+    return res.status(503).json({ error: 'Service temporarily unavailable' });
+  }
+  next();
+});
+
+registerAuthRoutes(app, io);
 app.use('/admin', adminRoutes);
 
 // Share session with Socket.IO
 io.engine.use(sessionMiddleware);
+
+// Fail-closed gate for socket connects. Same reasoning as the HTTP gate above:
+// session middleware would otherwise silently hand out empty sessions.
+io.use((socket, next) => {
+  if (!isRedisReady()) {
+    return next(new Error('Service temporarily unavailable'));
+  }
+  next();
+});
 
 // Test-only: teleport a peg to an adjacent position for E2E testing
 // NEVER expose test endpoints in production - requires ENABLE_TEST_ROUTES=1
@@ -1783,6 +1811,15 @@ function _emitQlasTurnStart(ioServer, code, room) {
   });
 }
 
-httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
+// Wait for Redis to be ready before accepting traffic — any request before
+// this would be a cache miss into a broken session store.
+waitForRedisReady(10_000)
+  .then(() => {
+    httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
+  })
+  .catch((err) => {
+    console.error('[startup] Redis not ready:', err.message);
+    process.exit(1);
+  });
 
 export { app };

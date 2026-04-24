@@ -11,7 +11,9 @@ import {
 } from './auth.ts';
 import type { Transporter } from 'nodemailer';
 import type { Request, Response, Express } from 'express';
+import type { Server as IoServer } from 'socket.io';
 import 'express-session';
+import { setActiveSid, getActiveSid, clearActiveSid, destroySession } from './auth-sessions.ts';
 
 // Declaration-merged fields on the session; matches the writes in /auth/login.
 declare module 'express-session' {
@@ -120,7 +122,21 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   await t.sendMail({ from: cfg.from, to, subject, html });
 }
 
-export function registerAuthRoutes(app: Express): void {
+// Disconnect any live sockets still attached to a session we just killed.
+// Emits 'auth:kicked' so the client can show feedback and redirect before the
+// socket hangs up. Fire-and-forget: failures here don't affect login response.
+function kickSocketsForSid(io: IoServer, sid: string): void {
+  for (const [, socket] of io.of('/').sockets) {
+    // socket.request.sessionID is set by express-session via io.engine.use(sessionMiddleware)
+    const socketSid = (socket.request as { sessionID?: string }).sessionID;
+    if (socketSid === sid) {
+      socket.emit('auth:kicked', { reason: 'logged_in_elsewhere' });
+      socket.disconnect(true);
+    }
+  }
+}
+
+export function registerAuthRoutes(app: Express, io: IoServer): void {
   console.log('[auth-routes] SMTP_HOST at registration:', process.env.SMTP_HOST);
   console.log('[auth-routes] SMTP_USER at registration:', process.env.SMTP_USER);
 
@@ -166,7 +182,7 @@ export function registerAuthRoutes(app: Express): void {
   });
 
   // Login
-  app.post('/auth/login', (req: Request, res: Response) => {
+  app.post('/auth/login', async (req: Request, res: Response) => {
     if (!applyAuthRateLimit(req, res)) {
       return;
     }
@@ -182,15 +198,35 @@ export function registerAuthRoutes(app: Express): void {
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
 
-    req.session.userId = result.user.id;
-    req.session.username = result.user.username;
-    req.session.isAdmin = result.user.is_admin === 1;
+    // Single-session-per-user: if the user is already logged in elsewhere,
+    // kill the previous session server-side before issuing the new one.
+    // Fail-closed: if Redis errors at any step, do NOT proceed — otherwise
+    // the old session would linger and defeat the policy.
+    try {
+      const oldSid = await getActiveSid(result.user.id);
+      if (oldSid && oldSid !== req.sessionID) {
+        await destroySession(oldSid);
+        kickSocketsForSid(io, oldSid);
+      }
 
-    // Keep logged in = 7 days, otherwise session expires when browser closes
-    req.session.cookie.maxAge = keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : undefined;
-    req.session.cookie.expires = keepLoggedIn
-      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      : undefined;
+      req.session.userId = result.user.id;
+      req.session.username = result.user.username;
+      req.session.isAdmin = result.user.is_admin === 1;
+
+      // Keep logged in = 7 days, otherwise session expires when browser closes
+      req.session.cookie.maxAge = keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : undefined;
+      req.session.cookie.expires = keepLoggedIn
+        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        : undefined;
+
+      // Index TTL = 7d regardless of keepLoggedIn. For browser-session cookies
+      // the stale entry is harmless — next login would just overwrite it.
+      await setActiveSid(result.user.id, req.sessionID, 7 * 24 * 60 * 60);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[auth] Redis error during login:', msg);
+      return res.status(503).json({ error: 'Service temporarily unavailable' });
+    }
 
     console.log('[auth] login set session:', { userId: result.user.id, keepLoggedIn });
     req.session.save((err) => {
@@ -202,7 +238,17 @@ export function registerAuthRoutes(app: Express): void {
   });
 
   // Logout
-  app.post('/auth/logout', (req: Request, res: Response) => {
+  app.post('/auth/logout', async (req: Request, res: Response) => {
+    const userId = req.session.userId;
+    if (userId) {
+      try {
+        await clearActiveSid(userId);
+      } catch (err) {
+        // Stale index entries self-expire via TTL; don't block logout on Redis.
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[auth] clearActiveSid failed:', msg);
+      }
+    }
     req.session.destroy(() => {
       res.json({ ok: true });
     });
