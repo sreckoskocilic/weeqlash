@@ -8,6 +8,7 @@ import { sanitize } from './dom.js';
 import { CAT_NAMES, CAT_COLORS, OPTION_KEYS } from './constants.js';
 
 let currentQuizMode = 'triviandom';
+let quizModalOptionBtns = [];
 
 const quizState = {
   run: null,
@@ -43,7 +44,7 @@ export function startQuizMode(mode) {
   clearInterval(quizState.gameTimerInterval);
   quizState.timerInterval = null;
   quizState.gameTimerInterval = null;
-  
+
   import('./socket.js').then(({ getSocket }) => {
     const socket = getSocket();
     socket.emit('quiz:start', { mode }, (res) => {
@@ -68,15 +69,14 @@ export function showQuizQuestion(q) {
     ? CAT_COLORS[q.category] || '#0f3460'
     : '#0f3460';
   const streak = quizState.run.answers;
-  document.getElementById('modal-player-label').textContent =
-    streak > 0 ? `Streak ${streak}` : '';
+  document.getElementById('modal-player-label').textContent = streak > 0 ? `Streak ${streak}` : '';
   document.getElementById('modal-combat-label').style.display = 'none';
   document.getElementById('modal-question').textContent = q.q;
 
   const optContainer = document.getElementById('modal-options');
   optContainer.innerHTML = '';
   optContainer.dataset.submitting = '';
-  const quizModalOptionBtns = [];
+  quizModalOptionBtns = [];
   q.opts.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'modal-option';
@@ -92,14 +92,13 @@ export function showQuizQuestion(q) {
 }
 
 // Submit quiz answer
-let quizModalOptionBtns = [];
 export function submitQuizAnswer(answerIdx) {
   if (document.getElementById('modal-options')?.dataset?.submitting === 'true') {
     return;
   }
   document.getElementById('modal-options').dataset.submitting = 'true';
   clearInterval(quizState.timerInterval);
-  
+
   import('./socket.js').then(({ getSocket }) => {
     const socket = getSocket();
     socket.emit('quiz:answer', { answerIdx }, (res) => {
@@ -155,7 +154,7 @@ function startQuizTimer() {
       stopGameTimer();
       document.getElementById('modal-options').dataset.submitting = 'true';
       quizModalOptionBtns.forEach((btn) => (btn.disabled = true));
-      
+
       import('./socket.js').then(({ getSocket }) => {
         const socket = getSocket();
         socket.emit('quiz:answer', { answerIdx: -1 }, (res) => {

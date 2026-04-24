@@ -4,7 +4,7 @@
 
 import { showError } from './dom.js';
 import { renderAll } from './render.js';
-import { gameState, setGameState, myToken, myRoom, qlasToken, qlasCode } from './state.js';
+import { setGameState, myToken, myRoom, qlasToken, qlasCode } from './state.js';
 
 let socket = null;
 let serverUrl = '';

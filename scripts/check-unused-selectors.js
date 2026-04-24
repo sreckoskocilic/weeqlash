@@ -17,7 +17,7 @@
  * - CSS classes used only in external stylesheets
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -110,100 +110,147 @@ function parseHtmlUsage(htmlText) {
  * Extract classes and IDs used in JavaScript (dynamic)
  * Returns { classes: Set, ids: Set }
  */
-function parseJsUsage(htmlText) {
+function parseJsUsage(jsCode) {
   const classes = new Set();
   const ids = new Set();
 
-  // Extract script blocks
-  const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
-  let match;
-  while ((match = scriptRegex.exec(htmlText)) !== null) {
-    const jsCode = match[1];
-
-    // classList.add('foo'), classList.remove('foo'), classList.toggle('foo')
-    const classListRegex = /\.classList\.(add|remove|toggle|contains)\(?['"]([^'"]+)['"]\)?/g;
-    let classMatch;
-    while ((classMatch = classListRegex.exec(jsCode)) !== null) {
-      const classStr = classMatch[2];
-      // Handle multiple classes: add('foo', 'bar')
-      const classParts = classStr.split(/[\s,]+/).filter(Boolean);
-      for (const cls of classParts) {
-        if (!cls.includes('${') && !cls.includes('{{')) {
-          classes.add(cls);
-        }
-      }
-    }
-
-    // classList.add/remove with ternary: add(condition ? 'foo' : 'bar')
-    const ternaryClassRegex =
-      /\.classList\.(add|remove|toggle)\s*\(\s*[^?]*\?\s*['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g;
-    let ternaryMatch;
-    while ((ternaryMatch = ternaryClassRegex.exec(jsCode)) !== null) {
-      classes.add(ternaryMatch[2]); // truthy branch
-      classes.add(ternaryMatch[3]); // falsy branch
-    }
-
-    // className = 'foo', className += ' foo'
-    const classNameRegex = /\.className\s*=\s*['"]([^'"]*)['"]|className\s*\+=\s*['"]([^'"]*)['"]/g;
-    let classNameMatch;
-    while ((classNameMatch = classNameRegex.exec(jsCode)) !== null) {
-      const classStr = classNameMatch[1] || classNameMatch[2] || '';
-      const classParts = classStr.split(/\s+/).filter(Boolean);
-      for (const cls of classParts) {
-        if (!cls.startsWith('${') && !cls.startsWith('{{') && cls !== '') {
-          classes.add(cls);
-        }
-      }
-    }
-
-    // className = condition ? 'foo' : 'bar'
-    const classNameTernaryRegex =
-      /\.className\s*=\s*[^?]+\?\s*['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g;
-    let classNameTernaryMatch;
-    while ((classNameTernaryMatch = classNameTernaryRegex.exec(jsCode)) !== null) {
-      const parts = classNameTernaryMatch[1].split(/\s+/).filter(Boolean);
-      for (const cls of parts) {
+  // classList.add('foo'), classList.remove('foo'), classList.toggle('foo')
+  const classListRegex = /\.classList\.(add|remove|toggle|contains)\(?['"]([^'"]+)['"]\)?/g;
+  let classMatch;
+  while ((classMatch = classListRegex.exec(jsCode)) !== null) {
+    const classStr = classMatch[2];
+    // Handle multiple classes: add('foo', 'bar')
+    const classParts = classStr.split(/[\s,]+/).filter(Boolean);
+    for (const cls of classParts) {
+      if (!cls.includes('${') && !cls.includes('{{')) {
         classes.add(cls);
       }
-      const parts2 = classNameTernaryMatch[2].split(/\s+/).filter(Boolean);
-      for (const cls of parts2) {
-        classes.add(cls);
-      }
-    }
-
-    // querySelector('.foo'), querySelectorAll('.foo'), getElementsByClassName('foo')
-    const selectorRegex =
-      /\.(?:querySelector|querySelectorAll|getElementsByClassName)\(?['"]([^'"]+)['"]\)?/g;
-    let selectorMatch;
-    while ((selectorMatch = selectorRegex.exec(jsCode)) !== null) {
-      const selector = selectorMatch[1];
-      // Extract class from selector like '.foo' or '#foo.bar'
-      const classInSelector = selector.match(/^\.([a-zA-Z_-][a-zA-Z0-9_-]*)/);
-      if (classInSelector) {
-        classes.add(classInSelector[1]);
-      }
-      const idInSelector = selector.match(/^#([a-zA-Z_-][a-zA-Z0-9_-]*)/);
-      if (idInSelector) {
-        ids.add(idInSelector[1]);
-      }
-    }
-
-    // getElementById('foo')
-    const idRegex = /getElementById\(['"]([^'"]+)['"]\)/g;
-    let idMatch;
-    while ((idMatch = idRegex.exec(jsCode)) !== null) {
-      ids.add(idMatch[1]);
-    }
-
-    // $('foo') - custom shorthand for getElementById
-    const $FuncRegex = /\$_?\(['"]([^'"]+)['"]\)/g;
-    let $Match;
-    while (($Match = $FuncRegex.exec(jsCode)) !== null) {
-      ids.add($Match[1]);
     }
   }
 
+  // classList.add/remove with ternary: add(condition ? 'foo' : 'bar')
+  const ternaryClassRegex =
+    /\.classList\.(add|remove|toggle)\s*\(\s*[^?]*\?\s*['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g;
+  let ternaryMatch;
+  while ((ternaryMatch = ternaryClassRegex.exec(jsCode)) !== null) {
+    classes.add(ternaryMatch[2]); // truthy branch
+    classes.add(ternaryMatch[3]); // falsy branch
+  }
+
+  // className = 'foo', className += ' foo'
+  const classNameRegex = /\.className\s*=\s*['"]([^'"]*)['"]|className\s*\+=\s*['"]([^'"]*)['"]/g;
+  let classNameMatch;
+  while ((classNameMatch = classNameRegex.exec(jsCode)) !== null) {
+    const classStr = classNameMatch[1] || classNameMatch[2] || '';
+    const classParts = classStr.split(/\s+/).filter(Boolean);
+    for (const cls of classParts) {
+      if (!cls.startsWith('${') && !cls.startsWith('{{') && cls !== '') {
+        classes.add(cls);
+      }
+    }
+  }
+
+  // className = condition ? 'foo' : 'bar'
+  const classNameTernaryRegex =
+    /\.className\s*=\s*[^?]+\?\s*['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g;
+  let classNameTernaryMatch;
+  while ((classNameTernaryMatch = classNameTernaryRegex.exec(jsCode)) !== null) {
+    const parts = classNameTernaryMatch[1].split(/\s+/).filter(Boolean);
+    for (const cls of parts) {
+      classes.add(cls);
+    }
+    const parts2 = classNameTernaryMatch[2].split(/\s+/).filter(Boolean);
+    for (const cls of parts2) {
+      classes.add(cls);
+    }
+  }
+
+  // querySelector('.foo'), querySelectorAll('.foo'), getElementsByClassName('foo')
+  const selectorRegex =
+    /\.(?:querySelector|querySelectorAll|getElementsByClassName)\(?['"]([^'"]+)['"]\)?/g;
+  let selectorMatch;
+  while ((selectorMatch = selectorRegex.exec(jsCode)) !== null) {
+    const selector = selectorMatch[1];
+    // Extract class from selector like '.foo' or '#foo.bar'
+    const classInSelector = selector.match(/^\.([a-zA-Z_-][a-zA-Z0-9_-]*)/);
+    if (classInSelector) {
+      classes.add(classInSelector[1]);
+    }
+    const idInSelector = selector.match(/^#([a-zA-Z_-][a-zA-Z0-9_-]*)/);
+    if (idInSelector) {
+      ids.add(idInSelector[1]);
+    }
+  }
+
+  // getElementById('foo')
+  const idRegex = /getElementById\(['"]([^'"]+)['"]\)/g;
+  let idMatch;
+  while ((idMatch = idRegex.exec(jsCode)) !== null) {
+    ids.add(idMatch[1]);
+  }
+
+  // $('foo') - custom shorthand for getElementById
+  const $FuncRegex = /\$_?\(['"]([^'"]+)['"]\)/g;
+  let $Match;
+  while (($Match = $FuncRegex.exec(jsCode)) !== null) {
+    ids.add($Match[1]);
+  }
+
   return { classes, ids };
+}
+
+/**
+ * Extract inline script contents from HTML
+ */
+function extractInlineScripts(htmlText) {
+  const blocks = [];
+  const scriptRegex = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = scriptRegex.exec(htmlText)) !== null) {
+    blocks.push(match[1]);
+  }
+  return blocks;
+}
+
+/**
+ * Extract JS from local <script src="..."> references AND every .js file
+ * in the same directory (to cover ES-module entry points whose classList
+ * usage lives in sibling modules loaded via `import`).
+ */
+function extractLinkedScripts(htmlText, htmlPath) {
+  const blocks = [];
+  const scanned = new Set();
+  const scriptRegex = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+  const htmlDir = dirname(htmlPath);
+  let match;
+  while ((match = scriptRegex.exec(htmlText)) !== null) {
+    const src = match[1];
+    if (/^https?:|^\/\//i.test(src)) continue;
+    const absBase = src.startsWith('/')
+      ? join(projectRoot, 'client', src.replace(/^\/+/, ''))
+      : join(htmlDir, src);
+    const dir = dirname(absBase);
+    if (scanned.has(dir)) continue;
+    scanned.add(dir);
+    try {
+      const files = readdirSync(dir).filter((f) => f.endsWith('.js') || f.endsWith('.mjs'));
+      for (const f of files) {
+        try {
+          blocks.push(readFileSync(join(dir, f), 'utf-8'));
+        } catch {
+          // ignore unreadable file
+        }
+      }
+    } catch {
+      // directory read failed — fall back to the directly-referenced file
+      try {
+        blocks.push(readFileSync(absBase, 'utf-8'));
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return blocks;
 }
 
 /**
@@ -268,12 +315,19 @@ function checkUnusedSelectors(htmlPath) {
   // Parse HTML usage (static)
   const { classes: htmlClasses, ids: htmlIds } = parseHtmlUsage(htmlText);
 
-  // Parse JS usage (dynamic)
-  const { classes: jsClasses, ids: jsIds } = parseJsUsage(htmlText);
+  // Parse JS usage (dynamic) from inline <script> blocks AND external script src files.
+  const inlineScripts = extractInlineScripts(htmlText);
+  const linkedScripts = extractLinkedScripts(htmlText, htmlPath);
+  const combinedJs = [...inlineScripts, ...linkedScripts].join('\n');
+  const { classes: jsClasses, ids: jsIds } = parseJsUsage(combinedJs);
+
+  // Also catch `class="foo"` literals inside JS innerHTML templates
+  // (symmetric to how inline <script> blocks used to be scanned as part of htmlText).
+  const { classes: jsLiteralClasses, ids: jsLiteralIds } = parseHtmlUsage(combinedJs);
 
   // Combine all usage
-  const allUsedClasses = new Set([...htmlClasses, ...jsClasses]);
-  const allUsedIds = new Set([...htmlIds, ...jsIds]);
+  const allUsedClasses = new Set([...htmlClasses, ...jsClasses, ...jsLiteralClasses]);
+  const allUsedIds = new Set([...htmlIds, ...jsIds, ...jsLiteralIds]);
 
   // Find unused selectors
   const unusedClasses = [...cssClasses].filter(
@@ -293,8 +347,17 @@ function isKnownDynamicPattern(cls) {
   // Base tile and flag-tile (dynamic via className assignment)
   // Qlashique classes set via string concatenation (e.g. 'qlas-pip' + (i >= hp ? ' empty' : ''))
   const qlasDynamic = ['empty', 'pos', 'neg', 'warn', 'negative'];
+  // Combo classes (combo-up, combo-2, combo-5, combo-8) set via `'combo-' + n`
+  // Per-player variants (p0/p1, qlas-recap-p0/p1) set via `'p' + playerIdx` or a ternary between the two names
+  // 'bad'/'ok' set via `(e.correct ? 'ok' : 'bad')` inside innerHTML string concat
+  const dynamicConcat = ['p0', 'p1', 'qlas-recap-p0', 'qlas-recap-p1', 'bad', 'ok'];
   return (
-    cls.startsWith('cat-') || cls === 'tile' || cls === 'flag-tile' || qlasDynamic.includes(cls)
+    cls.startsWith('cat-') ||
+    cls.startsWith('combo-') ||
+    cls === 'tile' ||
+    cls === 'flag-tile' ||
+    qlasDynamic.includes(cls) ||
+    dynamicConcat.includes(cls)
   );
 }
 

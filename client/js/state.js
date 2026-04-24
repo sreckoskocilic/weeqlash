@@ -62,21 +62,102 @@ export function setCurrentUser(user) {
 }
 
 // Export getters for other modules
-export function getMyPlayerIndex() { return myPlayerIndex; }
-export function getLocalPhase() { return localPhase; }
-export function getNavCursor() { return navCursor; }
-export function setNavCursor(cursor) { navCursor = cursor; }
-export function getSpectatingQuestion() { return spectatingQuestion; }
-export function setLocalPhase(phase) { localPhase = phase; }
-export function setLocalSelectedPegId(id) { localSelectedPegId = id; }
-export function setValidMovesSet(set) { validMovesSet = set; }
-export function setLastSubmittedPegId(id) { lastSubmittedPegId = id; }
-export function setLastSubmittedMoveType(type) { lastSubmittedMoveType = type; }
-export function setPendingAnswers(arr) { pendingAnswers = arr; }
-export function setCurrentQIdx(idx) { currentQIdx = idx; }
-export function setPendingQuestions(arr) { pendingQuestions = arr; }
-export function setSpectatingQuestion(val) { spectatingQuestion = val; }
-export function setPendingMove(move) { pendingMove = move; }
+export function getMyPlayerIndex() {
+  return myPlayerIndex;
+}
+export function getLocalPhase() {
+  return localPhase;
+}
+export function getNavCursor() {
+  return navCursor;
+}
+export function setNavCursor(cursor) {
+  navCursor = cursor;
+}
+export function getSpectatingQuestion() {
+  return spectatingQuestion;
+}
+export function setLocalPhase(phase) {
+  localPhase = phase;
+}
+export function setLocalSelectedPegId(id) {
+  localSelectedPegId = id;
+}
+export function setValidMovesSet(set) {
+  validMovesSet = set;
+}
+export function setLastSubmittedPegId(id) {
+  lastSubmittedPegId = id;
+}
+export function setLastSubmittedMoveType(type) {
+  lastSubmittedMoveType = type;
+}
+export function setPendingAnswers(arr) {
+  pendingAnswers = arr;
+}
+export function setCurrentQIdx(idx) {
+  currentQIdx = idx;
+}
+export function setPendingQuestions(arr) {
+  pendingQuestions = arr;
+}
+export function setSpectatingQuestion(val) {
+  spectatingQuestion = val;
+}
+export function setPendingMove(move) {
+  pendingMove = move;
+}
+
+// Identity / room setters (required because `export let` bindings cannot be reassigned from outside)
+export function setMyId(id) {
+  myId = id;
+}
+export function setMyToken(token) {
+  myToken = token;
+}
+export function setMyRoom(room) {
+  myRoom = room;
+}
+export function setIsHost(v) {
+  isHost = v;
+}
+export function setMyPlayerIndex(idx) {
+  myPlayerIndex = idx;
+}
+export function setTimerDuration(v) {
+  timerDuration = v;
+}
+
+// Setup-screen setters
+export function setSetupBoardSize(v) {
+  setupBoardSize = v;
+}
+export function setSetupTimer(v) {
+  setupTimer = v;
+}
+export function setSetupEnabledCats(cats) {
+  setupEnabledCats = cats;
+}
+
+// Combat/spectate setters
+export function setSpectatingMoveType(v) {
+  spectatingMoveType = v;
+}
+export function setSpectatingPlayerIdx(v) {
+  spectatingPlayerIdx = v;
+}
+export function setSpectatingDefenderIdx(v) {
+  spectatingDefenderIdx = v;
+}
+export function setSpectateGen(v) {
+  spectateGen = v;
+}
+export function setPendingQuestionsTotal(v) {
+  pendingQuestionsTotal = v;
+}
+export function setPendingCombatDefenderIdx(v) {
+  pendingCombatDefenderIdx = v;
+}
 
 // Qlashique state (needed for socket reconnect)
 export let qlasToken = null;

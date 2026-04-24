@@ -5,6 +5,15 @@
 import { el, sanitize } from './dom.js';
 import { getSocket } from './socket.js';
 
+let _mainLoaded = false;
+export function loadMainLeaderboard() {
+  if (_mainLoaded) {
+    return;
+  }
+  _mainLoaded = true;
+  loadPanelLeaderboard('triviandom', 'triv-lb-rows');
+}
+
 export function loadPanelLeaderboard(mode, containerId) {
   const socket = getSocket();
   socket.emit('quiz:leaderboard', { mode }, (res) => {

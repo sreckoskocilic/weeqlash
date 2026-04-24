@@ -5,6 +5,7 @@
 import { showAuthMessage } from './auth.js';
 import { CAT_NAMES } from './constants.js';
 import { getSocket } from './socket.js';
+import { sanitize } from './dom.js';
 
 export function showStatsModal(statsData) {
   showAuthMessage('Loading stats...', false);
@@ -34,7 +35,7 @@ export function showStatsModal(statsData) {
             Your Statistics
           </h2>
           <div id="stats-modal-player-label" style="color: #888; font-size: 0.9rem;">
-            Player: ${window._currentUser?.username || 'Guest'}
+            Player: ${sanitize(window._currentUser?.username || 'Guest')}
           </div>
         </div>
 

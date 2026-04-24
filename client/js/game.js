@@ -6,15 +6,16 @@ import { el } from './dom.js';
 import { showError } from './dom.js';
 import { showScreen } from './dom.js';
 import { renderAll } from './render.js';
-import { PHASE } from './constants.js';
-import { 
-  getGameState, 
+import { PHASE, COORD_BASE } from './constants.js';
+import {
+  getGameState,
   setGameState,
-  localPhase, 
+  myRoom,
+  localPhase,
   setLocalPhase,
-  localSelectedPegId, 
+  localSelectedPegId,
   setLocalSelectedPegId,
-  validMovesSet, 
+  validMovesSet,
   setValidMovesSet,
   myPlayerIndex,
   pendingMove,
@@ -36,7 +37,7 @@ import {
   lastSubmittedMoveType,
   setLastSubmittedMoveType,
   navCursor,
-  setNavCursor
+  setNavCursor,
 } from './state.js';
 
 import { getSocket } from './socket.js';
@@ -69,25 +70,15 @@ export function onPegClick(pegId) {
   }
 
   const socket = getSocket();
-  socket.emit(
-    'action:select_peg',
-    { code: import.meta.url.includes('client') ? getRoomCode() : null, pegId },
-    ({ ok, error, validMoves }) => {
-      if (error || !ok) {
-        return;
-      }
-      setLocalSelectedPegId(pegId);
-      setLocalPhase(PHASE.SELECT_TILE);
-      setValidMovesSet(new Set(validMoves));
-      renderAll(gameState);
-    },
-  );
-}
-
-// Get room code from state
-function getRoomCode() {
-  // Will be set from main.js
-  return null;
+  socket.emit('action:select_peg', { code: myRoom?.code, pegId }, ({ ok, error, validMoves }) => {
+    if (error || !ok) {
+      return;
+    }
+    setLocalSelectedPegId(pegId);
+    setLocalPhase(PHASE.SELECT_TILE);
+    setValidMovesSet(new Set(validMoves));
+    renderAll(gameState);
+  });
 }
 
 // Tile click handler
@@ -106,7 +97,7 @@ export function onTileClick(r, c) {
   if (!localSelectedPegId) {
     return;
   }
-  const coord = r * 100 + c;
+  const coord = r * COORD_BASE + c;
   if (!validMovesSet.has(coord)) {
     return;
   }
@@ -121,7 +112,7 @@ export function onTileClick(r, c) {
   const socket = getSocket();
   socket.emit(
     'action:select_tile',
-    { code: getRoomCode(), pegId: localSelectedPegId, r, c },
+    { code: myRoom?.code, pegId: localSelectedPegId, r, c },
     ({ ok, error, moveType, question, questionsTotal, defenderPlayerIdx }) => {
       if (error || !ok) {
         return;
@@ -156,7 +147,7 @@ export function submitTurn() {
   socket.emit(
     'turn:submit',
     {
-      code: getRoomCode(),
+      code: myRoom?.code,
       submission: {
         pegId: pendingMove.pegId,
         targetR: pendingMove.targetR,

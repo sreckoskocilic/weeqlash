@@ -5,24 +5,31 @@
 import { el } from './dom.js';
 import { sanitize } from './dom.js';
 import { CAT_NAMES, CAT_COLORS, TIMING, OPTION_KEYS } from './constants.js';
-import { 
-  getGameState, 
-  myPlayerIndex, 
-  pendingMove, 
-  pendingQuestions, 
-  pendingQuestionsTotal, 
-  pendingAnswers, 
+import {
+  getGameState,
+  myPlayerIndex,
+  pendingMove,
+  pendingQuestions,
+  pendingQuestionsTotal,
+  pendingAnswers,
   currentQIdx,
-  spectatingQuestion, 
-  spectatingMoveType, 
-  spectatingPlayerIdx, 
-  spectatingDefenderIdx, 
+  spectatingQuestion,
+  spectatingMoveType,
+  spectatingPlayerIdx,
+  spectatingDefenderIdx,
   pendingCombatDefenderIdx,
   lastSubmittedPegId,
   lastSubmittedMoveType,
-  timerDuration
+  timerDuration,
 } from './state.js';
-import { setLocalSelectedPegId, setValidMovesSet, setLocalPhase, setLastSubmittedPegId, setLastSubmittedMoveType, setPendingAnswers } from './state.js';
+import {
+  setLocalSelectedPegId,
+  setValidMovesSet,
+  setLocalPhase,
+  setLastSubmittedPegId,
+  setLastSubmittedMoveType,
+  setPendingAnswers,
+} from './state.js';
 
 let gameModalOptionBtns = [];
 export { gameModalOptionBtns };
@@ -147,9 +154,9 @@ export async function onAnswer(chosenIdx, qIdx) {
 
   const { getSocket } = await import('./socket.js');
   const socket = getSocket();
-  const { getRoomCode } = await import('./game.js');
+  const { myRoom } = await import('./state.js');
   socket.emit('turn:answer_preview', {
-    code: getRoomCode(),
+    code: myRoom?.code,
     questionIdx: qIdx,
     answerIdx: chosenIdx,
   });
@@ -199,13 +206,15 @@ export function continueAfterQuestion() {
   setLocalPhase('answering');
   setValidMovesSet(new Set());
   el('modal-overlay').classList.remove('visible');
-  
-  import('./render.js').then(({ renderAll }) => {
-    const state = getGameState();
-    if (state) renderAll(state);
-  }).then(() => {
-    import('./game.js').then(({ submitTurn }) => submitTurn());
-  });
+
+  import('./render.js')
+    .then(({ renderAll }) => {
+      const state = getGameState();
+      if (state) renderAll(state);
+    })
+    .then(() => {
+      import('./game.js').then(({ submitTurn }) => submitTurn());
+    });
 }
 
 // Timer
@@ -238,7 +247,7 @@ export function startTimer(qIdx) {
         btn.disabled = true;
       });
       pendingAnswers.push({ questionId: tq.id, answerIdx: -1 });
-      
+
       import('./game.js').then(({ submitTurn }) => {
         if (pendingMove?.moveType === 'combat' || pendingMove?.moveType === 'flag') {
           submitTurn();
