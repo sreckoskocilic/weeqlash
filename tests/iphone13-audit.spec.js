@@ -24,9 +24,9 @@ async function audit(page, label) {
     const all = Array.from(document.querySelectorAll('body *'));
     for (const el of all) {
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) continue;
+      if (r.width === 0 || r.height === 0) {continue;}
       const style = getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      if (style.display === 'none' || style.visibility === 'hidden') {continue;}
       if (r.right > vw + 1 || r.left < -1) {
         overflowingEls.push({
           tag: el.tagName.toLowerCase(),
@@ -45,9 +45,9 @@ async function audit(page, label) {
     const smallTaps = [];
     for (const el of taps) {
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) continue;
+      if (r.width === 0 || r.height === 0) {continue;}
       const style = getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      if (style.display === 'none' || style.visibility === 'hidden') {continue;}
       if (r.width < 44 || r.height < 44) {
         smallTaps.push({
           tag: el.tagName.toLowerCase(),

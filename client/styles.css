@@ -11,6 +11,8 @@
   --bg2: #16213e;
   --bg3: #2f3741;
   --accent: #e53935;
+  --accent-2: #f5a623;
+  --prompt: #5ebb52;
   --text: #bdb5b5;
   --muted: #b4b78b;
   --radius: 8px;
@@ -26,7 +28,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 1rem;
   padding-top: calc(1rem + env(safe-area-inset-top, 0px));
   padding-right: calc(1rem + env(safe-area-inset-right, 0px));
@@ -59,13 +61,90 @@ h1 {
   background-clip: text;
   margin-bottom: 0.5rem;
 }
-h1 .cursor {
+/* ===== BRAND HEADER (wQ$x emblem) ===== */
+#main-title.brand {
+  margin: 0;
+  padding: 0;
+}
+#main-title.brand:empty { display: none; }
+/* Emblem as backdrop inside #announcements */
+#announcements { position: relative; overflow: hidden; }
+#announcements > *:not(.ann-bg) { position: relative; z-index: 1; }
+.ann-bg {
+  position: absolute;
+  top: 55%;
+  right: 1px;
+  transform: translateY(-50%);
+  width: 130px;
+  height: auto;
+  opacity: 0.38;
+  pointer-events: none;
+  z-index: 0;
+}
+.ann-bg-2 {
+  top: 6px;
+  bottom: auto;
+  left: 22%;
+  right: auto;
+  width: 65px;
+  transform: rotate(60deg);
+}
+.ann-bg-3 {
+  top: auto;
+  bottom: 2px;
+  left: 62%;
+  right: auto;
+  width: 33px;
+  transform: rotate(150deg);
+  opacity: 0.5;
+}
+@media (max-width: 600px) {
+  .ann-bg   { width: 110px; right: 10px; opacity: 0.22; }
+  .ann-bg-2 { width: 55px;  left: 30%;   opacity: 0.22; }
+  .ann-bg-3 { width: 28px;  left: 58%;   opacity: 0.22; }
+}
+
+/* ===== BRAND ECHOES (qlashique / waiting) ===== */
+.qlas-mark {
+  width: 56px;
+  height: auto;
+  display: block;
+  margin: 0 auto 6px;
+  filter:
+    drop-shadow(0 0 6px rgba(0, 255, 65, 0.55))
+    drop-shadow(0 0 14px rgba(0, 255, 65, 0.22));
+}
+.qlas-waiting-mark {
+  width: 72px;
+  height: auto;
+  display: block;
+  margin: 0 auto 14px;
+  animation: qlas-mark-spin 4s linear infinite;
+  filter:
+    drop-shadow(0 0 8px rgba(0, 255, 65, 0.55))
+    drop-shadow(0 0 18px rgba(0, 255, 65, 0.22));
+}
+@keyframes qlas-mark-spin {
+  to { transform: rotate(360deg); }
+}
+/* Empty-state watermark for dynamically-populated containers */
+#lb-rows:empty::after {
+  content: 'No scores yet.';
+  display: block;
+  text-align: center;
+  padding: 60px 20px 40px;
   color: var(--muted);
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  background: none;
-  animation: blink 1s step-end infinite;
-  font-weight: 400;
+  opacity: 0.7;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 64' fill='none'><circle cx='32' cy='32' r='14' stroke='%2300ff41' stroke-width='2.5'/><path d='M 4 32 L 18 32' stroke='%2300ff41' stroke-width='2.5'/><circle cx='4' cy='32' r='2' fill='%2300ff41'/><path d='M 32 4 L 32 18' stroke='%2300ff41' stroke-width='2.5'/><circle cx='32' cy='4' r='2' fill='%2300ff41'/><path d='M 42 42 L 52 52 L 62 52' stroke='%23ffe600' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/><circle cx='62' cy='52' r='2.5' fill='%23ffe600'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center 18px;
+  background-size: 80px auto;
+  min-height: 160px;
+  opacity: 0.5;
 }
 
 /* ===== ANNOUNCEMENTS ===== */
@@ -95,8 +174,9 @@ h1 .cursor {
   gap: 0.4rem;
 }
 #announcements li::before {
-  content: '» ';
+  content: '— ';
   color: var(--muted);
+  margin-right: 2px;
 }
 #announcements a {
   color: var(--muted);
