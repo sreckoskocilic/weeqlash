@@ -987,23 +987,25 @@
           </div>
 
           <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
+            <div class="qlas-flash" id="qlas-flash" aria-live="polite"></div>
             <div class="qlas-question" id="qlas-question"></div>
             <div class="qlas-options" id="qlas-options"></div>
           </div>
 
+          <div class="qlas-log" id="qlas-log" aria-live="polite"></div>
+
           <div class="qlas-action-row" id="qlas-action-row" style="display: none">
             <button class="btn-qlas-stop" id="btn-qlas-stop" style="display: none">
-              END ATTACK
+              [ ABORT ]
             </button>
             <button class="btn-qlas-reroll" id="btn-qlas-reroll" style="display: none">
-              🎲 REROLL
+              [ REROLL ]
             </button>
             <button class="btn-qlas-end" id="btn-qlas-end" style="display: none">
-              END TURN
+              [ END TURN ]
             </button>
             <button class="btn-qlas-heal" id="btn-qlas-heal" style="display: none">
-              💊 HEAL
-              <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
+              [ HEAL ] <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
             </button>
           </div>
 
@@ -1016,7 +1018,7 @@
                     id="btn-qlas-attack"
                     style="font-size: 1.3rem; width: 100%"
             >
-              ⚔ ATTACK
+              [ ENGAGE ]
             </button>
           </div>
         </div>
@@ -1035,17 +1037,33 @@
       </div>
     </div>
 
-    <!-- Game over -->
+    <!-- Game over — mission report -->
     <div id="qlas-phase-gameover" style="display: none">
       <div class="qlas-gameover">
-        <h1>GAME OVER</h1>
-        <div class="winner" id="qlas-winner-text"></div>
-        <div class="reason" id="qlas-winner-reason"></div>
+        <h1 class="qlas-go-head">&gt; GAME OVER</h1>
+        <div class="qlas-go-stats">
+          <div class="qlas-go-row">
+            <span class="qlas-go-k">WINNER</span>
+            <span class="qlas-go-v" id="qlas-winner-text">—</span>
+          </div>
+          <div class="qlas-go-row">
+            <span class="qlas-go-k">REASON</span>
+            <span class="qlas-go-v" id="qlas-winner-reason">—</span>
+          </div>
+          <div class="qlas-go-row">
+            <span class="qlas-go-k">DURATION</span>
+            <span class="qlas-go-v" id="qlas-go-duration">—</span>
+          </div>
+          <div class="qlas-go-row">
+            <span class="qlas-go-k">ACCURACY</span>
+            <span class="qlas-go-v" id="qlas-go-accuracy">—</span>
+          </div>
+        </div>
         <button class="qlas-recap-toggle" id="qlas-recap-toggle" style="display: none">
           [ show recap ]
         </button>
         <div class="qlas-recap" id="qlas-recap" style="display: none"></div>
-        <button class="qlas-btn-back" id="btn-qlas-playagain">PLAY AGAIN</button>
+        <button class="qlas-btn-back" id="btn-qlas-playagain">[ REMATCH ]</button>
       </div>
     </div>
   </div>

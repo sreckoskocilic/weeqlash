@@ -157,6 +157,9 @@ export function joinRoom(
   if (room.players.length >= room.settings.playerCount) {
     return { error: 'Room is full' };
   }
+  if (userId && room.players.some((p) => p.userId === userId)) {
+    return { error: 'You are already in this room' };
+  }
 
   // Server-side name validation (client also has maxlength="16")
   const name = playerName?.trim();

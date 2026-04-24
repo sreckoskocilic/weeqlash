@@ -1844,6 +1844,7 @@ body.high-contrast {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
 }
 /* Question panel */
 .qlas-qpanel {
@@ -1855,7 +1856,7 @@ body.high-contrast {
 .qlas-question {
   font-size: 0.96rem;
   line-height: 1.65;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   color: #88ff88;
   font-family: 'IBM Plex Mono', monospace;
 }
@@ -1863,6 +1864,9 @@ body.high-contrast {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 2px solid rgb(57 173 87);
 }
 .qlas-opt {
   display: flex;
@@ -1896,11 +1900,16 @@ body.high-contrast {
   opacity: 0.5;
 }
 .qlas-opt-key {
-  font-size: 0.68rem;
-  opacity: 0.5;
+  font-size: 0.72rem;
+  opacity: 0.75;
   flex-shrink: 0;
-  width: 14px;
+  width: 28px;
+  font-weight: 500;
+  color: #ffe600;
+  letter-spacing: 0.04em;
 }
+.qlas-opt-key::before { content: '['; }
+.qlas-opt-key::after  { content: ']'; }
 .btn-qlas-reroll {
   padding: 10px 14px;
   min-height: 44px;
@@ -2009,29 +2018,53 @@ body.high-contrast {
   text-align: center;
   padding: 40px 20px;
 }
-.qlas-gameover h1 {
+.qlas-gameover h1.qlas-go-head {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 3rem;
+  font-size: clamp(1.4rem, 3.5vw, 1.9rem);
   color: #00ff41;
-  letter-spacing: 0.2em;
-  text-shadow: 0 0 20px #00ff41;
+  letter-spacing: 0.14em;
+  text-shadow:
+    0 0 18px rgba(0, 255, 65, 0.55),
+    0 0 36px rgba(0, 255, 65, 0.22);
+  margin-bottom: 22px;
+  text-align: center;
 }
-.qlas-gameover .winner {
+.qlas-go-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 22px;
+  margin: 0 auto 24px;
+  max-width: 420px;
+  background: #071007;
+  border: 1px solid #0d2e0d;
+  border-radius: 2px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 1.8rem;
-  color: #ffe600;
-  letter-spacing: 0.1em;
-  margin: 12px 0;
+  font-size: 0.95rem;
+  text-align: left;
 }
-.qlas-gameover .reason {
-  font-size: 0.7rem;
-  color: #ffe600;
-  letter-spacing: 0.15em;
+.qlas-go-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px dashed rgba(0, 255, 65, 0.15);
+  padding-bottom: 6px;
+}
+.qlas-go-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.qlas-go-k {
+  color: #88ff88;
+  opacity: 0.75;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
   text-transform: uppercase;
 }
 .qlas-btn-back {
   margin-top: 20px;
-  padding: 12px 32px;
   background: transparent;
   border: 2px solid #00ff41;
   border-radius: 2px;
@@ -2468,4 +2501,101 @@ body.high-contrast {
 .qlas-recap-modal-close:hover {
   border-color: #00ff41;
   color: #00ff41;
+}
+
+/* ===== TERMINAL QUERY META (#9) ===== */
+.qlas-q-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px dashed rgba(0, 255, 65, 0.25);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.qlas-q-tag {
+  color: #5ebb52;
+  font-weight: 600;
+}
+.qlas-q-cat {
+  color: #ffe600;
+  opacity: 0.72;
+  font-weight: 500;
+}
+.qlas-q-text {
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+/* ===== ANSWER FLASH BANNER (#11) ===== */
+.qlas-flash {
+  display: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-left: 3px solid transparent;
+  background: rgba(0, 0, 0, 0.35);
+  font-weight: 600;
+}
+.qlas-flash.show {
+  display: block;
+  animation: qlas-flash-in 220ms ease-out;
+}
+.qlas-flash.hit {
+  color: #00ff41;
+  border-left-color: #00ff41;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.55);
+}
+.qlas-flash.miss {
+  color: #ff5577;
+  border-left-color: #ff5577;
+  text-shadow: 0 0 8px rgba(255, 85, 119, 0.5);
+}
+@keyframes qlas-flash-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===== COMBO LOG (#6) ===== */
+.qlas-log {
+  position: absolute;
+  top: 72px;
+  right: 14px;
+  width: 220px;
+  max-width: 42vw;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 30;
+  pointer-events: none;
+}
+.qlas-log-entry {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 5px 9px;
+  background: rgba(0, 0, 0, 0.55);
+  border-left: 2px solid #ffe600;
+  color: #ffe600;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: qlas-log-fade 2.5s ease-out forwards;
+}
+@keyframes qlas-log-fade {
+  0%   { opacity: 0; transform: translateX(12px); }
+  10%  { opacity: 1; transform: none; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(12px); }
+}
+@media (max-width: 600px) {
+  .qlas-log { top: 64px; right: 8px; width: 170px; }
+  .qlas-log-entry { font-size: 0.62rem; padding: 4px 7px; }
 }

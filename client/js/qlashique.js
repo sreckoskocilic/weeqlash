@@ -36,6 +36,8 @@ let qlasGuessingActive = false;
 let qlasLastAnswerIdx = -1;
 let qlasToken = null;
 let qlasLiveHistory = [];
+let qlasMatchStart = null;
+let qlasStreak = [0, 0];
 
 const QLAS_TIMER_RING_CIRC = 175.93; // 2 * PI * r where r=28
 
@@ -75,9 +77,20 @@ export function qlasFlash(playerIdx, type) {
 }
 
 export function qlasRenderQuestion(q, idx) {
+  if (!qlasMatchStart) qlasMatchStart = Date.now();
   qlasCurrentQ = q;
   qlasQIdx = idx;
-  qEl('qlas-question').textContent = q.q;
+  const catText = q && q.category ? sanitize(String(q.category)).toUpperCase() : '';
+  qEl('qlas-question').innerHTML =
+    '<div class="qlas-q-meta">' +
+    '<span class="qlas-q-tag">&gt; QUESTION ' +
+    (idx + 1) +
+    '</span>' +
+    (catText ? '<span class="qlas-q-cat">' + catText + '</span>' : '') +
+    '</div>' +
+    '<div class="qlas-q-text">' +
+    sanitize(q.q) +
+    '</div>';
   const opts = qEl('qlas-options');
   opts.innerHTML = '';
   q.opts.forEach((opt, i) => {
@@ -87,6 +100,31 @@ export function qlasRenderQuestion(q, idx) {
     btn.onclick = () => qlasSubmitAnswer(i);
     opts.appendChild(btn);
   });
+  const flash = qEl('qlas-flash');
+  if (flash) flash.classList.remove('show');
+}
+
+// Flash banner after answer evaluation
+function qlasShowFlash(correct, delta) {
+  const el = qEl('qlas-flash');
+  if (!el) return;
+  const sign = delta > 0 ? '+' : '';
+  const deltaStr = delta ? '   ' + sign + delta : '';
+  el.textContent = '> ' + (correct ? 'CORRECT' : 'INCORRECT') + deltaStr;
+  el.className = 'qlas-flash show ' + (correct ? 'hit' : 'miss');
+  clearTimeout(qlasShowFlash._t);
+  qlasShowFlash._t = setTimeout(() => el.classList.remove('show'), 900);
+}
+
+// Append a transient log entry (combo streaks, events)
+function qlasLogEntry(text) {
+  const log = qEl('qlas-log');
+  if (!log) return;
+  const entry = document.createElement('div');
+  entry.className = 'qlas-log-entry';
+  entry.textContent = text;
+  log.appendChild(entry);
+  setTimeout(() => entry.remove(), 2500);
 }
 
 export function qlasStartTimer(seconds) {
@@ -97,11 +135,11 @@ export function qlasStartTimer(seconds) {
     qlasTimerLeft = Math.max(0, qlasTimerLeft - 0.1);
     const pct = qlasTimerLeft / qlasTimerTotal;
     const state = pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '';
-    qEl('qlas-timer-fill').style.width = pct * 100 + '%';
-    qEl('qlas-timer-fill').className = 'qlas-timer-fill' + state;
     const secs = Math.ceil(qlasTimerLeft);
-    qEl('qlas-turn-timer').className = 'qlas-timer-ring' + state;
-    qEl('qlas-timer-ring-label').textContent = secs + 's';
+    const ring = qEl('qlas-turn-timer');
+    if (ring) ring.className = 'qlas-timer-ring' + state;
+    const ringLabel = qEl('qlas-timer-ring-label');
+    if (ringLabel) ringLabel.textContent = secs + 's';
     const progress = qEl('qlas-timer-ring-progress');
     if (progress) {
       progress.setAttribute('stroke-dashoffset', String((1 - pct) * QLAS_TIMER_RING_CIRC));
@@ -584,14 +622,26 @@ export function initQlashique(socket) {
   socket.on(
     'qlashique:answer_result',
     ({ correct, newScore, playerIdx, answerIdx, correctIdx, category, q, opts, turn }) => {
+      const prevScore = playerIdx === qlasMyIdx ? qlasScore : 0;
       if (playerIdx === qlasMyIdx) {
         const btns = document.querySelectorAll('.qlas-opt');
         if (qlasLastAnswerIdx >= 0 && btns[qlasLastAnswerIdx]) {
           btns[qlasLastAnswerIdx].classList.add(correct ? 'correct' : 'wrong');
         }
         qlasSetScore(newScore);
+        qlasShowFlash(correct, newScore - prevScore);
       } else {
         qlasSetScoreOther(playerIdx, newScore);
+      }
+      // Streak tracking → combo log
+      if (correct) {
+        qlasStreak[playerIdx] = (qlasStreak[playerIdx] || 0) + 1;
+        if (qlasStreak[playerIdx] >= 2) {
+          const name = qlasPlayers[playerIdx]?.name || 'P' + (playerIdx + 1);
+          qlasLogEntry('> COMBO x' + qlasStreak[playerIdx] + ' — ' + name.toUpperCase());
+        }
+      } else {
+        qlasStreak[playerIdx] = 0;
       }
       if (typeof q === 'string') {
         qlasLiveHistory.push({
@@ -668,13 +718,41 @@ export function initQlashique(socket) {
     const winnerName = qlasPlayers[winnerIdx]?.name || 'Player ' + (winnerIdx + 1);
     qEl('qlas-winner-text').textContent = isWinner ? '🏆 YOU WIN!' : winnerName + ' WINS';
     const reasonMap = {
-      hp: 'opponent ran out of HP',
-      instant_win: 'instant win — perfect streak of 10+',
+      hp: 'Player defeated (0 HP)',
+      instant_win: 'perfect streak',
       self_destruct: 'self-destruct',
-      disconnect: 'opponent disconnected',
+      disconnect: 'disconnect',
     };
-    qEl('qlas-winner-reason').textContent = reasonMap[reason] || reason;
-    qlasRenderRecap(Array.isArray(history) ? history : []);
+    qEl('qlas-winner-reason').textContent = (reasonMap[reason] || reason || '—').toUpperCase();
+
+    const durEl = qEl('qlas-go-duration');
+    if (durEl && qlasMatchStart) {
+      const s = Math.round((Date.now() - qlasMatchStart) / 1000);
+      const mm = Math.floor(s / 60);
+      const ss = s % 60;
+      durEl.textContent = String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+    }
+
+    const histArr = Array.isArray(history) ? history : qlasLiveHistory;
+    const myAnswers = histArr.filter(
+      (h) => h && h.playerIdx === qlasMyIdx && typeof h.correct === 'boolean',
+    );
+    const accEl = qEl('qlas-go-accuracy');
+    if (accEl) {
+      if (myAnswers.length) {
+        const cnt = myAnswers.filter((h) => h.correct).length;
+        const pct = Math.round((cnt / myAnswers.length) * 100);
+        accEl.textContent = cnt + '/' + myAnswers.length + '  ' + pct + '%';
+      } else {
+        accEl.textContent = '—';
+      }
+    }
+
+    qlasRenderRecap(histArr);
+
+    // Reset for next match
+    qlasMatchStart = null;
+    qlasStreak = [0, 0];
   });
 
   // Start button handler
