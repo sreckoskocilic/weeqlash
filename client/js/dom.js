@@ -2,7 +2,7 @@
 // DOM HELPERS
 // ============================================================
 
-import { _currentUser } from './state.js';
+import { state } from './state.js';
 
 // Element selector shorthand
 export function el(id) {
@@ -60,12 +60,12 @@ export function sanitize(str) {
 
 // Get player name (requires login)
 export function getPlayerName() {
-  if (!_currentUser) {
+  if (!state.currentUser) {
     showError('Please log in to play');
     return null;
   }
   showError('');
-  return _currentUser.username;
+  return state.currentUser.username;
 }
 
 // Predefined names for guest players (currently unused)

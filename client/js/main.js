@@ -3,7 +3,7 @@
 // ============================================================
 
 import * as constants from './constants.js';
-import * as state from './state.js';
+import { state } from './state.js';
 import * as dom from './dom.js';
 import * as auth from './auth.js';
 import * as socket from './socket.js';
@@ -46,7 +46,7 @@ async function init() {
   initUI();
 
   // Quiz mode handlers
-  setupQuizHandlers(sock);
+  quiz.initQuiz();
 
   // Question modal continue button
   question.initQuestion();
@@ -57,7 +57,7 @@ async function init() {
   // Load leaderboard on connect
   sock.on('connect', () => {
     leaderboard.loadMainLeaderboard();
-    state.setMyId(sock.id);
+    state.myId = sock.id;
 
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
       dom.el('dev-quickstart-section').style.display = '';
@@ -72,14 +72,14 @@ function initUI() {
       `<button class="cat-toggle-btn active" data-cat="${cat}">${constants.CAT_NAMES[cat]}</button>`,
   ).join('');
 
-  state.setSetupEnabledCats(constants.CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025'));
+  state.setupEnabledCats = constants.CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025');
 
   // Setup button groups
   initOptBtnGroup('board-size-btns', (v) => {
-    state.setSetupBoardSize(v);
+    state.setupBoardSize = v;
   });
   initOptBtnGroup('timer-btns', (v) => {
-    state.setSetupTimer(v);
+    state.setupTimer = v;
   });
 
   // Category toggles
@@ -89,7 +89,7 @@ function initUI() {
     const cat = btn.dataset.cat;
     if (state.setupEnabledCats.includes(cat)) {
       if (state.setupEnabledCats.length <= 1) return;
-      state.setSetupEnabledCats(state.setupEnabledCats.filter((c) => c !== cat));
+      state.setupEnabledCats = state.setupEnabledCats.filter((c) => c !== cat);
       btn.classList.remove('active');
     } else {
       state.setupEnabledCats.push(cat);
@@ -98,14 +98,14 @@ function initUI() {
   });
 
   dom.el('btn-cats-all').addEventListener('click', () => {
-    state.setSetupEnabledCats([...constants.CATS]);
+    state.setupEnabledCats = [...constants.CATS];
     document.querySelectorAll('#cat-toggle-btns .cat-toggle-btn').forEach((btn) => {
       btn.classList.add('active');
     });
   });
 
   dom.el('btn-cats-none').addEventListener('click', () => {
-    state.setSetupEnabledCats([]);
+    state.setupEnabledCats = [];
     document.querySelectorAll('#cat-toggle-btns .cat-toggle-btn').forEach((btn) => {
       btn.classList.remove('active');
     });
@@ -158,7 +158,7 @@ function initUI() {
 
   // Dev quickstart
   dom.el('btn-dev-quickstart').addEventListener('click', () => {
-    state.setMyPlayerIndex(0);
+    state.myPlayerIndex = 0;
     const sock = socket.getSocket();
     sock.emit('dev:quickstart', { boardSize: 4 }, ({ ok, error }) => {
       if (!ok) {
@@ -176,35 +176,6 @@ function initOptBtnGroup(groupId, setter) {
     group.querySelectorAll('.opt-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     setter(parseInt(btn.dataset.val));
-  });
-}
-
-function setupQuizHandlers(sock) {
-  document
-    .getElementById('btn-quiz-start')
-    .addEventListener('click', () => quiz.startQuizMode('triviandom'));
-  document
-    .getElementById('btn-epl-start')
-    .addEventListener('click', () => quiz.startQuizMode('epl_2025'));
-
-  dom.el('btn-show-triv-lb').addEventListener('click', () => {
-    const panel = dom.el('triv-lb-panel');
-    const visible = panel.style.display !== 'none';
-    panel.style.display = visible ? 'none' : '';
-    dom.el('btn-show-triv-lb').textContent = visible
-      ? 'Show Triviandom Leaderboard'
-      : 'Hide Leaderboard';
-    if (!visible) leaderboard.loadPanelLeaderboard('triviandom', 'triv-lb-rows');
-  });
-
-  dom.el('btn-show-epl-lb').addEventListener('click', () => {
-    const panel = dom.el('epl-lb-panel');
-    const visible = panel.style.display !== 'none';
-    panel.style.display = visible ? 'none' : '';
-    dom.el('btn-show-epl-lb').textContent = visible
-      ? 'Show EPL 2025 Leaderboard'
-      : 'Hide EPL Leaderboard';
-    if (!visible) leaderboard.loadPanelLeaderboard('epl_2025', 'epl-lb-rows');
   });
 }
 

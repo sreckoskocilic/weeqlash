@@ -1,164 +1,63 @@
 // ============================================================
 // STATE
 // ============================================================
+// Single mutable namespace. Import as `import { state } from './state.js'`
+// and mutate properties directly (e.g. `state.myId = id`).
 
-// Player state
-export let myId = null;
-export let myToken = null;
-export let myRoom = null;
-export let isHost = false;
-export let myPlayerIndex = null;
+export const state = {
+  // Identity / room
+  myId: null,
+  myToken: null,
+  myRoom: null,
+  isHost: false,
+  myPlayerIndex: null,
 
-// Game state (from server)
-let _gameState = null;
-export let timerDuration = 30;
+  // Game state from server
+  gameState: null,
+  timerDuration: 30,
 
-export function getGameState() {
-  return _gameState;
-}
+  // Board rendering cache
+  tileEls: [],
+  movedPegs: new Set(),
 
-export function setGameState(state) {
-  _gameState = state;
-}
-export let tileEls = []; // [r][c]
-export const movedPegs = new Set();
+  // Turn interaction
+  localPhase: null,
+  localSelectedPegId: null,
+  validMovesSet: new Set(),
 
-// Turn interaction
-export let localPhase = null;
-export let localSelectedPegId = null;
-export let validMovesSet = new Set();
+  // Question modal
+  pendingMove: null,
+  pendingQuestions: [],
+  pendingQuestionsTotal: 1,
+  pendingAnswers: [],
+  currentQIdx: 0,
+  // spectateGen is incremented on each new combat sequence to invalidate
+  // stale setTimeout callbacks.
+  spectateGen: 0,
+  timerInterval: null,
+  quizModalOptionBtns: [],
+  gameModalOptionBtns: [],
+  spectatingQuestion: false,
+  spectatingMoveType: null,
+  spectatingPlayerIdx: null,
+  spectatingDefenderIdx: null,
+  pendingCombatDefenderIdx: null,
 
-// Question
-export let pendingMove = null;
-export let pendingQuestions = [];
-export let pendingQuestionsTotal = 1;
-export let pendingAnswers = [];
-export let currentQIdx = 0;
-export let spectateGen = 0; // Incremented on each new combat sequence to invalidate stale setTimeout callbacks
-export let timerInterval = null;
-export let quizModalOptionBtns = [];
-export let gameModalOptionBtns = [];
-export let spectatingQuestion = false;
-export let spectatingMoveType = null;
-export let spectatingPlayerIdx = null;
-export let spectatingDefenderIdx = null;
-export let pendingCombatDefenderIdx = null;
+  // Navigation
+  navCursor: { row: 0, col: 0 },
+  lastSubmittedPegId: null,
+  lastSubmittedMoveType: null,
 
-// Navigation
-export let navCursor = { row: 0, col: 0 };
-export let lastSubmittedPegId = null;
-export let lastSubmittedMoveType = null;
+  // Setup screen
+  setupPlayerCount: 2,
+  setupBoardSize: 8,
+  setupTimer: 30,
+  setupEnabledCats: [],
 
-// Setup screen state
-export const setupPlayerCount = 2;
-export let setupBoardSize = 8;
-export let setupTimer = 30;
-export let setupEnabledCats = [];
+  // Current user (from auth)
+  currentUser: null,
 
-// Current user (from auth)
-export let _currentUser = null;
-export function setCurrentUser(user) {
-  _currentUser = user;
-}
-
-// Export getters for other modules
-export function getMyPlayerIndex() {
-  return myPlayerIndex;
-}
-export function getLocalPhase() {
-  return localPhase;
-}
-export function getNavCursor() {
-  return navCursor;
-}
-export function setNavCursor(cursor) {
-  navCursor = cursor;
-}
-export function getSpectatingQuestion() {
-  return spectatingQuestion;
-}
-export function setLocalPhase(phase) {
-  localPhase = phase;
-}
-export function setLocalSelectedPegId(id) {
-  localSelectedPegId = id;
-}
-export function setValidMovesSet(set) {
-  validMovesSet = set;
-}
-export function setLastSubmittedPegId(id) {
-  lastSubmittedPegId = id;
-}
-export function setLastSubmittedMoveType(type) {
-  lastSubmittedMoveType = type;
-}
-export function setPendingAnswers(arr) {
-  pendingAnswers = arr;
-}
-export function setCurrentQIdx(idx) {
-  currentQIdx = idx;
-}
-export function setPendingQuestions(arr) {
-  pendingQuestions = arr;
-}
-export function setSpectatingQuestion(val) {
-  spectatingQuestion = val;
-}
-export function setPendingMove(move) {
-  pendingMove = move;
-}
-
-// Identity / room setters (required because `export let` bindings cannot be reassigned from outside)
-export function setMyId(id) {
-  myId = id;
-}
-export function setMyToken(token) {
-  myToken = token;
-}
-export function setMyRoom(room) {
-  myRoom = room;
-}
-export function setIsHost(v) {
-  isHost = v;
-}
-export function setMyPlayerIndex(idx) {
-  myPlayerIndex = idx;
-}
-export function setTimerDuration(v) {
-  timerDuration = v;
-}
-
-// Setup-screen setters
-export function setSetupBoardSize(v) {
-  setupBoardSize = v;
-}
-export function setSetupTimer(v) {
-  setupTimer = v;
-}
-export function setSetupEnabledCats(cats) {
-  setupEnabledCats = cats;
-}
-
-// Combat/spectate setters
-export function setSpectatingMoveType(v) {
-  spectatingMoveType = v;
-}
-export function setSpectatingPlayerIdx(v) {
-  spectatingPlayerIdx = v;
-}
-export function setSpectatingDefenderIdx(v) {
-  spectatingDefenderIdx = v;
-}
-export function setSpectateGen(v) {
-  spectateGen = v;
-}
-export function setPendingQuestionsTotal(v) {
-  pendingQuestionsTotal = v;
-}
-export function setPendingCombatDefenderIdx(v) {
-  pendingCombatDefenderIdx = v;
-}
-
-// Qlashique state (needed for socket reconnect)
-export let qlasToken = null;
-export let qlasCode = null;
+  // Qlashique state (socket reconnect)
+  qlasToken: null,
+  qlasCode: null,
+};

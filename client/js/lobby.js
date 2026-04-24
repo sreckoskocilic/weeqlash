@@ -3,7 +3,7 @@
 // ============================================================
 
 import { el, sanitize } from './dom.js';
-import * as state from './state.js';
+import { state } from './state.js';
 
 export function renderPlayers(players, totalSlots) {
   const ul = el('player-list');

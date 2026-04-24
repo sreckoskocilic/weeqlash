@@ -5,18 +5,10 @@
 import { el } from './dom.js';
 import { sanitize } from './dom.js';
 import { PHASE, CAT_NAMES, COORD_BASE } from './constants.js';
-import { 
-  getGameState, 
-  tileEls, 
-  movedPegs, 
-  localPhase, 
-  localSelectedPegId, 
-  validMovesSet, 
-  myPlayerIndex,
-  navCursor 
-} from './state.js';
+import { state as S } from './state.js';
 
-export { tileEls };
+export const tileEls = S.tileEls;
+export const movedPegs = S.movedPegs;
 
 // Board initialization
 export function initBoard(state) {
@@ -46,8 +38,8 @@ export function initBoard(state) {
       const pegEl = e.target.closest('.peg');
       if (pegEl) {
         const pegId = pegEl.dataset.pegId;
-        const gameState = getGameState();
-        const phase = localPhase ?? gameState?.phase;
+        const gameState = S.gameState;
+        const phase = S.localPhase ?? gameState?.phase;
         const coord =
           gameState?.board?.[+pegEl.parentElement.dataset.r]?.[+pegEl.parentElement.dataset.c]
             ?.pegId === pegId
@@ -55,7 +47,7 @@ export function initBoard(state) {
             : null;
 
         // In SELECT_TILE phase, if clicking on enemy peg that's a valid move, treat as tile click
-        if (phase === PHASE.SELECT_TILE && coord !== null && validMovesSet.has(coord)) {
+        if (phase === PHASE.SELECT_TILE && coord !== null && S.validMovesSet.has(coord)) {
           import('./game.js').then(({ onTileClick }) => {
             onTileClick(+pegEl.parentElement.dataset.r, +pegEl.parentElement.dataset.c);
           });
@@ -169,19 +161,18 @@ export function updateTile(r, c, state) {
   }
 
   // Base class
-  tileEl.className =
-    tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
+  tileEl.className = tile.category === 'flag' ? 'tile flag-tile' : `tile cat-${tile.category}`;
   tileEl.innerHTML = '';
 
   // Highlight states
-  const isMyTurn = state.currentPlayerIdx === myPlayerIndex;
-  const phase = localPhase ?? state.phase;
+  const isMyTurn = state.currentPlayerIdx === S.myPlayerIndex;
+  const phase = S.localPhase ?? state.phase;
   const coord = r * COORD_BASE + c;
-  const isValidMove = validMovesSet.has(coord);
-  const isSelectedPeg = tile.pegId && tile.pegId === localSelectedPegId;
+  const isValidMove = S.validMovesSet.has(coord);
+  const isSelectedPeg = tile.pegId && tile.pegId === S.localSelectedPegId;
 
   if (phase === PHASE.SELECT_PEG && isMyTurn) {
-    const myPlayer = state.players[myPlayerIndex];
+    const myPlayer = state.players[S.myPlayerIndex];
     if (tile.pegId && myPlayer?.pegIds.includes(tile.pegId)) {
       tileEl.classList.add('clickable');
     }
@@ -196,8 +187,8 @@ export function updateTile(r, c, state) {
     tileEl.classList.add('selected-peg-tile');
   }
   if (
-    navCursor.row === r &&
-    navCursor.col === c &&
+    S.navCursor.row === r &&
+    S.navCursor.col === c &&
     isMyTurn &&
     (phase === PHASE.SELECT_PEG || phase === PHASE.SELECT_TILE)
   ) {
@@ -237,13 +228,13 @@ export function updateTile(r, c, state) {
     const pegEl = document.createElement('div');
     pegEl.className = 'peg';
     pegEl.dataset.pegId = tile.pegId;
-    if (tile.pegId === localSelectedPegId) {
+    if (tile.pegId === S.localSelectedPegId) {
       pegEl.classList.add('selected');
     }
     if (movedPegs.has(tile.pegId)) {
       pegEl.classList.add('just-moved');
     }
-    if (state.currentPlayerIdx === myPlayerIndex) {
+    if (state.currentPlayerIdx === S.myPlayerIndex) {
       pegEl.classList.add('can-move');
     }
     pegEl.style.background = player.color;

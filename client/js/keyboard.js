@@ -4,14 +4,7 @@
 
 import { el } from './dom.js';
 import { PHASE, OPTION_KEYS } from './constants.js';
-import {
-  getGameState,
-  getMyPlayerIndex,
-  getLocalPhase,
-  getNavCursor,
-  getSpectatingQuestion,
-  setNavCursor,
-} from './state.js';
+import { state } from './state.js';
 import {
   getGameModalOptionBtns,
   stopTimer,
@@ -55,7 +48,7 @@ function handleKey(e) {
     }
     // Arrow key option cycling (only when answering, not spectating)
     if (
-      !getSpectatingQuestion() &&
+      !state.spectatingQuestion &&
       (e.key === 'ArrowDown' ||
         e.key === 'ArrowRight' ||
         e.key === 'ArrowUp' ||
@@ -76,8 +69,8 @@ function handleKey(e) {
   }
 
   // Board keyboard navigation (when it's my turn, no modal)
-  const gameState = getGameState();
-  const myPlayerIndex = getMyPlayerIndex();
+  const gameState = state.gameState;
+  const myPlayerIndex = state.myPlayerIndex;
 
   if (!gameState || myPlayerIndex === null) {
     return;
@@ -85,7 +78,7 @@ function handleKey(e) {
   if (gameState.currentPlayerIdx !== myPlayerIndex) {
     return;
   }
-  const phase = getLocalPhase() ?? gameState.phase;
+  const phase = state.localPhase ?? gameState.phase;
   if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) {
     return;
   }
@@ -93,10 +86,10 @@ function handleKey(e) {
   if (e.key in NAV_DIRS) {
     e.preventDefault();
     const [dr, dc] = NAV_DIRS[e.key];
-    const cursor = getNavCursor();
+    const cursor = state.navCursor;
     const newRow = Math.max(0, Math.min(gameState.boardSize - 1, cursor.row + dr));
     const newCol = Math.max(0, Math.min(gameState.boardSize - 1, cursor.col + dc));
-    setNavCursor({ row: newRow, col: newCol });
+    state.navCursor = { row: newRow, col: newCol };
     // Trigger re-render (handled by caller)
     return;
   }

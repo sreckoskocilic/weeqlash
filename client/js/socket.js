@@ -4,7 +4,7 @@
 
 import { showError } from './dom.js';
 import { renderAll } from './render.js';
-import { setGameState, myToken, myRoom, qlasToken, qlasCode } from './state.js';
+import { state } from './state.js';
 
 let socket = null;
 let serverUrl = '';
@@ -32,8 +32,8 @@ export function initSocketEvents() {
   socket.io.on('reconnect', () => {
     console.warn('Reconnected');
     showError('');
-    if (qlasToken && qlasCode) {
-      socket.emit('session:resume', { token: qlasToken, code: qlasCode }, (res) => {
+    if (state.qlasToken && state.qlasCode) {
+      socket.emit('session:resume', { token: state.qlasToken, code: state.qlasCode }, (res) => {
         if (res.error || res.mode !== 'qlashique') {
           console.warn('Qlashique session resume failed:', res.error);
           return;
@@ -43,14 +43,14 @@ export function initSocketEvents() {
           qlasRestoreFromReconnect(res);
         });
       });
-    } else if (myToken && myRoom?.code) {
-      socket.emit('session:resume', { token: myToken, code: myRoom.code }, (res) => {
+    } else if (state.myToken && state.myRoom?.code) {
+      socket.emit('session:resume', { token: state.myToken, code: state.myRoom.code }, (res) => {
         if (res.error) {
           console.warn('Session resume failed:', res.error);
           return;
         }
         if (res.state) {
-          setGameState(res.state);
+          state.gameState = res.state;
           renderAll(res.state);
         }
       });

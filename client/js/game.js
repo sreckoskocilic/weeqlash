@@ -2,144 +2,109 @@
 // GAME INTERACTION
 // ============================================================
 
-import { el } from './dom.js';
-import { showError } from './dom.js';
-import { showScreen } from './dom.js';
-import { renderAll } from './render.js';
-import { PHASE, COORD_BASE } from './constants.js';
-import {
-  getGameState,
-  setGameState,
-  myRoom,
-  localPhase,
-  setLocalPhase,
-  localSelectedPegId,
-  setLocalSelectedPegId,
-  validMovesSet,
-  setValidMovesSet,
-  myPlayerIndex,
-  pendingMove,
-  setPendingMove,
-  pendingQuestions,
-  setPendingQuestions,
-  pendingQuestionsTotal,
-  setPendingQuestionsTotal,
-  pendingAnswers,
-  setPendingAnswers,
-  currentQIdx,
-  setCurrentQIdx,
-  spectateGen,
-  setSpectateGen,
-  pendingCombatDefenderIdx,
-  setPendingCombatDefenderIdx,
-  lastSubmittedPegId,
-  setLastSubmittedPegId,
-  lastSubmittedMoveType,
-  setLastSubmittedMoveType,
-  navCursor,
-  setNavCursor,
-} from './state.js';
-
+import { el, showError, showScreen, getPlayerName } from './dom.js';
+import { initBoard, renderAll, renderChangedTiles } from './render.js';
+import { PHASE, COORD_BASE, TIMING } from './constants.js';
+import { state } from './state.js';
 import { getSocket } from './socket.js';
-import { showQuestion } from './question.js';
+import { showQuestion, stopTimer, gameModalOptionBtns } from './question.js';
+import { renderPlayers } from './lobby.js';
 
-// Namespace imports for the board-mode handlers below (moved from main.js)
-import * as state from './state.js';
-import * as dom from './dom.js';
-import * as render from './render.js';
-import * as question from './question.js';
-import * as lobby from './lobby.js';
-import * as constants from './constants.js';
+export { initBoard };
 
 // Peg click handler
 export function onPegClick(pegId) {
-  const gameState = getGameState();
-  if (!gameState || myPlayerIndex === null) {
+  const gameState = state.gameState;
+  if (!gameState || state.myPlayerIndex === null) {
     return;
   }
-  if (gameState.currentPlayerIdx !== myPlayerIndex) {
+  if (gameState.currentPlayerIdx !== state.myPlayerIndex) {
     return;
   }
-  const phase = localPhase ?? gameState.phase;
+  const phase = state.localPhase ?? gameState.phase;
   if (phase !== PHASE.SELECT_PEG && phase !== PHASE.SELECT_TILE) {
     return;
   }
-  const myPlayer = gameState.players[myPlayerIndex];
+  const myPlayer = gameState.players[state.myPlayerIndex];
   if (!myPlayer?.pegIds.includes(pegId)) {
     return;
   }
   // Deselect current peg
-  if (phase === PHASE.SELECT_TILE && pegId === localSelectedPegId) {
-    setLocalSelectedPegId(null);
-    setLocalPhase(PHASE.SELECT_PEG);
-    setValidMovesSet(new Set());
+  if (phase === PHASE.SELECT_TILE && pegId === state.localSelectedPegId) {
+    state.localSelectedPegId = null;
+    state.localPhase = PHASE.SELECT_PEG;
+    state.validMovesSet = new Set();
     renderAll(gameState);
     return;
   }
 
   const socket = getSocket();
-  socket.emit('action:select_peg', { code: myRoom?.code, pegId }, ({ ok, error, validMoves }) => {
-    if (error || !ok) {
-      return;
-    }
-    setLocalSelectedPegId(pegId);
-    setLocalPhase(PHASE.SELECT_TILE);
-    setValidMovesSet(new Set(validMoves));
-    renderAll(gameState);
-  });
+  socket.emit(
+    'action:select_peg',
+    { code: state.myRoom?.code, pegId },
+    ({ ok, error, validMoves }) => {
+      if (error || !ok) {
+        return;
+      }
+      state.localSelectedPegId = pegId;
+      state.localPhase = PHASE.SELECT_TILE;
+      state.validMovesSet = new Set(validMoves);
+      renderAll(gameState);
+    },
+  );
 }
 
 // Tile click handler
 export function onTileClick(r, c) {
-  const gameState = getGameState();
-  if (!gameState || myPlayerIndex === null) {
+  const gameState = state.gameState;
+  if (!gameState || state.myPlayerIndex === null) {
     return;
   }
-  if (gameState.currentPlayerIdx !== myPlayerIndex) {
+  if (gameState.currentPlayerIdx !== state.myPlayerIndex) {
     return;
   }
-  const phase = localPhase ?? gameState.phase;
+  const phase = state.localPhase ?? gameState.phase;
   if (phase !== PHASE.SELECT_TILE) {
     return;
   }
-  if (!localSelectedPegId) {
+  if (!state.localSelectedPegId) {
     return;
   }
   const coord = r * COORD_BASE + c;
-  if (!validMovesSet.has(coord)) {
+  if (!state.validMovesSet.has(coord)) {
     return;
   }
 
   const defPegId = gameState.board[r]?.[c]?.pegId;
-  if (defPegId && gameState.pegs[defPegId]?.playerId !== myPlayerIndex) {
-    setPendingCombatDefenderIdx(gameState.pegs[defPegId].playerId);
+  if (defPegId && gameState.pegs[defPegId]?.playerId !== state.myPlayerIndex) {
+    state.pendingCombatDefenderIdx = gameState.pegs[defPegId].playerId;
   } else {
-    setPendingCombatDefenderIdx(null);
+    state.pendingCombatDefenderIdx = null;
   }
 
   const socket = getSocket();
   socket.emit(
     'action:select_tile',
-    { code: myRoom?.code, pegId: localSelectedPegId, r, c },
-    ({ ok, error, moveType, question, questionsTotal, defenderPlayerIdx }) => {
+    { code: state.myRoom?.code, pegId: state.localSelectedPegId, r, c },
+    ({ ok, error, moveType, question: q, questionsTotal, defenderPlayerIdx }) => {
       if (error || !ok) {
         return;
       }
       if (defenderPlayerIdx !== undefined) {
-        setPendingCombatDefenderIdx(defenderPlayerIdx);
+        state.pendingCombatDefenderIdx = defenderPlayerIdx;
       }
-      setLocalPhase('answering');
-      setPendingMove({
-        pegId: localSelectedPegId,
+      state.localPhase = 'answering';
+      state.pendingMove = {
+        pegId: state.localSelectedPegId,
         targetR: r,
         targetC: c,
         moveType,
-      });
-      setPendingQuestions(question ? [question] : []);
-      setPendingQuestionsTotal(questionsTotal ?? 1);
-      setPendingAnswers([]);
-      setCurrentQIdx(0);
-      setSpectateGen(spectateGen + 1);
+      };
+      state.pendingQuestions = q ? [q] : [];
+      state.pendingQuestionsTotal = questionsTotal ?? 1;
+      state.pendingAnswers = [];
+      state.currentQIdx = 0;
+      state.spectateGen = state.spectateGen + 1;
       showQuestion(0);
     },
   );
@@ -147,19 +112,19 @@ export function onTileClick(r, c) {
 
 // Submit turn
 export function submitTurn() {
-  const lastAnswer = pendingAnswers[pendingAnswers.length - 1];
-  setLastSubmittedPegId(pendingMove?.pegId ?? lastSubmittedPegId);
-  setLastSubmittedMoveType(pendingMove?.moveType ?? lastSubmittedMoveType);
+  const lastAnswer = state.pendingAnswers[state.pendingAnswers.length - 1];
+  state.lastSubmittedPegId = state.pendingMove?.pegId ?? state.lastSubmittedPegId;
+  state.lastSubmittedMoveType = state.pendingMove?.moveType ?? state.lastSubmittedMoveType;
 
   const socket = getSocket();
   socket.emit(
     'turn:submit',
     {
-      code: myRoom?.code,
+      code: state.myRoom?.code,
       submission: {
-        pegId: pendingMove.pegId,
-        targetR: pendingMove.targetR,
-        targetC: pendingMove.targetC,
+        pegId: state.pendingMove.pegId,
+        targetR: state.pendingMove.targetR,
+        targetC: state.pendingMove.targetC,
         answerIdx: lastAnswer?.answerIdx ?? -1,
       },
     },
@@ -168,21 +133,21 @@ export function submitTurn() {
         console.error('submit:', error);
         showError(error);
         // Recover UI state
-        setLocalPhase(null);
-        setLocalSelectedPegId(null);
-        setValidMovesSet(new Set());
-        setPendingMove(null);
-        setPendingQuestions([]);
-        setPendingAnswers([]);
-        import('./question.js').then(({ stopTimer }) => stopTimer());
+        state.localPhase = null;
+        state.localSelectedPegId = null;
+        state.validMovesSet = new Set();
+        state.pendingMove = null;
+        state.pendingQuestions = [];
+        state.pendingAnswers = [];
+        stopTimer();
         el('modal-overlay').classList.remove('visible');
       }
     },
   );
 
-  setLocalSelectedPegId(null);
-  setValidMovesSet(new Set());
-  setLocalPhase('answering');
+  state.localSelectedPegId = null;
+  state.validMovesSet = new Set();
+  state.localPhase = 'answering';
 }
 
 // Turn announcement
@@ -201,29 +166,26 @@ export function showTurnAnnounce(player, isMe) {
 }
 
 // Navigation cursor
-export function initNavCursor(state) {
-  const cp = state.players[state.currentPlayerIdx];
+export function initNavCursor(gameState) {
+  const cp = gameState.players[gameState.currentPlayerIdx];
   const firstPegId = cp?.pegIds?.[0];
   if (firstPegId) {
-    const peg = state.pegs[firstPegId];
+    const peg = gameState.pegs[firstPegId];
     if (peg) {
-      setNavCursor({ row: peg.row, col: peg.col });
+      state.navCursor = { row: peg.row, col: peg.col };
     }
   }
 }
 
-export function setNavCursorToPeg(state, pegId) {
-  const peg = pegId ? state.pegs?.[pegId] : null;
+export function setNavCursorToPeg(gameState, pegId) {
+  const peg = pegId ? gameState.pegs?.[pegId] : null;
   if (!peg) {
     return false;
   }
-  const changed = navCursor.row !== peg.row || navCursor.col !== peg.col;
-  setNavCursor({ row: peg.row, col: peg.col });
+  const changed = state.navCursor.row !== peg.row || state.navCursor.col !== peg.col;
+  state.navCursor = { row: peg.row, col: peg.col };
   return changed;
 }
-
-// Initialize board for external use
-export { initBoard } from './render.js';
 
 // ============================================================
 // BOARD-MODE SOCKET AND GAME EVENT HANDLERS (moved from main.js)
@@ -240,27 +202,27 @@ function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
     }
     const next = idx + 1;
     if (moreQuestionsInProgress && next < state.pendingQuestions.length) {
-      state.setCurrentQIdx(next);
-      question.showQuestion(next);
+      state.currentQIdx = next;
+      showQuestion(next);
       return;
     }
     if (next < results.length && next < state.pendingQuestions.length) {
-      state.setCurrentQIdx(next);
-      question.showQuestion(next);
+      state.currentQIdx = next;
+      showQuestion(next);
       const r = results[next];
       if (r?.chosenIdx >= 0) {
-        question.gameModalOptionBtns[r.chosenIdx]?.classList.add(
+        gameModalOptionBtns[r.chosenIdx]?.classList.add(
           r.correct ? 'answer-correct' : 'answer-wrong',
         );
       }
       advanceSpectateResult(results, next, moreQuestionsInProgress);
       return;
     }
-    state.setSpectatingQuestion(false);
-    state.setPendingQuestions([]);
-    state.setPendingAnswers([]);
-    dom.el('modal-overlay').classList.remove('visible');
-  }, constants.TIMING.RESULT_DISPLAY_MS);
+    state.spectatingQuestion = false;
+    state.pendingQuestions = [];
+    state.pendingAnswers = [];
+    el('modal-overlay').classList.remove('visible');
+  }, TIMING.RESULT_DISPLAY_MS);
 }
 
 function handleStateUpdate(
@@ -282,49 +244,49 @@ function handleStateUpdate(
     state.pendingQuestions.length &&
     (isNormalAttackerFlow || isNormalSpectatorFlow)
   ) {
-    question.stopTimer();
-    state.setSpectateGen(state.spectateGen + 1);
-    state.setSpectatingQuestion(false);
-    state.setPendingQuestions([]);
-    state.setPendingAnswers([]);
-    state.setLastSubmittedMoveType(null);
-    dom.el('modal-overlay').classList.remove('visible');
+    stopTimer();
+    state.spectateGen = state.spectateGen + 1;
+    state.spectatingQuestion = false;
+    state.pendingQuestions = [];
+    state.pendingAnswers = [];
+    state.lastSubmittedMoveType = null;
+    el('modal-overlay').classList.remove('visible');
   } else if (shouldShowResults && state.pendingQuestions.length) {
-    question.stopTimer();
+    stopTimer();
     const startIdx = results.length - 1;
-    state.setCurrentQIdx(startIdx);
+    state.currentQIdx = startIdx;
     const r = results[startIdx];
     if (r?.chosenIdx >= 0) {
-      question.gameModalOptionBtns[r.chosenIdx]?.classList.add(
+      gameModalOptionBtns[r.chosenIdx]?.classList.add(
         r.correct ? 'answer-correct' : 'answer-wrong',
       );
     }
     advanceSpectateResult(results, startIdx, moreQuestionsInProgress);
   } else if (state.spectatingQuestion) {
-    question.stopTimer();
-    state.setSpectateGen(state.spectateGen + 1);
-    state.setSpectatingQuestion(false);
-    state.setPendingQuestions([]);
-    dom.el('modal-overlay').classList.remove('visible');
+    stopTimer();
+    state.spectateGen = state.spectateGen + 1;
+    state.spectatingQuestion = false;
+    state.pendingQuestions = [];
+    el('modal-overlay').classList.remove('visible');
   }
 
-  const oldState = state.getGameState();
+  const oldState = state.gameState;
   const prevPlayerIdx = oldState?.currentPlayerIdx;
 
   if (prevPlayerIdx !== newState.currentPlayerIdx) {
     if (!shouldShowResults) {
-      state.setSpectateGen(state.spectateGen + 1);
-      state.setPendingQuestions([]);
-      state.setPendingAnswers([]);
-      state.setSpectatingQuestion(false);
-      question.stopTimer();
-      dom.el('modal-overlay').classList.remove('visible');
+      state.spectateGen = state.spectateGen + 1;
+      state.pendingQuestions = [];
+      state.pendingAnswers = [];
+      state.spectatingQuestion = false;
+      stopTimer();
+      el('modal-overlay').classList.remove('visible');
     }
   }
 
   const prevNavRow = state.navCursor.row;
   const prevNavCol = state.navCursor.col;
-  state.setGameState(newState);
+  state.gameState = newState;
 
   if (
     !moreQuestionsInProgress &&
@@ -334,18 +296,18 @@ function handleStateUpdate(
     validMoves
   ) {
     if (state.lastSubmittedPegId && newState.selectedPegId === state.lastSubmittedPegId) {
-      state.setLocalPhase('selectPeg');
-      state.setLocalSelectedPegId(null);
+      state.localPhase = 'selectPeg';
+      state.localSelectedPegId = null;
       state.validMovesSet.clear();
       setNavCursorToPeg(newState, newState.selectedPegId);
     } else {
-      state.setLocalPhase('selectTile');
-      state.setLocalSelectedPegId(newState.selectedPegId);
-      state.setValidMovesSet(new Set(validMoves));
+      state.localPhase = 'selectTile';
+      state.localSelectedPegId = newState.selectedPegId;
+      state.validMovesSet = new Set(validMoves);
     }
   } else if (!moreQuestionsInProgress && state.localPhase !== 'selectTile') {
-    state.setLocalPhase(null);
-    state.setLocalSelectedPegId(null);
+    state.localPhase = null;
+    state.localSelectedPegId = null;
     state.validMovesSet.clear();
   }
 
@@ -367,17 +329,17 @@ function handleStateUpdate(
     prevPlayerIdx !== newState.currentPlayerIdx ||
     newState.currentPlayerIdx !== state.myPlayerIndex
   ) {
-    state.setLastSubmittedPegId(null);
-    state.setLastSubmittedMoveType(null);
+    state.lastSubmittedPegId = null;
+    state.lastSubmittedMoveType = null;
   }
 
   const navCursorChanged = prevNavRow !== state.navCursor.row || prevNavCol !== state.navCursor.col;
   if (navCursorChanged) {
-    render.renderAll(newState);
+    renderAll(newState);
   } else if (oldState && oldState.board) {
-    render.renderChangedTiles(oldState, newState, events);
+    renderChangedTiles(oldState, newState, events);
   } else {
-    render.renderAll(newState);
+    renderAll(newState);
   }
 
   if (!gameOver && prevPlayerIdx !== undefined && prevPlayerIdx !== newState.currentPlayerIdx) {
@@ -394,69 +356,69 @@ function handleStateUpdate(
 
 function showGameOver(winnerIdx, gameState) {
   const winner = gameState.players[winnerIdx];
-  dom.el('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
-  dom.el('winner-text').style.color = winner?.color ?? '#ffd700';
-  dom.el('screen-gameover').style.display = 'flex';
-  state.setLocalPhase(null);
-  state.setLocalSelectedPegId(null);
+  el('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
+  el('winner-text').style.color = winner?.color ?? '#ffd700';
+  el('screen-gameover').style.display = 'flex';
+  state.localPhase = null;
+  state.localSelectedPegId = null;
   state.validMovesSet.clear();
-  state.setPendingMove(null);
-  state.setPendingQuestions([]);
-  state.setPendingAnswers([]);
-  state.setSpectatingQuestion(false);
-  question.stopTimer();
-  dom.el('modal-overlay').classList.remove('visible');
+  state.pendingMove = null;
+  state.pendingQuestions = [];
+  state.pendingAnswers = [];
+  state.spectatingQuestion = false;
+  stopTimer();
+  el('modal-overlay').classList.remove('visible');
 }
 
 export function setupBoardSocketHandlers(sock) {
   sock.on('room:player_joined', ({ players }) => {
-    lobby.renderPlayers(players, state.setupPlayerCount);
-    dom.el('lobby-status').textContent = `${players.length} / ${state.setupPlayerCount} players`;
+    renderPlayers(players, state.setupPlayerCount);
+    el('lobby-status').textContent = `${players.length} / ${state.setupPlayerCount} players`;
     if (players.length === state.setupPlayerCount && state.isHost) {
-      dom.el('btn-start').disabled = false;
-      dom.el('btn-start').textContent = 'Start game';
+      el('btn-start').disabled = false;
+      el('btn-start').textContent = 'Start game';
     }
   });
 
   sock.on('game:player_disconnected', ({ playerName }) => {
-    dom.showError(`${playerName} disconnected.`);
-    state.setLocalPhase(null);
-    state.setLocalSelectedPegId(null);
+    showError(`${playerName} disconnected.`);
+    state.localPhase = null;
+    state.localSelectedPegId = null;
     state.validMovesSet.clear();
-    state.setPendingMove(null);
-    state.setPendingQuestions([]);
-    state.setPendingAnswers([]);
-    state.setSpectatingQuestion(false);
-    question.stopTimer();
-    dom.el('modal-overlay').classList.remove('visible');
+    state.pendingMove = null;
+    state.pendingQuestions = [];
+    state.pendingAnswers = [];
+    state.spectatingQuestion = false;
+    stopTimer();
+    el('modal-overlay').classList.remove('visible');
   });
 
   sock.on('room:player_left', ({ playerName, players }) => {
-    lobby.renderPlayers(players, state.setupPlayerCount);
-    dom.el('lobby-status').textContent =
+    renderPlayers(players, state.setupPlayerCount);
+    el('lobby-status').textContent =
       `${players.length} / ${state.setupPlayerCount} players — ${playerName} left`;
-    dom.el('btn-start').disabled = true;
-    dom.el('btn-start').textContent = 'Waiting for players…';
+    el('btn-start').disabled = true;
+    el('btn-start').textContent = 'Waiting for players…';
   });
 
   sock.on('room:full', ({ players }) => {
-    lobby.renderPlayers(players, state.setupPlayerCount);
-    dom.el('lobby-status').textContent = 'Room full — host can start the game';
+    renderPlayers(players, state.setupPlayerCount);
+    el('lobby-status').textContent = 'Room full — host can start the game';
     if (state.isHost) {
-      dom.el('btn-start').disabled = false;
-      dom.el('btn-start').textContent = 'Start game';
+      el('btn-start').disabled = false;
+      el('btn-start').textContent = 'Start game';
     }
   });
 
   sock.on('game:start', ({ settings, state: gameState }) => {
-    state.setTimerDuration(settings.timer ?? 30);
-    state.setGameState(gameState);
-    render.initBoard(gameState);
+    state.timerDuration = settings.timer ?? 30;
+    state.gameState = gameState;
+    initBoard(gameState);
     if (gameState.currentPlayerIdx === state.myPlayerIndex) {
       initNavCursor(gameState);
     }
-    render.renderAll(gameState);
-    dom.showScreen('screen-game');
+    renderAll(gameState);
+    showScreen('screen-game');
   });
 
   sock.on(
@@ -488,40 +450,38 @@ export function setupBoardSocketHandlers(sock) {
       if (state.myPlayerIndex === playerIdx) {
         return;
       }
-      state.setSpectatingQuestion(true);
-      state.setSpectatingMoveType(moveType);
-      state.setSpectatingPlayerIdx(playerIdx);
-      state.setSpectatingDefenderIdx(defenderPlayerIdx ?? null);
-      state.setPendingQuestions(q ? [q] : []);
-      state.setPendingQuestionsTotal(questionsTotal ?? 1);
-      state.setCurrentQIdx(0);
-      state.setSpectateGen(state.spectateGen + 1);
-      question.showQuestion(0);
+      state.spectatingQuestion = true;
+      state.spectatingMoveType = moveType;
+      state.spectatingPlayerIdx = playerIdx;
+      state.spectatingDefenderIdx = defenderPlayerIdx ?? null;
+      state.pendingQuestions = q ? [q] : [];
+      state.pendingQuestionsTotal = questionsTotal ?? 1;
+      state.currentQIdx = 0;
+      state.spectateGen = state.spectateGen + 1;
+      showQuestion(0);
     },
   );
 
   sock.on('game:next_question', ({ question: q, questionIdx }) => {
-    state.setCurrentQIdx(questionIdx);
+    state.currentQIdx = questionIdx;
     state.pendingQuestions[questionIdx] = q;
-    question.showQuestion(questionIdx);
+    showQuestion(questionIdx);
   });
 
   sock.on('game:answer_preview', ({ questionIdx, answerIdx, correct }) => {
     if (!state.spectatingQuestion || state.currentQIdx !== questionIdx) {
       return;
     }
-    question.gameModalOptionBtns[answerIdx]?.classList.add(
-      correct ? 'answer-correct' : 'answer-wrong',
-    );
+    gameModalOptionBtns[answerIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
   });
 }
 
 export function setupBoardGameHandlers(sock) {
-  dom.el('btn-create').addEventListener('click', () => {
-    const playerName = dom.getPlayerName();
+  el('btn-create').addEventListener('click', () => {
+    const playerName = getPlayerName();
     if (!playerName) return;
     if (state.setupEnabledCats.length === 0) {
-      return dom.showError('Select at least one category.');
+      return showError('Select at least one category.');
     }
     sock.emit(
       'room:create',
@@ -533,67 +493,66 @@ export function setupBoardGameHandlers(sock) {
         enabledCats: state.setupEnabledCats,
       },
       ({ error, code, players, token }) => {
-        if (error) return dom.showError(error);
+        if (error) return showError(error);
         const me = players.find((p) => p.id === state.myId);
         if (me) {
-          dom.el('player-name').value = me.name;
+          el('player-name').value = me.name;
         }
-        state.setMyToken(token);
-        state.setMyPlayerIndex(0);
-        state.setMyRoom({
+        state.myToken = token;
+        state.myPlayerIndex = 0;
+        state.myRoom = {
           code,
           settings: { playerCount: state.setupPlayerCount, timer: state.setupTimer },
-        });
-        state.setIsHost(true);
-        dom.el('lobby-code').textContent = code;
-        lobby.renderPlayers(players, state.myRoom.settings.playerCount);
-        dom.el('lobby-status').textContent =
+        };
+        state.isHost = true;
+        el('lobby-code').textContent = code;
+        renderPlayers(players, state.myRoom.settings.playerCount);
+        el('lobby-status').textContent =
           `${players.length} / ${state.myRoom.settings.playerCount} players`;
-        dom.showScreen('screen-lobby');
+        showScreen('screen-lobby');
       },
     );
   });
 
-  dom.el('btn-join').addEventListener('click', () => {
-    const playerName = dom.getPlayerName();
+  el('btn-join').addEventListener('click', () => {
+    const playerName = getPlayerName();
     if (!playerName) return;
-    const code = dom
-      .el('join-code')
+    const code = el('join-code')
       .value.trim()
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '');
     if (code.length !== 5) {
-      return dom.showError('Room code must be 5 characters.');
+      return showError('Room code must be 5 characters.');
     }
     sock.emit('room:join', { code, playerName }, ({ error, players, settings, token }) => {
-      if (error) return dom.showError(error);
+      if (error) return showError(error);
       const me = players.find((p) => p.id === state.myId);
       if (me) {
-        dom.el('player-name').value = me.name;
+        el('player-name').value = me.name;
       }
-      state.setMyToken(token);
-      state.setMyPlayerIndex(me?.index ?? players.length - 1);
-      state.setMyRoom({ code, settings });
-      state.setIsHost(false);
-      dom.el('lobby-code').textContent = code;
-      lobby.renderPlayers(players, settings.playerCount);
-      dom.el('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
-      dom.showScreen('screen-lobby');
+      state.myToken = token;
+      state.myPlayerIndex = me?.index ?? players.length - 1;
+      state.myRoom = { code, settings };
+      state.isHost = false;
+      el('lobby-code').textContent = code;
+      renderPlayers(players, settings.playerCount);
+      el('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
+      showScreen('screen-lobby');
     });
   });
 
-  dom.el('btn-start').addEventListener('click', () => {
+  el('btn-start').addEventListener('click', () => {
     sock.emit('room:start', { code: state.myRoom.code }, ({ error }) => {
-      if (error) dom.showError(error);
+      if (error) showError(error);
     });
   });
 
-  dom.el('btn-copy-code').addEventListener('click', () => {
+  el('btn-copy-code').addEventListener('click', () => {
     if (!state.myRoom?.code) return;
     navigator.clipboard
       .writeText(state.myRoom.code)
       .then(() => {
-        const btn = dom.el('btn-copy-code');
+        const btn = el('btn-copy-code');
         const originalText = btn.textContent;
         btn.textContent = '✅';
         setTimeout(() => {
@@ -605,7 +564,7 @@ export function setupBoardGameHandlers(sock) {
       });
   });
 
-  dom.el('join-code').addEventListener('input', (e) => {
+  el('join-code').addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();
   });
 }

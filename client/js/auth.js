@@ -5,7 +5,7 @@
 import { el, $ } from './dom.js';
 import { showError } from './dom.js';
 import { showScreen } from './dom.js';
-import { _currentUser, setCurrentUser } from './state.js';
+import { state } from './state.js';
 
 // Server URL (imported from main)
 let serverUrl = '';
@@ -25,7 +25,7 @@ export function showAuthMessage(msg, isError) {
 }
 
 export function showUserBar(user) {
-  setCurrentUser(user);
+  state.currentUser = user;
   $('user-logged-as').textContent = `logged as ${user.username}`;
   $('user-logged-as').style.display = 'block';
   $('user-bar').style.display = 'flex';
@@ -35,7 +35,7 @@ export function showUserBar(user) {
 }
 
 export function hideUserBar() {
-  setCurrentUser(null);
+  state.currentUser = null;
   $('user-logged-as').style.display = 'none';
   $('user-bar').style.display = 'none';
   $('login-section').style.display = '';
@@ -101,7 +101,6 @@ export function initLogin() {
       return showAuthMessage(data.error, true);
     }
     showUserBar(data.user);
-    setCurrentUser(data.user);
     // Send userId directly to socket
     socket.emit('auth:setUserId', data.user.id);
   });
@@ -218,13 +217,13 @@ export function initAdmin() {
 // View Stats handler
 export function initViewStats() {
   $('btn-view-stats').addEventListener('click', async () => {
-    if (!_currentUser) {
+    if (!state.currentUser) {
       showAuthMessage('Please log in to view stats', true);
       return;
     }
 
     try {
-      const res = await fetch(`${serverUrl}/auth/stats/${_currentUser.id}`, {
+      const res = await fetch(`${serverUrl}/auth/stats/${state.currentUser.id}`, {
         credentials: 'include',
       });
 
