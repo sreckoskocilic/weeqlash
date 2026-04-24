@@ -10,6 +10,16 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +35,7 @@ jobs:
           QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
           SESSION_SECRET: test-secret-for-ci
           NODE_ENV: test
+          REDIS_URL: redis://127.0.0.1:6379
         run: npm test
 
   deploy:
