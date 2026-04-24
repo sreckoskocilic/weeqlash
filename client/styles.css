@@ -2042,6 +2042,112 @@ body.high-contrast {
   }
 }
 
+/* Small phones (iPhone 13 / SE etc) — keep board chrome and qlashique combat above the fold */
+@media (max-width: 480px) {
+  /* Board top bar — without this, #turn-panel renders ~498px wide in a 390px viewport
+     and the username, "TURN" label, and player stats clip off the right edge. */
+  #turn-panel {
+    font-size: 13px;
+    min-height: 48px;
+  }
+  #turn-player-box {
+    padding: 6px 10px;
+    min-width: 0;
+  }
+  #turn-player-name {
+    font-size: 15px;
+    min-width: 0;
+  }
+  #turn-moves {
+    font-size: 11px;
+    padding-left: 8px;
+  }
+  #turn-info {
+    padding: 6px 8px;
+  }
+  #turn-number {
+    font-size: 15px;
+    letter-spacing: 1px;
+  }
+  #player-stats {
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 2px;
+  }
+  .player-stat-item {
+    gap: 5px;
+  }
+  .player-stat-ratio {
+    font-size: 13px;
+  }
+  .player-stat-pct {
+    font-size: 11px;
+  }
+
+  /* Qlashique combat — shrink decorative chrome so the question + all 4 options fit. */
+  #screen-qlashique .qlas-inner {
+    max-width: 100%;
+  }
+  #screen-qlashique h2.qlas-title {
+    font-size: 1.4rem;
+    margin-bottom: 2px;
+  }
+  .qlas-subtitle {
+    font-size: 0.55rem;
+    margin-bottom: 6px;
+  }
+  .qlas-pbar {
+    padding: 6px 10px;
+  }
+  .qlas-pb-grid {
+    margin-bottom: 3px;
+  }
+  .qlas-pb-name {
+    font-size: 0.9rem;
+  }
+  .qlas-pb-class {
+    font-size: 0.6rem;
+  }
+  .qlas-hp-num {
+    font-size: 1.5rem;
+  }
+  .qlas-turn-bar {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  .qlas-timer-ring {
+    width: 44px;
+    height: 44px;
+  }
+  .qlas-timer-ring .ring-label {
+    font-size: 0.7rem;
+  }
+  .qlas-qpanel {
+    padding: 10px 12px;
+  }
+  .qlas-question {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+
+  /* Bump tap targets to ~44px (Apple HIG) */
+  .qlas-opt {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+  .qlas-recap-live-btn {
+    min-height: 36px;
+  }
+  .qlas-btn-confirm,
+  .btn-qlas-stop,
+  .btn-qlas-end,
+  .btn-qlas-reroll,
+  .btn-qlas-heal {
+    min-height: 44px;
+  }
+}
+
 /* Stats Modal */
 #stats-modal-overlay.visible {
   opacity: 1;
