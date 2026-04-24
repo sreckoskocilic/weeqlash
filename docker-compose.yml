@@ -10,7 +10,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - CORS_ORIGIN=https://brawl.weeqlash.icu
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
     depends_on:
       redis:
         condition: service_healthy
