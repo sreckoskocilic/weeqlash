@@ -105,6 +105,12 @@ export function initLogin() {
     // Send userId directly to socket
     socket.emit('auth:setUserId', data.user.id);
   });
+
+  $('login-password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.currentTarget.value) {
+      $('btn-login').click();
+    }
+  });
 }
 
 // Register handler
@@ -279,6 +285,3 @@ export function initAuthHandlers() {
   handleUrlParams();
   checkAuth();
 }
-
-// Make showAuthMessage available globally (for stats modal)
-window.showAuthMessage = showAuthMessage;

@@ -458,38 +458,45 @@ function qlasRenderRecap(history) {
 
 // --- Initialize Qlashique handlers ---
 
+function qlasToggleRecap() {
+  const container = qEl('qlas-recap');
+  const toggle = qEl('qlas-recap-toggle');
+  if (!container || !toggle) {
+    return;
+  }
+  const hidden = container.style.display === 'none';
+  container.style.display = hidden ? 'flex' : 'none';
+  toggle.textContent = hidden ? '[ hide recap ]' : '[ show recap ]';
+}
+
+function qlasOpenLiveRecap() {
+  qlasPopulateRecap('qlas-recap-live', qlasLiveHistory);
+  qEl('qlas-recap-modal')?.classList.add('show');
+}
+
+function qlasCloseLiveRecap() {
+  qEl('qlas-recap-modal')?.classList.remove('show');
+}
+
 export function initQlashique(socket) {
-  // Expose functions on window for onclick handlers
-  window.qlasSelectClass = qlasSelectClass;
-  window.qlasConfirm = qlasConfirm;
-  window.qlasStartGuessing = qlasStartGuessing;
-  window.qlasReroll = qlasReroll;
-  window.qlasStopAttack = qlasStopAttack;
-  window.qlasEndTurn = qlasEndTurn;
-  window.qlasHeal = qlasHeal;
-
-  window.qlasToggleRecap = function () {
-    const container = qEl('qlas-recap');
-    const toggle = qEl('qlas-recap-toggle');
-    if (!container || !toggle) {
-      return;
-    }
-    const hidden = container.style.display === 'none';
-    container.style.display = hidden ? 'flex' : 'none';
-    toggle.textContent = hidden ? '[ hide recap ]' : '[ show recap ]';
-  };
-
-  window.qlasOpenLiveRecap = function () {
-    qlasPopulateRecap('qlas-recap-live', qlasLiveHistory);
-    qEl('qlas-recap-modal')?.classList.add('show');
-  };
-
-  window.qlasCloseLiveRecap = function (event) {
-    if (event && event.target && event.currentTarget && event.target !== event.currentTarget) {
-      return;
-    }
-    qEl('qlas-recap-modal')?.classList.remove('show');
-  };
+  qEl('qlas-card-slowpoke').addEventListener('click', () => qlasSelectClass('slowpoke'));
+  qEl('qlas-card-reroll').addEventListener('click', () => qlasSelectClass('reroll'));
+  qEl('qlas-btn-confirm').addEventListener('click', qlasConfirm);
+  qEl('qlas-btn-copy-code').addEventListener('click', () => {
+    navigator.clipboard.writeText(qEl('qlas-code-val').textContent);
+  });
+  qEl('qlas-recap-live-btn').addEventListener('click', qlasOpenLiveRecap);
+  qEl('btn-qlas-stop').addEventListener('click', qlasStopAttack);
+  qEl('btn-qlas-reroll').addEventListener('click', qlasReroll);
+  qEl('btn-qlas-end').addEventListener('click', qlasEndTurn);
+  qEl('btn-qlas-heal').addEventListener('click', qlasHeal);
+  qEl('btn-qlas-attack').addEventListener('click', qlasStartGuessing);
+  qEl('qlas-recap-toggle').addEventListener('click', qlasToggleRecap);
+  qEl('qlas-recap-modal-close').addEventListener('click', qlasCloseLiveRecap);
+  qEl('qlas-recap-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) qlasCloseLiveRecap();
+  });
+  qEl('btn-qlas-playagain').addEventListener('click', () => location.reload());
 
   // Socket events
   socket.on('qlashique:class_selected', ({ playerIdx, classId }) => {

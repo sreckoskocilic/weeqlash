@@ -3,6 +3,7 @@
 // ============================================================
 
 import { el, sanitize } from './dom.js';
+import * as state from './state.js';
 
 export function renderPlayers(players, totalSlots) {
   const ul = el('player-list');
@@ -13,13 +14,14 @@ export function renderPlayers(players, totalSlots) {
       <span class="dot" style="background:${sanitize(p.color)}"></span>
       <span>${sanitize(p.name)}</span>
       ${p.isHost ? '<span class="badge">host</span>' : ''}
-      ${p.id === window.myId ? '<span class="badge">you</span>' : ''}
+      ${p.id === state.myId ? '<span class="badge">you</span>' : ''}
     `;
     ul.appendChild(li);
   });
   for (let i = players.length; i < totalSlots; i++) {
     const li = document.createElement('li');
-    li.innerHTML = '<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>';
+    li.innerHTML =
+      '<span class="dot" style="background:#333"></span><span style="color:var(--muted)">waiting…</span>';
     ul.appendChild(li);
   }
 }

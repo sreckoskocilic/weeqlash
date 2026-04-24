@@ -266,5 +266,6 @@ export function stopTimer() {
   }
 }
 
-// Expose on window for onclick
-window.continueAfterQuestion = continueAfterQuestion;
+export function initQuestion() {
+  el('modal-continue-btn').addEventListener('click', continueAfterQuestion);
+}

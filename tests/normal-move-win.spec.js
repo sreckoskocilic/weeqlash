@@ -1,10 +1,13 @@
 // @ts-check
 /* global document */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loadQuestions } from '../server/game/questions.ts';
+import { TEST_QUESTION, setNextQuestion, clearStickyQuestion } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
-const QUESTION_BANK = loadQuestions();
+
+test.afterEach(async () => {
+  await clearStickyQuestion();
+});
 
 async function registerAndLogin(browser, username) {
   const ctx = await browser.newContext({ baseURL: BASE });
@@ -41,32 +44,6 @@ async function getPegPosition(page, pegId) {
     const tile = peg?.parentElement;
     return tile ? { r: Number(tile.dataset.r), c: Number(tile.dataset.c) } : null;
   }, pegId);
-}
-
-function normalizeText(value) {
-  return value.replace(/\s+/g, ' ').trim();
-}
-
-function findCorrectAnswerIndex(questionText, options) {
-  const normalizedQuestion = normalizeText(questionText);
-  const normalizedOptions = options.map(normalizeText);
-
-  for (const questions of Object.values(QUESTION_BANK)) {
-    if (!Array.isArray(questions)) {
-      continue;
-    }
-    const match = questions.find((question) => {
-      if (normalizeText(question.q) !== normalizedQuestion) {
-        return false;
-      }
-      return question.opts.every((opt, idx) => normalizeText(opt) === normalizedOptions[idx]);
-    });
-    if (match) {
-      return match.a;
-    }
-  }
-
-  return null;
 }
 
 async function getPegOwnerAt(page, r, c) {
@@ -144,16 +121,8 @@ async function playMove(page, preferredDirections) {
 
   for (let i = 0; i < 3; i += 1) {
     await page.locator('#modal-overlay.visible').waitFor({ timeout: 1000 });
-    const questionText = (await page.locator('#modal-question').textContent()) ?? '';
-    const options = await page.locator('#modal-options .modal-option').evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const key = node.querySelector('.option-key');
-        return (node.textContent || '').replace(key?.textContent || '', '').trim();
-      }),
-    );
-    const correctIdx = findCorrectAnswerIndex(questionText, options);
-    expect(correctIdx).not.toBeNull();
-    await page.locator('#modal-options .modal-option').nth(correctIdx).click();
+    // Sticky TEST_QUESTION guarantees option 0 is always correct.
+    await page.locator('#modal-options .modal-option').nth(TEST_QUESTION.correctIdx).click();
     questionCount += 1;
     await page.waitForTimeout(250);
 
@@ -258,6 +227,9 @@ test('normal move: play until one player wins', async ({ browser }) => {
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });
+
+  // Pin every question to the synthetic TEST_QUESTION so option 0 is always correct.
+  await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
   const strategies = new Map([
     [

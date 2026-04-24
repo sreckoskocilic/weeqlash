@@ -327,14 +327,25 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, users: users.length });
   });
 
-  // Test-only: lock next question to a specific qId so tests always know the correct answer
+  // Test-only: lock next question to a specific qId so tests always know the correct answer.
+  // Pass { sticky: true } to persist across picks; must be cleared via /test/clear-sticky-question.
   app.post('/test/set-question', (req, res) => {
-    const { qId } = req.body;
+    const { qId, sticky } = req.body;
     if (!qId) {
       return res.status(400).json({ error: 'Missing qId' });
     }
-    _testOverride = qId;
-    res.json({ ok: true, qId });
+    if (sticky) {
+      _testStickyQuestion = qId;
+    } else {
+      _testOverride = qId;
+    }
+    res.json({ ok: true, qId, sticky: !!sticky });
+  });
+
+  // Test-only: clear the sticky question override.
+  app.post('/test/clear-sticky-question', (_req, res) => {
+    _testStickyQuestion = null;
+    res.json({ ok: true });
   });
 
   // Test-only: override HP for qlashique games (affects next createQlasGame call only)
@@ -782,9 +793,9 @@ io.on('connection', (socket) => {
     let questionId = planned.questionId;
 
     // Test-only: swap planned question for the one locked via /test/set-question
-    if (_testOverride && questionsDb._byId?.[_testOverride]) {
-      questionId = _testOverride;
-      _testOverride = null;
+    const overrideId = _consumeQuestionOverride(questionsDb);
+    if (overrideId) {
+      questionId = overrideId;
       if (room.state.pendingTurn) {
         room.state.pendingTurn.questionId = questionId;
       }
@@ -914,7 +925,14 @@ io.on('connection', (socket) => {
 
     // If combat/flag continues: advance to next question, notify attacker and spectators
     if (result.combatContinues) {
-      const nextId = advancePendingQuestion(room.state, questionsDb);
+      let nextId = advancePendingQuestion(room.state, questionsDb);
+      const overrideNextId = _consumeQuestionOverride(questionsDb);
+      if (overrideNextId) {
+        nextId = overrideNextId;
+        if (room.state.pendingTurn) {
+          room.state.pendingTurn.questionId = nextId;
+        }
+      }
       const nq = questionsDb._byId?.[nextId];
       const nextQuestion = nq
         ? {
@@ -1009,12 +1027,9 @@ io.on('connection', (socket) => {
     }
 
     let randomQ = pool[Math.floor(Math.random() * pool.length)];
-    if (_testOverride) {
-      const override = questionsDb._byId[_testOverride];
-      if (override) {
-        randomQ = override;
-      }
-      _testOverride = null;
+    const quizOverrideId = _consumeQuestionOverride(questionsDb);
+    if (quizOverrideId) {
+      randomQ = questionsDb._byId[quizOverrideId];
     }
     quizRuns.set(socket.id, { startedAt: Date.now(), questionIds: [randomQ.id], answers: 0, mode });
 
@@ -1656,8 +1671,25 @@ function recordGameStats(room) {
 }
 
 // Test override: set via POST /test/set-question
+// _testOverride is one-shot (consumed on next question pick);
+// _testStickyQuestion persists until /test/clear-sticky-question is called.
 let _testOverride = null;
+let _testStickyQuestion = null;
 let _testHPOverride = null;
+
+// Return a question id to use as the next override, or null.
+// Prefers one-shot; consumes it on hit. Falls back to sticky (not consumed).
+function _consumeQuestionOverride(db) {
+  if (_testOverride && db._byId?.[_testOverride]) {
+    const id = _testOverride;
+    _testOverride = null;
+    return id;
+  }
+  if (_testStickyQuestion && db._byId?.[_testStickyQuestion]) {
+    return _testStickyQuestion;
+  }
+  return null;
+}
 
 // Categories to exclude from qlashique by default
 const EXCLUDED_CATS = new Set(['death_metal', 'epl_2025']);

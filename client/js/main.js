@@ -7,14 +7,11 @@ import * as state from './state.js';
 import * as dom from './dom.js';
 import * as auth from './auth.js';
 import * as socket from './socket.js';
-import * as render from './render.js';
 import * as game from './game.js';
 import * as question from './question.js';
 import * as quiz from './quiz.js';
 import * as leaderboard from './leaderboard.js';
-import * as stats from './stats.js';
 import * as keyboard from './keyboard.js';
-import * as lobby from './lobby.js';
 import * as qlashique from './qlashique.js';
 
 // Server URL configuration
@@ -38,17 +35,21 @@ async function init() {
   auth.initAuth(serverUrl, sock);
   auth.initAuthHandlers();
 
-  // Set up socket event handlers
-  setupSocketHandlers(sock);
+  // Board-mode socket + room UI wiring (moved to game.js)
+  game.setupBoardSocketHandlers(sock);
+  game.setupBoardGameHandlers(sock);
 
-  // Initialize UI
+  // Qlashique wiring (sits alongside board handlers)
+  qlashique.initQlashique(sock);
+
+  // Setup-screen UI (category toggles, help, legal modals, etc.)
   initUI();
-
-  // Set up game event handlers
-  setupGameHandlers(sock);
 
   // Quiz mode handlers
   setupQuizHandlers(sock);
+
+  // Question modal continue button
+  question.initQuestion();
 
   // Keyboard handlers
   keyboard.initKeyboard();
@@ -62,303 +63,6 @@ async function init() {
       dom.el('dev-quickstart-section').style.display = '';
     }
   });
-}
-
-function setupSocketHandlers(sock) {
-  // Lobby handlers
-  sock.on('room:player_joined', ({ players }) => {
-    lobby.renderPlayers(players, state.setupPlayerCount);
-    dom.el('lobby-status').textContent = `${players.length} / ${state.setupPlayerCount} players`;
-    if (players.length === state.setupPlayerCount && state.isHost) {
-      dom.el('btn-start').disabled = false;
-      dom.el('btn-start').textContent = 'Start game';
-    }
-  });
-
-  sock.on('game:player_disconnected', ({ playerName }) => {
-    dom.showError(`${playerName} disconnected.`);
-    state.setLocalPhase(null);
-    state.setLocalSelectedPegId(null);
-    state.validMovesSet.clear();
-    state.setPendingMove(null);
-    state.setPendingQuestions([]);
-    state.setPendingAnswers([]);
-    state.setSpectatingQuestion(false);
-    question.stopTimer();
-    dom.el('modal-overlay').classList.remove('visible');
-  });
-
-  sock.on('room:player_left', ({ playerName, players }) => {
-    lobby.renderPlayers(players, state.setupPlayerCount);
-    dom.el('lobby-status').textContent =
-      `${players.length} / ${state.setupPlayerCount} players — ${playerName} left`;
-    dom.el('btn-start').disabled = true;
-    dom.el('btn-start').textContent = 'Waiting for players…';
-  });
-
-  sock.on('room:full', ({ players }) => {
-    lobby.renderPlayers(players, state.setupPlayerCount);
-    dom.el('lobby-status').textContent = 'Room full — host can start the game';
-    if (state.isHost) {
-      dom.el('btn-start').disabled = false;
-      dom.el('btn-start').textContent = 'Start game';
-    }
-  });
-
-  sock.on('game:start', ({ settings, state: gameState }) => {
-    state.setTimerDuration(settings.timer ?? 30);
-    state.setGameState(gameState);
-    render.initBoard(gameState);
-    if (gameState.currentPlayerIdx === state.myPlayerIndex) {
-      game.initNavCursor(gameState);
-    }
-    render.renderAll(gameState);
-    dom.showScreen('screen-game');
-  });
-
-  // State update handler
-  sock.on(
-    'state:update',
-    ({
-      state: newState,
-      events,
-      gameOver,
-      winner,
-      validMoves,
-      results,
-      moreQuestionsInProgress,
-    }) => {
-      handleStateUpdate(
-        sock,
-        newState,
-        events,
-        gameOver,
-        winner,
-        validMoves,
-        results,
-        moreQuestionsInProgress,
-      );
-    },
-  );
-
-  // Question handlers
-  sock.on(
-    'game:question_start',
-    ({ playerIdx, moveType, question: q, questionsTotal, defenderPlayerIdx }) => {
-      if (state.myPlayerIndex === playerIdx) {
-        return;
-      }
-      state.setSpectatingQuestion(true);
-      state.setSpectatingMoveType(moveType);
-      state.setSpectatingPlayerIdx(playerIdx);
-      state.setSpectatingDefenderIdx(defenderPlayerIdx ?? null);
-      state.setPendingQuestions(q ? [q] : []);
-      state.setPendingQuestionsTotal(questionsTotal ?? 1);
-      state.setCurrentQIdx(0);
-      state.setSpectateGen(state.spectateGen + 1);
-      question.showQuestion(0);
-    },
-  );
-
-  sock.on('game:next_question', ({ question: q, questionIdx }) => {
-    state.setCurrentQIdx(questionIdx);
-    state.pendingQuestions[questionIdx] = q;
-    question.showQuestion(questionIdx);
-  });
-
-  sock.on('game:answer_preview', ({ questionIdx, answerIdx, correct }) => {
-    if (!state.spectatingQuestion || state.currentQIdx !== questionIdx) {
-      return;
-    }
-    question.gameModalOptionBtns[answerIdx]?.classList.add(
-      correct ? 'answer-correct' : 'answer-wrong',
-    );
-  });
-
-  // Qlashique handlers
-  setupQlashiqueHandlers(sock);
-}
-
-// Walk through combat result entries after the last answer, advancing the modal
-// one question at a time on a setTimeout chain. Guarded by spectateGen so stale
-// timers from a previous combat sequence are discarded.
-function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
-  const gen = state.spectateGen;
-  setTimeout(() => {
-    if (state.spectateGen !== gen || !state.pendingQuestions.length) {
-      return;
-    }
-    const next = idx + 1;
-    if (moreQuestionsInProgress && next < state.pendingQuestions.length) {
-      state.setCurrentQIdx(next);
-      question.showQuestion(next);
-      return;
-    }
-    if (next < results.length && next < state.pendingQuestions.length) {
-      state.setCurrentQIdx(next);
-      question.showQuestion(next);
-      const r = results[next];
-      if (r?.chosenIdx >= 0) {
-        question.gameModalOptionBtns[r.chosenIdx]?.classList.add(
-          r.correct ? 'answer-correct' : 'answer-wrong',
-        );
-      }
-      advanceSpectateResult(results, next, moreQuestionsInProgress);
-      return;
-    }
-    // No more questions: close modal and clear state
-    state.setSpectatingQuestion(false);
-    state.setPendingQuestions([]);
-    state.setPendingAnswers([]);
-    dom.el('modal-overlay').classList.remove('visible');
-  }, constants.TIMING.RESULT_DISPLAY_MS);
-}
-
-function handleStateUpdate(
-  sock,
-  newState,
-  events,
-  gameOver,
-  winner,
-  validMoves,
-  results,
-  moreQuestionsInProgress,
-) {
-  const shouldShowResults = results?.length && state.pendingQuestions.length > 0;
-  const isNormalAttackerFlow =
-    !state.spectatingQuestion && state.lastSubmittedMoveType === 'normal';
-  const isNormalSpectatorFlow = state.spectatingQuestion && state.spectatingMoveType === 'normal';
-
-  if (
-    shouldShowResults &&
-    state.pendingQuestions.length &&
-    (isNormalAttackerFlow || isNormalSpectatorFlow)
-  ) {
-    question.stopTimer();
-    state.setSpectateGen(state.spectateGen + 1);
-    state.setSpectatingQuestion(false);
-    state.setPendingQuestions([]);
-    state.setPendingAnswers([]);
-    state.setLastSubmittedMoveType(null);
-    dom.el('modal-overlay').classList.remove('visible');
-  } else if (shouldShowResults && state.pendingQuestions.length) {
-    question.stopTimer();
-    const startIdx = results.length - 1;
-    state.setCurrentQIdx(startIdx);
-    const r = results[startIdx];
-    if (r?.chosenIdx >= 0) {
-      question.gameModalOptionBtns[r.chosenIdx]?.classList.add(
-        r.correct ? 'answer-correct' : 'answer-wrong',
-      );
-    }
-    advanceSpectateResult(results, startIdx, moreQuestionsInProgress);
-  } else if (state.spectatingQuestion) {
-    question.stopTimer();
-    state.setSpectateGen(state.spectateGen + 1);
-    state.setSpectatingQuestion(false);
-    state.setPendingQuestions([]);
-    dom.el('modal-overlay').classList.remove('visible');
-  }
-
-  const oldState = state.getGameState();
-  const prevPlayerIdx = oldState?.currentPlayerIdx;
-
-  if (prevPlayerIdx !== newState.currentPlayerIdx) {
-    if (!shouldShowResults) {
-      state.setSpectateGen(state.spectateGen + 1);
-      state.setPendingQuestions([]);
-      state.setPendingAnswers([]);
-      state.setSpectatingQuestion(false);
-      question.stopTimer();
-      dom.el('modal-overlay').classList.remove('visible');
-    }
-  }
-
-  const prevNavRow = state.navCursor.row;
-  const prevNavCol = state.navCursor.col;
-  state.setGameState(newState);
-
-  // Restore local state for sequential moves
-  if (
-    !moreQuestionsInProgress &&
-    newState.phase === 'selectTile' &&
-    newState.selectedPegId &&
-    newState.currentPlayerIdx === state.myPlayerIndex &&
-    validMoves
-  ) {
-    if (state.lastSubmittedPegId && newState.selectedPegId === state.lastSubmittedPegId) {
-      state.setLocalPhase('selectPeg');
-      state.setLocalSelectedPegId(null);
-      state.validMovesSet.clear();
-      game.setNavCursorToPeg(newState, newState.selectedPegId);
-    } else {
-      state.setLocalPhase('selectTile');
-      state.setLocalSelectedPegId(newState.selectedPegId);
-      state.setValidMovesSet(new Set(validMoves));
-    }
-  } else if (!moreQuestionsInProgress && state.localPhase !== 'selectTile') {
-    state.setLocalPhase(null);
-    state.setLocalSelectedPegId(null);
-    state.validMovesSet.clear();
-  }
-
-  if (newState.currentPlayerIdx === state.myPlayerIndex && newState.phase === 'selectPeg') {
-    const preferredPegId =
-      state.lastSubmittedPegId &&
-      newState.pegs[state.lastSubmittedPegId] &&
-      newState.pegs[state.lastSubmittedPegId].playerId === state.myPlayerIndex
-        ? state.lastSubmittedPegId
-        : null;
-    if (preferredPegId) {
-      game.setNavCursorToPeg(newState, preferredPegId);
-    } else {
-      game.initNavCursor(newState);
-    }
-  }
-
-  if (
-    prevPlayerIdx !== newState.currentPlayerIdx ||
-    newState.currentPlayerIdx !== state.myPlayerIndex
-  ) {
-    state.setLastSubmittedPegId(null);
-    state.setLastSubmittedMoveType(null);
-  }
-
-  const navCursorChanged = prevNavRow !== state.navCursor.row || prevNavCol !== state.navCursor.col;
-  if (navCursorChanged) {
-    render.renderAll(newState);
-  } else if (oldState && oldState.board) {
-    render.renderChangedTiles(oldState, newState, events);
-  } else {
-    render.renderAll(newState);
-  }
-
-  if (!gameOver && prevPlayerIdx !== undefined && prevPlayerIdx !== newState.currentPlayerIdx) {
-    const newPlayer = newState.players[newState.currentPlayerIdx];
-    if (newPlayer) {
-      game.showTurnAnnounce(newPlayer, newState.currentPlayerIdx === state.myPlayerIndex);
-    }
-  }
-
-  if (gameOver) {
-    setTimeout(() => showGameOver(winner, newState), 400);
-  }
-}
-
-function showGameOver(winnerIdx, gameState) {
-  const winner = gameState.players[winnerIdx];
-  dom.el('winner-text').textContent = `${winner?.name ?? 'Unknown'} wins!`;
-  dom.el('winner-text').style.color = winner?.color ?? '#ffd700';
-  dom.el('screen-gameover').style.display = 'flex';
-  state.setLocalPhase(null);
-  state.setLocalSelectedPegId(null);
-  state.validMovesSet.clear();
-  state.setPendingMove(null);
-  state.setPendingQuestions([]);
-  state.setPendingAnswers([]);
-  state.setSpectatingQuestion(false);
-  question.stopTimer();
-  dom.el('modal-overlay').classList.remove('visible');
 }
 
 function initUI() {
@@ -422,29 +126,35 @@ function initUI() {
     dom.el('btn-advanced').classList.toggle('active', !visible);
   });
 
-  // Window globals for HTML onclick handlers
-  window.closeHelp = function () {
-    dom.el('help-modal').classList.remove('show');
-  };
+  const closeHelp = () => dom.el('help-modal').classList.remove('show');
+  const openLegal = (page) => dom.el('modal-' + page).classList.add('open');
+  const closeLegal = (page) => dom.el('modal-' + page).classList.remove('open');
+
+  dom.el('ann-howto-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    dom.el('help-modal').classList.add('show');
+  });
+  dom.el('btn-help-close').addEventListener('click', closeHelp);
   dom.el('help-modal').addEventListener('click', (e) => {
-    if (e.target === dom.el('help-modal')) {
-      window.closeHelp();
-    }
+    if (e.target === dom.el('help-modal')) closeHelp();
   });
 
-  window.openLegal = function (page) {
-    document.getElementById('modal-' + page).classList.add('open');
-  };
-  window.closeLegal = function (page) {
-    document.getElementById('modal-' + page).classList.remove('open');
-  };
-  ['privacy', 'cookies', 'terms'].forEach((page) => {
-    document.getElementById('modal-' + page).addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modal-' + page)) {
-        window.closeLegal(page);
-      }
+  document.querySelectorAll('[data-legal-open]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      openLegal(link.dataset.legalOpen);
     });
   });
+  document.querySelectorAll('[data-legal-close]').forEach((btn) => {
+    btn.addEventListener('click', () => closeLegal(btn.dataset.legalClose));
+  });
+  ['privacy', 'cookies', 'terms'].forEach((page) => {
+    dom.el('modal-' + page).addEventListener('click', (e) => {
+      if (e.target === dom.el('modal-' + page)) closeLegal(page);
+    });
+  });
+
+  dom.el('btn-gameover-newgame').addEventListener('click', () => location.reload());
 
   // Dev quickstart
   dom.el('btn-dev-quickstart').addEventListener('click', () => {
@@ -466,105 +176,6 @@ function initOptBtnGroup(groupId, setter) {
     group.querySelectorAll('.opt-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     setter(parseInt(btn.dataset.val));
-  });
-}
-
-function setupGameHandlers(sock) {
-  // Create game
-  dom.el('btn-create').addEventListener('click', () => {
-    const playerName = dom.getPlayerName();
-    if (!playerName) return;
-    if (state.setupEnabledCats.length === 0) {
-      return dom.showError('Select at least one category.');
-    }
-    sock.emit(
-      'room:create',
-      {
-        playerName,
-        playerCount: state.setupPlayerCount,
-        boardSize: state.setupBoardSize,
-        timer: state.setupTimer,
-        enabledCats: state.setupEnabledCats,
-      },
-      ({ error, code, players, token }) => {
-        if (error) return dom.showError(error);
-        const me = players.find((p) => p.id === state.myId);
-        if (me) {
-          dom.el('player-name').value = me.name;
-        }
-        state.setMyToken(token);
-        state.setMyPlayerIndex(0);
-        state.setMyRoom({
-          code,
-          settings: { playerCount: state.setupPlayerCount, timer: state.setupTimer },
-        });
-        state.setIsHost(true);
-        dom.el('lobby-code').textContent = code;
-        lobby.renderPlayers(players, state.myRoom.settings.playerCount);
-        dom.el('lobby-status').textContent =
-          `${players.length} / ${state.myRoom.settings.playerCount} players`;
-        dom.showScreen('screen-lobby');
-      },
-    );
-  });
-
-  // Join game
-  dom.el('btn-join').addEventListener('click', () => {
-    const playerName = dom.getPlayerName();
-    if (!playerName) return;
-    const code = dom
-      .el('join-code')
-      .value.trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 5) {
-      return dom.showError('Room code must be 5 characters.');
-    }
-    sock.emit('room:join', { code, playerName }, ({ error, players, settings, token }) => {
-      if (error) return dom.showError(error);
-      const me = players.find((p) => p.id === state.myId);
-      if (me) {
-        dom.el('player-name').value = me.name;
-      }
-      state.setMyToken(token);
-      state.setMyPlayerIndex(me?.index ?? players.length - 1);
-      state.setMyRoom({ code, settings });
-      state.setIsHost(false);
-      dom.el('lobby-code').textContent = code;
-      lobby.renderPlayers(players, settings.playerCount);
-      dom.el('lobby-status').textContent = `${players.length} / ${settings.playerCount} players`;
-      dom.showScreen('screen-lobby');
-    });
-  });
-
-  // Start game
-  dom.el('btn-start').addEventListener('click', () => {
-    sock.emit('room:start', { code: state.myRoom.code }, ({ error }) => {
-      if (error) dom.showError(error);
-    });
-  });
-
-  // Copy code
-  dom.el('btn-copy-code').addEventListener('click', () => {
-    if (!state.myRoom?.code) return;
-    navigator.clipboard
-      .writeText(state.myRoom.code)
-      .then(() => {
-        const btn = dom.el('btn-copy-code');
-        const originalText = btn.textContent;
-        btn.textContent = '✅';
-        setTimeout(() => {
-          btn.textContent = originalText;
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error('Failed to copy code: ', err);
-      });
-  });
-
-  // Input handling
-  dom.el('join-code').addEventListener('input', (e) => {
-    e.target.value = e.target.value.toUpperCase();
   });
 }
 
@@ -595,10 +206,6 @@ function setupQuizHandlers(sock) {
       : 'Hide EPL Leaderboard';
     if (!visible) leaderboard.loadPanelLeaderboard('epl_2025', 'epl-lb-rows');
   });
-}
-
-function setupQlashiqueHandlers(sock) {
-  qlashique.initQlashique(sock);
 }
 
 // Export for external use

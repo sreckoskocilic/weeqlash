@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; object-src 'none';"
+      content="default-src 'self'; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; object-src 'none';"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- CSP handled by Cloudflare -->
@@ -25,14 +25,7 @@
       <ul>
         <li>
           <strong>Qlashique</strong> — 1v1 trivia duel mode is here.
-          <a
-            href="#"
-            onclick="
-              document.getElementById('help-modal').classList.add('show');
-              return false;
-            "
-            >How to play</a
-          >
+          <a href="#" id="ann-howto-link">How to play</a>
         </li>
         <li>
           <strong>EPL 2025 Triviandom</strong> — English Premier League-only question mode with its
@@ -172,10 +165,6 @@
                   border-radius: var(--radius);
                   font-size: 1rem;
                   height: 40px;
-                "
-                onkeydown="
-                  if (event.key === 'Enter' && this.value)
-                    document.getElementById('btn-login').click();
                 "
               />
             </div>
@@ -543,11 +532,11 @@
     <footer id="site-footer">
       <span>&copy; 2026 Weeqlash</span>
       <span class="sep">|</span>
-      <a onclick="openLegal('privacy')">Privacy Policy</a>
+      <a href="#" data-legal-open="privacy">Privacy Policy</a>
       <span class="sep">|</span>
-      <a onclick="openLegal('cookies')">Cookie Policy</a>
+      <a href="#" data-legal-open="cookies">Cookie Policy</a>
       <span class="sep">|</span>
-      <a onclick="openLegal('terms')">Terms of Service</a>
+      <a href="#" data-legal-open="terms">Terms of Service</a>
     </footer>
 
     <!-- Legal: Privacy Policy -->
@@ -589,7 +578,7 @@
         </p>
         <h3>Contact</h3>
         <p>Questions? Reach out via the project repository.</p>
-        <button class="legal-close" onclick="closeLegal('privacy')">[ close ]</button>
+        <button class="legal-close" data-legal-close="privacy">[ close ]</button>
       </div>
     </div>
 
@@ -626,7 +615,7 @@
           You can clear localStorage at any time via your browser's developer tools or settings.
           Doing so will reset your saved preferences.
         </p>
-        <button class="legal-close" onclick="closeLegal('cookies')">[ close ]</button>
+        <button class="legal-close" data-legal-close="cookies">[ close ]</button>
       </div>
     </div>
 
@@ -670,7 +659,7 @@
           We may update these terms at any time. Continued use of the service constitutes acceptance
           of the updated terms.
         </p>
-        <button class="legal-close" onclick="closeLegal('terms')">[ close ]</button>
+        <button class="legal-close" data-legal-close="terms">[ close ]</button>
       </div>
     </div>
 
@@ -706,7 +695,7 @@
           The <strong>💊 HEAL</strong> button is available during your turn (disabled if score &lt;
           2). Clicking it immediately heals +2 HP and ends your turn.
         </p>
-        <button onclick="window.closeHelp()">GOT IT</button>
+        <button id="btn-help-close">GOT IT</button>
       </div>
     </div>
 
@@ -788,7 +777,7 @@
         </div>
         <div class="modal-options" id="modal-options"></div>
         <div id="modal-continue-wrap">
-          <button id="modal-continue-btn" onclick="continueAfterQuestion()">CONTINUE</button>
+          <button id="modal-continue-btn">CONTINUE</button>
         </div>
       </div>
     </div>
@@ -803,7 +792,7 @@
     <div id="screen-gameover">
       <h1>GAME OVER</h1>
       <div id="winner-text"></div>
-      <button onclick="location.reload()">NEW GAME</button>
+      <button id="btn-gameover-newgame">NEW GAME</button>
     </div>
 
     <script type="module" src="./js/main.js"></script>
@@ -819,12 +808,7 @@
         <!-- Class select -->
         <div id="qlas-phase-class">
           <div class="qlas-class-grid" id="qlas-class-grid">
-            <div
-              class="qlas-card"
-              id="qlas-card-slowpoke"
-              style="--qc: #00b8ff"
-              onclick="qlasSelectClass('slowpoke')"
-            >
+            <div class="qlas-card" id="qlas-card-slowpoke" style="--qc: #00b8ff">
               <div class="qlas-card-check">✓</div>
               <span class="qlas-card-icon">🐢</span>
               <div class="qlas-card-name">SLOWPOKE</div>
@@ -838,12 +822,7 @@
                 Timer is always +2s above the current round's base. No activation needed.
               </div>
             </div>
-            <div
-              class="qlas-card"
-              id="qlas-card-reroll"
-              style="--qc: #c9a227"
-              onclick="qlasSelectClass('reroll')"
-            >
+            <div class="qlas-card" id="qlas-card-reroll" style="--qc: #c9a227">
               <div class="qlas-card-check">✓</div>
               <span class="qlas-card-icon">🎲</span>
               <div class="qlas-card-name">REROLL</div>
@@ -868,9 +847,7 @@
                 <div class="qlas-confirm-tag" id="qlas-confirm-tag">click a class above</div>
               </div>
             </div>
-            <button class="qlas-btn-confirm" id="qlas-btn-confirm" disabled onclick="qlasConfirm()">
-              CONFIRM →
-            </button>
+            <button class="qlas-btn-confirm" id="qlas-btn-confirm" disabled>CONFIRM →</button>
           </div>
           <div id="qlas-waiting-panel" style="display: none">
             <div class="qlas-waiting" style="margin-top: 10px">
@@ -880,11 +857,7 @@
                 <div style="display: inline-flex; align-items: center; gap: 10px">
                   <div class="qlas-code-display" id="qlas-code-val">—</div>
                   <button
-                    onclick="
-                      navigator.clipboard.writeText(
-                        document.getElementById('qlas-code-val').textContent,
-                      )
-                    "
+                    id="qlas-btn-copy-code"
                     style="
                       background: #0d2e0d;
                       border: 1px solid #00ff41;
@@ -929,12 +902,7 @@
                   <div class="qlas-hp-bar-fill" id="qlas-p1hpbar" style="width: 100%"></div>
                 </div>
               </div>
-              <button
-                class="qlas-recap-live-btn"
-                id="qlas-recap-live-btn"
-                type="button"
-                onclick="qlasOpenLiveRecap()"
-              >
+              <button class="qlas-recap-live-btn" id="qlas-recap-live-btn" type="button">
                 [ recap ]
               </button>
             </div>
@@ -967,36 +935,16 @@
               </div>
 
               <div class="qlas-action-row" id="qlas-action-row" style="display: none">
-                <button
-                  class="btn-qlas-stop"
-                  id="btn-qlas-stop"
-                  style="display: none"
-                  onclick="qlasStopAttack()"
-                >
+                <button class="btn-qlas-stop" id="btn-qlas-stop" style="display: none">
                   END ATTACK
                 </button>
-                <button
-                  class="btn-qlas-reroll"
-                  id="btn-qlas-reroll"
-                  style="display: none"
-                  onclick="qlasReroll()"
-                >
+                <button class="btn-qlas-reroll" id="btn-qlas-reroll" style="display: none">
                   🎲 REROLL
                 </button>
-                <button
-                  class="btn-qlas-end"
-                  id="btn-qlas-end"
-                  style="display: none"
-                  onclick="qlasEndTurn()"
-                >
+                <button class="btn-qlas-end" id="btn-qlas-end" style="display: none">
                   END TURN
                 </button>
-                <button
-                  class="btn-qlas-heal"
-                  id="btn-qlas-heal"
-                  style="display: none"
-                  onclick="qlasHeal()"
-                >
+                <button class="btn-qlas-heal" id="btn-qlas-heal" style="display: none">
                   💊 HEAL
                   <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
                 </button>
@@ -1009,7 +957,6 @@
                 <button
                   class="qlas-btn-confirm"
                   id="btn-qlas-attack"
-                  onclick="qlasStartGuessing()"
                   style="font-size: 1.3rem; width: 100%"
                 >
                   ⚔ ATTACK
@@ -1020,10 +967,10 @@
         </div>
 
         <!-- Live recap modal -->
-        <div class="qlas-recap-modal" id="qlas-recap-modal" onclick="qlasCloseLiveRecap(event)">
-          <div class="qlas-recap-modal-body" onclick="event.stopPropagation()">
+        <div class="qlas-recap-modal" id="qlas-recap-modal">
+          <div class="qlas-recap-modal-body">
             <div class="qlas-recap-modal-head">
-              <button class="qlas-recap-modal-close" type="button" onclick="qlasCloseLiveRecap()">
+              <button class="qlas-recap-modal-close" id="qlas-recap-modal-close" type="button">
                 [ close ]
               </button>
             </div>
@@ -1037,16 +984,11 @@
             <h1>GAME OVER</h1>
             <div class="winner" id="qlas-winner-text"></div>
             <div class="reason" id="qlas-winner-reason"></div>
-            <button
-              class="qlas-recap-toggle"
-              id="qlas-recap-toggle"
-              onclick="qlasToggleRecap()"
-              style="display: none"
-            >
+            <button class="qlas-recap-toggle" id="qlas-recap-toggle" style="display: none">
               [ show recap ]
             </button>
             <div class="qlas-recap" id="qlas-recap" style="display: none"></div>
-            <button class="qlas-btn-back" onclick="location.reload()">PLAY AGAIN</button>
+            <button class="qlas-btn-back" id="btn-qlas-playagain">PLAY AGAIN</button>
           </div>
         </div>
       </div>

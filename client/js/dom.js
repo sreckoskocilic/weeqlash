@@ -58,9 +58,6 @@ export function sanitize(str) {
   return div.innerHTML;
 }
 
-// Make sanitize available globally (used in HTML)
-window.sanitize = sanitize;
-
 // Get player name (requires login)
 export function getPlayerName() {
   if (!_currentUser) {

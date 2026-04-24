@@ -199,7 +199,7 @@ export function showLeaderboard(result) {
           <div class="lb-rk">${String(result.answers < res.top10.length ? result.answers + 1 : 10).padStart(2, '0')}</div>
           <div class="lb-inp-wrap">
             <input id="lb-name-input" placeholder="your name" maxlength="16" autofocus/>
-            <button onclick="submitQuizScore()">OK</button>
+            <button id="lb-submit-score-btn">OK</button>
           </div>
           <div style="text-align: right; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums;">${result.answers}</div>
           <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(result.timeSec)}s</div>
@@ -210,6 +210,7 @@ export function showLeaderboard(result) {
             (e.answers === result.answers && e.time_ms < result.timeSec * 1000),
         ).length;
         container.insertBefore(newRow, container.children[insertPos]);
+        newRow.querySelector('#lb-submit-score-btn').addEventListener('click', submitQuizScore);
       }
     });
 
@@ -242,8 +243,7 @@ export function showLeaderboard(result) {
   });
 }
 
-// Submit quiz score
-window.submitQuizScore = function submitQuizScore() {
+function submitQuizScore() {
   const name = document.getElementById('lb-name-input').value.trim();
   if (!name) {
     return;
@@ -254,7 +254,7 @@ window.submitQuizScore = function submitQuizScore() {
       showLeaderboard({ qualifies: false });
     });
   });
-};
+}
 
 // Leaderboard loading
 let leaderboardLoaded = false;

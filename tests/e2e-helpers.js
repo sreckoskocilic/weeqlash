@@ -29,11 +29,22 @@ export async function registerAndLogin(browser, username) {
 
 // Lock the next board-mode question picked by the server to the given qId.
 // Defaults to the synthetic TEST_QUESTION so tests can assert correct-answer UI.
-export async function setNextQuestion(qId = TEST_QUESTION.id) {
+// Pass { sticky: true } to persist across picks; pair with clearStickyQuestion()
+// in test.afterEach to avoid bleeding into later specs.
+export async function setNextQuestion(qId = TEST_QUESTION.id, { sticky = false } = {}) {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
-  const res = await api.post('/test/set-question', { data: { qId } });
+  const res = await api.post('/test/set-question', { data: { qId, sticky } });
   await api.dispose();
   if (!res.ok()) {
     throw new Error(`/test/set-question failed: ${res.status()}`);
+  }
+}
+
+export async function clearStickyQuestion() {
+  const api = await playwrightRequest.newContext({ baseURL: BASE });
+  const res = await api.post('/test/clear-sticky-question');
+  await api.dispose();
+  if (!res.ok()) {
+    throw new Error(`/test/clear-sticky-question failed: ${res.status()}`);
   }
 }
