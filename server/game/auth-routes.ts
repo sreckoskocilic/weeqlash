@@ -198,16 +198,26 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
 
-    // Single-session-per-user: if the user is already logged in elsewhere,
-    // kill the previous session server-side before issuing the new one.
-    // Fail-closed: if Redis errors at any step, do NOT proceed — otherwise
-    // the old session would linger and defeat the policy.
+    // Single-session-per-user + session fixation defense:
+    //   1. Kill any existing session this user has on another browser.
+    //   2. Regenerate the current sid so an attacker who pre-seeded a cookie
+    //      (via XSS, subdomain bug, etc.) does not inherit an authenticated sid.
+    //   3. Write user fields onto the fresh session and index the new sid.
+    // Fail-closed: on any Redis/session error, abort — otherwise the old
+    // session would linger and defeat the policy.
     try {
       const oldSid = await getActiveSid(result.user.id);
       if (oldSid && oldSid !== req.sessionID) {
         await destroySession(oldSid);
         kickSocketsForSid(io, oldSid);
+        console.log(
+          `[auth] kicked prior session for userId=${result.user.id} (logged in elsewhere)`,
+        );
       }
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => (err ? reject(err) : resolve()));
+      });
 
       req.session.userId = result.user.id;
       req.session.username = result.user.username;
@@ -224,7 +234,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       await setActiveSid(result.user.id, req.sessionID, 7 * 24 * 60 * 60);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[auth] Redis error during login:', msg);
+      console.error('[auth] login error:', msg);
       return res.status(503).json({ error: 'Service temporarily unavailable' });
     }
 
