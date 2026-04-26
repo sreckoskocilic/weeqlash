@@ -105,6 +105,34 @@ describe('questions.js', () => {
       expect(getAllQuestions(empty)).toHaveLength(0);
     });
 
+    // Regression: bucket items in `db[cat]` arrays do not carry `category` —
+    // only `_byId` did. `getAllQuestions` must attach category from the bucket
+    // key. The qlas pool filter (server/index.js) and quiz UI both rely on
+    // `q.category` being set; without this, every question is dropped by any
+    // category-aware filter.
+    it('attaches category to every returned item from the bucket key', () => {
+      const data = {
+        History: [
+          { id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] },
+          { id: 'H2', q: 'Q2', a: 1, opts: ['A', 'B', 'C', 'D'] },
+        ],
+        Science: [{ id: 'S1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] }],
+        _byId: {},
+      };
+      for (const cat of ['History', 'Science']) {
+        for (const q of data[cat]) {
+          data._byId[q.id] = { ...q, category: cat };
+        }
+      }
+
+      const all = getAllQuestions(data);
+      for (const q of all) {
+        expect(q.category, `question ${q.id} missing category`).toBeTruthy();
+      }
+      expect(all.find((q) => q.id === 'H1').category).toBe('History');
+      expect(all.find((q) => q.id === 'S1').category).toBe('Science');
+    });
+
     it('caches result per db object', () => {
       const data = {
         History: [{ id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] }],

@@ -107,11 +107,7 @@
       </svg>
       <div class="ann-header">Latest</div>
       <ul>
-        <li>
-          <strong>Qlashique</strong> — 1v1 trivia duel mode is here.
-          <a href="#" id="ann-howto-link">How to play</a>
-        </li>
-        <li>New question categories added</li>
+        <li>Stay t00ned, soon to question your questOFFs</li>
       </ul>
     </section>
 
@@ -512,7 +508,11 @@
 
       <!-- RIGHT COLUMN: Triviandom + Qlashique -->
       <div class="card col-triviandom">
-        <button class="btn-show-triv-lb" id="btn-show-triv-lb">Show Triviandom Leaderboard</button>
+        <!-- Triviandom hidden while a new quiz mode is being prepared.
+             Leaderboard data preserved server-side. -->
+        <button class="btn-show-triv-lb" id="btn-show-triv-lb" style="display: none">
+          Show Triviandom Leaderboard
+        </button>
         <div
           id="triv-lb-panel"
           class="leaderboard-panel"
@@ -534,7 +534,9 @@
           </div>
           <div id="triv-lb-rows"></div>
         </div>
-        <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
+        <button id="btn-quiz-start" class="btn-triviandom" style="display: none">
+          Start Triviandom
+        </button>
         <div class="divider">enter room code to join the game</div>
         <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
           <input

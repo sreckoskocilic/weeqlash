@@ -130,10 +130,6 @@ function initUI() {
   const openLegal = (page) => dom.el('modal-' + page).classList.add('open');
   const closeLegal = (page) => dom.el('modal-' + page).classList.remove('open');
 
-  dom.el('ann-howto-link').addEventListener('click', (e) => {
-    e.preventDefault();
-    dom.el('help-modal').classList.add('show');
-  });
   dom.el('btn-help-close').addEventListener('click', closeHelp);
   dom.el('help-modal').addEventListener('click', (e) => {
     if (e.target === dom.el('help-modal')) closeHelp();

@@ -83,16 +83,24 @@ export function loadQuestions(encPath?: string): QuestionsDb {
 // Lazy flat array for quiz mode — computed once per db object on first access, not at startup.
 // Avoids the OOM crash that eager _all[] caused with 8642 questions.
 // WeakMap keyed on db object so tests that call loadQuestions() per-test get a fresh cache.
+//
+// Each item is given its `category` field from the bucket key — items as stored
+// in `db[cat]` arrays don't carry category themselves (only `db._byId` did).
+// Callers MUST be able to read `q.category` (qlas pool uses it to filter disabled
+// categories; quiz UI uses it to render the category badge).
 const _allCacheByDb = new WeakMap<QuestionsDb, Question[]>();
 export function getAllQuestions(db: QuestionsDb): Question[] {
   if (!_allCacheByDb.has(db)) {
-    _allCacheByDb.set(
-      db,
-      Object.values(db)
-        .filter(Array.isArray)
-        .flat()
-        .filter((q): q is Question => q.id !== undefined),
-    );
+    const flat: Question[] = [];
+    for (const [cat, qs] of Object.entries(db)) {
+      if (!Array.isArray(qs)) continue;
+      for (const q of qs) {
+        if (q.id !== undefined) {
+          flat.push({ ...q, category: cat as Category });
+        }
+      }
+    }
+    _allCacheByDb.set(db, flat);
   }
   return _allCacheByDb.get(db)!;
 }

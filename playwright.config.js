@@ -13,7 +13,9 @@ export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.spec.js',
   // Disabled — kept on disk for future re-enabling.
-  testIgnore: ['**/iphone13-audit.spec.js'],
+  // - iphone13-audit: viewport audit, run manually when needed
+  // - quiz: Triviandom UI is currently hidden; spec depends on visible button
+  testIgnore: ['**/iphone13-audit.spec.js', '**/quiz.spec.js'],
   timeout: 60000,
   workers: 1,
   use: {

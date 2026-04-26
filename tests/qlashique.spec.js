@@ -204,3 +204,35 @@ test('qlashique: live recap populates after a few turns', async ({ browser }) =>
   await ctx1.close();
   await ctx2.close();
 });
+
+// Regression: the other two specs force a known question every turn via
+// /test/set-question, which short-circuits `_pickQlasQuestion` before its
+// real-pool branch ever runs. This spec engages WITHOUT an override so the
+// server is forced to pull from the actual question pool — if the pool is
+// empty (e.g. a category-filter regression like CATS_SET vs missing
+// `q.category`), `start_guessing` errors out and `.qlas-opt` never appears.
+test('qlashique: real pool serves a question (no override)', async ({ browser }) => {
+  const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
+  const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
+
+  await p1.locator('#btn-qlas-start').click();
+  await p1.waitForFunction(
+    // eslint-disable-next-line no-undef
+    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
+    { timeout: 8000 },
+  );
+  const code = await p1.locator('#qlas-code-val').textContent();
+
+  await p2.locator('#qlas-join-code').fill(code.trim());
+  await p2.locator('#btn-qlas-start').click();
+
+  await p1.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 10000 });
+  await p1.locator('#btn-qlas-attack').click();
+
+  // 4 answer buttons appear → pool produced a question
+  await expect(p1.locator('.qlas-opt')).toHaveCount(4, { timeout: 5000 });
+  await expect(p1.locator('#qlas-question').locator('.qlas-q-text')).toBeVisible();
+
+  await ctx1.close();
+  await ctx2.close();
+});
