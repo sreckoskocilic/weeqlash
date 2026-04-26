@@ -5,26 +5,11 @@
 import { el, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';
 
-// Class metadata
-export const QLAS_CLASS_META = {
-  slowpoke: {
-    icon: '🐢',
-    name: 'SLOWPOKE',
-    tag: 'extra time · consistent',
-  },
-  reroll: { icon: '🎲', name: 'REROLL', tag: 'one shot · smart skip' },
-};
-
 // State
 let qlasCode = null;
 let qlasMyIdx = null;
 let qlasIsHost = false;
-let qlasSelectedClass = null;
-let qlasClassConfirmed = false;
-let qlasPlayers = [
-  { name: '', classId: '' },
-  { name: '', classId: '' },
-];
+let qlasPlayers = [{ name: '' }, { name: '' }];
 let qlasHp = [30, 30];
 let qlasScore = 0;
 let qlasCurrentQ = null;
@@ -48,7 +33,7 @@ function qEl(id) {
 }
 
 export function qlasShowPhase(phase) {
-  ['qlas-phase-class', 'qlas-phase-combat', 'qlas-phase-gameover'].forEach((id) => {
+  ['qlas-phase-waiting', 'qlas-phase-combat', 'qlas-phase-gameover'].forEach((id) => {
     qEl(id).style.display = 'none';
   });
   qEl('qlas-phase-' + phase).style.display = '';
@@ -158,9 +143,7 @@ export function qlasStopTimer() {
 export function qlasRenderPlayerInfo() {
   [0, 1].forEach((i) => {
     const p = qlasPlayers[i];
-    const meta = QLAS_CLASS_META[p.classId] || {};
     qEl('qlas-p' + i + 'name').textContent = p.name || 'Player ' + (i + 1);
-    qEl('qlas-p' + i + 'class').textContent = meta.name || '—';
   });
 }
 
@@ -186,10 +169,7 @@ export function qlasRestoreFromReconnect(res) {
   qlasCode = res.code;
   qlasHp = res.hp;
   qlasScore = res.currentScore || 0;
-  qlasPlayers = res.players.map((p, i) => ({
-    name: p.name || '',
-    classId: res.classSelections[i] || '',
-  }));
+  qlasPlayers = res.players.map((p) => ({ name: p.name || '' }));
 
   showScreen('screen-qlashique');
 
@@ -242,80 +222,6 @@ export function qlasRestoreFromReconnect(res) {
   }
 }
 
-// --- Class selection (exposed on window for onclick handlers) ---
-
-export function qlasSelectClass(classId) {
-  if (qlasClassConfirmed) {
-    return;
-  }
-  qlasSelectedClass = classId;
-  document.querySelectorAll('.qlas-card').forEach((c) => c.classList.remove('selected'));
-  qEl('qlas-card-' + classId).classList.add('selected');
-  const meta = QLAS_CLASS_META[classId];
-  const color = classId === 'slowpoke' ? '#5c9ee5' : '#c9a227';
-  qEl('qlas-confirm-icon').textContent = meta.icon;
-  qEl('qlas-confirm-icon').style.borderColor = color;
-  qEl('qlas-confirm-name').textContent = meta.name;
-  qEl('qlas-confirm-name').style.color = color;
-  qEl('qlas-confirm-tag').textContent = meta.tag;
-  const confirmBtn = qEl('qlas-btn-confirm');
-  confirmBtn.disabled = false;
-  confirmBtn.style.background = color;
-}
-
-export function qlasConfirm() {
-  if (!qlasSelectedClass) {
-    return;
-  }
-  qlasClassConfirmed = true;
-  qEl('qlas-btn-confirm').disabled = true;
-  document.querySelectorAll('.qlas-card').forEach((c) => {
-    c.style.pointerEvents = 'none';
-    c.style.opacity = '0.7';
-  });
-  qlasLiveHistory = [];
-  const socket = getSocket();
-  const playerName = getPlayerName();
-  if (qlasIsHost) {
-    socket.emit('qlashique:create_room', { playerName }, (res) => {
-      if (res.error) {
-        qlasClassConfirmed = false;
-        qEl('qlas-btn-confirm').disabled = false;
-        return;
-      }
-      qlasCode = res.code;
-      qlasToken = res.token;
-      qlasMyIdx = 0;
-      qlasPlayers[0].name = playerName;
-      qEl('qlas-waiting-panel').style.display = '';
-      qEl('qlas-waiting-label').textContent = 'Waiting for opponent…';
-      qEl('qlas-code-row').style.display = '';
-      qEl('qlas-code-val').textContent = res.code;
-      socket.emit(
-        'qlashique:select_class',
-        { code: qlasCode, classId: qlasSelectedClass },
-        () => {},
-      );
-    });
-  } else {
-    const code = qlasCode;
-    socket.emit('room:join', { code, playerName }, (res) => {
-      if (res.error) {
-        qlasClassConfirmed = false;
-        qEl('qlas-btn-confirm').disabled = false;
-        return;
-      }
-      qlasToken = res.token;
-      qlasMyIdx = res.myIdx;
-      qlasPlayers[0].name = res.players[0]?.name || '';
-      qlasPlayers[1].name = res.players[1]?.name || '';
-      qEl('qlas-waiting-panel').style.display = '';
-      qEl('qlas-waiting-label').textContent = 'Waiting for game to start…';
-      socket.emit('qlashique:select_class', { code, classId: qlasSelectedClass }, () => {});
-    });
-  }
-}
-
 // --- Guessing phase ---
 
 export function qlasStartGuessing() {
@@ -346,15 +252,6 @@ export function qlasSubmitAnswer(answerIdx) {
   document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
   const socket = getSocket();
   socket.emit('qlashique:answer', { code: qlasCode, answerIdx }, () => {});
-}
-
-export function qlasReroll() {
-  const socket = getSocket();
-  socket.emit('qlashique:reroll', { code: qlasCode }, (res) => {
-    if (!res?.error) {
-      qEl('btn-qlas-reroll').disabled = true;
-    }
-  });
 }
 
 export function qlasStopAttack() {
@@ -517,15 +414,11 @@ function qlasCloseLiveRecap() {
 }
 
 export function initQlashique(socket) {
-  qEl('qlas-card-slowpoke').addEventListener('click', () => qlasSelectClass('slowpoke'));
-  qEl('qlas-card-reroll').addEventListener('click', () => qlasSelectClass('reroll'));
-  qEl('qlas-btn-confirm').addEventListener('click', qlasConfirm);
   qEl('qlas-btn-copy-code').addEventListener('click', () => {
     navigator.clipboard.writeText(qEl('qlas-code-val').textContent);
   });
   qEl('qlas-recap-live-btn').addEventListener('click', qlasOpenLiveRecap);
   qEl('btn-qlas-stop').addEventListener('click', qlasStopAttack);
-  qEl('btn-qlas-reroll').addEventListener('click', qlasReroll);
   qEl('btn-qlas-end').addEventListener('click', qlasEndTurn);
   qEl('btn-qlas-heal').addEventListener('click', qlasHeal);
   qEl('btn-qlas-attack').addEventListener('click', qlasStartGuessing);
@@ -537,10 +430,6 @@ export function initQlashique(socket) {
   qEl('btn-qlas-playagain').addEventListener('click', () => location.reload());
 
   // Socket events
-  socket.on('qlashique:class_selected', ({ playerIdx, classId }) => {
-    qlasPlayers[playerIdx].classId = classId;
-  });
-
   socket.on('room:player_joined', ({ players }) => {
     if (qlasCode) {
       players.forEach((p, i) => {
@@ -559,7 +448,7 @@ export function initQlashique(socket) {
     qEl('btn-qlas-end').style.display = 'none';
     qEl('btn-qlas-heal').style.display = 'none';
     qEl('qlas-waiting-panel').style.display = 'none';
-    qEl('qlas-phase-class').style.display = 'none';
+    qEl('qlas-phase-waiting').style.display = 'none';
     qEl('qlas-phase-combat').style.display = '';
     qEl('qlas-phase-gameover').style.display = 'none';
     showScreen('screen-qlashique');
@@ -606,7 +495,6 @@ export function initQlashique(socket) {
       qEl('btn-qlas-heal').style.display = 'none';
       qEl('qlas-qpanel').style.display = '';
       qEl('qlas-qpanel').style.opacity = '1.0';
-      qEl('btn-qlas-reroll').style.display = 'none';
       if (isMyTurn) {
         qlasStartTimer(qlasTimerTotal);
       }
@@ -658,11 +546,6 @@ export function initQlashique(socket) {
       }
     },
   );
-
-  socket.on('qlashique:rerolled', ({ newQuestion }) => {
-    qlasRenderQuestion(newQuestion, qlasQIdx);
-    document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
-  });
 
   socket.on('qlashique:turn_end', () => {
     qlasStopTimer();
@@ -767,22 +650,16 @@ export function initQlashique(socket) {
     }
 
     // Reset state
-    qlasSelectedClass = null;
-    qlasClassConfirmed = false;
-    qlasPlayers = [
-      { name: '', classId: '' },
-      { name: '', classId: '' },
-    ];
+    qlasPlayers = [{ name: '' }, { name: '' }];
     qlasHp = [30, 30];
     qlasScore = 0;
     qlasToken = null;
     qlasGuessingActive = false;
+    qlasLiveHistory = [];
 
     const playerName = getPlayerName();
     showScreen('screen-qlashique');
-    qlasShowPhase('class');
-    qEl('qlas-class-grid').style.display = 'none';
-    qEl('qlas-confirm-row').style.display = 'none';
+    qlasShowPhase('waiting');
     qEl('qlas-waiting-panel').style.display = '';
 
     if (qlasIsHost) {

@@ -17,12 +17,6 @@ export const QUIZ_MODES: QuizMode[] = [
     categories: null,
     table: 'leaderboard',
   },
-  {
-    id: 'epl_2025',
-    label: 'EPL 2025',
-    categories: ['epl_2025'],
-    table: 'leaderboard_epl2025',
-  },
 ];
 
 export const QUIZ_MODES_BY_ID: Record<string, QuizMode> = Object.fromEntries(

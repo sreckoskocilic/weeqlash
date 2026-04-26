@@ -23,7 +23,6 @@ export interface RoomState {
 
   // Qlashique-specific fields
   mode?: string;
-  classSelections?: (string | null)[];
   usedQIds?: Set<string>;
   currentQuestion?: Question | null;
   questionIdx?: number;
@@ -298,7 +297,6 @@ export function createQlasRoom(): RoomState {
     started: false,
     startedAt: null,
     state: null,
-    classSelections: [null, null],
     usedQIds: new Set(),
     currentQuestion: null,
     questionIdx: 0,

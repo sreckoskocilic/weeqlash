@@ -63,14 +63,11 @@ A head-to-head knife fight over a single question queue. No board, no pegs, no m
 
 ### Before the bell
 
-- Either player clicks **⚔ QLASHIQUE** to open a room and shares the code; the other pastes it into the `Qlashique` join input.
-- Both pick a **class**:
-  - 🐢 **SLOWPOKE** — +2 seconds on every question timer. Boring. Effective.
-  - 🎲 **REROLL** — one free skip per turn. Save it for the one you don't know.
+- Either player clicks **⚔ QLASHIQUE** to open a room and shares the code; the other pastes it into the `Qlashique` join input. Game starts as soon as both players are in.
 
 ### How a turn works
 
-You get a batch of questions under a timer that **starts at 5 seconds and grows by 3 each turn** (cap 25; Slowpoke adds 2 on top). Your running **score** for the turn goes up +1 per correct answer and down −1 per miss. When you end the turn:
+You get a batch of questions under a timer that **starts at 5 seconds and grows by 3 each turn** (cap 25). Your running **score** for the turn goes up +1 per correct answer and down −1 per miss. When you end the turn:
 
 | Score | What happens                                                  |
 | ----- | ------------------------------------------------------------- |
@@ -94,9 +91,8 @@ Triviandom is the single-player arena for those who have no one to blame but the
 Hunt for that second digit. You know the one.
 
 - **Start Triviandom** — the full question pool.
-- **⚽ EPL 2025 Triviandom** — same format, narrowed to an English Premier League 2025 set. Its own separate leaderboard.
 
-Both leaderboards are visible from the landing screen via `Show Triviandom Leaderboard` / `Show EPL 2025 Leaderboard`.
+The leaderboard is visible from the landing screen via `Show Triviandom Leaderboard`.
 
 ---
 

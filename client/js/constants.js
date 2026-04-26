@@ -14,37 +14,40 @@ export const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
 export const KEY_MAP = { a: 0, b: 1, c: 2, d: 3, 1: 0, 2: 1, 3: 2, 4: 3 };
 
-export const CAT_NAMES = {
-  arts: 'Arts',
-  music: 'Music',
-  death_metal: 'Death Metal',
-  entertainment: 'Entertainment',
-  literature: 'Literature',
-  science: 'Science',
-  nature: 'Nature',
-  history: 'History',
-  geography: 'Geography',
-  sports: 'Sports',
-  epl_2025: 'EPL 2025',
-  other: 'Other',
+// Mirror of `CATEGORIES` in `server/game/engine.ts`. Keep in sync — to enable
+// or disable a category, edit both this file and engine.ts. The server is
+// authoritative; the client copy exists because static client modules cannot
+// import from the TS server.
+//
+// Flags:
+//   defaultOff — exists in toggle UI but unchecked in board setup default
+export const CATEGORIES = {
+  arts: { label: 'Arts', color: '#C62828' },
+  music: { label: 'Music', color: '#6A1B9A' },
+  death_metal: { label: 'Death Metal', color: '#37474F', defaultOff: true },
+  entertainment: { label: 'Entertainment', color: '#E65100' },
+  literature: { label: 'Literature', color: '#1565C0' },
+  science: { label: 'Science', color: '#969517' },
+  nature: { label: 'Nature', color: '#388E3C' },
+  history: { label: 'History', color: '#6D4C41' },
+  geography: { label: 'Geography', color: '#00695C' },
+  sports: { label: 'Sports', color: '#bd1b8a' },
+  other: { label: 'Other', color: '#546E7A' },
 };
 
-export const CAT_COLORS = {
-  arts: '#C62828',
-  geography: '#00695C',
-  history: '#6D4C41',
-  literature: '#1565C0',
-  science: '#969517',
-  nature: '#388E3C',
-  music: '#6A1B9A',
-  death_metal: '#37474F',
-  entertainment: '#E65100',
-  sports: '#bd1b8a',
-  epl_2025: '#38003C',
-  other: '#546E7A',
-};
+export const CATS = Object.keys(CATEGORIES);
 
-export const CATS = Object.keys(CAT_NAMES);
+export const CAT_NAMES = Object.fromEntries(
+  Object.entries(CATEGORIES).map(([id, c]) => [id, c.label]),
+);
+
+export const CAT_COLORS = Object.fromEntries(
+  Object.entries(CATEGORIES).map(([id, c]) => [id, c.color]),
+);
+
+export const DEFAULT_CATS = Object.entries(CATEGORIES)
+  .filter(([, c]) => !c.defaultOff)
+  .map(([id]) => id);
 
 // Timing constants
 export const TIMING = {

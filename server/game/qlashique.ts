@@ -1,7 +1,6 @@
 // Pure Qlashique game logic — no I/O, no socket. All functions take state as first arg.
 
 export const PHASE = {
-  CLASS_SELECT: 'class_select',
   DECISION: 'decision',
   GUESSING: 'guessing',
   OUTCOME: 'outcome',
@@ -10,21 +9,12 @@ export const PHASE = {
 
 export type Phase = (typeof PHASE)[keyof typeof PHASE];
 
-export const CLASSES = {
-  SLOWPOKE: 'slowpoke',
-  REROLL: 'reroll',
-} as const;
-
-export type ClassId = (typeof CLASSES)[keyof typeof CLASSES];
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface PlayerState {
   hp: number;
-  classId: ClassId;
-  rerollUsed: boolean;
 }
 
 export interface QlashiqueState {
@@ -40,16 +30,9 @@ export interface QlashiqueState {
 // Public: create initial game state
 // ---------------------------------------------------------------------------
 
-export function createQlasGame(
-  player0ClassId: ClassId = 'slowpoke',
-  player1ClassId: ClassId = 'slowpoke',
-  hp: number = 30,
-): QlashiqueState {
+export function createQlasGame(hp: number = 30): QlashiqueState {
   return {
-    players: [
-      { hp: hp, classId: player0ClassId, rerollUsed: false },
-      { hp: hp, classId: player1ClassId, rerollUsed: false },
-    ],
+    players: [{ hp }, { hp }],
     currentPlayerIdx: 0,
     turnNumber: 1,
     currentScore: 0,
@@ -59,12 +42,11 @@ export function createQlasGame(
 }
 
 // ---------------------------------------------------------------------------
-// Public: calculate timer for a given turn + class
+// Public: calculate timer for a given turn
 // ---------------------------------------------------------------------------
 
-export function calcTimer(turnNumber: number, classId: ClassId): number {
-  const base = Math.min(5 + (turnNumber - 1) * 3, 25);
-  return classId === CLASSES.SLOWPOKE ? base + 2 : base;
+export function calcTimer(turnNumber: number): number {
+  return Math.min(5 + (turnNumber - 1) * 3, 25);
 }
 
 // ---------------------------------------------------------------------------
@@ -91,27 +73,6 @@ export function processAnswer(
   }
 
   return { state, correct };
-}
-
-// ---------------------------------------------------------------------------
-// Public: use reroll ability (Reroll class only, once per turn)
-// ---------------------------------------------------------------------------
-
-export function processReroll(
-  state: QlashiqueState,
-): { state: QlashiqueState } | { error: string } {
-  if (state.phase !== PHASE.GUESSING) {
-    return { error: 'Not in guessing phase' };
-  }
-  const player = state.players[state.currentPlayerIdx];
-  if (player.classId !== CLASSES.REROLL) {
-    return { error: 'Class cannot reroll' };
-  }
-  if (player.rerollUsed) {
-    return { error: 'Reroll already used this turn' };
-  }
-  player.rerollUsed = true;
-  return { state };
 }
 
 // ---------------------------------------------------------------------------
@@ -230,5 +191,4 @@ function _advanceTurn(state: QlashiqueState): void {
   state.turnNumber += 1;
   state.currentScore = 0;
   state.correctStreak = 0;
-  state.players[state.currentPlayerIdx].rerollUsed = false;
 }

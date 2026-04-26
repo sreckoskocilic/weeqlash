@@ -1,5 +1,5 @@
 // ============================================================
-// QUIZ MODE (Triviandom / EPL 2025)
+// QUIZ MODE (Triviandom)
 // ============================================================
 
 import { el } from './dom.js';
@@ -273,7 +273,6 @@ export { currentQuizMode };
 
 export function initQuiz() {
   el('btn-quiz-start').addEventListener('click', () => startQuizMode('triviandom'));
-  el('btn-epl-start').addEventListener('click', () => startQuizMode('epl_2025'));
 
   el('btn-show-triv-lb').addEventListener('click', () => {
     const panel = el('triv-lb-panel');
@@ -283,15 +282,5 @@ export function initQuiz() {
       ? 'Show Triviandom Leaderboard'
       : 'Hide Leaderboard';
     if (!visible) loadPanelLeaderboard('triviandom', 'triv-lb-rows');
-  });
-
-  el('btn-show-epl-lb').addEventListener('click', () => {
-    const panel = el('epl-lb-panel');
-    const visible = panel.style.display !== 'none';
-    panel.style.display = visible ? 'none' : '';
-    el('btn-show-epl-lb').textContent = visible
-      ? 'Show EPL 2025 Leaderboard'
-      : 'Hide EPL Leaderboard';
-    if (!visible) loadPanelLeaderboard('epl_2025', 'epl-lb-rows');
   });
 }

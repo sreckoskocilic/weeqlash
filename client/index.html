@@ -1,90 +1,131 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-          http-equiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; object-src 'none';"
-  />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <!-- CSP handled by Cloudflare -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>wQ$x — trivia brawl</title>
-  <meta name="description" content="wQ$x — real-time multiplayer trivia brawls. Duel players head-to-head, answer fast, climb the leaderboard." />
-  <meta name="theme-color" content="#1a1a2e" />
-  <meta property="og:title" content="wQ$x — trivia brawl" />
-  <meta property="og:description" content="Real-time multiplayer trivia brawls. Fast questions, sharper opponents." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://brawl.weeqlash.icu" />
-  <meta property="og:image" content="https://brawl.weeqlash.icu/og-image.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="wQ$x — multiplayer trivia brawls" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png" />
-  <link
-          href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600;700&family=Montserrat:wght@400;500;700&display=swap"
-          rel="stylesheet"
-  />
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-<h1 id="main-title" class="brand" aria-label="wQ$x — multiplayer trivia brawls"></h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; object-src 'none';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- CSP handled by Cloudflare -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>wQ$x — trivia brawl</title>
+    <meta
+      name="description"
+      content="wQ$x — real-time multiplayer trivia brawls. Duel players head-to-head, answer fast, climb the leaderboard."
+    />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta property="og:title" content="wQ$x — trivia brawl" />
+    <meta
+      property="og:description"
+      content="Real-time multiplayer trivia brawls. Fast questions, sharper opponents."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://brawl.weeqlash.icu" />
+    <meta property="og:image" content="https://brawl.weeqlash.icu/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="wQ$x — multiplayer trivia brawls" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600;700&family=Montserrat:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h1 id="main-title" class="brand" aria-label="wQ$x — multiplayer trivia brawls"></h1>
 
-<!-- Announcements — edit the <li> items to update -->
-<section id="announcements">
-  <svg class="ann-bg" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5"/>
-    <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5"/>
-    <circle cx="4" cy="32" r="2" fill="#00ff41"/>
-    <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5"/>
-    <circle cx="32" cy="4" r="2" fill="#00ff41"/>
-    <path d="M 42 42 L 52 52 L 62 52" stroke="#ffe600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="62" cy="52" r="2.5" fill="#ffe600"/>
-  </svg>
-  <svg class="ann-bg ann-bg-2" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5"/>
-    <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5"/>
-    <circle cx="4" cy="32" r="2" fill="#00ff41"/>
-    <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5"/>
-    <circle cx="32" cy="4" r="2" fill="#00ff41"/>
-    <path d="M 42 42 L 52 52 L 62 52" stroke="#ffe600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="62" cy="52" r="2.5" fill="#ffe600"/>
-  </svg>
-  <svg class="ann-bg ann-bg-3" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5"/>
-    <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5"/>
-    <circle cx="4" cy="32" r="2" fill="#00ff41"/>
-    <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5"/>
-    <circle cx="32" cy="4" r="2" fill="#00ff41"/>
-    <path d="M 42 42 L 52 52 L 62 52" stroke="#ffe600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="62" cy="52" r="2.5" fill="#ffe600"/>
-  </svg>
-  <div class="ann-header">Latest</div>
-  <ul>
-    <li>
-      <strong>Qlashique</strong> — 1v1 trivia duel mode is here.
-      <a href="#" id="ann-howto-link">How to play</a>
-    </li>
-    <li>
-      <strong>EPL 2025 Triviandom</strong> — English Premier League-only question mode with its
-      own leaderboard
-    </li>
-    <li>New question categories added</li>
-  </ul>
-</section>
+    <!-- Announcements — edit the <li> items to update -->
+    <section id="announcements">
+      <svg
+        class="ann-bg"
+        viewBox="0 0 72 64"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
+        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
+        <circle cx="4" cy="32" r="2" fill="#00ff41" />
+        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
+        <circle cx="32" cy="4" r="2" fill="#00ff41" />
+        <path
+          d="M 42 42 L 52 52 L 62 52"
+          stroke="#ffe600"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
+      </svg>
+      <svg
+        class="ann-bg ann-bg-2"
+        viewBox="0 0 72 64"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
+        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
+        <circle cx="4" cy="32" r="2" fill="#00ff41" />
+        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
+        <circle cx="32" cy="4" r="2" fill="#00ff41" />
+        <path
+          d="M 42 42 L 52 52 L 62 52"
+          stroke="#ffe600"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
+      </svg>
+      <svg
+        class="ann-bg ann-bg-3"
+        viewBox="0 0 72 64"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
+        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
+        <circle cx="4" cy="32" r="2" fill="#00ff41" />
+        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
+        <circle cx="32" cy="4" r="2" fill="#00ff41" />
+        <path
+          d="M 42 42 L 52 52 L 62 52"
+          stroke="#ffe600"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
+      </svg>
+      <div class="ann-header">Latest</div>
+      <ul>
+        <li>
+          <strong>Qlashique</strong> — 1v1 trivia duel mode is here.
+          <a href="#" id="ann-howto-link">How to play</a>
+        </li>
+        <li>New question categories added</li>
+      </ul>
+    </section>
 
-<!-- Connect screen -->
-<div class="main-columns" id="screen-connect">
-  <!-- LEFT COLUMN: weeqlash -->
-  <div class="card">
-    <div
-            id="user-logged-as"
-            style="display: none; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--muted)"
-    ></div>
-    <div
-            id="user-bar"
-            style="
+    <!-- Connect screen -->
+    <div class="main-columns" id="screen-connect">
+      <!-- LEFT COLUMN: weeqlash -->
+      <div class="card">
+        <div
+          id="user-logged-as"
+          style="display: none; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--muted)"
+        ></div>
+        <div
+          id="user-bar"
+          style="
             display: none;
             margin-bottom: 1rem;
             padding: 0.5rem;
@@ -93,10 +134,10 @@
             align-items: center;
             gap: 0.5rem;
           "
-    >
-      <button
-              id="btn-view-stats"
-              style="
+        >
+          <button
+            id="btn-view-stats"
+            style="
               background: transparent;
               border: 1px solid var(--muted);
               color: var(--muted);
@@ -105,12 +146,12 @@
               cursor: pointer;
               font-size: 0.8rem;
             "
-      >
-        Stats
-      </button>
-      <button
-              id="btn-admin"
-              style="
+          >
+            Stats
+          </button>
+          <button
+            id="btn-admin"
+            style="
               display: none;
               background: transparent;
               border: 1px solid var(--accent);
@@ -120,12 +161,12 @@
               cursor: pointer;
               font-size: 0.8rem;
             "
-      >
-        Admin
-      </button>
-      <button
-              id="btn-logout"
-              style="
+          >
+            Admin
+          </button>
+          <button
+            id="btn-logout"
+            style="
               margin-left: auto;
               background: transparent;
               border: 1px solid var(--muted);
@@ -135,16 +176,16 @@
               cursor: pointer;
               font-size: 0.8rem;
             "
-      >
-        Sign out
-      </button>
-    </div>
-    <div id="login-section" style="margin-bottom: 1rem">
-      <div id="auth-tabs" style="display: flex; gap: 0; margin-bottom: 0.75rem">
-        <button
-                class="auth-tab active"
-                data-tab="login"
-                style="
+          >
+            Sign out
+          </button>
+        </div>
+        <div id="login-section" style="margin-bottom: 1rem">
+          <div id="auth-tabs" style="display: flex; gap: 0; margin-bottom: 0.75rem">
+            <button
+              class="auth-tab active"
+              data-tab="login"
+              style="
                 flex: 1;
                 padding: 0.4rem;
                 background: var(--bg3);
@@ -154,13 +195,13 @@
                 border-radius: var(--radius) 0 0 var(--radius);
                 font-size: 0.8rem;
               "
-        >
-          Login
-        </button>
-        <button
-                class="auth-tab"
-                data-tab="register"
-                style="
+            >
+              Login
+            </button>
+            <button
+              class="auth-tab"
+              data-tab="register"
+              style="
                 flex: 1;
                 padding: 0.4rem;
                 background: transparent;
@@ -170,17 +211,17 @@
                 border-radius: 0 var(--radius) var(--radius) 0;
                 font-size: 0.8rem;
               "
-        >
-          Register
-        </button>
-      </div>
-      <div id="auth-login-form">
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem">
-          <input
-                  id="login-username"
-                  type="text"
-                  placeholder="Username or email"
-                  style="
+            >
+              Register
+            </button>
+          </div>
+          <div id="auth-login-form">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem">
+              <input
+                id="login-username"
+                type="text"
+                placeholder="Username or email"
+                style="
                   flex: 1;
                   padding: 0.5rem;
                   background: var(--bg);
@@ -190,178 +231,178 @@
                   font-size: 1rem;
                   height: 40px;
                 "
-          />
-          <input
-                  id="login-password"
-                  type="password"
-                  placeholder="Password"
-                  style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 1rem;
-                  height: 40px;
-                "
-          />
-        </div>
-        <div style="display: flex; gap: 0.4rem; margin-bottom: 0.3rem">
-          <input type="checkbox" id="keep-logged-in" style="width: auto" />
-          <label
-                  for="keep-logged-in"
-                  style="font-size: 0.85rem; color: var(--muted); cursor: pointer"
-          >Keep me logged in</label
-          >
-        </div>
-        <button id="btn-login" style="width: 100%; background: var(--accent); font-weight: 600">
-          Login
-        </button>
-        <div style="text-align: center; margin-top: 0.4rem">
-          <a href="#" id="link-forgot" style="color: var(--muted); font-size: 0.75rem"
-          >Forgot password?</a
-          >
-        </div>
-      </div>
-      <div id="auth-register-form" style="display: none">
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem">
-          <input
-                  id="reg-username"
-                  type="text"
-                  placeholder="Username (3-20 chars)"
-                  maxlength="20"
-                  style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 0.85rem;
-                "
-          />
-          <input
-                  id="reg-email"
-                  type="email"
-                  placeholder="Email"
-                  style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 0.85rem;
-                "
-          />
-        </div>
-        <input
-                id="reg-password"
+              />
+              <input
+                id="login-password"
                 type="password"
-                placeholder="Password (min 6 chars)"
+                placeholder="Password"
                 style="
-                width: 100%;
-                padding: 0.5rem;
-                margin-bottom: 0.4rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 0.85rem;
-              "
-        />
-        <button
-                id="btn-register"
+                  flex: 1;
+                  padding: 0.5rem;
+                  background: var(--bg);
+                  border: 1px solid var(--bg3);
+                  color: var(--text);
+                  border-radius: var(--radius);
+                  font-size: 1rem;
+                  height: 40px;
+                "
+              />
+            </div>
+            <div style="display: flex; gap: 0.4rem; margin-bottom: 0.3rem">
+              <input type="checkbox" id="keep-logged-in" style="width: auto" />
+              <label
+                for="keep-logged-in"
+                style="font-size: 0.85rem; color: var(--muted); cursor: pointer"
+                >Keep me logged in</label
+              >
+            </div>
+            <button id="btn-login" style="width: 100%; background: var(--accent); font-weight: 600">
+              Login
+            </button>
+            <div style="text-align: center; margin-top: 0.4rem">
+              <a href="#" id="link-forgot" style="color: var(--muted); font-size: 0.75rem"
+                >Forgot password?</a
+              >
+            </div>
+          </div>
+          <div id="auth-register-form" style="display: none">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem">
+              <input
+                id="reg-username"
+                type="text"
+                placeholder="Username (3-20 chars)"
+                maxlength="20"
                 style="
-                width: 100%;
-                padding: 0.5rem;
-                background: var(--accent);
-                color: white;
-                border: none;
-                border-radius: var(--radius);
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-        >
-          Create account
-        </button>
-      </div>
-      <div id="auth-forgot-form" style="display: none">
-        <input
-                id="forgot-email"
+                  flex: 1;
+                  padding: 0.5rem;
+                  background: var(--bg);
+                  border: 1px solid var(--bg3);
+                  color: var(--text);
+                  border-radius: var(--radius);
+                  font-size: 0.85rem;
+                "
+              />
+              <input
+                id="reg-email"
                 type="email"
-                placeholder="Your email"
+                placeholder="Email"
                 style="
-                width: 100%;
-                padding: 0.5rem;
-                margin-bottom: 0.4rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 0.85rem;
-              "
-        />
-        <button
-                id="btn-forgot"
-                style="
-                width: 100%;
-                padding: 0.5rem;
-                background: var(--accent);
-                color: white;
-                border: none;
-                border-radius: var(--radius);
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-        >
-          Send reset link
-        </button>
-        <div style="text-align: center; margin-top: 0.4rem">
-          <a href="#" id="link-back-login" style="color: var(--muted); font-size: 0.75rem"
-          >Back to login</a
-          >
-        </div>
-      </div>
-      <div id="auth-reset-form" style="display: none">
-        <input
-                id="reset-password"
-                type="password"
-                placeholder="New password (min 6 chars)"
-                style="
-                width: 100%;
-                padding: 0.5rem;
-                margin-bottom: 0.4rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 0.85rem;
-              "
-        />
-        <button
-                id="btn-reset"
-                style="
-                width: 100%;
-                padding: 0.5rem;
-                background: var(--accent);
-                color: white;
-                border: none;
-                border-radius: var(--radius);
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-        >
-          Reset password
-        </button>
-      </div>
-      <div
-              id="auth-message"
+                  flex: 1;
+                  padding: 0.5rem;
+                  background: var(--bg);
+                  border: 1px solid var(--bg3);
+                  color: var(--text);
+                  border-radius: var(--radius);
+                  font-size: 0.85rem;
+                "
+              />
+            </div>
+            <input
+              id="reg-password"
+              type="password"
+              placeholder="Password (min 6 chars)"
               style="
+                width: 100%;
+                padding: 0.5rem;
+                margin-bottom: 0.4rem;
+                background: var(--bg);
+                border: 1px solid var(--bg3);
+                color: var(--text);
+                border-radius: var(--radius);
+                font-size: 0.85rem;
+              "
+            />
+            <button
+              id="btn-register"
+              style="
+                width: 100%;
+                padding: 0.5rem;
+                background: var(--accent);
+                color: white;
+                border: none;
+                border-radius: var(--radius);
+                cursor: pointer;
+                font-size: 0.85rem;
+                font-weight: 600;
+              "
+            >
+              Create account
+            </button>
+          </div>
+          <div id="auth-forgot-form" style="display: none">
+            <input
+              id="forgot-email"
+              type="email"
+              placeholder="Your email"
+              style="
+                width: 100%;
+                padding: 0.5rem;
+                margin-bottom: 0.4rem;
+                background: var(--bg);
+                border: 1px solid var(--bg3);
+                color: var(--text);
+                border-radius: var(--radius);
+                font-size: 0.85rem;
+              "
+            />
+            <button
+              id="btn-forgot"
+              style="
+                width: 100%;
+                padding: 0.5rem;
+                background: var(--accent);
+                color: white;
+                border: none;
+                border-radius: var(--radius);
+                cursor: pointer;
+                font-size: 0.85rem;
+                font-weight: 600;
+              "
+            >
+              Send reset link
+            </button>
+            <div style="text-align: center; margin-top: 0.4rem">
+              <a href="#" id="link-back-login" style="color: var(--muted); font-size: 0.75rem"
+                >Back to login</a
+              >
+            </div>
+          </div>
+          <div id="auth-reset-form" style="display: none">
+            <input
+              id="reset-password"
+              type="password"
+              placeholder="New password (min 6 chars)"
+              style="
+                width: 100%;
+                padding: 0.5rem;
+                margin-bottom: 0.4rem;
+                background: var(--bg);
+                border: 1px solid var(--bg3);
+                color: var(--text);
+                border-radius: var(--radius);
+                font-size: 0.85rem;
+              "
+            />
+            <button
+              id="btn-reset"
+              style="
+                width: 100%;
+                padding: 0.5rem;
+                background: var(--accent);
+                color: white;
+                border: none;
+                border-radius: var(--radius);
+                cursor: pointer;
+                font-size: 0.85rem;
+                font-weight: 600;
+              "
+            >
+              Reset password
+            </button>
+          </div>
+          <div
+            id="auth-message"
+            style="
               display: none;
               margin-top: 0.5rem;
               padding: 0.4rem;
@@ -369,13 +410,13 @@
               font-size: 0.8rem;
               text-align: center;
             "
-      ></div>
-    </div>
+          ></div>
+        </div>
 
-    <div class="setup-section">
-      <h3>Board Size</h3>
-      <div class="opt-btn-group" id="board-size-btns">
-        <!--
+        <div class="setup-section">
+          <h3>Board Size</h3>
+          <div class="opt-btn-group" id="board-size-btns">
+            <!--
       To enable 2x2 board for testing:
       1. Uncomment the 2x2 button below
       2. The backend already supports 2x2 boards (validated in server/game/rooms.js)
@@ -383,74 +424,74 @@
 
       <button class="opt-btn" data-val="2">2×2</button>
     -->
-        <button class="opt-btn" data-val="4">4×4</button>
-        <button class="opt-btn" data-val="5">5×5</button>
-        <button class="opt-btn" data-val="6">6×6</button>
-        <button class="opt-btn" data-val="7">7×7</button>
-        <button class="opt-btn active" data-val="8">8×8</button>
-        <button class="opt-btn" data-val="10">10×10</button>
-      </div>
-      <div id="connect-error" class="error" style="display: none"></div>
-    </div>
+            <button class="opt-btn" data-val="4">4×4</button>
+            <button class="opt-btn" data-val="5">5×5</button>
+            <button class="opt-btn" data-val="6">6×6</button>
+            <button class="opt-btn" data-val="7">7×7</button>
+            <button class="opt-btn active" data-val="8">8×8</button>
+            <button class="opt-btn" data-val="10">10×10</button>
+          </div>
+          <div id="connect-error" class="error" style="display: none"></div>
+        </div>
 
-    <div class="setup-section" style="margin-bottom: 0.5rem">
-      <button id="btn-create">Create game</button>
-    </div>
+        <div class="setup-section" style="margin-bottom: 0.5rem">
+          <button id="btn-create">Create game</button>
+        </div>
 
-    <div
-            class="setup-section"
-            id="dev-quickstart-section"
-            style="margin-bottom: 0.5rem; display: none"
-    >
-      <button
-              id="btn-dev-quickstart"
-              style="
+        <div
+          class="setup-section"
+          id="dev-quickstart-section"
+          style="margin-bottom: 0.5rem; display: none"
+        >
+          <button
+            id="btn-dev-quickstart"
+            style="
               background: var(--bg3);
               color: var(--muted);
               border: 1px dashed var(--bg3);
               display: none;
             "
-      >
-        ⚡ Dev: Quick Game
-      </button>
-    </div>
-
-    <div class="setup-actions" style="margin-top: 10px">
-      <button id="btn-help">How to Play</button>
-      <button id="btn-hc">High Contrast</button>
-      <button id="btn-advanced">Settings</button>
-    </div>
-
-    <div id="advanced-section" style="display: none">
-      <div class="setup-section">
-        <h3>Question Timer</h3>
-        <div class="opt-btn-group" id="timer-btns">
-          <button class="opt-btn" data-val="15">15s</button>
-          <button class="opt-btn active" data-val="30">30s</button>
-          <button class="opt-btn" data-val="45">45s</button>
+          >
+            ⚡ Dev: Quick Game
+          </button>
         </div>
-      </div>
-      <div class="setup-section">
-        <h3>Categories</h3>
-        <div class="cat-toggle-btns" id="cat-toggle-btns"></div>
-        <div class="setup-actions">
-          <button id="btn-cats-all" class="active">All</button>
-          <button id="btn-cats-none">None</button>
+
+        <div class="setup-actions" style="margin-top: 10px">
+          <button id="btn-help">How to Play</button>
+          <button id="btn-hc">High Contrast</button>
+          <button id="btn-advanced">Settings</button>
         </div>
-      </div>
-    </div>
 
-    <div class="divider">enter room code to join the game</div>
+        <div id="advanced-section" style="display: none">
+          <div class="setup-section">
+            <h3>Question Timer</h3>
+            <div class="opt-btn-group" id="timer-btns">
+              <button class="opt-btn" data-val="15">15s</button>
+              <button class="opt-btn active" data-val="30">30s</button>
+              <button class="opt-btn" data-val="45">45s</button>
+            </div>
+          </div>
+          <div class="setup-section">
+            <h3>Categories</h3>
+            <div class="cat-toggle-btns" id="cat-toggle-btns"></div>
+            <div class="setup-actions">
+              <button id="btn-cats-all" class="active">All</button>
+              <button id="btn-cats-none">None</button>
+            </div>
+          </div>
+        </div>
 
-    <div class="setup-section" style="margin-bottom: 0">
-      <h3 id="label-join-code" style="display: none">Room Code</h3>
-      <div style="display: flex; gap: 0.5rem; align-items: stretch">
-        <input
-                id="join-code"
-                type="text"
-                maxlength="5"
-                placeholder="XXXXX"
-                style="
+        <div class="divider">enter room code to join the game</div>
+
+        <div class="setup-section" style="margin-bottom: 0">
+          <h3 id="label-join-code" style="display: none">Room Code</h3>
+          <div style="display: flex; gap: 0.5rem; align-items: stretch">
+            <input
+              id="join-code"
+              type="text"
+              maxlength="5"
+              placeholder="XXXXX"
+              style="
                 flex: 1;
                 height: 48px;
                 text-transform: uppercase;
@@ -462,46 +503,46 @@
                 border-radius: var(--radius);
                 font-size: 1.35rem;
               "
-                aria-labelledby="label-join-code"
-        />
-        <button id="btn-join" style="flex: 2; height: 40px">Join game</button>
+              aria-labelledby="label-join-code"
+            />
+            <button id="btn-join" style="flex: 2; height: 40px">Join game</button>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- RIGHT COLUMN: Triviandom + Qlashique -->
-  <div class="card col-triviandom">
-    <button class="btn-show-triv-lb" id="btn-show-triv-lb">Show Triviandom Leaderboard</button>
-    <div
-            id="triv-lb-panel"
-            class="leaderboard-panel"
-            style="
+      <!-- RIGHT COLUMN: Triviandom + Qlashique -->
+      <div class="card col-triviandom">
+        <button class="btn-show-triv-lb" id="btn-show-triv-lb">Show Triviandom Leaderboard</button>
+        <div
+          id="triv-lb-panel"
+          class="leaderboard-panel"
+          style="
             display: none;
             max-width: none;
             padding: 0;
             background: transparent;
             border-color: #2a4a7a;
           "
-    >
-      <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
-      <div class="lb-divider"></div>
-      <div class="lb-thead">
-        <div>#</div>
-        <div>NAME</div>
-        <div style="text-align: right">RUN</div>
-        <div style="text-align: right">TIME</div>
-      </div>
-      <div id="triv-lb-rows"></div>
-    </div>
-    <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
-    <div class="divider">enter room code to join the game</div>
-    <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
-      <input
-              id="qlas-join-code"
-              type="text"
-              maxlength="5"
-              placeholder="CODE"
-              style="
+        >
+          <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
+          <div class="lb-divider"></div>
+          <div class="lb-thead">
+            <div>#</div>
+            <div>NAME</div>
+            <div style="text-align: right">RUN</div>
+            <div style="text-align: right">TIME</div>
+          </div>
+          <div id="triv-lb-rows"></div>
+        </div>
+        <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
+        <div class="divider">enter room code to join the game</div>
+        <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
+          <input
+            id="qlas-join-code"
+            type="text"
+            maxlength="5"
+            placeholder="CODE"
+            style="
               flex: 1;
               height: 42px;
               text-transform: uppercase;
@@ -513,248 +554,206 @@
               border-radius: var(--radius);
               font-size: 1rem;
             "
-      />
-      <button
-              class="btn-qlashique"
-              id="btn-qlas-start"
-              style="flex: 2; margin-top: 0; height: 42px"
-      >
-        ⚔ QLASHIQUE
-      </button>
-    </div>
-    <div class="divider" style="margin-top: 0.8rem"></div>
-    <!-- EPL 2025 -->
-    <button
-            class="btn-show-mode-lb"
-            id="btn-show-epl-lb"
-            style="border: 1px solid #2a4a2a; color: #4a8a4a; margin-top: 0.4rem"
-    >
-      Show EPL 2025 Leaderboard
-    </button>
-    <div
-            id="epl-lb-panel"
-            class="leaderboard-panel"
-            style="
-            display: none;
-            max-width: none;
-            padding: 0;
-            background: transparent;
-            border-color: #2a4a2a;
-          "
-    >
-      <div class="lb-heading" style="color: #5ebb52">
-        EPL <span style="color: #38a169">2025</span>
+          />
+          <button
+            class="btn-qlashique"
+            id="btn-qlas-start"
+            style="flex: 2; margin-top: 0; height: 42px"
+          >
+            ⚔ QLASHIQUE
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="site-footer">
+      <span>&copy; 2026 wQ$x <span style="opacity: 0.55">· weeqlash</span></span>
+      <span class="sep">|</span>
+      <a href="#" data-legal-open="privacy">Privacy Policy</a>
+      <span class="sep">|</span>
+      <a href="#" data-legal-open="cookies">Cookie Policy</a>
+      <span class="sep">|</span>
+      <a href="#" data-legal-open="terms">Terms of Service</a>
+    </footer>
+
+    <!-- Legal: Privacy Policy -->
+    <div class="legal-modal" id="modal-privacy">
+      <div class="legal-content">
+        <h2>Privacy Policy</h2>
+        <p>Last updated: April 2026</p>
+        <h3>What we collect</h3>
+        <p>When you play Weeqlash, we collect only what is needed to run the game:</p>
+        <ul>
+          <li>
+            <strong>Player name</strong> — entered by you, used only for your current game session.
+            Never stored on our servers after the session ends.
+          </li>
+          <li>
+            <strong>Leaderboard entries</strong> — if you choose to submit a score, your chosen
+            display name and score are stored in the public leaderboard.
+          </li>
+        </ul>
+        <h3>What we do NOT collect</h3>
+        <ul>
+          <li>Email addresses, passwords, or account information</li>
+          <li>
+            IP addresses or device identifiers beyond what is technically required for a WebSocket
+            connection
+          </li>
+          <li>Behavioural tracking or analytics data</li>
+          <li>Any data from minors knowingly</li>
+        </ul>
+        <h3>Data sharing</h3>
+        <p>
+          We do not sell, rent, or share your data with third parties. Leaderboard scores are public
+          by design — do not use your real name if you prefer anonymity.
+        </p>
+        <h3>Data retention</h3>
+        <p>
+          Game session data is discarded when the session ends. Leaderboard entries are kept until
+          reset.
+        </p>
+        <h3>Contact</h3>
+        <p>Questions? Reach out via the project repository.</p>
+        <button class="legal-close" data-legal-close="privacy">[ close ]</button>
+      </div>
+    </div>
+
+    <!-- Legal: Cookie Policy -->
+    <div class="legal-modal" id="modal-cookies">
+      <div class="legal-content">
+        <h2>Cookie Policy</h2>
+        <p>Last updated: April 2026</p>
+        <h3>Cookies used</h3>
+        <p>Weeqlash uses only the minimum browser storage required to function:</p>
+        <ul>
+          <li>
+            <strong>localStorage</strong> — your last-used player name and UI preferences (board
+            size, timer, categories, high-contrast mode) are saved locally in your browser so you
+            don't have to re-enter them each visit. This data never leaves your device.
+          </li>
+        </ul>
+        <h3>No tracking cookies</h3>
+        <p>
+          We do not use advertising cookies, analytics cookies, or any third-party tracking
+          technologies. There are no fingerprinting scripts, pixel trackers, or cross-site
+          identifiers.
+        </p>
+        <h3>Third-party content</h3>
+        <p>
+          Fonts are loaded from Google Fonts (fonts.googleapis.com). Google may set its own cookies
+          in accordance with their
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener"
+            >privacy policy</a
+          >.
+        </p>
+        <h3>Controlling storage</h3>
+        <p>
+          You can clear localStorage at any time via your browser's developer tools or settings.
+          Doing so will reset your saved preferences.
+        </p>
+        <button class="legal-close" data-legal-close="cookies">[ close ]</button>
+      </div>
+    </div>
+
+    <!-- Legal: Terms of Service -->
+    <div class="legal-modal" id="modal-terms">
+      <div class="legal-content">
+        <h2>Terms of Service</h2>
+        <p>Last updated: April 2026</p>
+        <h3>Acceptance</h3>
+        <p>
+          By playing Weeqlash you agree to these terms. If you do not agree, please do not use the
+          service.
+        </p>
+        <h3>Use of the service</h3>
+        <p>Weeqlash is a free multiplayer trivia game provided for entertainment. You may:</p>
+        <ul>
+          <li>Play games with other users</li>
+          <li>Submit scores to the public leaderboard using a display name of your choosing</li>
+        </ul>
+        <p>You must not:</p>
+        <ul>
+          <li>Attempt to exploit, cheat, or disrupt the service or other players' experience</li>
+          <li>Submit offensive, hateful, or impersonating display names</li>
+          <li>Use automated scripts or bots to interact with the service</li>
+          <li>Attempt to reverse-engineer or tamper with the server</li>
+        </ul>
+        <h3>Leaderboard</h3>
+        <p>
+          Leaderboard entries are public. Display names are chosen by you — do not use personal
+          information you wish to keep private. We reserve the right to remove any entry at our
+          discretion.
+        </p>
+        <h3>Disclaimer</h3>
+        <p>
+          The service is provided "as is" without warranties of any kind. We are not liable for any
+          damages arising from use of the service. Trivia questions are for entertainment — answers
+          may occasionally be imperfect.
+        </p>
+        <h3>Changes</h3>
+        <p>
+          We may update these terms at any time. Continued use of the service constitutes acceptance
+          of the updated terms.
+        </p>
+        <button class="legal-close" data-legal-close="terms">[ close ]</button>
+      </div>
+    </div>
+
+    <!-- Help modal -->
+    <div id="help-modal">
+      <div class="help-content">
+        <h2>HOW TO PLAY — QLASHIQUE</h2>
+        <p>
+          1v1 trivia duel. Both players start with <strong>30 HP</strong> and take turns. To start:
+          one player leaves the code field blank and clicks on green
+          <strong>QLASHIQUE</strong> button to create a room, then shares the 5-letter code. The
+          other enters the code and clicks the same button to join.
+        </p>
+        <p>
+          When it's your turn, click <strong>⚔ ATTACK</strong> to start the timer. Questions appear
+          one by one — correct: <strong>+1</strong>, wrong: <strong>−1</strong>. Keep answering
+          until the timer runs out or you click <strong>END TURN</strong> at any point — even with
+          score 0, in which case the turn ends with no effect. Timer starts at 5 s and grows +3 s
+          each turn (max 25 s).
+        </p>
+        <p>Your final score determines what happens:</p>
+        <ul>
+          <li><strong>Negative</strong> — you deal that much damage to yourself.</li>
+          <li><strong>0</strong> — nothing happens.</li>
+          <li><strong>1</strong> — attacks the opponent for 1 HP.</li>
+          <li>
+            <strong>2 or more</strong> — choose: attack the opponent for full score damage, or heal
+            yourself for +2 HP.
+          </li>
+          <li><strong>+10 in one turn with no wrong answers</strong> — instant win.</li>
+        </ul>
+        <p>
+          The <strong>💊 HEAL</strong> button is available during your turn (disabled if score &lt;
+          2). Clicking it immediately heals +2 HP and ends your turn.
+        </p>
+        <button id="btn-help-close">GOT IT</button>
+      </div>
+    </div>
+
+    <!-- Lobby / waiting room -->
+    <div class="card" id="screen-lobby" style="display: none">
       <div
-              class="lb-divider"
-              style="background: linear-gradient(90deg, #2a4a2a, #38a169, transparent)"
-      ></div>
-      <div class="lb-thead" style="border-bottom-color: #2a4a2a">
-        <div>#</div>
-        <div>NAME</div>
-        <div style="text-align: right">RUN</div>
-        <div style="text-align: right">TIME</div>
-      </div>
-      <div id="epl-lb-rows"></div>
-    </div>
-    <button
-            id="btn-epl-start"
-            class="btn-quiz-mode"
-            style="background: #1a4731 !important; color: #5ebb52; border: 1px solid #2d6a4f"
-    >
-      ⚽ EPL 2025 TRIVIANDOM
-    </button>
-  </div>
-</div>
-
-<!-- Footer -->
-<footer id="site-footer">
-  <span>&copy; 2026 wQ$x <span style="opacity:.55">· weeqlash</span></span>
-  <span class="sep">|</span>
-  <a href="#" data-legal-open="privacy">Privacy Policy</a>
-  <span class="sep">|</span>
-  <a href="#" data-legal-open="cookies">Cookie Policy</a>
-  <span class="sep">|</span>
-  <a href="#" data-legal-open="terms">Terms of Service</a>
-</footer>
-
-<!-- Legal: Privacy Policy -->
-<div class="legal-modal" id="modal-privacy">
-  <div class="legal-content">
-    <h2>Privacy Policy</h2>
-    <p>Last updated: April 2026</p>
-    <h3>What we collect</h3>
-    <p>When you play Weeqlash, we collect only what is needed to run the game:</p>
-    <ul>
-      <li>
-        <strong>Player name</strong> — entered by you, used only for your current game session.
-        Never stored on our servers after the session ends.
-      </li>
-      <li>
-        <strong>Leaderboard entries</strong> — if you choose to submit a score, your chosen
-        display name and score are stored in the public leaderboard.
-      </li>
-    </ul>
-    <h3>What we do NOT collect</h3>
-    <ul>
-      <li>Email addresses, passwords, or account information</li>
-      <li>
-        IP addresses or device identifiers beyond what is technically required for a WebSocket
-        connection
-      </li>
-      <li>Behavioural tracking or analytics data</li>
-      <li>Any data from minors knowingly</li>
-    </ul>
-    <h3>Data sharing</h3>
-    <p>
-      We do not sell, rent, or share your data with third parties. Leaderboard scores are public
-      by design — do not use your real name if you prefer anonymity.
-    </p>
-    <h3>Data retention</h3>
-    <p>
-      Game session data is discarded when the session ends. Leaderboard entries are kept until
-      reset.
-    </p>
-    <h3>Contact</h3>
-    <p>Questions? Reach out via the project repository.</p>
-    <button class="legal-close" data-legal-close="privacy">[ close ]</button>
-  </div>
-</div>
-
-<!-- Legal: Cookie Policy -->
-<div class="legal-modal" id="modal-cookies">
-  <div class="legal-content">
-    <h2>Cookie Policy</h2>
-    <p>Last updated: April 2026</p>
-    <h3>Cookies used</h3>
-    <p>Weeqlash uses only the minimum browser storage required to function:</p>
-    <ul>
-      <li>
-        <strong>localStorage</strong> — your last-used player name and UI preferences (board
-        size, timer, categories, high-contrast mode) are saved locally in your browser so you
-        don't have to re-enter them each visit. This data never leaves your device.
-      </li>
-    </ul>
-    <h3>No tracking cookies</h3>
-    <p>
-      We do not use advertising cookies, analytics cookies, or any third-party tracking
-      technologies. There are no fingerprinting scripts, pixel trackers, or cross-site
-      identifiers.
-    </p>
-    <h3>Third-party content</h3>
-    <p>
-      Fonts are loaded from Google Fonts (fonts.googleapis.com). Google may set its own cookies
-      in accordance with their
-      <a href="https://policies.google.com/privacy" target="_blank" rel="noopener"
-      >privacy policy</a
-      >.
-    </p>
-    <h3>Controlling storage</h3>
-    <p>
-      You can clear localStorage at any time via your browser's developer tools or settings.
-      Doing so will reset your saved preferences.
-    </p>
-    <button class="legal-close" data-legal-close="cookies">[ close ]</button>
-  </div>
-</div>
-
-<!-- Legal: Terms of Service -->
-<div class="legal-modal" id="modal-terms">
-  <div class="legal-content">
-    <h2>Terms of Service</h2>
-    <p>Last updated: April 2026</p>
-    <h3>Acceptance</h3>
-    <p>
-      By playing Weeqlash you agree to these terms. If you do not agree, please do not use the
-      service.
-    </p>
-    <h3>Use of the service</h3>
-    <p>Weeqlash is a free multiplayer trivia game provided for entertainment. You may:</p>
-    <ul>
-      <li>Play games with other users</li>
-      <li>Submit scores to the public leaderboard using a display name of your choosing</li>
-    </ul>
-    <p>You must not:</p>
-    <ul>
-      <li>Attempt to exploit, cheat, or disrupt the service or other players' experience</li>
-      <li>Submit offensive, hateful, or impersonating display names</li>
-      <li>Use automated scripts or bots to interact with the service</li>
-      <li>Attempt to reverse-engineer or tamper with the server</li>
-    </ul>
-    <h3>Leaderboard</h3>
-    <p>
-      Leaderboard entries are public. Display names are chosen by you — do not use personal
-      information you wish to keep private. We reserve the right to remove any entry at our
-      discretion.
-    </p>
-    <h3>Disclaimer</h3>
-    <p>
-      The service is provided "as is" without warranties of any kind. We are not liable for any
-      damages arising from use of the service. Trivia questions are for entertainment — answers
-      may occasionally be imperfect.
-    </p>
-    <h3>Changes</h3>
-    <p>
-      We may update these terms at any time. Continued use of the service constitutes acceptance
-      of the updated terms.
-    </p>
-    <button class="legal-close" data-legal-close="terms">[ close ]</button>
-  </div>
-</div>
-
-<!-- Help modal -->
-<div id="help-modal">
-  <div class="help-content">
-    <h2>HOW TO PLAY — QLASHIQUE</h2>
-    <p>
-      1v1 trivia duel. Both players start with <strong>30 HP</strong> and take turns. To start:
-      one player leaves the code field blank and clicks on green
-      <strong>QLASHIQUE</strong> button to create a room, then shares the 5-letter code. The
-      other enters the code and clicks the same button to join.
-    </p>
-    <p>
-      When it's your turn, click <strong>⚔ ATTACK</strong> to start the timer. Questions appear
-      one by one — correct: <strong>+1</strong>, wrong: <strong>−1</strong>. Keep answering
-      until the timer runs out or you click <strong>END TURN</strong> at any point — even with
-      score 0, in which case the turn ends with no effect. Timer starts at 5 s and grows +3 s
-      each turn (max 25 s).
-    </p>
-    <p>Your final score determines what happens:</p>
-    <ul>
-      <li><strong>Negative</strong> — you deal that much damage to yourself.</li>
-      <li><strong>0</strong> — nothing happens.</li>
-      <li><strong>1</strong> — attacks the opponent for 1 HP.</li>
-      <li>
-        <strong>2 or more</strong> — choose: attack the opponent for full score damage, or heal
-        yourself for +2 HP.
-      </li>
-      <li><strong>+10 in one turn with no wrong answers</strong> — instant win.</li>
-    </ul>
-    <p>
-      The <strong>💊 HEAL</strong> button is available during your turn (disabled if score &lt;
-      2). Clicking it immediately heals +2 HP and ends your turn.
-    </p>
-    <button id="btn-help-close">GOT IT</button>
-  </div>
-</div>
-
-<!-- Lobby / waiting room -->
-<div class="card" id="screen-lobby" style="display: none">
-  <div
-          class="room-code-container"
-          style="
+        class="room-code-container"
+        style="
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
           margin-bottom: 0.5rem;
         "
-  >
-    <div class="room-code" id="lobby-code" style="margin-bottom: 0"></div>
-    <button
-            id="btn-copy-code"
-            title="Copy Code"
-            style="
+      >
+        <div class="room-code" id="lobby-code" style="margin-bottom: 0"></div>
+        <button
+          id="btn-copy-code"
+          title="Copy Code"
+          style="
             padding: 0.5rem;
             font-size: 1.2rem;
             background: transparent;
@@ -765,157 +764,141 @@
             cursor: pointer;
             transition: all 0.2s;
           "
-    >
-      📋
-    </button>
-  </div>
-  <div class="room-code-label">Share this code with other players</div>
-  <h2>Players</h2>
-  <ul class="player-list" id="player-list"></ul>
-  <div
-          id="lobby-status"
-          style="color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; text-align: center"
-  ></div>
-  <button id="btn-start" disabled>Waiting for players…</button>
-</div>
-
-<!-- Game screen -->
-<div id="screen-game">
-  <div id="top-bar">
-    <div id="turn-panel">
-      <div id="turn-player-box">
-        <div id="turn-player-name">—</div>
-        <div id="turn-moves">3 moves</div>
+        >
+          📋
+        </button>
       </div>
-      <div id="turn-info">
-        <div id="turn-number">TURN 1</div>
-      </div>
-      <div id="player-stats"></div>
-    </div>
-  </div>
-  <div id="board-wrap">
-    <div id="board"></div>
-  </div>
-</div>
-
-<!-- Question modal -->
-<div id="modal-overlay">
-  <div id="modal">
-    <div class="modal-header">
-      <span id="modal-cat-badge"></span>
-      <span id="modal-player-label"></span>
-      <span id="modal-game-timer" style="display: none"></span>
-      <span id="modal-combat-label" style="display: none"></span>
-    </div>
-    <div id="modal-question"></div>
-    <div class="timer-bar-wrap">
-      <div class="timer-bar-container">
-        <div class="timer-bar-fill safe" id="timer-fill" style="width: 100%"></div>
-      </div>
-      <div class="timer-text" id="timer-text">30s</div>
-    </div>
-    <div class="modal-options" id="modal-options"></div>
-    <div id="modal-continue-wrap">
-      <button id="modal-continue-btn">CONTINUE</button>
-    </div>
-  </div>
-</div>
-
-<!-- Turn announce -->
-<div id="turn-announce">
-  <div id="turn-announce-name"></div>
-  <div id="turn-announce-sub">YOUR TURN</div>
-</div>
-
-<!-- Game over -->
-<div id="screen-gameover">
-  <h1>GAME OVER</h1>
-  <div id="winner-text"></div>
-  <button id="btn-gameover-newgame">NEW GAME</button>
-</div>
-
-<script type="module" src="./js/main.js"></script>
-
-<!-- Qlashique Screen -->
-<div id="screen-qlashique">
-  <div class="qlas-inner">
-    <div style="text-align: center">
-      <svg class="qlas-mark" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5"/>
-        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5"/>
-        <circle cx="4" cy="32" r="2" fill="#00ff41"/>
-        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5"/>
-        <circle cx="32" cy="4" r="2" fill="#00ff41"/>
-        <path d="M 42 42 L 52 52 L 62 52" stroke="#ffe600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="62" cy="52" r="2.5" fill="#ffe600"/>
-      </svg>
-      <h2 class="qlas-title">QLASHIQUE</h2>
-      <p class="qlas-subtitle">1v1 trivia duel — answer fast, attack harder</p>
+      <div class="room-code-label">Share this code with other players</div>
+      <h2>Players</h2>
+      <ul class="player-list" id="player-list"></ul>
+      <div
+        id="lobby-status"
+        style="color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; text-align: center"
+      ></div>
+      <button id="btn-start" disabled>Waiting for players…</button>
     </div>
 
-    <!-- Class select -->
-    <div id="qlas-phase-class">
-      <div class="qlas-class-grid" id="qlas-class-grid">
-        <div class="qlas-card" id="qlas-card-slowpoke" style="--qc: #00b8ff">
-          <div class="qlas-card-check">✓</div>
-          <span class="qlas-card-icon">🐢</span>
-          <div class="qlas-card-name">SLOWPOKE</div>
-          <div class="qlas-card-arch">Extra Time · Consistent</div>
-          <div class="qlas-card-desc">
-            You're not fast — you're thorough. Always gets 2 extra seconds on the timer every
-            single turn.
+    <!-- Game screen -->
+    <div id="screen-game">
+      <div id="top-bar">
+        <div id="turn-panel">
+          <div id="turn-player-box">
+            <div id="turn-player-name">—</div>
+            <div id="turn-moves">3 moves</div>
           </div>
-          <div class="qlas-card-ability">
-            <strong>Passive — Slow &amp; Steady</strong>
-            Timer is always +2s above the current round's base. No activation needed.
+          <div id="turn-info">
+            <div id="turn-number">TURN 1</div>
           </div>
-        </div>
-        <div class="qlas-card" id="qlas-card-reroll" style="--qc: #c9a227">
-          <div class="qlas-card-check">✓</div>
-          <span class="qlas-card-icon">🎲</span>
-          <div class="qlas-card-name">REROLL</div>
-          <div class="qlas-card-arch">One Shot · Smart Skip</div>
-          <div class="qlas-card-desc">
-            Once per turn, before answering, swap the current question for a fresh one. Resets
-            each turn.
-          </div>
-          <div class="qlas-card-ability">
-            <strong>Active — Replace Question</strong>
-            Press REROLL before answering. One use per turn. Don't waste it.
-          </div>
+          <div id="player-stats"></div>
         </div>
       </div>
-      <div class="qlas-confirm-row" id="qlas-confirm-row" style="margin-top: 10px">
-        <div class="qlas-confirm-preview">
-          <div class="qlas-confirm-icon" id="qlas-confirm-icon">?</div>
-          <div>
-            <div class="qlas-confirm-name" id="qlas-confirm-name" style="color: #6b6b8a">
-              No class selected
-            </div>
-            <div class="qlas-confirm-tag" id="qlas-confirm-tag">click a class above</div>
-          </div>
-        </div>
-        <button class="qlas-btn-confirm" id="qlas-btn-confirm" disabled>CONFIRM →</button>
+      <div id="board-wrap">
+        <div id="board"></div>
       </div>
-      <div id="qlas-waiting-panel" style="display: none">
-        <div class="qlas-waiting" style="margin-top: 10px">
-          <svg class="qlas-waiting-mark" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-            <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5"/>
-            <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5"/>
-            <circle cx="4" cy="32" r="2" fill="#00ff41"/>
-            <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5"/>
-            <circle cx="32" cy="4" r="2" fill="#00ff41"/>
-            <path d="M 42 42 L 52 52 L 62 52" stroke="#ffe600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="62" cy="52" r="2.5" fill="#ffe600"/>
+    </div>
+
+    <!-- Question modal -->
+    <div id="modal-overlay">
+      <div id="modal">
+        <div class="modal-header">
+          <span id="modal-cat-badge"></span>
+          <span id="modal-player-label"></span>
+          <span id="modal-game-timer" style="display: none"></span>
+          <span id="modal-combat-label" style="display: none"></span>
+        </div>
+        <div id="modal-question"></div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-container">
+            <div class="timer-bar-fill safe" id="timer-fill" style="width: 100%"></div>
+          </div>
+          <div class="timer-text" id="timer-text">30s</div>
+        </div>
+        <div class="modal-options" id="modal-options"></div>
+        <div id="modal-continue-wrap">
+          <button id="modal-continue-btn">CONTINUE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Turn announce -->
+    <div id="turn-announce">
+      <div id="turn-announce-name"></div>
+      <div id="turn-announce-sub">YOUR TURN</div>
+    </div>
+
+    <!-- Game over -->
+    <div id="screen-gameover">
+      <h1>GAME OVER</h1>
+      <div id="winner-text"></div>
+      <button id="btn-gameover-newgame">NEW GAME</button>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+
+    <!-- Qlashique Screen -->
+    <div id="screen-qlashique">
+      <div class="qlas-inner">
+        <div style="text-align: center">
+          <svg
+            class="qlas-mark"
+            viewBox="0 0 72 64"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
+            <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
+            <circle cx="4" cy="32" r="2" fill="#00ff41" />
+            <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
+            <circle cx="32" cy="4" r="2" fill="#00ff41" />
+            <path
+              d="M 42 42 L 52 52 L 62 52"
+              stroke="#ffe600"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
           </svg>
-          <div class="qlas-waiting-msg" id="qlas-waiting-label">Waiting for opponent…</div>
-          <div id="qlas-code-row" style="display: none">
-            <div class="qlas-waiting-msg" style="margin-top: 8px">Share this code</div>
-            <div style="display: inline-flex; align-items: center; gap: 10px">
-              <div class="qlas-code-display" id="qlas-code-val">—</div>
-              <button
-                      id="qlas-btn-copy-code"
-                      style="
+          <h2 class="qlas-title">QLASHIQUE</h2>
+          <p class="qlas-subtitle">1v1 trivia duel — answer fast, attack harder</p>
+        </div>
+
+        <!-- Waiting -->
+        <div id="qlas-phase-waiting">
+          <div id="qlas-waiting-panel">
+            <div class="qlas-waiting" style="margin-top: 10px">
+              <svg
+                class="qlas-waiting-mark"
+                viewBox="0 0 72 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
+                <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
+                <circle cx="4" cy="32" r="2" fill="#00ff41" />
+                <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
+                <circle cx="32" cy="4" r="2" fill="#00ff41" />
+                <path
+                  d="M 42 42 L 52 52 L 62 52"
+                  stroke="#ffe600"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
+              </svg>
+              <div class="qlas-waiting-msg" id="qlas-waiting-label">Waiting for opponent…</div>
+              <div id="qlas-code-row" style="display: none">
+                <div class="qlas-waiting-msg" style="margin-top: 8px">Share this code</div>
+                <div style="display: inline-flex; align-items: center; gap: 10px">
+                  <div class="qlas-code-display" id="qlas-code-val">—</div>
+                  <button
+                    id="qlas-btn-copy-code"
+                    style="
                       background: #0d2e0d;
                       border: 1px solid #00ff41;
                       color: #00ff41;
@@ -925,168 +908,163 @@
                       border-radius: 2px;
                       cursor: pointer;
                     "
-              >
-                COPY
+                  >
+                    COPY
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Combat -->
+        <div id="qlas-phase-combat" style="display: none">
+          <div class="qlas-combat-layout">
+            <!-- Column 1: player boxes -->
+            <div class="qlas-col-players">
+              <div class="qlas-pbar" id="qlas-p0bar" style="--pc: #00ff41">
+                <div class="qlas-pb-grid">
+                  <div class="qlas-pb-name" id="qlas-p0name">Player 1</div>
+                  <div class="qlas-hp-num" id="qlas-p0hp" style="grid-row: span 2">30</div>
+                </div>
+                <div class="qlas-hp-bar-bg">
+                  <div class="qlas-hp-bar-fill" id="qlas-p0hpbar" style="width: 100%"></div>
+                </div>
+              </div>
+              <div class="qlas-pbar" id="qlas-p1bar" style="--pc: #00b8ff">
+                <div class="qlas-pb-grid">
+                  <div class="qlas-pb-name" id="qlas-p1name">Player 2</div>
+                  <div class="qlas-hp-num" id="qlas-p1hp" style="grid-row: span 2">30</div>
+                </div>
+                <div class="qlas-hp-bar-bg">
+                  <div class="qlas-hp-bar-fill" id="qlas-p1hpbar" style="width: 100%"></div>
+                </div>
+              </div>
+              <button class="qlas-recap-live-btn" id="qlas-recap-live-btn" type="button">
+                [ recap ]
               </button>
             </div>
+
+            <!-- Column 2: turn info + questions + buttons -->
+            <div class="qlas-col-game">
+              <div class="qlas-turn-bar" id="qlas-turn-bar">
+                <div class="qlas-turn-name" id="qlas-turn-name">—</div>
+                <div class="qlas-turn-score" id="qlas-turn-score"></div>
+                <div class="qlas-timer-ring" id="qlas-turn-timer">
+                  <svg viewBox="0 0 64 64" aria-hidden="true">
+                    <circle class="ring-track" cx="32" cy="32" r="28"></circle>
+                    <circle
+                      class="ring-progress"
+                      id="qlas-timer-ring-progress"
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke-dasharray="175.93"
+                      stroke-dashoffset="0"
+                    ></circle>
+                  </svg>
+                  <span class="ring-label" id="qlas-timer-ring-label">—</span>
+                </div>
+              </div>
+
+              <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
+                <div class="qlas-flash" id="qlas-flash" aria-live="polite"></div>
+                <div class="qlas-question" id="qlas-question"></div>
+                <div class="qlas-options" id="qlas-options"></div>
+              </div>
+
+              <div class="qlas-log" id="qlas-log" aria-live="polite"></div>
+
+              <div class="qlas-action-row" id="qlas-action-row" style="display: none">
+                <button class="btn-qlas-stop" id="btn-qlas-stop" style="display: none">
+                  [ ABORT ]
+                </button>
+                <button class="btn-qlas-end" id="btn-qlas-end" style="display: none">
+                  [ END TURN ]
+                </button>
+                <button class="btn-qlas-heal" id="btn-qlas-heal" style="display: none">
+                  [ HEAL ] <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
+                </button>
+              </div>
+
+              <div
+                id="qlas-decision-panel"
+                style="display: none; text-align: center; margin-top: 4px"
+              >
+                <button
+                  class="qlas-btn-confirm"
+                  id="btn-qlas-attack"
+                  style="font-size: 1.3rem; width: 100%"
+                >
+                  [ ENGAGE ]
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live recap modal -->
+        <div class="qlas-recap-modal" id="qlas-recap-modal">
+          <div class="qlas-recap-modal-body">
+            <div class="qlas-recap-modal-head">
+              <button class="qlas-recap-modal-close" id="qlas-recap-modal-close" type="button">
+                [ close ]
+              </button>
+            </div>
+            <div class="qlas-recap" id="qlas-recap-live" style="display: flex"></div>
+          </div>
+        </div>
+
+        <!-- Game over — mission report -->
+        <div id="qlas-phase-gameover" style="display: none">
+          <div class="qlas-gameover">
+            <h1 class="qlas-go-head">&gt; GAME OVER</h1>
+            <div class="qlas-go-stats">
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">WINNER</span>
+                <span class="qlas-go-v" id="qlas-winner-text">—</span>
+              </div>
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">REASON</span>
+                <span class="qlas-go-v" id="qlas-winner-reason">—</span>
+              </div>
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">DURATION</span>
+                <span class="qlas-go-v" id="qlas-go-duration">—</span>
+              </div>
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">ACCURACY</span>
+                <span class="qlas-go-v" id="qlas-go-accuracy">—</span>
+              </div>
+            </div>
+            <button class="qlas-recap-toggle" id="qlas-recap-toggle" style="display: none">
+              [ show recap ]
+            </button>
+            <div class="qlas-recap" id="qlas-recap" style="display: none"></div>
+            <button class="qlas-btn-back" id="btn-qlas-playagain">[ REMATCH ]</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Combat -->
-    <div id="qlas-phase-combat" style="display: none">
-      <div class="qlas-combat-layout">
-        <!-- Column 1: player boxes -->
-        <div class="qlas-col-players">
-          <div class="qlas-pbar" id="qlas-p0bar" style="--pc: #00ff41">
-            <div class="qlas-pb-grid">
-              <div class="qlas-pb-name" id="qlas-p0name">Player 1</div>
-              <div class="qlas-hp-num" id="qlas-p0hp" style="grid-row: span 2">30</div>
-              <div class="qlas-pb-class" id="qlas-p0class">—</div>
-            </div>
-            <div class="qlas-hp-bar-bg">
-              <div class="qlas-hp-bar-fill" id="qlas-p0hpbar" style="width: 100%"></div>
-            </div>
-          </div>
-          <div class="qlas-pbar" id="qlas-p1bar" style="--pc: #00b8ff">
-            <div class="qlas-pb-grid">
-              <div class="qlas-pb-name" id="qlas-p1name">Player 2</div>
-              <div class="qlas-hp-num" id="qlas-p1hp" style="grid-row: span 2">30</div>
-              <div class="qlas-pb-class" id="qlas-p1class">—</div>
-            </div>
-            <div class="qlas-hp-bar-bg">
-              <div class="qlas-hp-bar-fill" id="qlas-p1hpbar" style="width: 100%"></div>
-            </div>
-          </div>
-          <button class="qlas-recap-live-btn" id="qlas-recap-live-btn" type="button">
-            [ recap ]
-          </button>
+    <!-- Quiz Screen (overlay) -->
+    <!-- Leaderboard Screen -->
+    <div id="screen-leaderboard">
+      <div class="leaderboard-panel">
+        <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
+        <div class="lb-divider"></div>
+        <div class="lb-thead">
+          <div>#</div>
+          <div>NAME</div>
+          <div style="text-align: right">STREAK</div>
+          <div style="text-align: right">TIME</div>
         </div>
-
-        <!-- Column 2: turn info + questions + buttons -->
-        <div class="qlas-col-game">
-          <div class="qlas-turn-bar" id="qlas-turn-bar">
-            <div class="qlas-turn-name" id="qlas-turn-name">—</div>
-            <div class="qlas-turn-score" id="qlas-turn-score"></div>
-            <div class="qlas-timer-ring" id="qlas-turn-timer">
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <circle class="ring-track" cx="32" cy="32" r="28"></circle>
-                <circle
-                        class="ring-progress"
-                        id="qlas-timer-ring-progress"
-                        cx="32"
-                        cy="32"
-                        r="28"
-                        stroke-dasharray="175.93"
-                        stroke-dashoffset="0"
-                ></circle>
-              </svg>
-              <span class="ring-label" id="qlas-timer-ring-label">—</span>
-            </div>
-          </div>
-
-          <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
-            <div class="qlas-flash" id="qlas-flash" aria-live="polite"></div>
-            <div class="qlas-question" id="qlas-question"></div>
-            <div class="qlas-options" id="qlas-options"></div>
-          </div>
-
-          <div class="qlas-log" id="qlas-log" aria-live="polite"></div>
-
-          <div class="qlas-action-row" id="qlas-action-row" style="display: none">
-            <button class="btn-qlas-stop" id="btn-qlas-stop" style="display: none">
-              [ ABORT ]
-            </button>
-            <button class="btn-qlas-reroll" id="btn-qlas-reroll" style="display: none">
-              [ REROLL ]
-            </button>
-            <button class="btn-qlas-end" id="btn-qlas-end" style="display: none">
-              [ END TURN ]
-            </button>
-            <button class="btn-qlas-heal" id="btn-qlas-heal" style="display: none">
-              [ HEAL ] <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
-            </button>
-          </div>
-
-          <div
-                  id="qlas-decision-panel"
-                  style="display: none; text-align: center; margin-top: 4px"
-          >
-            <button
-                    class="qlas-btn-confirm"
-                    id="btn-qlas-attack"
-                    style="font-size: 1.3rem; width: 100%"
-            >
-              [ ENGAGE ]
-            </button>
-          </div>
+        <div id="lb-rows"></div>
+        <div class="lb-actions">
+          <button class="primary" id="lb-play-again">[ play again ]</button>
+          <button id="lb-back">[ back to lobby ]</button>
         </div>
       </div>
     </div>
-
-    <!-- Live recap modal -->
-    <div class="qlas-recap-modal" id="qlas-recap-modal">
-      <div class="qlas-recap-modal-body">
-        <div class="qlas-recap-modal-head">
-          <button class="qlas-recap-modal-close" id="qlas-recap-modal-close" type="button">
-            [ close ]
-          </button>
-        </div>
-        <div class="qlas-recap" id="qlas-recap-live" style="display: flex"></div>
-      </div>
-    </div>
-
-    <!-- Game over — mission report -->
-    <div id="qlas-phase-gameover" style="display: none">
-      <div class="qlas-gameover">
-        <h1 class="qlas-go-head">&gt; GAME OVER</h1>
-        <div class="qlas-go-stats">
-          <div class="qlas-go-row">
-            <span class="qlas-go-k">WINNER</span>
-            <span class="qlas-go-v" id="qlas-winner-text">—</span>
-          </div>
-          <div class="qlas-go-row">
-            <span class="qlas-go-k">REASON</span>
-            <span class="qlas-go-v" id="qlas-winner-reason">—</span>
-          </div>
-          <div class="qlas-go-row">
-            <span class="qlas-go-k">DURATION</span>
-            <span class="qlas-go-v" id="qlas-go-duration">—</span>
-          </div>
-          <div class="qlas-go-row">
-            <span class="qlas-go-k">ACCURACY</span>
-            <span class="qlas-go-v" id="qlas-go-accuracy">—</span>
-          </div>
-        </div>
-        <button class="qlas-recap-toggle" id="qlas-recap-toggle" style="display: none">
-          [ show recap ]
-        </button>
-        <div class="qlas-recap" id="qlas-recap" style="display: none"></div>
-        <button class="qlas-btn-back" id="btn-qlas-playagain">[ REMATCH ]</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Quiz Screen (overlay) -->
-<!-- Leaderboard Screen -->
-<div id="screen-leaderboard">
-  <div class="leaderboard-panel">
-    <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
-    <div class="lb-divider"></div>
-    <div class="lb-thead">
-      <div>#</div>
-      <div>NAME</div>
-      <div style="text-align: right">STREAK</div>
-      <div style="text-align: right">TIME</div>
-    </div>
-    <div id="lb-rows"></div>
-    <div class="lb-actions">
-      <button class="primary" id="lb-play-again">[ play again ]</button>
-      <button id="lb-back">[ back to lobby ]</button>
-    </div>
-  </div>
-</div>
-</body>
+  </body>
 </html>

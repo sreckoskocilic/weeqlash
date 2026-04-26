@@ -66,10 +66,18 @@ h1 {
   margin: 0;
   padding: 0;
 }
-#main-title.brand:empty { display: none; }
+#main-title.brand:empty {
+  display: none;
+}
 /* Emblem as backdrop inside #announcements */
-#announcements { position: relative; overflow: hidden; }
-#announcements > *:not(.ann-bg) { position: relative; z-index: 1; }
+#announcements {
+  position: relative;
+  overflow: hidden;
+}
+#announcements > *:not(.ann-bg) {
+  position: relative;
+  z-index: 1;
+}
 .ann-bg {
   position: absolute;
   top: 55%;
@@ -99,9 +107,21 @@ h1 {
   opacity: 0.5;
 }
 @media (max-width: 600px) {
-  .ann-bg   { width: 110px; right: 10px; opacity: 0.22; }
-  .ann-bg-2 { width: 55px;  left: 30%;   opacity: 0.22; }
-  .ann-bg-3 { width: 28px;  left: 58%;   opacity: 0.22; }
+  .ann-bg {
+    width: 110px;
+    right: 10px;
+    opacity: 0.22;
+  }
+  .ann-bg-2 {
+    width: 55px;
+    left: 30%;
+    opacity: 0.22;
+  }
+  .ann-bg-3 {
+    width: 28px;
+    left: 58%;
+    opacity: 0.22;
+  }
 }
 
 /* ===== BRAND ECHOES (qlashique / waiting) ===== */
@@ -110,9 +130,7 @@ h1 {
   height: auto;
   display: block;
   margin: 0 auto 6px;
-  filter:
-    drop-shadow(0 0 6px rgba(0, 255, 65, 0.55))
-    drop-shadow(0 0 14px rgba(0, 255, 65, 0.22));
+  filter: drop-shadow(0 0 6px rgba(0, 255, 65, 0.55)) drop-shadow(0 0 14px rgba(0, 255, 65, 0.22));
 }
 .qlas-waiting-mark {
   width: 72px;
@@ -120,12 +138,12 @@ h1 {
   display: block;
   margin: 0 auto 14px;
   animation: qlas-mark-spin 4s linear infinite;
-  filter:
-    drop-shadow(0 0 8px rgba(0, 255, 65, 0.55))
-    drop-shadow(0 0 18px rgba(0, 255, 65, 0.22));
+  filter: drop-shadow(0 0 8px rgba(0, 255, 65, 0.55)) drop-shadow(0 0 18px rgba(0, 255, 65, 0.22));
 }
 @keyframes qlas-mark-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 /* Empty-state watermark for dynamically-populated containers */
 #lb-rows:empty::after {
@@ -264,28 +282,6 @@ h1 {
 .btn-triviandom:hover {
   opacity: 0.85;
 }
-.btn-quiz-mode {
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  width: 100%;
-}
-.btn-quiz-mode:hover {
-  opacity: 0.85;
-}
-.btn-show-mode-lb {
-  width: 100%;
-  padding: 0.45rem;
-  margin-bottom: 0.6rem;
-  background: transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-}
-
 @media (max-width: 700px) {
   .main-columns {
     grid-template-columns: 1fr;
@@ -1508,138 +1504,6 @@ body.high-contrast {
   flex-direction: column;
   gap: 10px;
 }
-/* Class cards */
-.qlas-class-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.qlas-card {
-  background: #071007;
-  border: 2px solid #0d2e0d;
-  border-radius: 2px;
-  padding: 20px;
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    transform 0.15s;
-  position: relative;
-  overflow: hidden;
-}
-.qlas-card:hover {
-  border-color: var(--qc, #00ff41);
-  transform: translateY(-2px);
-}
-.qlas-card.selected {
-  border-color: var(--qc, #00ff41);
-  background: #041004;
-}
-.qlas-card-check {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--qc, #00ff41);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
-  color: #000;
-  font-weight: 900;
-  opacity: 0;
-  transform: scale(0);
-  transition: all 0.2s;
-}
-.qlas-card.selected .qlas-card-check {
-  opacity: 1;
-  transform: scale(1);
-}
-.qlas-card-icon {
-  font-size: 2rem;
-  margin-bottom: 8px;
-  display: block;
-}
-.qlas-card-name {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 1.5rem;
-  letter-spacing: 0.1em;
-  color: var(--qc, #88ff88);
-}
-.qlas-card-arch {
-  font-size: 0.7rem;
-  color: #ffe600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin: 3px 0 10px;
-}
-.qlas-card-desc {
-  font-size: 0.8rem;
-  color: #ffe600;
-  line-height: 1.6;
-  font-family: 'IBM Plex Mono', monospace;
-}
-.qlas-card-ability {
-  margin-top: 12px;
-  padding: 9px 11px;
-  background: #020c02;
-  border: 1px solid #0d2e0d;
-  border-left: 3px solid var(--qc, #00ff41);
-  border-radius: 2px;
-  font-size: 0.76rem;
-  line-height: 1.5;
-  color: #88ff88;
-  font-family: 'IBM Plex Mono', monospace;
-}
-.qlas-card-ability strong {
-  color: var(--qc, #00ff41);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  display: block;
-  margin-bottom: 3px;
-  text-transform: uppercase;
-}
-/* Confirm row */
-.qlas-confirm-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #071007;
-  border: 1px solid #0d2e0d;
-  border-radius: 2px;
-  padding: 14px 20px;
-  gap: 16px;
-}
-.qlas-confirm-preview {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.qlas-confirm-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 2px;
-  background: #041004;
-  border: 2px solid #0d2e0d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  transition: border-color 0.2s;
-}
-.qlas-confirm-name {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-}
-.qlas-confirm-tag {
-  font-size: 0.7rem;
-  color: #ffe600;
-  letter-spacing: 0.12em;
-  padding-top: 4px;
-}
 .qlas-btn-confirm {
   background: #00ff41;
   border: none;
@@ -1726,12 +1590,6 @@ body.high-contrast {
   font-weight: 700;
   font-size: 1.1rem;
   font-family: 'IBM Plex Mono', monospace;
-}
-.qlas-pb-class {
-  font-size: 0.65rem;
-  color: var(--pc, #ffe600);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .qlas-hp-bar-bg {
   height: 6px;
@@ -1908,30 +1766,11 @@ body.high-contrast {
   color: #ffe600;
   letter-spacing: 0.04em;
 }
-.qlas-opt-key::before { content: '['; }
-.qlas-opt-key::after  { content: ']'; }
-.btn-qlas-reroll {
-  padding: 10px 14px;
-  min-height: 44px;
-  background: rgba(255, 230, 0, 0.1);
-  border: 1px solid rgba(255, 230, 0, 0.3);
-  border-radius: 2px;
-  color: #ffe600;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  max-width: 30%;
+.qlas-opt-key::before {
+  content: '[';
 }
-.btn-qlas-reroll:hover:not(:disabled) {
-  background: rgba(255, 230, 0, 0.2);
-  border-color: #ffe600;
-}
-.btn-qlas-reroll:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.qlas-opt-key::after {
+  content: ']';
 }
 /* Action row */
 .qlas-action-row {
@@ -2147,9 +1986,6 @@ body.high-contrast {
   color: #8aaad4;
 }
 @media (max-width: 600px) {
-  .qlas-class-grid {
-    grid-template-columns: 1fr;
-  }
   .qlas-combat-layout {
     grid-template-columns: 1fr;
   }
@@ -2218,9 +2054,6 @@ body.high-contrast {
   .qlas-pb-name {
     font-size: 0.9rem;
   }
-  .qlas-pb-class {
-    font-size: 0.6rem;
-  }
   .qlas-hp-num {
     font-size: 1.5rem;
   }
@@ -2255,7 +2088,6 @@ body.high-contrast {
   .qlas-btn-confirm,
   .btn-qlas-stop,
   .btn-qlas-end,
-  .btn-qlas-reroll,
   .btn-qlas-heal {
     min-height: 44px;
   }
@@ -2558,8 +2390,14 @@ body.high-contrast {
   text-shadow: 0 0 8px rgba(255, 85, 119, 0.5);
 }
 @keyframes qlas-flash-in {
-  from { opacity: 0; transform: translateX(-6px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ===== COMBO LOG (#6) ===== */
@@ -2590,12 +2428,30 @@ body.high-contrast {
   animation: qlas-log-fade 2.5s ease-out forwards;
 }
 @keyframes qlas-log-fade {
-  0%   { opacity: 0; transform: translateX(12px); }
-  10%  { opacity: 1; transform: none; }
-  85%  { opacity: 1; }
-  100% { opacity: 0; transform: translateX(12px); }
+  0% {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  10% {
+    opacity: 1;
+    transform: none;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(12px);
+  }
 }
 @media (max-width: 600px) {
-  .qlas-log { top: 64px; right: 8px; width: 170px; }
-  .qlas-log-entry { font-size: 0.62rem; padding: 4px 7px; }
+  .qlas-log {
+    top: 64px;
+    right: 8px;
+    width: 170px;
+  }
+  .qlas-log-entry {
+    font-size: 0.62rem;
+    padding: 4px 7px;
+  }
 }

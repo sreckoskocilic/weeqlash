@@ -47,6 +47,7 @@ import {
   getValidMoves,
   PHASE,
   COORD_BASE,
+  CATS_SET,
 } from './game/engine.ts';
 import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.ts';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
@@ -54,7 +55,6 @@ import {
   createQlasGame,
   calcTimer,
   processAnswer,
-  processReroll,
   endTurn,
   applyOutcome,
   checkInstantWin,
@@ -307,14 +307,12 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
   // Clean up test entries from leaderboard tables
   app.post('/test/clear-leaderboard', (_req, res) => {
     clearTestEntries('leaderboard');
-    clearTestEntries('leaderboard_epl2025');
     res.json({ ok: true });
   });
 
   // Test-only: clear ALL test data (leaderboard + users + history) in one call
   app.post('/test/clear-all', (_req, res) => {
     clearTestEntries('leaderboard');
-    clearTestEntries('leaderboard_epl2025');
     clearTestUsers();
     clearTestHistory();
     res.json({ ok: true });
@@ -638,8 +636,7 @@ io.on('connection', (socket) => {
         players: room.players.map(publicPlayer),
       });
       if (room.mode === 'qlashique' && !room.started) {
-        room.classSelections[1] = 'none';
-        _initQlasRoomState(room, 'none', 'none');
+        _initQlasRoomState(room);
         _emitQlasTurnStart(io, code, room);
       }
     }
@@ -739,7 +736,6 @@ io.on('connection', (socket) => {
         token: player.token,
         myIdx: player.index,
         code: room.code,
-        classSelections: room.classSelections,
         players: room.players.map(publicPlayer),
         phase: qstate.phase,
         hp: [qstate.players[0].hp, qstate.players[1].hp],
@@ -1216,7 +1212,6 @@ io.on('connection', (socket) => {
     }
     socket.join(room.code);
     const token = getPlayerBySocket(room, socket.id)?.token;
-    room.classSelections[0] = 'none';
     cb({
       ok: true,
       code: room.code,
@@ -1224,36 +1219,6 @@ io.on('connection', (socket) => {
       players: room.players.map(publicPlayer),
       token,
     });
-  });
-
-  socket.on('qlashique:select_class', ({ code, classId } = {}, cb) => {
-    const room = getRoom(code);
-    if (!room || room.mode !== 'qlashique') {
-      return cb({ error: 'Room not found' });
-    }
-    if (room.started) {
-      return cb({ error: 'Game already started' });
-    }
-    if (!['slowpoke', 'reroll'].includes(classId)) {
-      return cb({ error: 'Invalid class' });
-    }
-
-    const player = getPlayerBySocket(room, socket.id);
-    if (!player) {
-      return cb({ error: 'Not in this room' });
-    }
-
-    room.classSelections[player.index] = classId;
-    io.to(code).emit('qlashique:class_selected', {
-      playerIdx: player.index,
-      classId,
-    });
-    cb({ ok: true });
-
-    if (room.classSelections[0] && room.classSelections[1]) {
-      _initQlasRoomState(room, room.classSelections[0], room.classSelections[1]);
-      _emitQlasTurnStart(io, code, room);
-    }
   });
 
   socket.on('qlashique:start_guessing', ({ code } = {}, cb) => {
@@ -1404,42 +1369,6 @@ io.on('connection', (socket) => {
       }
     }
 
-    cb({ ok: true });
-  });
-
-  socket.on('qlashique:reroll', ({ code } = {}, cb) => {
-    const room = getRoom(code);
-    if (!room?.state || room.mode !== 'qlashique') {
-      return cb({ error: 'No active game' });
-    }
-
-    const player = getPlayerBySocket(room, socket.id);
-    if (!player) {
-      return cb({ error: 'Not in this room' });
-    }
-    if (room.state.currentPlayerIdx !== player.index) {
-      return cb({ error: 'Not your turn' });
-    }
-
-    const result = processReroll(room.state);
-    if (result.error) {
-      return cb(result);
-    }
-
-    const newQ = _pickQlasQuestion(room, questionsDb);
-    if (!newQ) {
-      return cb({ error: 'No questions available' });
-    }
-    room.currentQuestion = newQ;
-
-    socket.emit('qlashique:rerolled', {
-      newQuestion: {
-        id: newQ.id,
-        q: newQ.q,
-        opts: newQ.opts,
-        category: newQ.category,
-      },
-    });
     cb({ ok: true });
   });
 
@@ -1720,7 +1649,6 @@ function _consumeQuestionOverride(db) {
 }
 
 // Categories to exclude from qlashique by default
-const EXCLUDED_CATS = new Set(['death_metal', 'epl_2025']);
 
 function _pickQlasQuestion(room, db) {
   if (_testOverride) {
@@ -1733,7 +1661,8 @@ function _pickQlasQuestion(room, db) {
   }
   // Cache excluded-cat filter on the room; questions DB is immutable per process.
   if (!room.qlasPool) {
-    room.qlasPool = getAllQuestions(db).filter((q) => !EXCLUDED_CATS.has(q.category));
+    // Filter out questions tagged with disabled categories (not in CATEGORIES)
+    room.qlasPool = getAllQuestions(db).filter((q) => CATS_SET.has(q.category));
   }
   const all = room.qlasPool;
   if (!all.length) {
@@ -1763,8 +1692,8 @@ function _saveQlasResult(room, winnerIdx) {
       gameMode: 'qlashique',
       boardSize: null,
       durationMs,
-      player1Stats: { ...s0, finalHp: room.state.players[0].hp, classId: room.classSelections[0] },
-      player2Stats: { ...s1, finalHp: room.state.players[1].hp, classId: room.classSelections[1] },
+      player1Stats: { ...s0, finalHp: room.state.players[0].hp },
+      player2Stats: { ...s1, finalHp: room.state.players[1].hp },
     });
 
     // Update games_played and games_won for both players
@@ -1783,10 +1712,10 @@ function _saveQlasResult(room, winnerIdx) {
   }
 }
 
-function _initQlasRoomState(room, class0, class1) {
+function _initQlasRoomState(room) {
   room.started = true;
   room.startedAt = Date.now();
-  room.state = createQlasGame(class0, class1, _testHPOverride ?? 30);
+  room.state = createQlasGame(_testHPOverride ?? 30);
   _testHPOverride = null;
   room.qlasStats = [
     { answered: 0, correct: 0 },
@@ -1800,14 +1729,13 @@ function _initQlasRoomState(room, class0, class1) {
 
 function _emitQlasTurnStart(ioServer, code, room) {
   const idx = room.state.currentPlayerIdx;
-  const timerSeconds = calcTimer(room.state.turnNumber, room.classSelections[idx]);
+  const timerSeconds = calcTimer(room.state.turnNumber);
   room.questionIdx = 0;
   room.qlasTimerSeconds = timerSeconds;
   room.qlasTimerExpired = false;
   ioServer.to(code).emit('qlashique:turn_start', {
     playerIdx: idx,
     timerSeconds,
-    rerollAvailable: room.classSelections[idx] === 'reroll',
   });
 }
 

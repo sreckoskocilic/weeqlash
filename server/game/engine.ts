@@ -19,36 +19,40 @@ export const PHASE = {
 
 export type Phase = (typeof PHASE)[keyof typeof PHASE];
 
-export const CATS = [
-  'arts',
-  'music',
-  'death_metal',
-  'entertainment',
-  'literature',
-  'science',
-  'nature',
-  'history',
-  'geography',
-  'sports',
-  'epl_2025',
-  'other',
-] as const;
+// Single source of truth for question categories.
+//
+// To enable a new category: add an entry here.
+// To disable a category: delete its entry — questions tagged with it become
+//   orphaned (still in the DB, never served anywhere) until you add it back.
+//
+// Flags:
+//   defaultOff — appears in the board-setup toggle UI but starts unchecked
+//                (niche / opt-in)
+//
+// Client mirrors this list in `client/js/constants.js`. Keep both in sync.
+export const CATEGORIES = {
+  arts: { label: 'Arts', color: '#C62828' },
+  music: { label: 'Music', color: '#6A1B9A' },
+  death_metal: { label: 'Death Metal', color: '#37474F', defaultOff: true },
+  entertainment: { label: 'Entertainment', color: '#E65100' },
+  literature: { label: 'Literature', color: '#1565C0' },
+  science: { label: 'Science', color: '#969517' },
+  nature: { label: 'Nature', color: '#388E3C' },
+  history: { label: 'History', color: '#6D4C41' },
+  geography: { label: 'Geography', color: '#00695C' },
+  sports: { label: 'Sports', color: '#bd1b8a' },
+  other: { label: 'Other', color: '#546E7A' },
+} as const;
 
-// Default categories for new games - excludes niche categories
-export const DEFAULT_CATS = CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025') as unknown as readonly [
-  'arts',
-  'music',
-  'entertainment',
-  'literature',
-  'science',
-  'nature',
-  'history',
-  'geography',
-  'sports',
-  'other',
-];
+export type Category = keyof typeof CATEGORIES;
 
-export type Category = (typeof CATS)[number];
+export const CATS = Object.keys(CATEGORIES) as readonly Category[];
+
+export const CATS_SET = new Set<string>(CATS);
+
+export const DEFAULT_CATS = (Object.entries(CATEGORIES) as [Category, { defaultOff?: boolean }][])
+  .filter(([, c]) => !c.defaultOff)
+  .map(([id]) => id) as readonly Category[];
 
 export const COORD_BASE = 100;
 const DIRS = [

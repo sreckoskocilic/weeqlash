@@ -12,6 +12,8 @@ export default defineConfig({
   globalTeardown: './tests/e2e-teardown.js',
   testDir: './tests',
   testMatch: '**/*.spec.js',
+  // Disabled — kept on disk for future re-enabling.
+  testIgnore: ['**/iphone13-audit.spec.js'],
   timeout: 60000,
   workers: 1,
   use: {

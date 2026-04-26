@@ -72,7 +72,7 @@ function initUI() {
       `<button class="cat-toggle-btn active" data-cat="${cat}">${constants.CAT_NAMES[cat]}</button>`,
   ).join('');
 
-  state.setupEnabledCats = constants.CATS.filter((c) => c !== 'death_metal' && c !== 'epl_2025');
+  state.setupEnabledCats = [...constants.DEFAULT_CATS];
 
   // Setup button groups
   initOptBtnGroup('board-size-btns', (v) => {
