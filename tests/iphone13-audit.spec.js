@@ -24,9 +24,13 @@ async function audit(page, label) {
     const all = Array.from(document.querySelectorAll('body *'));
     for (const el of all) {
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) {continue;}
+      if (r.width === 0 || r.height === 0) {
+        continue;
+      }
       const style = getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden') {continue;}
+      if (style.display === 'none' || style.visibility === 'hidden') {
+        continue;
+      }
       if (r.right > vw + 1 || r.left < -1) {
         overflowingEls.push({
           tag: el.tagName.toLowerCase(),
@@ -45,9 +49,13 @@ async function audit(page, label) {
     const smallTaps = [];
     for (const el of taps) {
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) {continue;}
+      if (r.width === 0 || r.height === 0) {
+        continue;
+      }
       const style = getComputedStyle(el);
-      if (style.display === 'none' || style.visibility === 'hidden') {continue;}
+      if (style.display === 'none' || style.visibility === 'hidden') {
+        continue;
+      }
       if (r.width < 44 || r.height < 44) {
         smallTaps.push({
           tag: el.tagName.toLowerCase(),
@@ -157,7 +165,7 @@ test('iphone13: qlashique decision panel + question panel', async ({ browser }) 
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
-  await p1.locator('#btn-qlas-start').click();
+  await p1.locator('#btn-qlas-create').click();
   await p1.waitForFunction(
     // eslint-disable-next-line no-undef
     () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,

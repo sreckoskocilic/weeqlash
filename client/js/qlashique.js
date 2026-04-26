@@ -638,57 +638,67 @@ export function initQlashique(socket) {
     qlasStreak = [0, 0];
   });
 
-  // Start button handler
-  el('btn-qlas-start').addEventListener('click', () => {
-    const codeInput = el('qlas-join-code').value.trim().toUpperCase();
-    qlasIsHost = !codeInput;
-    qlasCode = codeInput || null;
-
-    if (!qlasIsHost && codeInput.length !== 5) {
-      showError('Enter a 5-letter Qlashique room code, or leave blank to create.');
-      return;
-    }
-
-    // Reset state
+  function qlasResetForNewMatch() {
     qlasPlayers = [{ name: '' }, { name: '' }];
     qlasHp = [30, 30];
     qlasScore = 0;
     qlasToken = null;
     qlasGuessingActive = false;
     qlasLiveHistory = [];
+  }
+
+  el('btn-qlas-create').addEventListener('click', () => {
+    qlasIsHost = true;
+    qlasCode = null;
+    qlasResetForNewMatch();
 
     const playerName = getPlayerName();
     showScreen('screen-qlashique');
     qlasShowPhase('waiting');
     qEl('qlas-waiting-panel').style.display = '';
 
-    if (qlasIsHost) {
-      socket.emit('qlashique:create_room', { playerName }, (res) => {
-        if (res.error) {
-          showError(res.error);
-          return;
-        }
-        qlasCode = res.code;
-        qlasToken = res.token;
-        qlasMyIdx = 0;
-        qlasPlayers[0].name = playerName;
-        qEl('qlas-waiting-label').textContent = 'Waiting for opponent…';
-        qEl('qlas-code-row').style.display = '';
-        qEl('qlas-code-val').textContent = res.code;
-      });
-    } else {
-      socket.emit('room:join', { code: qlasCode, playerName }, (res) => {
-        if (res.error) {
-          showError(res.error);
-          return;
-        }
-        qlasToken = res.token;
-        qlasMyIdx = res.myIdx;
-        qlasPlayers[0].name = res.players[0]?.name || '';
-        qlasPlayers[1].name = res.players[1]?.name || '';
-        qEl('qlas-waiting-label').textContent = 'Waiting for game to start…';
-      });
+    socket.emit('qlashique:create_room', { playerName }, (res) => {
+      if (res.error) {
+        showError(res.error);
+        return;
+      }
+      qlasCode = res.code;
+      qlasToken = res.token;
+      qlasMyIdx = 0;
+      qlasPlayers[0].name = playerName;
+      qEl('qlas-waiting-label').textContent = 'Waiting for opponent…';
+      qEl('qlas-code-row').style.display = '';
+      qEl('qlas-code-val').textContent = res.code;
+    });
+  });
+
+  el('btn-qlas-start').addEventListener('click', () => {
+    const codeInput = el('qlas-join-code').value.trim().toUpperCase();
+    if (codeInput.length !== 5) {
+      showError('Enter a 5-letter Qlashique room code.');
+      return;
     }
+
+    qlasIsHost = false;
+    qlasCode = codeInput;
+    qlasResetForNewMatch();
+
+    const playerName = getPlayerName();
+    showScreen('screen-qlashique');
+    qlasShowPhase('waiting');
+    qEl('qlas-waiting-panel').style.display = '';
+
+    socket.emit('room:join', { code: qlasCode, playerName }, (res) => {
+      if (res.error) {
+        showError(res.error);
+        return;
+      }
+      qlasToken = res.token;
+      qlasMyIdx = res.myIdx;
+      qlasPlayers[0].name = res.players[0]?.name || '';
+      qlasPlayers[1].name = res.players[1]?.name || '';
+      qEl('qlas-waiting-label').textContent = 'Waiting for game to start…';
+    });
   });
 }
 

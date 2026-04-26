@@ -46,7 +46,7 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
   // P1 creates qlashique room
-  await p1.locator('#btn-qlas-start').click();
+  await p1.locator('#btn-qlas-create').click();
   await p1.waitForFunction(
     // eslint-disable-next-line no-undef
     () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
@@ -140,7 +140,7 @@ test('qlashique: live recap populates after a few turns', async ({ browser }) =>
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
-  await p1.locator('#btn-qlas-start').click();
+  await p1.locator('#btn-qlas-create').click();
   await p1.waitForFunction(
     // eslint-disable-next-line no-undef
     () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
@@ -216,7 +216,7 @@ test('qlashique: real pool serves a question (no override)', async ({ browser })
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
-  await p1.locator('#btn-qlas-start').click();
+  await p1.locator('#btn-qlas-create').click();
   await p1.waitForFunction(
     // eslint-disable-next-line no-undef
     () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,

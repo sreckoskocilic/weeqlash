@@ -412,7 +412,7 @@ button {
   color: #cecdcd;
   border: none;
   border-radius: var(--radius);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   transition: opacity 0.15s;
 }
@@ -2049,10 +2049,6 @@ body.high-contrast {
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.1rem;
-  letter-spacing: 0.15em;
-  transition:
-    background 0.15s,
-    border-color 0.15s;
 }
 .btn-qlashique:hover {
   background: rgba(0, 255, 65, 0.2);
