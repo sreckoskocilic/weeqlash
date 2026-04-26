@@ -32,7 +32,6 @@ export interface RoomState {
   qlasGuessingStartedAt?: number;
   qlasHistory?: QlashiqueHistoryEntry[];
   qlasStats?: { answered: number; correct: number }[];
-  qlasPool?: Question[]; // cached, filtered to non-excluded cats
 }
 
 export interface QlashiqueHistoryEntry {

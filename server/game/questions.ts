@@ -135,3 +135,44 @@ export function getQuestionsForCategories(db: QuestionsDb, categories: Category[
   }
   return dbCache.get(key)!;
 }
+
+// Single fetch primitive shared by quiz / qlashique / skipnot. Returns one
+// random question from the active-categories pool. `excludeIds` skips already-
+// used questions; if the exclude leaves zero candidates, falls back to the
+// full enabled pool. Returns null only when the enabled pool itself is empty.
+//
+// The enabled pool is cached in a WeakMap keyed by the enabledCats Set ref,
+// so callers no longer need their own filtered-pool cache (e.g. room.qlasPool).
+const _enabledPoolByDb = new WeakMap<QuestionsDb, WeakMap<Set<string>, Question[]>>();
+function _getEnabledPool(db: QuestionsDb, enabledCats: Set<string>): Question[] {
+  let perDb = _enabledPoolByDb.get(db);
+  if (!perDb) {
+    perDb = new WeakMap();
+    _enabledPoolByDb.set(db, perDb);
+  }
+  let pool = perDb.get(enabledCats);
+  if (!pool) {
+    pool = getAllQuestions(db).filter((q) => enabledCats.has(q.category));
+    perDb.set(enabledCats, pool);
+  }
+  return pool;
+}
+
+export function pickRandomQuestion(
+  db: QuestionsDb,
+  enabledCats: Set<string>,
+  excludeIds?: Set<string>,
+): Question | null {
+  const pool = _getEnabledPool(db, enabledCats);
+  if (!pool.length) {
+    return null;
+  }
+  const src =
+    excludeIds && excludeIds.size > 0
+      ? (() => {
+          const avail = pool.filter((q) => !excludeIds.has(q.id));
+          return avail.length > 0 ? avail : pool;
+        })()
+      : pool;
+  return src[Math.floor(Math.random() * src.length)];
+}

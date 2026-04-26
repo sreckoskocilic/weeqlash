@@ -49,7 +49,7 @@ import {
   COORD_BASE,
   CATS_SET,
 } from './game/engine.ts';
-import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.ts';
+import { loadQuestions, pickRandomQuestion } from './game/questions.ts';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
 import * as skipnot from './game/skipnot.ts';
 import {
@@ -1028,14 +1028,9 @@ io.on('connection', (socket) => {
 
   // --- Quiz ---
 
-  function getQuizPool(mode) {
+  function getModeCats(mode) {
     const cfg = QUIZ_MODES_BY_ID[mode];
-    if (!cfg) {
-      return null;
-    }
-    return cfg.categories
-      ? getQuestionsForCategories(questionsDb, cfg.categories)
-      : getAllQuestions(questionsDb);
+    return cfg?.categoriesSet ?? CATS_SET;
   }
 
   socket.on('quiz:start', ({ mode = 'triviandom' } = {}, cb) => {
@@ -1058,12 +1053,10 @@ io.on('connection', (socket) => {
       return cb({ error: 'Cannot play quiz during an active game.' });
     }
 
-    const pool = getQuizPool(mode);
-    if (!pool || pool.length === 0) {
+    let randomQ = pickRandomQuestion(questionsDb, getModeCats(mode));
+    if (!randomQ) {
       return cb({ error: 'No questions available for this mode.' });
     }
-
-    let randomQ = pool[Math.floor(Math.random() * pool.length)];
     const quizOverrideId = _consumeQuestionOverride(questionsDb);
     if (quizOverrideId) {
       randomQ = questionsDb._byId[quizOverrideId];
@@ -1118,15 +1111,14 @@ io.on('connection', (socket) => {
       return cb({ error: 'Quiz not started' });
     }
 
-    const pool = getQuizPool(run.mode);
-    if (!pool || pool.length === 0) {
+    const randomQ = pickRandomQuestion(
+      questionsDb,
+      getModeCats(run.mode),
+      new Set(run.questionIds),
+    );
+    if (!randomQ) {
       return cb({ error: 'No questions available' });
     }
-
-    const usedIds = new Set(run.questionIds);
-    const available = pool.filter((q) => !usedIds.has(q.id));
-    const src = available.length > 0 ? available : pool;
-    const randomQ = src[Math.floor(Math.random() * src.length)];
 
     run.questionIds.push(randomQ.id);
     cb({ ok: true, id: randomQ.id, q: randomQ.q, opts: randomQ.opts, category: randomQ.category });
@@ -1230,17 +1222,17 @@ io.on('connection', (socket) => {
   }
 
   function _pickSkipnotPool() {
-    const pool = getAllQuestions(questionsDb).filter((q) => CATS_SET.has(q.category));
-    if (pool.length < skipnot.QUESTION_COUNT) {
-      return null;
+    const used = new Set();
+    const out = [];
+    for (let i = 0; i < skipnot.QUESTION_COUNT; i++) {
+      const q = pickRandomQuestion(questionsDb, CATS_SET, used);
+      if (!q || used.has(q.id)) {
+        return null;
+      }
+      used.add(q.id);
+      out.push(q);
     }
-    // Fisher-Yates over a copy, then take first N.
-    const arr = pool.slice();
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr.slice(0, skipnot.QUESTION_COUNT);
+    return out;
   }
 
   socket.on('skipnot:start', (cb) => {
@@ -1904,18 +1896,10 @@ function _pickQlasQuestion(room, db) {
       return q;
     }
   }
-  // Cache excluded-cat filter on the room; questions DB is immutable per process.
-  if (!room.qlasPool) {
-    // Filter out questions tagged with disabled categories (not in CATEGORIES)
-    room.qlasPool = getAllQuestions(db).filter((q) => CATS_SET.has(q.category));
-  }
-  const all = room.qlasPool;
-  if (!all.length) {
+  const q = pickRandomQuestion(db, CATS_SET, room.usedQIds);
+  if (!q) {
     return null;
   }
-  const available = all.filter((q) => !room.usedQIds.has(q.id));
-  const pool = available.length > 0 ? available : all;
-  const q = pool[Math.floor(Math.random() * pool.length)];
   room.usedQIds.add(q.id);
   return q;
 }
