@@ -39,17 +39,15 @@ export function showAuthMessage(msg, isError) {
 
 export function showUserBar(user) {
   state.currentUser = user;
-  $('user-logged-as').textContent = `logged as ${user.username}`;
-  $('user-logged-as').style.display = 'block';
+  $('user-menu-name').textContent = user.username;
   $('user-bar').style.display = 'flex';
   const isAdmin = user.is_admin === 1 || user.is_admin === true;
-  $('btn-admin').style.display = isAdmin ? 'inline-block' : 'none';
+  $('btn-admin').style.display = isAdmin ? 'block' : 'none';
   $('login-section').style.display = 'none';
 }
 
 export function hideUserBar() {
   state.currentUser = null;
-  $('user-logged-as').style.display = 'none';
   $('user-bar').style.display = 'none';
   $('login-section').style.display = '';
 }

@@ -215,16 +215,19 @@ h1 {
   max-width: 420px;
 }
 
-/* ===== TWO-COLUMN LAYOUT ===== */
+/* ===== SINGLE CARD CONNECT LAYOUT =====
+   Was a 2-col grid (left=weeqlash, right=triviandom). Triviandom hidden →
+   merged into one centered card. Class name kept for low-churn migration. */
 .main-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  display: flex;
+  justify-content: center;
   width: 100%;
-  max-width: 880px;
 }
 .main-columns .card {
-  max-width: none;
+  max-width: 480px;
+}
+.connect-card {
+  width: 100%;
 }
 .col-triviandom {
   --triv-accent: #125f9d;
@@ -282,11 +285,72 @@ h1 {
 .btn-triviandom:hover {
   opacity: 0.85;
 }
-@media (max-width: 700px) {
-  .main-columns {
-    grid-template-columns: 1fr;
-    max-width: 420px;
-  }
+/* ===== USER CHIP + DROPDOWN MENU ===== */
+.user-bar {
+  position: relative;
+  display: flex;
+  margin-bottom: 1rem;
+}
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--bg3);
+  border: 1px solid var(--bg3);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.user-chip:hover {
+  border-color: var(--muted);
+}
+.user-chip-chevron {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.user-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: var(--bg2);
+  border: 1px solid var(--bg3);
+  border-radius: var(--radius);
+  padding: 0.3rem 0;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.user-menu[hidden] {
+  display: none;
+}
+.user-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.8rem;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-radius: 0;
+}
+.user-menu-item:hover {
+  background: var(--bg3);
+}
+.user-menu-item-danger {
+  color: var(--muted);
+}
+.user-menu-item-danger:hover {
+  color: #ff6b6b;
+}
+.user-menu-sep {
+  border: none;
+  border-top: 1px solid var(--bg3);
+  margin: 0.3rem 0;
 }
 .card h2 {
   font-size: 1.1rem;

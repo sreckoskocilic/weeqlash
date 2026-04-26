@@ -113,7 +113,29 @@ function initUI() {
     });
   });
 
-  // Help and settings
+  // User-menu dropdown (chip in top user-bar)
+  const userMenuToggle = dom.el('user-menu-toggle');
+  const userMenu = dom.el('user-menu');
+  const setUserMenuOpen = (open) => {
+    userMenu.hidden = !open;
+    userMenuToggle.setAttribute('aria-expanded', String(open));
+  };
+  userMenuToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setUserMenuOpen(userMenu.hidden);
+  });
+  // Close on click outside or after picking a menu item
+  document.addEventListener('click', (e) => {
+    if (userMenu.hidden) return;
+    if (!userMenu.contains(e.target) && e.target !== userMenuToggle) {
+      setUserMenuOpen(false);
+    }
+  });
+  userMenu.addEventListener('click', (e) => {
+    if (e.target.closest('.user-menu-item')) setUserMenuOpen(false);
+  });
+
+  // Help and settings (button IDs unchanged — they now live inside user-menu)
   dom.el('btn-help').addEventListener('click', () => {
     dom.el('help-modal').classList.add('show');
   });

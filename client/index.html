@@ -111,70 +111,50 @@
       </ul>
     </section>
 
-    <!-- Connect screen -->
+    <!-- Connect screen — single centered card -->
     <div class="main-columns" id="screen-connect">
-      <!-- LEFT COLUMN: weeqlash -->
-      <div class="card">
-        <div
-          id="user-logged-as"
-          style="display: none; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--muted)"
-        ></div>
-        <div
-          id="user-bar"
-          style="
-            display: none;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background: var(--bg3);
-            border-radius: var(--radius);
-            align-items: center;
-            gap: 0.5rem;
-          "
-        >
+      <div class="card connect-card">
+        <!-- Top user bar (logged in only) — chip + dropdown menu -->
+        <div id="user-bar" class="user-bar" style="display: none">
           <button
-            id="btn-view-stats"
-            style="
-              background: transparent;
-              border: 1px solid var(--muted);
-              color: var(--muted);
-              padding: 0.4rem 0.8rem;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 0.8rem;
-            "
+            id="user-menu-toggle"
+            class="user-chip"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
           >
-            Stats
+            <span id="user-menu-name">user</span>
+            <span class="user-chip-chevron" aria-hidden="true">▾</span>
           </button>
-          <button
-            id="btn-admin"
-            style="
-              display: none;
-              background: transparent;
-              border: 1px solid var(--accent);
-              color: var(--accent);
-              padding: 0.4rem 0.8rem;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 0.8rem;
-            "
-          >
-            Admin
-          </button>
-          <button
-            id="btn-logout"
-            style="
-              margin-left: auto;
-              background: transparent;
-              border: 1px solid var(--muted);
-              color: var(--muted);
-              padding: 0.4rem 0.8rem;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 0.8rem;
-            "
-          >
-            Sign out
-          </button>
+          <div id="user-menu" class="user-menu" role="menu" hidden>
+            <button id="btn-view-stats" class="user-menu-item" type="button" role="menuitem">
+              Stats
+            </button>
+            <button
+              id="btn-admin"
+              class="user-menu-item"
+              type="button"
+              role="menuitem"
+              style="display: none"
+            >
+              Admin
+            </button>
+            <button id="btn-help" class="user-menu-item" type="button" role="menuitem">
+              How to play
+            </button>
+            <button id="btn-hc" class="user-menu-item" type="button" role="menuitem">
+              High contrast
+            </button>
+            <hr class="user-menu-sep" />
+            <button
+              id="btn-logout"
+              class="user-menu-item user-menu-item-danger"
+              type="button"
+              role="menuitem"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
         <div id="login-section" style="margin-bottom: 1rem">
           <div id="auth-tabs" style="display: flex; gap: 0; margin-bottom: 0.75rem">
@@ -453,8 +433,6 @@
         </div>
 
         <div class="setup-actions" style="margin-top: 10px">
-          <button id="btn-help">How to Play</button>
-          <button id="btn-hc">High Contrast</button>
           <button id="btn-advanced">Settings</button>
         </div>
 
@@ -479,65 +457,29 @@
 
         <div class="divider">enter room code to join the game</div>
 
-        <div class="setup-section" style="margin-bottom: 0">
+        <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
           <h3 id="label-join-code" style="display: none">Room Code</h3>
-          <div style="display: flex; gap: 0.5rem; align-items: stretch">
-            <input
-              id="join-code"
-              type="text"
-              maxlength="5"
-              placeholder="XXXXX"
-              style="
-                flex: 1;
-                height: 48px;
-                text-transform: uppercase;
-                letter-spacing: 0.2em;
-                padding: 0.5rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 1.35rem;
-              "
-              aria-labelledby="label-join-code"
-            />
-            <button id="btn-join" style="flex: 2; height: 40px">Join game</button>
-          </div>
+          <input
+            id="join-code"
+            type="text"
+            maxlength="5"
+            placeholder="CODE"
+            style="
+              flex: 1;
+              height: 42px;
+              text-transform: uppercase;
+              letter-spacing: 0.2em;
+              padding: 0.5rem;
+              background: var(--bg);
+              border: 1px solid var(--bg3);
+              color: var(--text);
+              border-radius: var(--radius);
+              font-size: 1rem;
+            "
+            aria-labelledby="label-join-code"
+          />
+          <button id="btn-join" style="flex: 2; margin-top: 0; height: 42px">Join Weeqlash</button>
         </div>
-      </div>
-
-      <!-- RIGHT COLUMN: Triviandom + Qlashique -->
-      <div class="card col-triviandom">
-        <!-- Triviandom hidden while a new quiz mode is being prepared.
-             Leaderboard data preserved server-side. -->
-        <button class="btn-show-triv-lb" id="btn-show-triv-lb" style="display: none">
-          Show Triviandom Leaderboard
-        </button>
-        <div
-          id="triv-lb-panel"
-          class="leaderboard-panel"
-          style="
-            display: none;
-            max-width: none;
-            padding: 0;
-            background: transparent;
-            border-color: #2a4a7a;
-          "
-        >
-          <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
-          <div class="lb-divider"></div>
-          <div class="lb-thead">
-            <div>#</div>
-            <div>NAME</div>
-            <div style="text-align: right">RUN</div>
-            <div style="text-align: right">TIME</div>
-          </div>
-          <div id="triv-lb-rows"></div>
-        </div>
-        <button id="btn-quiz-start" class="btn-triviandom" style="display: none">
-          Start Triviandom
-        </button>
-        <div class="divider">enter room code to join the game</div>
         <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
           <input
             id="qlas-join-code"
@@ -564,6 +506,31 @@
           >
             ⚔ QLASHIQUE
           </button>
+        </div>
+
+        <!-- Triviandom leftovers — UI hidden, kept on disk so .col-triviandom CSS
+             selectors stay valid and the panel is one toggle away when a new
+             quiz mode replaces it. -->
+        <div class="col-triviandom" style="display: none">
+          <button class="btn-show-triv-lb" id="btn-show-triv-lb">
+            Show Triviandom Leaderboard
+          </button>
+          <div
+            id="triv-lb-panel"
+            class="leaderboard-panel"
+            style="max-width: none; padding: 0; background: transparent; border-color: #2a4a7a"
+          >
+            <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
+            <div class="lb-divider"></div>
+            <div class="lb-thead">
+              <div>#</div>
+              <div>NAME</div>
+              <div style="text-align: right">RUN</div>
+              <div style="text-align: right">TIME</div>
+            </div>
+            <div id="triv-lb-rows"></div>
+          </div>
+          <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
         </div>
       </div>
     </div>
