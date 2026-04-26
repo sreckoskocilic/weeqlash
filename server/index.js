@@ -51,6 +51,7 @@ import {
 } from './game/engine.ts';
 import { loadQuestions, getAllQuestions, getQuestionsForCategories } from './game/questions.ts';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
+import * as skipnot from './game/skipnot.ts';
 import {
   createQlasGame,
   calcTimer,
@@ -198,6 +199,18 @@ const QUIZ_RATE_LIMIT_MS = 2000;
 
 // Quiz session tracking
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
+
+// SkipNoT session tracking (singleplayer 20-Q quiz). One run per socket.
+// run = {
+//   startedAt: number,           // ms; for leaderboard time_ms
+//   questions: Question[],       // pre-picked pool of QUESTION_COUNT
+//   state: SkipNotState,         // pure-logic state from skipnot.ts
+//   questionStartedAt: number,   // ms when current question was sent
+//   questionTimer: NodeJS.Timeout | null, // server-authoritative timeout
+// }
+const skipnotRuns = new Map();
+// Network slack on top of TIMER_MS before server fires its own timeout.
+const SKIPNOT_TIMEOUT_GRACE_MS = 1500;
 
 // Periodic cleanup of stale rate limit entries (every 30s)
 const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
@@ -1144,6 +1157,237 @@ io.on('connection', (socket) => {
     cb({ ok: true, top10: getTop10ForMode(mode) });
   });
 
+  // --- SkipNoT (solo 20-Q quiz) ---
+
+  function _clearSkipnotTimer(run) {
+    if (run?.questionTimer) {
+      clearTimeout(run.questionTimer);
+      run.questionTimer = null;
+    }
+  }
+
+  function _disposeSkipnotRun(socketId) {
+    const run = skipnotRuns.get(socketId);
+    if (run) {
+      _clearSkipnotTimer(run);
+      skipnotRuns.delete(socketId);
+    }
+  }
+
+  function _emitSkipnotQuestion(sock, run) {
+    const q = run.questions[run.state.currentIdx];
+    run.questionStartedAt = Date.now();
+    _clearSkipnotTimer(run);
+    run.questionTimer = setTimeout(() => {
+      _handleSkipnotTimeout(sock, run);
+    }, skipnot.TIMER_MS + SKIPNOT_TIMEOUT_GRACE_MS);
+    sock.emit('skipnot:question', {
+      idx: run.state.currentIdx,
+      total: skipnot.QUESTION_COUNT,
+      score: run.state.score,
+      id: q.id,
+      q: q.q,
+      opts: q.opts,
+      category: q.category,
+      timerMs: skipnot.TIMER_MS,
+    });
+  }
+
+  function _emitSkipnotGameOver(sock, run) {
+    _clearSkipnotTimer(run);
+    const timeMs = Date.now() - run.startedAt;
+    const qualifies = checkQualifiesTop10ForMode('skipnot', run.state.score, timeMs);
+    sock.emit('skipnot:game_over', {
+      score: run.state.score,
+      results: run.state.results,
+      timeMs,
+      qualifies,
+    });
+  }
+
+  function _handleSkipnotTimeout(sock, run) {
+    if (run.state.finished) {
+      return;
+    }
+    const idx = run.state.currentIdx;
+    const correctIdx = run.questions[idx].a;
+    const r = skipnot.processTimeout(run.state);
+    if ('error' in r) {
+      return;
+    }
+    sock.emit('skipnot:result', {
+      idx,
+      outcome: 'timeout',
+      correctIdx,
+      score: run.state.score,
+      finished: r.finished,
+    });
+    if (r.finished) {
+      _emitSkipnotGameOver(sock, run);
+    } else {
+      _emitSkipnotQuestion(sock, run);
+    }
+  }
+
+  function _pickSkipnotPool() {
+    const pool = getAllQuestions(questionsDb).filter((q) => CATS_SET.has(q.category));
+    if (pool.length < skipnot.QUESTION_COUNT) {
+      return null;
+    }
+    // Fisher-Yates over a copy, then take first N.
+    const arr = pool.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, skipnot.QUESTION_COUNT);
+  }
+
+  socket.on('skipnot:start', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+
+    const now = Date.now();
+    const lastQuiz = quizTimestamps.get(socket.id) || 0;
+    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+      return cb({ error: 'Please wait before starting another quiz.' });
+    }
+    quizTimestamps.set(socket.id, now);
+
+    if (isInActiveGame(socket.id)) {
+      return cb({ error: 'Cannot play quiz during an active game.' });
+    }
+
+    const questions = _pickSkipnotPool();
+    if (!questions) {
+      return cb({ error: 'Not enough questions in active categories.' });
+    }
+
+    const state = skipnot.createSession(questions.map((q) => q.id));
+    const run = {
+      startedAt: now,
+      questions,
+      state,
+      questionStartedAt: 0,
+      questionTimer: null,
+    };
+    skipnotRuns.set(socket.id, run);
+
+    cb({ ok: true, total: skipnot.QUESTION_COUNT, timerMs: skipnot.TIMER_MS });
+    _emitSkipnotQuestion(socket, run);
+  });
+
+  socket.on('skipnot:answer', ({ id, optionIdx } = {}, cb) => {
+    const run = skipnotRuns.get(socket.id);
+    if (!run) {
+      return cb?.({ error: 'SkipNoT not started' });
+    }
+    if (run.state.finished) {
+      return cb?.({ error: 'Session finished' });
+    }
+    if (typeof optionIdx !== 'number' || optionIdx < 0 || optionIdx >= skipnot.OPTIONS_PER_Q) {
+      return cb?.({ error: 'Invalid option index' });
+    }
+    const idx = run.state.currentIdx;
+    const currentQ = run.questions[idx];
+    if (id !== currentQ.id) {
+      return cb?.({ error: 'Stale question id' });
+    }
+    // Server-authoritative timer: any answer arriving past TIMER_MS counts as timeout.
+    const elapsed = Date.now() - run.questionStartedAt;
+    _clearSkipnotTimer(run);
+    if (elapsed > skipnot.TIMER_MS) {
+      return _handleSkipnotTimeout(socket, run);
+    }
+    const r = skipnot.processAnswer(run.state, optionIdx, currentQ.a);
+    if ('error' in r) {
+      return cb?.(r);
+    }
+    if (socket.userId) {
+      try {
+        trackAnswer(socket.userId, currentQ.category, r.correct);
+      } catch (err) {
+        console.error('[skipnot] trackAnswer failed:', err.message);
+      }
+    }
+    cb?.({ ok: true });
+    socket.emit('skipnot:result', {
+      idx,
+      outcome: r.correct ? 'correct' : 'wrong',
+      correctIdx: currentQ.a,
+      score: run.state.score,
+      finished: r.finished,
+    });
+    if (r.finished) {
+      _emitSkipnotGameOver(socket, run);
+    } else {
+      _emitSkipnotQuestion(socket, run);
+    }
+  });
+
+  socket.on('skipnot:skip', ({ id } = {}, cb) => {
+    const run = skipnotRuns.get(socket.id);
+    if (!run) {
+      return cb?.({ error: 'SkipNoT not started' });
+    }
+    if (run.state.finished) {
+      return cb?.({ error: 'Session finished' });
+    }
+    const idx = run.state.currentIdx;
+    const currentQ = run.questions[idx];
+    if (id !== currentQ.id) {
+      return cb?.({ error: 'Stale question id' });
+    }
+    const elapsed = Date.now() - run.questionStartedAt;
+    _clearSkipnotTimer(run);
+    if (elapsed > skipnot.TIMER_MS) {
+      return _handleSkipnotTimeout(socket, run);
+    }
+    const r = skipnot.processSkip(run.state);
+    if ('error' in r) {
+      return cb?.(r);
+    }
+    cb?.({ ok: true });
+    socket.emit('skipnot:result', {
+      idx,
+      outcome: 'skip',
+      correctIdx: currentQ.a,
+      score: run.state.score,
+      finished: r.finished,
+    });
+    if (r.finished) {
+      _emitSkipnotGameOver(socket, run);
+    } else {
+      _emitSkipnotQuestion(socket, run);
+    }
+  });
+
+  socket.on('skipnot:submit_score', ({ name } = {}, cb) => {
+    const run = skipnotRuns.get(socket.id);
+    if (!run) {
+      return cb({ error: 'No completed run' });
+    }
+    if (!run.state.finished) {
+      return cb({ error: 'Run not finished' });
+    }
+    const sanitizedName = name?.trim();
+    if (!sanitizedName || sanitizedName.length > 16) {
+      return cb({ error: 'Name must be 1-16 characters' });
+    }
+    const timeMs = Date.now() - run.startedAt;
+    const top10 = insertScoreForMode('skipnot', sanitizedName, run.state.score, timeMs);
+    _disposeSkipnotRun(socket.id);
+    cb({ ok: true, top10 });
+  });
+
+  socket.on('skipnot:leaderboard', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    cb({ ok: true, top10: getTop10ForMode('skipnot') });
+  });
+
   // --- Dev quickstart (non-production only) ---
 
   if (process.env.NODE_ENV !== 'production') {
@@ -1469,6 +1713,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`[-] ${socket.id}`);
     quizRuns.delete(socket.id);
+    _disposeSkipnotRun(socket.id);
     unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {
