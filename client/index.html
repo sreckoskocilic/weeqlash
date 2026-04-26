@@ -236,6 +236,34 @@
               Join Qlashique
             </button>
           </div>
+
+          <div style="margin-top: 0.8rem">
+            <button id="btn-show-skipnot-lb" type="button" style="width: 100%">
+              Show SkipNoT Leaderboard
+            </button>
+            <div
+              id="skipnot-lb-panel"
+              class="leaderboard-panel"
+              style="
+                display: none;
+                margin-top: 0.6rem;
+                max-width: none;
+                padding: 0;
+                background: transparent;
+                border-color: #2a4a7a;
+              "
+            >
+              <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
+              <div class="lb-divider"></div>
+              <div class="lb-thead">
+                <div>#</div>
+                <div>NAME</div>
+                <div style="text-align: center">SCORE</div>
+                <div style="text-align: right">TIME</div>
+              </div>
+              <div id="skipnot-lb-rows"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Login view -->
@@ -927,6 +955,27 @@
               <button class="qlas-btn-confirm" id="btn-skipnot-submit-score" type="button">
                 [ SUBMIT ]
               </button>
+            </div>
+            <div
+              class="leaderboard-panel"
+              style="
+                margin-top: 1.2rem;
+                max-width: 480px;
+                margin-left: auto;
+                margin-right: auto;
+                background: transparent;
+                border-color: #2a4a7a;
+              "
+            >
+              <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
+              <div class="lb-divider"></div>
+              <div class="lb-thead">
+                <div>#</div>
+                <div>NAME</div>
+                <div style="text-align: center">SCORE</div>
+                <div style="text-align: right">TIME</div>
+              </div>
+              <div id="skipnot-go-lb-rows"></div>
             </div>
             <button
               class="qlas-btn-back"

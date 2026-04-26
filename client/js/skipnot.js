@@ -11,6 +11,7 @@
 
 import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
+import { loadPanelLeaderboard } from './leaderboard.js';
 
 const TIMER_RING_CIRC = 175.93;
 const RESULT_DISPLAY_MS = 800; // colored-button + flash visible time before next q
@@ -237,6 +238,7 @@ function _finishRun() {
       _qel('skipnot-name-input').value = '';
       setTimeout(() => _qel('skipnot-name-input').focus(), 50);
     }
+    loadPanelLeaderboard('skipnot', 'skipnot-go-lb-rows');
     _showPhase('gameover');
   });
 }
@@ -253,6 +255,8 @@ function _onSubmitScore() {
       return;
     }
     _qel('skipnot-qualifies-row').style.display = 'none';
+    // Refresh lb so the new entry appears with the just-submitted name.
+    loadPanelLeaderboard('skipnot', 'skipnot-go-lb-rows');
   });
 }
 
@@ -287,4 +291,18 @@ export function initSkipnot(sock) {
   el('btn-skipnot-back').addEventListener('click', () => {
     showScreen('screen-connect');
   });
+
+  // Connect-screen leaderboard toggle (mirrors triviandom's btn-show-triv-lb).
+  const lbBtn = el('btn-show-skipnot-lb');
+  const lbPanel = el('skipnot-lb-panel');
+  if (lbBtn && lbPanel) {
+    lbBtn.addEventListener('click', () => {
+      const visible = lbPanel.style.display !== 'none';
+      lbPanel.style.display = visible ? 'none' : '';
+      lbBtn.textContent = visible ? 'Show SkipNoT Leaderboard' : 'Hide Leaderboard';
+      if (!visible) {
+        loadPanelLeaderboard('skipnot', 'skipnot-lb-rows');
+      }
+    });
+  }
 }
