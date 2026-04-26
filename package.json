@@ -8,7 +8,6 @@
   ],
   "type": "module",
   "scripts": {
-    "apk": "npx cap sync android && cd android && ./gradlew assembleDebug",
     "server": "npm run dev --workspace=server",
     "client": "npm start --workspace=client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
