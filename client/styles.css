@@ -215,12 +215,13 @@ h1 {
   max-width: 420px;
 }
 
-/* ===== SINGLE CARD CONNECT LAYOUT =====
-   Was a 2-col grid (left=weeqlash, right=triviandom). Triviandom hidden →
-   merged into one centered card. Class name kept for low-churn migration. */
+/* ===== CONNECT LAYOUT =====
+   Vertical stack: horizontal nav on top, content card below. Class name kept
+   from the old 2-col layout for low-churn migration. */
 .main-columns {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
 }
 .main-columns .card {
@@ -285,72 +286,102 @@ h1 {
 .btn-triviandom:hover {
   opacity: 0.85;
 }
-/* ===== USER CHIP + DROPDOWN MENU ===== */
-.user-bar {
-  position: relative;
+/* ===== HORIZONTAL CONNECT NAV =====
+   Items with [data-view] swap content via showView (see client js nav module).
+   Items without are one-shot actions (Help / Stats modal triggers, HC toggle,
+   Sign out, Admin). */
+.connect-nav {
   display: flex;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0 0 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--bg3);
 }
-.user-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.7rem;
-  background: var(--bg3);
-  border: 1px solid var(--bg3);
-  color: var(--text);
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.85rem;
-  line-height: 1;
-}
-.user-chip:hover {
-  border-color: var(--muted);
-}
-.user-chip-chevron {
-  font-size: 0.7rem;
+.nav-item {
+  /* Override the global `button { width: 100%; height: 40px; ... }` rule
+     above so nav items size to content and sit horizontally side-by-side. */
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--muted);
-}
-.user-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 180px;
-  background: var(--bg2);
-  border: 1px solid var(--bg3);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
   border-radius: var(--radius);
-  padding: 0.3rem 0;
-  z-index: 100;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.02em;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
 }
-.user-menu[hidden] {
+.nav-item:hover {
+  color: var(--text);
+  border-color: var(--bg3);
+}
+.nav-item.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.nav-item[hidden] {
   display: none;
 }
-.user-menu-item {
+.nav-item-danger:hover {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+/* ===== VIEWS ===== */
+.view[hidden] {
+  display: none;
+}
+.view-narrow {
+  max-width: 320px;
+  margin: 0 auto;
+}
+.auth-input {
   display: block;
   width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.8rem;
-  background: transparent;
-  border: none;
+  padding: 0.55rem 0.7rem;
+  margin-bottom: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--bg3);
   color: var(--text);
-  cursor: pointer;
-  font-size: 0.85rem;
-  border-radius: 0;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  height: 40px;
+  box-sizing: border-box;
 }
-.user-menu-item:hover {
+.auth-submit {
+  display: block;
+  width: 100%;
+  padding: 0.55rem;
   background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--bg3);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
-.user-menu-item-danger {
-  color: var(--muted);
+.auth-submit:hover {
+  border-color: var(--accent);
 }
-.user-menu-item-danger:hover {
-  color: #ff6b6b;
+.auth-submit-primary {
+  background: var(--accent);
+  border-color: var(--accent);
 }
-.user-menu-sep {
-  border: none;
-  border-top: 1px solid var(--bg3);
-  margin: 0.3rem 0;
+.auth-submit-primary:hover {
+  opacity: 0.9;
 }
 .card h2 {
   font-size: 1.1rem;
@@ -436,6 +467,7 @@ button:disabled {
 }
 .opt-btn-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 0;
 }
@@ -1563,7 +1595,7 @@ body.high-contrast {
 }
 #screen-qlashique .qlas-inner {
   width: 100%;
-  max-width: 90vw;
+  max-width: 70vw;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2057,6 +2089,11 @@ body.high-contrast {
 
 /* Small phones (iPhone 13 / SE etc) — keep board chrome and qlashique combat above the fold */
 @media (max-width: 480px) {
+  /* Tight on small screens — give content ~25px back from each side */
+  .card {
+    padding: 1.25rem;
+  }
+
   /* Board top bar — without this, #turn-panel renders ~498px wide in a 390px viewport
      and the username, "TURN" label, and player stats clip off the right edge. */
   #turn-panel {

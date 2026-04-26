@@ -6,6 +6,7 @@ import { el, $ } from './dom.js';
 import { showError } from './dom.js';
 import { showScreen } from './dom.js';
 import { state } from './state.js';
+import { applyAuthState, showView } from './nav.js';
 
 // Server URL (imported from main)
 let serverUrl = '';
@@ -39,17 +40,16 @@ export function showAuthMessage(msg, isError) {
 
 export function showUserBar(user) {
   state.currentUser = user;
-  $('user-menu-name').textContent = user.username;
-  $('user-bar').style.display = 'flex';
+  applyAuthState(true);
+  // Admin button has data-auth="in" so applyAuthState shows it; further hide
+  // for non-admins so admins are the only ones who see the link.
   const isAdmin = user.is_admin === 1 || user.is_admin === true;
-  $('btn-admin').style.display = isAdmin ? 'block' : 'none';
-  $('login-section').style.display = 'none';
+  $('btn-admin').hidden = !isAdmin;
 }
 
 export function hideUserBar() {
   state.currentUser = null;
-  $('user-bar').style.display = 'none';
-  $('login-section').style.display = '';
+  applyAuthState(false);
 }
 
 export async function checkAuth() {
@@ -66,29 +66,6 @@ export async function checkAuth() {
   } catch (error) {
     console.warn('[auth] Auth check failed (will retry):', error);
   }
-}
-
-// Auth tab switching
-export function initAuthTabs() {
-  document.querySelectorAll('.auth-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.auth-tab').forEach((t) => {
-        t.classList.remove('active');
-        t.style.background = 'transparent';
-        t.style.color = 'var(--muted)';
-        t.style.borderColor = 'var(--bg3)';
-      });
-      tab.classList.add('active');
-      tab.style.background = 'var(--bg3)';
-      tab.style.color = 'var(--text)';
-      const which = tab.dataset.tab;
-      $('auth-login-form').style.display = which === 'login' ? '' : 'none';
-      $('auth-register-form').style.display = which === 'register' ? '' : 'none';
-      $('auth-forgot-form').style.display = 'none';
-      $('auth-reset-form').style.display = 'none';
-      $('auth-message').style.display = 'none';
-    });
-  });
 }
 
 // Login handler
@@ -276,15 +253,15 @@ export function handleUrlParams() {
   if (urlParams.get('reset')) {
     resetToken = urlParams.get('reset');
     $('auth-login-form').style.display = 'none';
-    $('auth-register-form').style.display = 'none';
     $('auth-reset-form').style.display = '';
+    showView('login');
     window.history.replaceState({}, '', window.location.pathname);
   }
 }
 
 // Initialize all auth handlers
 export function initAuthHandlers() {
-  initAuthTabs();
+  // initAuthTabs() — removed, auth-tabs replaced by horizontal nav (nav.js)
   initLogin();
   initRegister();
   initForgotPassword();

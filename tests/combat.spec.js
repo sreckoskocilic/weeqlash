@@ -8,10 +8,11 @@ async function registerAndLogin(browser, username) {
   const page = await ctx.newPage();
   await page.goto('/');
   await page.waitForTimeout(500);
+  await page.locator('[data-view="login"]').click();
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill('testpass123');
   await page.locator('#btn-login').click();
-  await page.waitForTimeout(1500);
+  await page.locator('#btn-logout').waitFor({ state: 'visible', timeout: 5000 });
   return { ctx, page };
 }
 

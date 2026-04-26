@@ -111,120 +111,142 @@
       </ul>
     </section>
 
-    <!-- Connect screen — single centered card -->
+    <!-- Connect screen — horizontal nav + content card -->
     <div class="main-columns" id="screen-connect">
+      <nav id="connect-nav" class="connect-nav" role="tablist" aria-label="Main navigation">
+        <button class="nav-item active" data-view="play" type="button">Play</button>
+        <button class="nav-item" data-view="login" data-auth="out" type="button">Login</button>
+        <button class="nav-item" data-view="register" data-auth="out" type="button">
+          Register
+        </button>
+        <button class="nav-item" data-view="settings" type="button">Settings</button>
+        <button class="nav-item" id="btn-view-stats" data-auth="in" type="button">Stats</button>
+        <button class="nav-item" id="btn-help" type="button">Help</button>
+        <button class="nav-item" id="btn-hc" type="button">High contrast</button>
+        <button class="nav-item" id="btn-admin" data-auth="in" hidden type="button">Admin</button>
+        <button class="nav-item nav-item-danger" id="btn-logout" data-auth="in" type="button">
+          Sign out
+        </button>
+      </nav>
+
       <div class="card connect-card">
-        <!-- Top user bar (logged in only) — chip + dropdown menu -->
-        <div id="user-bar" class="user-bar" style="display: none">
-          <button
-            id="user-menu-toggle"
-            class="user-chip"
-            type="button"
-            aria-haspopup="menu"
-            aria-expanded="false"
+        <!-- Shared auth notification (sticky above all views) -->
+        <div
+          id="auth-message"
+          style="
+            display: none;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            text-align: center;
+          "
+        ></div>
+
+        <!-- Play view (default) -->
+        <div class="view" data-view-name="play">
+          <div class="setup-section">
+            <h3>Board Size</h3>
+            <div class="opt-btn-group" id="board-size-btns">
+              <button class="opt-btn" data-val="4">4×4</button>
+              <button class="opt-btn" data-val="5">5×5</button>
+              <button class="opt-btn" data-val="6">6×6</button>
+              <button class="opt-btn" data-val="7">7×7</button>
+              <button class="opt-btn active" data-val="8">8×8</button>
+              <button class="opt-btn" data-val="10">10×10</button>
+            </div>
+            <div id="connect-error" class="error" style="display: none"></div>
+          </div>
+
+          <div class="setup-section" style="margin-bottom: 0.5rem">
+            <button id="btn-create">Create game</button>
+          </div>
+
+          <div
+            class="setup-section"
+            id="dev-quickstart-section"
+            style="margin-bottom: 0.5rem; display: none"
           >
-            <span id="user-menu-name">user</span>
-            <span class="user-chip-chevron" aria-hidden="true">▾</span>
-          </button>
-          <div id="user-menu" class="user-menu" role="menu" hidden>
-            <button id="btn-view-stats" class="user-menu-item" type="button" role="menuitem">
-              Stats
-            </button>
             <button
-              id="btn-admin"
-              class="user-menu-item"
-              type="button"
-              role="menuitem"
-              style="display: none"
+              id="btn-dev-quickstart"
+              style="
+                background: var(--bg3);
+                color: var(--muted);
+                border: 1px dashed var(--bg3);
+                display: none;
+              "
             >
-              Admin
+              ⚡ Dev: Quick Game
             </button>
-            <button id="btn-help" class="user-menu-item" type="button" role="menuitem">
-              How to play
+          </div>
+
+          <div class="divider">enter room code to join the game</div>
+
+          <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
+            <h3 id="label-join-code" style="display: none">Room Code</h3>
+            <input
+              id="join-code"
+              type="text"
+              maxlength="5"
+              placeholder="CODE"
+              style="
+                flex: 1;
+                height: 42px;
+                text-transform: uppercase;
+                letter-spacing: 0.2em;
+                padding: 0.5rem;
+                background: var(--bg);
+                border: 1px solid var(--bg3);
+                color: var(--text);
+                border-radius: var(--radius);
+                font-size: 1rem;
+              "
+              aria-labelledby="label-join-code"
+            />
+            <button id="btn-join" style="flex: 2; margin-top: 0; height: 42px">
+              Join Weeqlash
             </button>
-            <button id="btn-hc" class="user-menu-item" type="button" role="menuitem">
-              High contrast
-            </button>
-            <hr class="user-menu-sep" />
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
+            <input
+              id="qlas-join-code"
+              type="text"
+              maxlength="5"
+              placeholder="CODE"
+              style="
+                flex: 1;
+                height: 42px;
+                text-transform: uppercase;
+                letter-spacing: 0.2em;
+                padding: 0.5rem;
+                background: var(--bg);
+                border: 1px solid var(--bg3);
+                color: var(--text);
+                border-radius: var(--radius);
+                font-size: 1rem;
+              "
+            />
             <button
-              id="btn-logout"
-              class="user-menu-item user-menu-item-danger"
-              type="button"
-              role="menuitem"
+              class="btn-qlashique"
+              id="btn-qlas-start"
+              style="flex: 2; margin-top: 0; height: 42px"
             >
-              Sign out
+              ⚔ QLASHIQUE
             </button>
           </div>
         </div>
-        <div id="login-section" style="margin-bottom: 1rem">
-          <div id="auth-tabs" style="display: flex; gap: 0; margin-bottom: 0.75rem">
-            <button
-              class="auth-tab active"
-              data-tab="login"
-              style="
-                flex: 1;
-                padding: 0.4rem;
-                background: var(--bg3);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                cursor: pointer;
-                border-radius: var(--radius) 0 0 var(--radius);
-                font-size: 0.8rem;
-              "
-            >
-              Login
-            </button>
-            <button
-              class="auth-tab"
-              data-tab="register"
-              style="
-                flex: 1;
-                padding: 0.4rem;
-                background: transparent;
-                border: 1px solid var(--bg3);
-                color: var(--muted);
-                cursor: pointer;
-                border-radius: 0 var(--radius) var(--radius) 0;
-                font-size: 0.8rem;
-              "
-            >
-              Register
-            </button>
-          </div>
+
+        <!-- Login view -->
+        <div class="view view-narrow" data-view-name="login" hidden>
           <div id="auth-login-form">
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem">
-              <input
-                id="login-username"
-                type="text"
-                placeholder="Username or email"
-                style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 1rem;
-                  height: 40px;
-                "
-              />
-              <input
-                id="login-password"
-                type="password"
-                placeholder="Password"
-                style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 1rem;
-                  height: 40px;
-                "
-              />
-            </div>
-            <div style="display: flex; gap: 0.4rem; margin-bottom: 0.3rem">
+            <input
+              id="login-username"
+              class="auth-input"
+              type="text"
+              placeholder="Username or email"
+            />
+            <input id="login-password" class="auth-input" type="password" placeholder="Password" />
+            <div style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem; align-items: center">
               <input type="checkbox" id="keep-logged-in" style="width: auto" />
               <label
                 for="keep-logged-in"
@@ -232,112 +254,17 @@
                 >Keep me logged in</label
               >
             </div>
-            <button id="btn-login" style="width: 100%; background: var(--accent); font-weight: 600">
-              Login
-            </button>
-            <div style="text-align: center; margin-top: 0.4rem">
+            <button id="btn-login" class="auth-submit auth-submit-primary">Login</button>
+            <div style="text-align: center; margin-top: 0.5rem">
               <a href="#" id="link-forgot" style="color: var(--muted); font-size: 0.75rem"
                 >Forgot password?</a
               >
             </div>
           </div>
-          <div id="auth-register-form" style="display: none">
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.4rem">
-              <input
-                id="reg-username"
-                type="text"
-                placeholder="Username (3-20 chars)"
-                maxlength="20"
-                style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 0.85rem;
-                "
-              />
-              <input
-                id="reg-email"
-                type="email"
-                placeholder="Email"
-                style="
-                  flex: 1;
-                  padding: 0.5rem;
-                  background: var(--bg);
-                  border: 1px solid var(--bg3);
-                  color: var(--text);
-                  border-radius: var(--radius);
-                  font-size: 0.85rem;
-                "
-              />
-            </div>
-            <input
-              id="reg-password"
-              type="password"
-              placeholder="Password (min 6 chars)"
-              style="
-                width: 100%;
-                padding: 0.5rem;
-                margin-bottom: 0.4rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 0.85rem;
-              "
-            />
-            <button
-              id="btn-register"
-              style="
-                width: 100%;
-                padding: 0.5rem;
-                background: var(--accent);
-                color: white;
-                border: none;
-                border-radius: var(--radius);
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-            >
-              Create account
-            </button>
-          </div>
           <div id="auth-forgot-form" style="display: none">
-            <input
-              id="forgot-email"
-              type="email"
-              placeholder="Your email"
-              style="
-                width: 100%;
-                padding: 0.5rem;
-                margin-bottom: 0.4rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 0.85rem;
-              "
-            />
-            <button
-              id="btn-forgot"
-              style="
-                width: 100%;
-                padding: 0.5rem;
-                background: var(--accent);
-                color: white;
-                border: none;
-                border-radius: var(--radius);
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-            >
-              Send reset link
-            </button>
-            <div style="text-align: center; margin-top: 0.4rem">
+            <input id="forgot-email" class="auth-input" type="email" placeholder="Your email" />
+            <button id="btn-forgot" class="auth-submit">Send reset link</button>
+            <div style="text-align: center; margin-top: 0.5rem">
               <a href="#" id="link-back-login" style="color: var(--muted); font-size: 0.75rem"
                 >Back to login</a
               >
@@ -346,97 +273,37 @@
           <div id="auth-reset-form" style="display: none">
             <input
               id="reset-password"
+              class="auth-input"
               type="password"
               placeholder="New password (min 6 chars)"
-              style="
-                width: 100%;
-                padding: 0.5rem;
-                margin-bottom: 0.4rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 0.85rem;
-              "
             />
-            <button
-              id="btn-reset"
-              style="
-                width: 100%;
-                padding: 0.5rem;
-                background: var(--accent);
-                color: white;
-                border: none;
-                border-radius: var(--radius);
-                cursor: pointer;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-            >
-              Reset password
-            </button>
+            <button id="btn-reset" class="auth-submit">Reset password</button>
           </div>
-          <div
-            id="auth-message"
-            style="
-              display: none;
-              margin-top: 0.5rem;
-              padding: 0.4rem;
-              border-radius: var(--radius);
-              font-size: 0.8rem;
-              text-align: center;
-            "
-          ></div>
         </div>
 
-        <div class="setup-section">
-          <h3>Board Size</h3>
-          <div class="opt-btn-group" id="board-size-btns">
-            <!--
-      To enable 2x2 board for testing:
-      1. Uncomment the 2x2 button below
-      2. The backend already supports 2x2 boards (validated in server/game/rooms.js)
-      3. Game logic supports 2x2 boards (modified in server/game/engine.js)
-
-      <button class="opt-btn" data-val="2">2×2</button>
-    -->
-            <button class="opt-btn" data-val="4">4×4</button>
-            <button class="opt-btn" data-val="5">5×5</button>
-            <button class="opt-btn" data-val="6">6×6</button>
-            <button class="opt-btn" data-val="7">7×7</button>
-            <button class="opt-btn active" data-val="8">8×8</button>
-            <button class="opt-btn" data-val="10">10×10</button>
+        <!-- Register view -->
+        <div class="view view-narrow" data-view-name="register" hidden>
+          <div id="auth-register-form">
+            <input
+              id="reg-username"
+              class="auth-input"
+              type="text"
+              placeholder="Username (3-20 chars)"
+              maxlength="20"
+            />
+            <input id="reg-email" class="auth-input" type="email" placeholder="Email" />
+            <input
+              id="reg-password"
+              class="auth-input"
+              type="password"
+              placeholder="Password (min 6 chars)"
+            />
+            <button id="btn-register" class="auth-submit">Create account</button>
           </div>
-          <div id="connect-error" class="error" style="display: none"></div>
         </div>
 
-        <div class="setup-section" style="margin-bottom: 0.5rem">
-          <button id="btn-create">Create game</button>
-        </div>
-
-        <div
-          class="setup-section"
-          id="dev-quickstart-section"
-          style="margin-bottom: 0.5rem; display: none"
-        >
-          <button
-            id="btn-dev-quickstart"
-            style="
-              background: var(--bg3);
-              color: var(--muted);
-              border: 1px dashed var(--bg3);
-              display: none;
-            "
-          >
-            ⚡ Dev: Quick Game
-          </button>
-        </div>
-
-        <div class="setup-actions" style="margin-top: 10px">
-          <button id="btn-advanced">Settings</button>
-        </div>
-
-        <div id="advanced-section" style="display: none">
+        <!-- Settings view -->
+        <div class="view" data-view-name="settings" hidden>
           <div class="setup-section">
             <h3>Question Timer</h3>
             <div class="opt-btn-group" id="timer-btns">
@@ -453,59 +320,6 @@
               <button id="btn-cats-none">None</button>
             </div>
           </div>
-        </div>
-
-        <div class="divider">enter room code to join the game</div>
-
-        <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
-          <h3 id="label-join-code" style="display: none">Room Code</h3>
-          <input
-            id="join-code"
-            type="text"
-            maxlength="5"
-            placeholder="CODE"
-            style="
-              flex: 1;
-              height: 42px;
-              text-transform: uppercase;
-              letter-spacing: 0.2em;
-              padding: 0.5rem;
-              background: var(--bg);
-              border: 1px solid var(--bg3);
-              color: var(--text);
-              border-radius: var(--radius);
-              font-size: 1rem;
-            "
-            aria-labelledby="label-join-code"
-          />
-          <button id="btn-join" style="flex: 2; margin-top: 0; height: 42px">Join Weeqlash</button>
-        </div>
-        <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
-          <input
-            id="qlas-join-code"
-            type="text"
-            maxlength="5"
-            placeholder="CODE"
-            style="
-              flex: 1;
-              height: 42px;
-              text-transform: uppercase;
-              letter-spacing: 0.2em;
-              padding: 0.5rem;
-              background: var(--bg);
-              border: 1px solid var(--bg3);
-              color: var(--text);
-              border-radius: var(--radius);
-              font-size: 1rem;
-            "
-          />
-          <button
-            class="btn-qlashique"
-            id="btn-qlas-start"
-            style="flex: 2; margin-top: 0; height: 42px"
-          >
-            ⚔ QLASHIQUE
-          </button>
         </div>
 
         <!-- Triviandom leftovers — UI hidden, kept on disk so .col-triviandom CSS

@@ -13,6 +13,7 @@ import * as quiz from './quiz.js';
 import * as leaderboard from './leaderboard.js';
 import * as keyboard from './keyboard.js';
 import * as qlashique from './qlashique.js';
+import { initNav } from './nav.js';
 
 // Server URL configuration
 const serverUrl =
@@ -113,41 +114,16 @@ function initUI() {
     });
   });
 
-  // User-menu dropdown (chip in top user-bar)
-  const userMenuToggle = dom.el('user-menu-toggle');
-  const userMenu = dom.el('user-menu');
-  const setUserMenuOpen = (open) => {
-    userMenu.hidden = !open;
-    userMenuToggle.setAttribute('aria-expanded', String(open));
-  };
-  userMenuToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    setUserMenuOpen(userMenu.hidden);
-  });
-  // Close on click outside or after picking a menu item
-  document.addEventListener('click', (e) => {
-    if (userMenu.hidden) return;
-    if (!userMenu.contains(e.target) && e.target !== userMenuToggle) {
-      setUserMenuOpen(false);
-    }
-  });
-  userMenu.addEventListener('click', (e) => {
-    if (e.target.closest('.user-menu-item')) setUserMenuOpen(false);
-  });
+  // Connect-screen view router (nav.js handles data-view items)
+  initNav();
 
-  // Help and settings (button IDs unchanged — they now live inside user-menu)
+  // Help / High contrast — nav items that fire actions, not view changes
   dom.el('btn-help').addEventListener('click', () => {
     dom.el('help-modal').classList.add('show');
   });
   dom.el('btn-hc').addEventListener('click', () => {
     document.body.classList.toggle('high-contrast');
     dom.el('btn-hc').classList.toggle('active', document.body.classList.contains('high-contrast'));
-  });
-  dom.el('btn-advanced').addEventListener('click', () => {
-    const sec = dom.el('advanced-section');
-    const visible = sec.style.display !== 'none';
-    sec.style.display = visible ? 'none' : 'block';
-    dom.el('btn-advanced').classList.toggle('active', !visible);
   });
 
   const closeHelp = () => dom.el('help-modal').classList.remove('show');
