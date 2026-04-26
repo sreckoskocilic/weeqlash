@@ -168,14 +168,14 @@ h1 {
 /* ===== ANNOUNCEMENTS ===== */
 #announcements {
   width: 100%;
-  max-width: 880px;
-  margin-bottom: 1.5rem;
+  max-width: 680px;
+  margin-bottom: 0.5rem;
   border: 1px solid var(--bg3);
   border-left: 3px solid var(--accent);
   background: var(--bg2);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-family: 'IBM Plex Mono', monospace;
 }
 #announcements .ann-header {
@@ -210,9 +210,7 @@ h1 {
   background: var(--bg2);
   border: 1px solid var(--bg3);
   border-radius: var(--radius);
-  padding: 2rem;
-  width: 100%;
-  max-width: 420px;
+  padding: 0.5rem 2rem;
 }
 
 /* ===== CONNECT LAYOUT =====
@@ -296,9 +294,7 @@ h1 {
   justify-content: center;
   gap: 4px;
   width: 100%;
-  padding: 0 0 8px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--bg3);
+  margin-bottom: 10px;
 }
 .nav-item {
   /* Override the global `button { width: 100%; height: 40px; ... }` rule
@@ -308,8 +304,8 @@ h1 {
   background: transparent;
   border: 1px solid transparent;
   color: var(--muted);
-  padding: 6px 10px;
-  font-size: 0.8rem;
+  padding: 10px 10px;
+  font-size: 0.9rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -431,7 +427,7 @@ button:disabled {
   text-align: center;
   color: var(--muted);
   font-size: 0.85rem;
-  margin: 40px 0 20px 0;
+  margin: 20px 0 20px 0;
   position: relative;
 }
 .divider::before {
