@@ -12,8 +12,7 @@
 import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
-import { state } from './state.js';
-import { applyAuthState, showView } from './nav.js';
+import { showView } from './nav.js';
 
 const TIMER_RING_CIRC = 175.93;
 const RESULT_DISPLAY_MS = 800; // colored-button + flash visible time before next q
@@ -55,7 +54,11 @@ function _resetRun() {
   runStartedAt = Date.now();
   _qel('skipnot-score').textContent = '0';
   _qel('skipnot-counter').textContent = `0/${total}`;
-  _qel('skipnot-flash').classList.remove('show');
+  const d = _qel('skipnot-score-delta');
+  if (d) {
+    d.textContent = '';
+    d.className = 'skipnot-score-delta';
+  }
 }
 
 function _ensureRing() {
@@ -70,30 +73,29 @@ function _ensureRing() {
   return ring;
 }
 
+// Show the score delta (+13 / -7 / 0) just left of the live score, color-coded.
+// Auto-clears after RESULT_DISPLAY_MS so the next question starts fresh.
+let _deltaTimeout = null;
 function _flash(outcome, delta) {
-  const f = _qel('skipnot-flash');
-  if (!f) {
+  const d = _qel('skipnot-score-delta');
+  if (!d) {
     return;
   }
-  let label;
-  let cls;
-  if (outcome === 'correct') {
-    label = 'CORRECT';
-    cls = 'hit';
-  } else if (outcome === 'wrong') {
-    label = 'INCORRECT';
-    cls = 'miss';
-  } else if (outcome === 'skip') {
-    label = 'SKIPPED';
-    cls = 'miss';
-  } else {
-    label = 'TIMEOUT';
-    cls = 'miss';
+  if (_deltaTimeout) {
+    clearTimeout(_deltaTimeout);
+  }
+  if (!delta) {
+    d.textContent = '';
+    return;
   }
   const sign = delta > 0 ? '+' : '';
-  const deltaStr = delta ? '   ' + sign + delta : '';
-  f.textContent = '> ' + label + deltaStr;
-  f.className = 'qlas-flash show ' + cls;
+  d.textContent = sign + delta;
+  d.className = 'skipnot-score-delta ' + (outcome === 'correct' ? 'hit' : 'miss');
+  _deltaTimeout = setTimeout(() => {
+    d.textContent = '';
+    d.className = 'skipnot-score-delta';
+    _deltaTimeout = null;
+  }, RESULT_DISPLAY_MS);
 }
 
 function _renderCurrentQ() {
@@ -103,16 +105,15 @@ function _renderCurrentQ() {
     return;
   }
   _qel('skipnot-counter').textContent = `${currentIdx + 1}/${total}`;
-  _qel('skipnot-flash').classList.remove('show');
   renderQuestion(
     {
       questionEl: _qel('skipnot-question'),
       optionsEl: _qel('skipnot-options'),
-      flashEl: _qel('skipnot-flash'),
     },
     q,
     currentIdx,
     _onOptionClick,
+    { showCategory: false },
   );
   optionBtns = Array.from(_qel('skipnot-options').querySelectorAll('button'));
   _ensureRing().start(timerSec);
@@ -236,6 +237,7 @@ function _finishRun() {
     _qel('skipnot-go-correct').textContent = '—';
     _qel('skipnot-go-duration').textContent = Math.round(res.timeMs / 1000) + 's';
     _qel('skipnot-qualifies-row').style.display = res.qualifies ? '' : 'none';
+    _qel('btn-skipnot-submit-score').style.display = res.qualifies ? '' : 'none';
     if (res.qualifies) {
       _qel('skipnot-name-input').value = '';
       setTimeout(() => _qel('skipnot-name-input').focus(), 50);
@@ -257,6 +259,7 @@ function _onSubmitScore() {
       return;
     }
     _qel('skipnot-qualifies-row').style.display = 'none';
+    _qel('btn-skipnot-submit-score').style.display = 'none';
     // Refresh lb so the new entry appears with the just-submitted name.
     loadPanelLeaderboard('skipnot', 'skipnot-go-lb-rows');
   });
@@ -292,11 +295,11 @@ export function initSkipnot(sock) {
   el('btn-skipnot-submit-score').addEventListener('click', _onSubmitScore);
   el('btn-skipnot-back').addEventListener('click', () => {
     showScreen('screen-connect');
-    // Re-sync nav state: returning from a fullscreen game, the view router and
-    // auth-aware nav items can be left in an inconsistent state. Reset to the
-    // play view and reapply auth based on current login status.
-    applyAuthState(!!state.currentUser);
     showView('play');
+    // Re-fetch /auth/me so the home reflects current server-side session
+    // (fixes the case where session/cookie state drifted during the run and
+    // the auth-aware nav items get the wrong visibility on return).
+    import('./auth.js').then(({ checkAuth }) => checkAuth());
   });
 
   // Connect-screen leaderboard toggle (mirrors triviandom's btn-show-triv-lb).

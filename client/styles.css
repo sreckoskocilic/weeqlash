@@ -145,7 +145,8 @@ h1 {
     transform: rotate(360deg);
   }
 }
-/* Empty-state watermark for dynamically-populated containers */
+/* Empty-state watermark for dynamically-populated leaderboard containers */
+.lb-rows:empty::after,
 #lb-rows:empty::after {
   content: 'No scores yet.';
   display: block;
@@ -1287,6 +1288,19 @@ body.high-contrast {
   font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
 }
 
+/* SkipNoT/Qlashique variant — same structural panel, transparent bg + blue
+   border, slightly wider, centered text. Use this class instead of inline
+   style overrides so every place that shows a SkipNoT leaderboard looks
+   identical. */
+.leaderboard-panel.lb-skipnot {
+  background: transparent;
+  border-color: #2a4a7a;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
 .leaderboard-panel::before {
   content: '';
   position: absolute;
@@ -1342,6 +1356,33 @@ body.high-contrast {
 
 .lb-row:last-child {
   border-bottom: none;
+}
+
+.lb-row-empty {
+  opacity: 0.35;
+}
+
+/* SkipNoT score delta — flashes +13 / -7 next to the score on each answer.
+   Cleared after RESULT_DISPLAY_MS by the SkipNoT client module. */
+.skipnot-score-delta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  min-width: 0;
+  transition: opacity 0.15s;
+}
+.skipnot-score-delta:empty {
+  display: none;
+}
+.skipnot-score-delta {
+  text-shadow: none;
+}
+.skipnot-score-delta.hit {
+  color: #00ff41;
+}
+.skipnot-score-delta.miss {
+  color: #ff4949;
 }
 
 .lb-rk {
@@ -1596,26 +1637,57 @@ body.high-contrast {
   flex-direction: column;
   gap: 10px;
 }
-.qlas-btn-confirm {
-  background: #00ff41;
-  border: none;
+#screen-skipnot {
+  position: fixed;
+  inset: 0;
+  background: #020c02;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 0 0;
+  gap: 12px;
+  z-index: 20;
+  overflow-y: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #88ff88;
+}
+#screen-skipnot .qlas-inner {
+  width: 70vw;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* Unified qlashique-style button. One base + two color variants
+   (primary = filled, ghost = outline). Layout (width/flex/margin) is the
+   caller's responsibility — keep it in markup or wrapper, not in here. */
+.qlas-btn {
   border-radius: 2px;
-  color: #000;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.2rem;
   letter-spacing: 0.12em;
   cursor: pointer;
-  transition: opacity 0.15s;
   white-space: nowrap;
-  flex-shrink: 0;
-  width: 60%;
+  transition: all 0.15s;
 }
-.qlas-btn-confirm:hover:not(:disabled) {
+.qlas-btn--primary {
+  background: #00ff41;
+  border: none;
+  color: #000;
+}
+.qlas-btn--primary:hover:not(:disabled) {
   opacity: 0.85;
 }
-.qlas-btn-confirm:disabled {
+.qlas-btn--primary:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+.qlas-btn--ghost {
+  background: transparent;
+  border: 2px solid #00ff41;
+  color: #00ff41;
+}
+.qlas-btn--ghost:hover {
+  background: rgba(0, 255, 65, 0.15);
 }
 /* Waiting */
 .qlas-waiting {
@@ -1642,9 +1714,8 @@ body.high-contrast {
 .qlas-pbar {
   flex: 1;
   background: #071007;
-  border: 2px solid #0d2e0d;
   border-radius: 2px;
-  padding: 12px 14px;
+  padding: 6px 7px;
   position: relative;
   overflow: hidden;
   transition: border-color 0.3s;
@@ -1669,7 +1740,6 @@ body.high-contrast {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  margin-bottom: 6px;
 }
 .qlas-pb-grid .qlas-hp-num {
   grid-column: 2;
@@ -1679,8 +1749,8 @@ body.high-contrast {
   justify-content: flex-end;
 }
 .qlas-pb-name {
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
   font-family: 'IBM Plex Mono', monospace;
 }
 .qlas-hp-bar-bg {
@@ -1698,7 +1768,7 @@ body.high-contrast {
 }
 .qlas-hp-num {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   line-height: 1;
   color: var(--pc, #88ff88);
   transition: color 0.3s;
@@ -1994,21 +2064,6 @@ body.high-contrast {
   font-size: 0.78rem;
   text-transform: uppercase;
 }
-.qlas-btn-back {
-  margin-top: 20px;
-  background: transparent;
-  border: 2px solid #00ff41;
-  border-radius: 2px;
-  color: #00ff41;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 1.2rem;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.qlas-btn-back:hover {
-  background: rgba(0, 255, 65, 0.15);
-}
 /* Flash animations */
 @keyframes qlasDmg {
   0% {
@@ -2178,7 +2233,7 @@ body.high-contrast {
   .qlas-recap-live-btn {
     min-height: 36px;
   }
-  .qlas-btn-confirm,
+  .qlas-btn,
   .btn-qlas-stop,
   .btn-qlas-end,
   .btn-qlas-heal {

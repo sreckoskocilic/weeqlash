@@ -243,15 +243,8 @@
             </button>
             <div
               id="skipnot-lb-panel"
-              class="leaderboard-panel"
-              style="
-                display: none;
-                margin-top: 0.6rem;
-                max-width: none;
-                padding: 0;
-                background: transparent;
-                border-color: #2a4a7a;
-              "
+              class="leaderboard-panel lb-skipnot"
+              style="display: none; margin-top: 1.2rem"
             >
               <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
               <div class="lb-divider"></div>
@@ -261,7 +254,7 @@
                 <div style="text-align: center">SCORE</div>
                 <div style="text-align: right">TIME</div>
               </div>
-              <div id="skipnot-lb-rows"></div>
+              <div id="skipnot-lb-rows" class="lb-rows"></div>
             </div>
           </div>
         </div>
@@ -369,10 +362,10 @@
             <div class="lb-thead">
               <div>#</div>
               <div>NAME</div>
-              <div style="text-align: right">RUN</div>
+              <div style="text-align: center">SCORE</div>
               <div style="text-align: right">TIME</div>
             </div>
-            <div id="triv-lb-rows"></div>
+            <div id="triv-lb-rows" class="lb-rows"></div>
           </div>
           <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
         </div>
@@ -805,7 +798,7 @@
                 style="display: none; text-align: center; margin-top: 4px"
               >
                 <button
-                  class="qlas-btn-confirm"
+                  class="qlas-btn qlas-btn--primary"
                   id="btn-qlas-attack"
                   style="font-size: 1.3rem; width: 100%"
                 >
@@ -854,7 +847,13 @@
               [ show recap ]
             </button>
             <div class="qlas-recap" id="qlas-recap" style="display: none"></div>
-            <button class="qlas-btn-back" id="btn-qlas-playagain">[ REMATCH ]</button>
+            <button
+              class="qlas-btn qlas-btn--ghost"
+              id="btn-qlas-playagain"
+              style="margin-top: 20px"
+            >
+              [ REMATCH ]
+            </button>
           </div>
         </div>
       </div>
@@ -863,52 +862,44 @@
     <!-- SkipNoT (solo 20-Q quiz; reuses qlas-* styling) -->
     <div id="screen-skipnot" style="display: none">
       <div class="qlas-inner">
-        <div style="text-align: center">
-          <h2 class="qlas-title">SKIPNOT</h2>
-          <p class="qlas-subtitle">solo trivia — 20 questions, 12s each, sleep you NOT</p>
-        </div>
-
         <!-- Game phase -->
         <div id="skipnot-phase-game" style="display: none">
-          <div class="qlas-combat-layout">
-            <div class="qlas-col-players">
-              <div class="qlas-pbar" style="--pc: #00ff41">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 12px">
+              <div class="qlas-pbar" style="--pc: #00ff41; flex: 1">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name">SCORE</div>
-                  <div class="qlas-hp-num" id="skipnot-score" style="grid-row: span 2">0</div>
+                  <div class="qlas-hp-num" style="grid-row: span 2; gap: 12px">
+                    <span class="skipnot-score-delta" id="skipnot-score-delta"></span>
+                    <span id="skipnot-score">0</span>
+                  </div>
                 </div>
               </div>
-              <div class="qlas-pbar" style="--pc: #00b8ff">
+              <div class="qlas-pbar" style="--pc: #00b8ff; flex: 1">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name">QUESTION</div>
                   <div class="qlas-hp-num" id="skipnot-counter" style="grid-row: span 2">0/20</div>
                 </div>
               </div>
+              <div class="qlas-timer-ring" id="skipnot-turn-timer" style="flex: none">
+                <svg viewBox="0 0 64 64" aria-hidden="true">
+                  <circle class="ring-track" cx="32" cy="32" r="28"></circle>
+                  <circle
+                    class="ring-progress"
+                    id="skipnot-timer-ring-progress"
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke-dasharray="175.93"
+                    stroke-dashoffset="0"
+                  ></circle>
+                </svg>
+                <span class="ring-label" id="skipnot-timer-ring-label">—</span>
+              </div>
             </div>
 
             <div class="qlas-col-game">
-              <div class="qlas-turn-bar">
-                <div class="qlas-turn-name">SkipNoT</div>
-                <div class="qlas-turn-score"></div>
-                <div class="qlas-timer-ring" id="skipnot-turn-timer">
-                  <svg viewBox="0 0 64 64" aria-hidden="true">
-                    <circle class="ring-track" cx="32" cy="32" r="28"></circle>
-                    <circle
-                      class="ring-progress"
-                      id="skipnot-timer-ring-progress"
-                      cx="32"
-                      cy="32"
-                      r="28"
-                      stroke-dasharray="175.93"
-                      stroke-dashoffset="0"
-                    ></circle>
-                  </svg>
-                  <span class="ring-label" id="skipnot-timer-ring-label">—</span>
-                </div>
-              </div>
-
               <div class="qlas-qpanel">
-                <div class="qlas-flash" id="skipnot-flash" aria-live="polite"></div>
                 <div class="qlas-question" id="skipnot-question"></div>
                 <div class="qlas-options" id="skipnot-options"></div>
               </div>
@@ -938,35 +929,44 @@
                 <span class="qlas-go-v" id="skipnot-go-duration">—</span>
               </div>
             </div>
-            <div id="skipnot-qualifies-row" style="display: none; margin-top: 1rem">
+            <div
+              id="skipnot-qualifies-row"
+              style="display: none; margin: 1rem auto 0; max-width: 480px"
+            >
               <input
                 id="skipnot-name-input"
                 placeholder="your name"
                 maxlength="16"
                 style="
+                  width: 100%;
+                  box-sizing: border-box;
                   background: #0d2e0d;
                   border: 1px solid #00ff41;
                   color: #00ff41;
                   font-family: 'IBM Plex Mono', monospace;
-                  padding: 6px 10px;
-                  margin-right: 8px;
+                  padding: 8px 12px;
                 "
               />
-              <button class="qlas-btn-confirm" id="btn-skipnot-submit-score" type="button">
+            </div>
+            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-skipnot-submit-score"
+                type="button"
+                style="display: none; flex: 1 1 0"
+              >
                 [ SUBMIT ]
               </button>
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-skipnot-back"
+                type="button"
+                style="flex: 1 1 0"
+              >
+                [ BACK ]
+              </button>
             </div>
-            <div
-              class="leaderboard-panel"
-              style="
-                margin-top: 1.2rem;
-                max-width: 480px;
-                margin-left: auto;
-                margin-right: auto;
-                background: transparent;
-                border-color: #2a4a7a;
-              "
-            >
+            <div class="leaderboard-panel lb-skipnot" style="margin-top: 1.2rem">
               <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
               <div class="lb-divider"></div>
               <div class="lb-thead">
@@ -975,16 +975,8 @@
                 <div style="text-align: center">SCORE</div>
                 <div style="text-align: right">TIME</div>
               </div>
-              <div id="skipnot-go-lb-rows"></div>
+              <div id="skipnot-go-lb-rows" class="lb-rows"></div>
             </div>
-            <button
-              class="qlas-btn-back"
-              id="btn-skipnot-back"
-              type="button"
-              style="margin-top: 1rem"
-            >
-              [ BACK ]
-            </button>
           </div>
         </div>
       </div>
@@ -999,10 +991,10 @@
         <div class="lb-thead">
           <div>#</div>
           <div>NAME</div>
-          <div style="text-align: right">STREAK</div>
+          <div style="text-align: center">SCORE</div>
           <div style="text-align: right">TIME</div>
         </div>
-        <div id="lb-rows"></div>
+        <div id="lb-rows" class="lb-rows"></div>
         <div class="lb-actions">
           <button class="primary" id="lb-play-again">[ play again ]</button>
           <button id="lb-back">[ back to lobby ]</button>

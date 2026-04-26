@@ -9,8 +9,14 @@ import { sanitize } from './dom.js';
 // build 4 option buttons into `optionsEl`. `onClick(i)` fires with the index
 // of the chosen option. `flashEl` (optional) gets its `show` class cleared
 // so any prior CORRECT/INCORRECT banner from the previous question is hidden.
-export function renderQuestion({ questionEl, optionsEl, flashEl }, q, idx, onClick) {
-  const catText = q && q.category ? sanitize(String(q.category)).toUpperCase() : '';
+export function renderQuestion(
+  { questionEl, optionsEl, flashEl },
+  q,
+  idx,
+  onClick,
+  { showCategory = true } = {},
+) {
+  const catText = showCategory && q && q.category ? sanitize(String(q.category)).toUpperCase() : '';
   questionEl.innerHTML =
     '<div class="qlas-q-meta">' +
     '<span class="qlas-q-tag">&gt; QUESTION ' +

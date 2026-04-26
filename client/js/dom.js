@@ -25,6 +25,7 @@ export function showScreen(id) {
   const isSkipnot = id === 'screen-skipnot';
   el('main-title').style.display = isGame || isQlas || isSkipnot ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
+  el('announcements').style.display = isGame || isQlas || isSkipnot ? 'none' : '';
   [
     'screen-connect',
     'screen-lobby',
@@ -40,7 +41,10 @@ export function showScreen(id) {
   if (isGame || isQlas || isSkipnot) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
-    el(id).style.display = 'grid';
+    // Clear inline display so the `.main-columns` class CSS (display: flex
+    // with align-items: center) applies. Setting an explicit value here
+    // overrides the class and the connect card ends up left-aligned.
+    el(id).style.display = '';
   } else {
     el(id).style.display = 'block';
   }
