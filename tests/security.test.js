@@ -109,17 +109,22 @@ describe('Security Tests', () => {
 
     it('✓ Database operations use safe parameterized queries', () => {
       const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
+      // INSERT into leaderboard now binds 5 columns (added mode_id FK).
       const hasParameterizedQueries =
         leaderboardContent.includes('db.prepare') &&
-        leaderboardContent.includes('VALUES (?, ?, ?, ?)');
+        leaderboardContent.includes('VALUES (?, ?, ?, ?, ?)');
       expect(hasParameterizedQueries).toBe(true);
     });
 
-    // §2.3 Table Name Validation / §2.1 Input Validation
-    it('✓ Validates table names against allowed list', () => {
+    // §2.3 Mode validation / §2.1 Input Validation
+    // After the unified-leaderboard refactor (2026-04-26), table-name validation
+    // was replaced with: (1) FK constraint on mode_id, (2) resolveModeId returning
+    // null for unknown slugs (preventing arbitrary writes), (3) PRAGMA foreign_keys=ON.
+    it('✓ Enforces mode validation and FK at DB layer', () => {
       const leaderboardContent = require('fs').readFileSync('./server/game/leaderboard.ts', 'utf8');
-      // Should have table validation function
-      expect(leaderboardContent).toMatch(/(assertTable|validateTable|table)/);
+      expect(leaderboardContent).toMatch(/foreign_keys\s*=\s*ON/);
+      expect(leaderboardContent).toMatch(/resolveModeId/);
+      expect(leaderboardContent).toMatch(/REFERENCES game_modes\(id\)/);
     });
 
     // §2.4 SQL Injection Prevention

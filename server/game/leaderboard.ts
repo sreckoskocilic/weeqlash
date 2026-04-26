@@ -1,34 +1,19 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { QUIZ_MODES, QUIZ_MODES_BY_ID } from './quiz-modes.ts';
+import { QUIZ_MODES } from './quiz-modes.ts';
 import { runMigrations } from './migrations.ts';
 
 const dbPath = process.env.DB_PATH || path.resolve(import.meta.dirname, '../data/leaderboard.db');
 
-// Ensure data directory exists
 const dataDir = path.dirname(dbPath);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
 let db: Database.Database | null = null;
+const _modeIdBySlug = new Map<string, number>();
 
-const ALLOWED_TABLES = new Set(QUIZ_MODES.map((m) => m.table));
-
-function assertTable(table: string): void {
-  if (!ALLOWED_TABLES.has(table)) {
-    console.error('[leaderboard] Attempted access to invalid table:', table);
-    throw new Error(`Unknown leaderboard table: ${table}`);
-  }
-  // Additional security: ensure table name is alphanumeric with underscores
-  if (!/^[a-zA-Z0-9_]+$/.test(table)) {
-    console.error('[leaderboard] Invalid table name:', table);
-    throw new Error(`Invalid table name: ${table}`);
-  }
-}
-
-// Leaderboard entry structure
 export interface LeaderboardEntry {
   id: number;
   name: string;
@@ -37,12 +22,10 @@ export interface LeaderboardEntry {
   created_at: number;
 }
 
-// Quiz mode structure (matching quiz-modes.js)
 export interface QuizMode {
   id: string;
   label: string;
   categories: string[] | null;
-  table: string;
 }
 
 export function getDb(): Database.Database | null {
@@ -52,56 +35,101 @@ export function getDb(): Database.Database | null {
 export function initDb(): void {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
 
+  // Mode registry. Created before leaderboard so the FK can resolve on fresh DBs.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS game_modes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT UNIQUE NOT NULL,
+      label TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
+  // Seed game_modes from QUIZ_MODES (idempotent). Runs before migrations so
+  // 002_normalize_leaderboard_with_game_modes can resolve the triviandom row.
+  const seedStmt = db.prepare(
+    'INSERT OR IGNORE INTO game_modes (slug, label, created_at) VALUES (?, ?, ?)',
+  );
+  const now = Date.now();
   for (const mode of QUIZ_MODES) {
-    const exists = db
-      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='${mode.table}'`)
-      .get();
-    if (!exists) {
-      db.exec(`
-        CREATE TABLE ${mode.table} (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          answers INTEGER NOT NULL,
-          time_ms INTEGER NOT NULL,
-          created_at INTEGER NOT NULL
-        );
-        CREATE INDEX idx_${mode.table}_answers_time ON ${mode.table}(answers DESC, time_ms ASC);
-      `);
-      console.log(`[leaderboard] table '${mode.table}' initialized`);
-    }
+    seedStmt.run(mode.id, mode.label, now);
   }
 
+  // Fresh-DB shape. Existing prod DBs created leaderboard without mode_id; the
+  // 002 migration recreates them. CREATE IF NOT EXISTS is idempotent for both.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS leaderboard (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      answers INTEGER NOT NULL,
+      time_ms INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      mode_id INTEGER REFERENCES game_modes(id)
+    );
+  `);
+
   runMigrations(db);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_leaderboard_mode_score
+      ON leaderboard(mode_id, answers DESC, time_ms ASC);
+  `);
+
+  // Cache slug → id resolution. Populated post-migration so any seed inserted
+  // by migrations is also available.
+  _modeIdBySlug.clear();
+  const rows = db.prepare('SELECT id, slug FROM game_modes').all() as {
+    id: number;
+    slug: string;
+  }[];
+  for (const row of rows) {
+    _modeIdBySlug.set(row.slug, row.id);
+  }
+
+  console.log(`[leaderboard] initialized (${_modeIdBySlug.size} modes registered)`);
 }
 
-// --- Generic table operations ---
+function resolveModeId(modeSlug: string): number | null {
+  return _modeIdBySlug.get(modeSlug) ?? null;
+}
 
-export function getTop10ForTable(table: string): LeaderboardEntry[] {
-  assertTable(table);
-  // Table existence validated by assertTable + initDb creates all tables on startup
+export function getTop10ForMode(modeId: string): LeaderboardEntry[] {
   if (!db) {
     throw new Error('Database not initialized');
+  }
+  const dbModeId = resolveModeId(modeId);
+  if (dbModeId === null) {
+    return [];
   }
   try {
     return db
       .prepare(
-        `SELECT id, name, answers, time_ms, created_at FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 10`,
+        `SELECT id, name, answers, time_ms, created_at FROM leaderboard
+         WHERE mode_id = ? ORDER BY answers DESC, time_ms ASC LIMIT 10`,
       )
-      .all() as LeaderboardEntry[];
+      .all(dbModeId) as LeaderboardEntry[];
   } catch (err) {
-    console.error(`[leaderboard] getTop10ForTable(${table}) failed:`, (err as Error).message);
+    console.error(`[leaderboard] getTop10ForMode(${modeId}) failed:`, (err as Error).message);
     return [];
   }
 }
 
-export function insertScoreForTable(
-  table: string,
+export function insertScoreForMode(
+  modeId: string,
   name: string,
   answers: number,
   timeMs: number,
 ): LeaderboardEntry[] {
-  assertTable(table);
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  const dbModeId = resolveModeId(modeId);
+  if (dbModeId === null) {
+    return [];
+  }
   if (
     !name ||
     name.length > 16 ||
@@ -111,103 +139,15 @@ export function insertScoreForTable(
   ) {
     return [];
   }
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
-  try {
-    // Use parameterized query to prevent SQL injection
-    db.prepare(`INSERT INTO ${table} (name, answers, time_ms, created_at) VALUES (?, ?, ?, ?)`).run(
-      name,
-      answers,
-      timeMs,
-      Date.now(),
-    );
-    return getTop10ForTable(table);
-  } catch (err) {
-    console.error(`[leaderboard] insertScoreForTable(${table}) failed:`, (err as Error).message);
-    return [];
-  }
-}
-
-export function clearTestEntries(table: string): void {
-  assertTable(table);
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
-  try {
-    // Delete entries with names prefixed 'e2e_' (created by e2e tests)
-    db.prepare(`DELETE FROM ${table} WHERE name LIKE 'e2e_%'`).run();
-  } catch (err) {
-    console.error(`[leaderboard] clearTestEntries(${table}) failed:`, (err as Error).message);
-  }
-}
-
-export function checkQualifiesTop10ForTable(
-  table: string,
-  answers: number,
-  timeMs: number,
-): boolean {
-  assertTable(table);
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
-  try {
-    const better = db
-      .prepare(
-        `SELECT COUNT(*) as cnt FROM ${table} WHERE answers > ? OR (answers = ? AND time_ms < ?)`,
-      )
-      .get(answers, answers, timeMs) as { cnt: number } | undefined;
-    return better === undefined || better === null ? false : better.cnt < 10;
-  } catch (err) {
-    console.error(
-      `[leaderboard] checkQualifiesTop10ForTable(${table}) failed:`,
-      (err as Error).message,
-    );
-    return false;
-  }
-}
-
-export function pruneTable(table: string): void {
-  assertTable(table);
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
   try {
     db.prepare(
-      `DELETE FROM ${table} WHERE id NOT IN (SELECT id FROM ${table} ORDER BY answers DESC, time_ms ASC LIMIT 100)`,
-    ).run();
+      `INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)`,
+    ).run(name, answers, timeMs, Date.now(), dbModeId);
+    return getTop10ForMode(modeId);
   } catch (err) {
-    console.error(`[leaderboard] pruneTable(${table}) failed:`, (err as Error).message);
-  }
-}
-
-export function pruneAllModes(): void {
-  for (const mode of QUIZ_MODES) {
-    pruneTable(mode.table);
-  }
-}
-
-// --- Mode-based convenience wrappers ---
-
-export function getTop10ForMode(modeId: string): LeaderboardEntry[] {
-  const mode = QUIZ_MODES_BY_ID[modeId];
-  if (!mode) {
+    console.error(`[leaderboard] insertScoreForMode(${modeId}) failed:`, (err as Error).message);
     return [];
   }
-  return getTop10ForTable(mode.table);
-}
-
-export function insertScoreForMode(
-  modeId: string,
-  name: string,
-  answers: number,
-  timeMs: number,
-): LeaderboardEntry[] {
-  const mode = QUIZ_MODES_BY_ID[modeId];
-  if (!mode) {
-    return [];
-  }
-  return insertScoreForTable(mode.table, name, answers, timeMs);
 }
 
 export function checkQualifiesTop10ForMode(
@@ -215,9 +155,67 @@ export function checkQualifiesTop10ForMode(
   answers: number,
   timeMs: number,
 ): boolean {
-  const mode = QUIZ_MODES_BY_ID[modeId];
-  if (!mode) {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  const dbModeId = resolveModeId(modeId);
+  if (dbModeId === null) {
     return false;
   }
-  return checkQualifiesTop10ForTable(mode.table, answers, timeMs);
+  try {
+    const better = db
+      .prepare(
+        `SELECT COUNT(*) as cnt FROM leaderboard
+         WHERE mode_id = ? AND (answers > ? OR (answers = ? AND time_ms < ?))`,
+      )
+      .get(dbModeId, answers, answers, timeMs) as { cnt: number } | undefined;
+    return better === undefined || better === null ? false : better.cnt < 10;
+  } catch (err) {
+    console.error(
+      `[leaderboard] checkQualifiesTop10ForMode(${modeId}) failed:`,
+      (err as Error).message,
+    );
+    return false;
+  }
+}
+
+export function clearTestEntries(): void {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  try {
+    db.prepare(`DELETE FROM leaderboard WHERE name LIKE 'e2e_%'`).run();
+  } catch (err) {
+    console.error('[leaderboard] clearTestEntries() failed:', (err as Error).message);
+  }
+}
+
+export function pruneMode(modeId: string): void {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  const dbModeId = resolveModeId(modeId);
+  if (dbModeId === null) {
+    return;
+  }
+  try {
+    db.prepare(
+      `DELETE FROM leaderboard
+       WHERE mode_id = ?
+         AND id NOT IN (
+           SELECT id FROM leaderboard
+           WHERE mode_id = ?
+           ORDER BY answers DESC, time_ms ASC
+           LIMIT 100
+         )`,
+    ).run(dbModeId, dbModeId);
+  } catch (err) {
+    console.error(`[leaderboard] pruneMode(${modeId}) failed:`, (err as Error).message);
+  }
+}
+
+export function pruneAllModes(): void {
+  for (const mode of QUIZ_MODES) {
+    pruneMode(mode.id);
+  }
 }

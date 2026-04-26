@@ -32,7 +32,7 @@ export const CATEGORIES = {
   history: { label: 'History', color: '#6D4C41' },
   geography: { label: 'Geography', color: '#00695C' },
   sports: { label: 'Sports', color: '#bd1b8a' },
-  other: { label: 'Other', color: '#546E7A' },
+  other: { label: 'Other', color: '#546E7A', defaultOff: true },
 };
 
 export const CATS = Object.keys(CATEGORIES);

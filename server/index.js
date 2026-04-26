@@ -304,15 +304,15 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
   // randomly; it's only reachable via /test/set-question.
   questionsDb._byId[TEST_QUESTION.id] = TEST_QUESTION;
 
-  // Clean up test entries from leaderboard tables
+  // Clean up test entries from leaderboard (all modes; e2e_% name prefix)
   app.post('/test/clear-leaderboard', (_req, res) => {
-    clearTestEntries('leaderboard');
+    clearTestEntries();
     res.json({ ok: true });
   });
 
   // Test-only: clear ALL test data (leaderboard + users + history) in one call
   app.post('/test/clear-all', (_req, res) => {
-    clearTestEntries('leaderboard');
+    clearTestEntries();
     clearTestUsers();
     clearTestHistory();
     res.json({ ok: true });

@@ -1,13 +1,13 @@
-// Quiz mode definitions. To add a new mode:
-// 1. Add an entry here.
-// 2. Add a matching entry to QUIZ_MODES in client/index.html.
-// categories: null = all questions; array of category keys = filtered pool.
+// Quiz mode definitions. Source of truth for the mode list.
+// To add a new mode:
+// 1. Add an entry here (and a matching client-side entry where needed).
+// 2. On next server start, initDb() seeds it into the game_modes table.
+// categories: null = pulls from caller's active set; array = static filtered pool.
 
 export interface QuizMode {
   id: string;
   label: string;
   categories: string[] | null;
-  table: string;
 }
 
 export const QUIZ_MODES: QuizMode[] = [
@@ -15,7 +15,11 @@ export const QUIZ_MODES: QuizMode[] = [
     id: 'triviandom',
     label: 'Triviandom',
     categories: null,
-    table: 'leaderboard',
+  },
+  {
+    id: 'skipnot',
+    label: 'SkipNoT',
+    categories: null,
   },
 ];
 

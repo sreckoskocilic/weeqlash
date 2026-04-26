@@ -22,6 +22,42 @@ const MIGRATIONS: Migration[] = [
       db.exec('DROP TABLE IF EXISTS leaderboard_epl2025');
     },
   },
+  {
+    id: '002_normalize_leaderboard_with_game_modes',
+    up: (db) => {
+      // Idempotency: skip on fresh DBs where leaderboard was already created
+      // with mode_id by initDb() (see leaderboard.ts).
+      const cols = db.prepare('PRAGMA table_info(leaderboard)').all() as { name: string }[];
+      if (cols.some((c) => c.name === 'mode_id')) {
+        return;
+      }
+
+      // game_modes was created by initDb before this runs, with triviandom seeded.
+      // Recreate leaderboard with mode_id NOT NULL FK using SQLite's canonical
+      // table-rebuild pattern (https://sqlite.org/lang_altertable.html).
+      db.exec(`
+        CREATE TABLE leaderboard_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          answers INTEGER NOT NULL,
+          time_ms INTEGER NOT NULL,
+          created_at INTEGER NOT NULL,
+          mode_id INTEGER NOT NULL REFERENCES game_modes(id)
+        );
+
+        INSERT INTO leaderboard_new (id, name, answers, time_ms, created_at, mode_id)
+        SELECT id, name, answers, time_ms, created_at,
+               (SELECT id FROM game_modes WHERE slug = 'triviandom')
+        FROM leaderboard;
+
+        DROP TABLE leaderboard;
+        ALTER TABLE leaderboard_new RENAME TO leaderboard;
+
+        CREATE INDEX idx_leaderboard_mode_score
+          ON leaderboard(mode_id, answers DESC, time_ms ASC);
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {
