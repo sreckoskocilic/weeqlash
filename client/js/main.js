@@ -66,13 +66,15 @@ async function init() {
 }
 
 function initUI() {
-  // Populate category toggle buttons
-  dom.el('cat-toggle-btns').innerHTML = constants.CATS.map(
-    (cat) =>
-      `<button class="cat-toggle-btn active" data-cat="${cat}">${constants.CAT_NAMES[cat]}</button>`,
-  ).join('');
-
   state.setupEnabledCats = [...constants.DEFAULT_CATS];
+
+  // Populate category toggle buttons — only `defaultOn` cats start as active
+  // so the visual state matches state.setupEnabledCats.
+  const defaultSet = new Set(state.setupEnabledCats);
+  dom.el('cat-toggle-btns').innerHTML = constants.CATS.map((cat) => {
+    const active = defaultSet.has(cat) ? ' active' : '';
+    return `<button class="cat-toggle-btn${active}" data-cat="${cat}">${constants.CAT_NAMES[cat]}</button>`;
+  }).join('');
 
   // Setup button groups
   initOptBtnGroup('board-size-btns', (v) => {
