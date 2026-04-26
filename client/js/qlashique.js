@@ -4,6 +4,7 @@
 
 import { el, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';
+import { renderQuestion, makeCountdownRing } from './question-render.js';
 
 // State
 let qlasCode = null;
@@ -15,8 +16,7 @@ let qlasScore = 0;
 let qlasCurrentQ = null;
 let qlasQIdx = 0;
 let qlasTimerTotal = 5;
-let qlasTimerLeft = 5;
-let qlasTimerInterval = null;
+let qlasRing = null; // CountdownRing, lazily created on first qlasStartTimer
 let qlasGuessingActive = false;
 let qlasLastAnswerIdx = -1;
 let qlasToken = null;
@@ -65,28 +65,16 @@ export function qlasRenderQuestion(q, idx) {
   if (!qlasMatchStart) qlasMatchStart = Date.now();
   qlasCurrentQ = q;
   qlasQIdx = idx;
-  const catText = q && q.category ? sanitize(String(q.category)).toUpperCase() : '';
-  qEl('qlas-question').innerHTML =
-    '<div class="qlas-q-meta">' +
-    '<span class="qlas-q-tag">&gt; QUESTION ' +
-    (idx + 1) +
-    '</span>' +
-    (catText ? '<span class="qlas-q-cat">' + catText + '</span>' : '') +
-    '</div>' +
-    '<div class="qlas-q-text">' +
-    sanitize(q.q) +
-    '</div>';
-  const opts = qEl('qlas-options');
-  opts.innerHTML = '';
-  q.opts.forEach((opt, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'qlas-opt';
-    btn.innerHTML = '<span class="qlas-opt-key">' + 'ABCD'[i] + '</span>' + sanitize(opt);
-    btn.onclick = () => qlasSubmitAnswer(i);
-    opts.appendChild(btn);
-  });
-  const flash = qEl('qlas-flash');
-  if (flash) flash.classList.remove('show');
+  renderQuestion(
+    {
+      questionEl: qEl('qlas-question'),
+      optionsEl: qEl('qlas-options'),
+      flashEl: qEl('qlas-flash'),
+    },
+    q,
+    idx,
+    qlasSubmitAnswer,
+  );
 }
 
 // Flash banner after answer evaluation
@@ -114,30 +102,19 @@ function qlasLogEntry(text) {
 
 export function qlasStartTimer(seconds) {
   qlasTimerTotal = seconds;
-  qlasTimerLeft = seconds;
-  clearInterval(qlasTimerInterval);
-  qlasTimerInterval = setInterval(() => {
-    qlasTimerLeft = Math.max(0, qlasTimerLeft - 0.1);
-    const pct = qlasTimerLeft / qlasTimerTotal;
-    const state = pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '';
-    const secs = Math.ceil(qlasTimerLeft);
-    const ring = qEl('qlas-turn-timer');
-    if (ring) ring.className = 'qlas-timer-ring' + state;
-    const ringLabel = qEl('qlas-timer-ring-label');
-    if (ringLabel) ringLabel.textContent = secs + 's';
-    const progress = qEl('qlas-timer-ring-progress');
-    if (progress) {
-      progress.setAttribute('stroke-dashoffset', String((1 - pct) * QLAS_TIMER_RING_CIRC));
-    }
-    if (qlasTimerLeft <= 0) {
-      clearInterval(qlasTimerInterval);
-    }
-  }, 100);
+  if (!qlasRing) {
+    qlasRing = makeCountdownRing({
+      ringEl: qEl('qlas-turn-timer'),
+      labelEl: qEl('qlas-timer-ring-label'),
+      progressEl: qEl('qlas-timer-ring-progress'),
+      ringCirc: QLAS_TIMER_RING_CIRC,
+    });
+  }
+  qlasRing.start(seconds);
 }
 
 export function qlasStopTimer() {
-  clearInterval(qlasTimerInterval);
-  qlasTimerInterval = null;
+  qlasRing?.stop();
 }
 
 export function qlasRenderPlayerInfo() {
@@ -478,7 +455,6 @@ export function initQlashique(socket) {
     if (isMyTurn) {
       qEl('qlas-decision-panel').style.display = '';
       qlasTimerTotal = timerSeconds;
-      qlasTimerLeft = timerSeconds;
     } else {
       qEl('qlas-decision-panel').style.display = 'none';
     }

@@ -22,7 +22,8 @@ export function showScreen(id) {
   const isGame = id === 'screen-game';
   const isConnect = id === 'screen-connect';
   const isQlas = id === 'screen-qlashique';
-  el('main-title').style.display = isGame || isQlas ? 'none' : '';
+  const isSkipnot = id === 'screen-skipnot';
+  el('main-title').style.display = isGame || isQlas || isSkipnot ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
   [
     'screen-connect',
@@ -31,11 +32,12 @@ export function showScreen(id) {
     'screen-gameover',
     'screen-leaderboard',
     'screen-qlashique',
+    'screen-skipnot',
   ].forEach((s) => {
     el(s).style.display = 'none';
     el(s).classList.remove('show');
   });
-  if (isGame || isQlas) {
+  if (isGame || isQlas || isSkipnot) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
     el(id).style.display = 'grid';

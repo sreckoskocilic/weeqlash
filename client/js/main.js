@@ -13,6 +13,7 @@ import * as quiz from './quiz.js';
 import * as leaderboard from './leaderboard.js';
 import * as keyboard from './keyboard.js';
 import * as qlashique from './qlashique.js';
+import { initSkipnot } from './skipnot.js';
 import { initNav } from './nav.js';
 
 // Server URL configuration
@@ -42,6 +43,9 @@ async function init() {
 
   // Qlashique wiring (sits alongside board handlers)
   qlashique.initQlashique(sock);
+
+  // SkipNoT (solo 20-Q quiz)
+  initSkipnot(sock);
 
   // Setup-screen UI (category toggles, help, legal modals, etc.)
   initUI();

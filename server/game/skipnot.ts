@@ -78,3 +78,29 @@ export function processTimeout(
   _advance(state, 'timeout', POINTS.TIMEOUT);
   return { state, finished: state.finished };
 }
+
+// Server-side re-scoring of a finished client run. Takes the questions that
+// were issued at start (full objects with correct-index `a`) and the picks the
+// client reported (optionIdx | null per question; null = skip or timeout —
+// indistinguishable here, both score 0 so it doesn't matter for the total).
+export function scorePicks(
+  questions: { a: number; id: string }[],
+  picks: (number | null)[],
+): { score: number; results: Outcome[] } {
+  let score = 0;
+  const results: Outcome[] = [];
+  for (let i = 0; i < questions.length; i++) {
+    const pick = picks[i];
+    if (pick === null || pick === undefined) {
+      results.push('skip');
+      score += POINTS.SKIP;
+    } else if (pick === questions[i].a) {
+      results.push('correct');
+      score += POINTS.CORRECT;
+    } else {
+      results.push('wrong');
+      score += POINTS.WRONG;
+    }
+  }
+  return { score, results };
+}

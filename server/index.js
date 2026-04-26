@@ -202,15 +202,13 @@ const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 
 
 // SkipNoT session tracking (singleplayer 20-Q quiz). One run per socket.
 // run = {
-//   startedAt: number,           // ms; for leaderboard time_ms
-//   questions: Question[],       // pre-picked pool of QUESTION_COUNT
-//   state: SkipNotState,         // pure-logic state from skipnot.ts
-//   questionStartedAt: number,   // ms when current question was sent
-//   questionTimer: NodeJS.Timeout | null, // server-authoritative timeout
+//   startedAt: number,                          // ms; for leaderboard time_ms
+//   questions: Question[],                      // pre-picked pool with correct-index `a`
+//   picks: Record<questionId, optionIdx|null>,  // server-side answer log
+//   finished: boolean,
+//   finalScore, finalTimeMs                     // populated on skipnot:finish
 // }
 const skipnotRuns = new Map();
-// Network slack on top of TIMER_MS before server fires its own timeout.
-const SKIPNOT_TIMEOUT_GRACE_MS = 1500;
 
 // Periodic cleanup of stale rate limit entries (every 30s)
 const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
@@ -1151,77 +1149,18 @@ io.on('connection', (socket) => {
 
   // --- SkipNoT (solo 20-Q quiz) ---
 
-  function _clearSkipnotTimer(run) {
-    if (run?.questionTimer) {
-      clearTimeout(run.questionTimer);
-      run.questionTimer = null;
-    }
-  }
-
   function _disposeSkipnotRun(socketId) {
-    const run = skipnotRuns.get(socketId);
-    if (run) {
-      _clearSkipnotTimer(run);
-      skipnotRuns.delete(socketId);
-    }
-  }
-
-  function _emitSkipnotQuestion(sock, run) {
-    const q = run.questions[run.state.currentIdx];
-    run.questionStartedAt = Date.now();
-    _clearSkipnotTimer(run);
-    run.questionTimer = setTimeout(() => {
-      _handleSkipnotTimeout(sock, run);
-    }, skipnot.TIMER_MS + SKIPNOT_TIMEOUT_GRACE_MS);
-    sock.emit('skipnot:question', {
-      idx: run.state.currentIdx,
-      total: skipnot.QUESTION_COUNT,
-      score: run.state.score,
-      id: q.id,
-      q: q.q,
-      opts: q.opts,
-      category: q.category,
-      timerMs: skipnot.TIMER_MS,
-    });
-  }
-
-  function _emitSkipnotGameOver(sock, run) {
-    _clearSkipnotTimer(run);
-    const timeMs = Date.now() - run.startedAt;
-    const qualifies = checkQualifiesTop10ForMode('skipnot', run.state.score, timeMs);
-    sock.emit('skipnot:game_over', {
-      score: run.state.score,
-      results: run.state.results,
-      timeMs,
-      qualifies,
-    });
-  }
-
-  function _handleSkipnotTimeout(sock, run) {
-    if (run.state.finished) {
-      return;
-    }
-    const idx = run.state.currentIdx;
-    const correctIdx = run.questions[idx].a;
-    const r = skipnot.processTimeout(run.state);
-    if ('error' in r) {
-      return;
-    }
-    sock.emit('skipnot:result', {
-      idx,
-      outcome: 'timeout',
-      correctIdx,
-      score: run.state.score,
-      finished: r.finished,
-    });
-    if (r.finished) {
-      _emitSkipnotGameOver(sock, run);
-    } else {
-      _emitSkipnotQuestion(sock, run);
-    }
+    skipnotRuns.delete(socketId);
   }
 
   function _pickSkipnotPool() {
+    // Test override (sticky/one-shot): fill the whole run with the locked
+    // question so e2e specs can deterministically assert score totals.
+    const overrideId = _consumeQuestionOverride(questionsDb);
+    if (overrideId && questionsDb._byId?.[overrideId]) {
+      const q = questionsDb._byId[overrideId];
+      return Array.from({ length: skipnot.QUESTION_COUNT }, () => q);
+    }
     const used = new Set();
     const out = [];
     for (let i = 0; i < skipnot.QUESTION_COUNT; i++) {
@@ -1235,6 +1174,11 @@ io.on('connection', (socket) => {
     return out;
   }
 
+  // Client-authoritative game flow (matches the board pattern). Server hands
+  // out 20 questions WITH `correctIdx` at start, client runs the quiz locally
+  // (own timer, own scoring per click), then submits all picks at finish.
+  // Server stores its copy of the questions so it can re-score authoritatively
+  // on submit and credit user_stats per category.
   socket.on('skipnot:start', (cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1256,103 +1200,122 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not enough questions in active categories.' });
     }
 
-    const state = skipnot.createSession(questions.map((q) => q.id));
     const run = {
       startedAt: now,
-      questions,
-      state,
-      questionStartedAt: 0,
-      questionTimer: null,
+      questions, // server-side copy with correctIdx (`a`)
+      // `picks` is an array aligned to `questions` (one slot per Q in order).
+      // We can't key by questionId — sticky test overrides reuse the same id
+      // across all 20 slots, which would collapse to a single pick.
+      picks: new Array(skipnot.QUESTION_COUNT).fill(undefined),
+      currentIdx: 0,
+      finished: false,
+      finalScore: 0,
+      finalTimeMs: 0,
     };
     skipnotRuns.set(socket.id, run);
 
-    cb({ ok: true, total: skipnot.QUESTION_COUNT, timerMs: skipnot.TIMER_MS });
-    _emitSkipnotQuestion(socket, run);
+    // Server keeps correctIdx (`a`) hidden — client gets only public fields.
+    // Per-question YES/NO feedback comes via `skipnot:answer` cb (boolean).
+    cb({
+      ok: true,
+      total: skipnot.QUESTION_COUNT,
+      timerMs: skipnot.TIMER_MS,
+      questions: questions.map((q) => ({
+        id: q.id,
+        q: q.q,
+        opts: q.opts,
+        category: q.category,
+      })),
+    });
   });
 
+  // Per-question answer check. Client emits with the question id and chosen
+  // optionIdx; server matches it against the current run cursor, returns ONLY
+  // a boolean correct. correctIdx never leaves the server.
   socket.on('skipnot:answer', ({ id, optionIdx } = {}, cb) => {
-    const run = skipnotRuns.get(socket.id);
-    if (!run) {
-      return cb?.({ error: 'SkipNoT not started' });
+    if (typeof cb !== 'function') {
+      return;
     }
-    if (run.state.finished) {
-      return cb?.({ error: 'Session finished' });
+    const run = skipnotRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'SkipNoT not running' });
     }
     if (typeof optionIdx !== 'number' || optionIdx < 0 || optionIdx >= skipnot.OPTIONS_PER_Q) {
-      return cb?.({ error: 'Invalid option index' });
+      return cb({ error: 'Invalid option index' });
     }
-    const idx = run.state.currentIdx;
-    const currentQ = run.questions[idx];
-    if (id !== currentQ.id) {
-      return cb?.({ error: 'Stale question id' });
+    if (run.currentIdx >= run.questions.length) {
+      return cb({ error: 'Run exhausted' });
     }
-    // Server-authoritative timer: any answer arriving past TIMER_MS counts as timeout.
-    const elapsed = Date.now() - run.questionStartedAt;
-    _clearSkipnotTimer(run);
-    if (elapsed > skipnot.TIMER_MS) {
-      return _handleSkipnotTimeout(socket, run);
+    const currentQ = run.questions[run.currentIdx];
+    if (currentQ.id !== id) {
+      return cb({ error: 'Out of sequence' });
     }
-    const r = skipnot.processAnswer(run.state, optionIdx, currentQ.a);
-    if ('error' in r) {
-      return cb?.(r);
-    }
+    const correct = optionIdx === currentQ.a;
+    run.picks[run.currentIdx] = optionIdx;
+    run.currentIdx += 1;
     if (socket.userId) {
       try {
-        trackAnswer(socket.userId, currentQ.category, r.correct);
+        trackAnswer(socket.userId, currentQ.category, correct);
       } catch (err) {
         console.error('[skipnot] trackAnswer failed:', err.message);
       }
     }
-    cb?.({ ok: true });
-    socket.emit('skipnot:result', {
-      idx,
-      outcome: r.correct ? 'correct' : 'wrong',
-      correctIdx: currentQ.a,
-      score: run.state.score,
-      finished: r.finished,
-    });
-    if (r.finished) {
-      _emitSkipnotGameOver(socket, run);
-    } else {
-      _emitSkipnotQuestion(socket, run);
-    }
+    cb({ ok: true, correct });
   });
 
+  // Skip / timeout / abandon — same server effect: advance cursor, no score.
+  // Client emits this on both the user's [SKIP] click and on the local timer
+  // expiry, so the server cursor stays in lockstep with the client's.
   socket.on('skipnot:skip', ({ id } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = skipnotRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'SkipNoT not running' });
+    }
+    if (run.currentIdx >= run.questions.length) {
+      return cb({ error: 'Run exhausted' });
+    }
+    const currentQ = run.questions[run.currentIdx];
+    if (currentQ.id !== id) {
+      return cb({ error: 'Out of sequence' });
+    }
+    run.picks[run.currentIdx] = null; // null = skipped/timed-out (no score change)
+    run.currentIdx += 1;
+    cb({ ok: true });
+  });
+
+  socket.on('skipnot:finish', ({ totalMs } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
     const run = skipnotRuns.get(socket.id);
     if (!run) {
-      return cb?.({ error: 'SkipNoT not started' });
+      return cb({ error: 'SkipNoT not started' });
     }
-    if (run.state.finished) {
-      return cb?.({ error: 'Session finished' });
+    if (run.finished) {
+      return cb({ error: 'Run already finished' });
     }
-    const idx = run.state.currentIdx;
-    const currentQ = run.questions[idx];
-    if (id !== currentQ.id) {
-      return cb?.({ error: 'Stale question id' });
-    }
-    const elapsed = Date.now() - run.questionStartedAt;
-    _clearSkipnotTimer(run);
-    if (elapsed > skipnot.TIMER_MS) {
-      return _handleSkipnotTimeout(socket, run);
-    }
-    const r = skipnot.processSkip(run.state);
-    if ('error' in r) {
-      return cb?.(r);
-    }
-    cb?.({ ok: true });
-    socket.emit('skipnot:result', {
-      idx,
-      outcome: 'skip',
-      correctIdx: currentQ.a,
-      score: run.state.score,
-      finished: r.finished,
-    });
-    if (r.finished) {
-      _emitSkipnotGameOver(socket, run);
-    } else {
-      _emitSkipnotQuestion(socket, run);
-    }
+    // Build picks array from server-stored decisions (don't trust client to
+    // resend them — server already recorded each one in run.picks at position
+    // `currentIdx`). Missing slot = timeout/unanswered, scores like skip.
+    const picks = run.picks.map((p) => (p === undefined ? null : p));
+    // Sanity bound on totalMs: clamp into the plausible window so a tampered
+    // client can't post a 1ms run or a 1-day run.
+    const minMs = run.questions.length * 100;
+    const maxMs = run.questions.length * (skipnot.TIMER_MS + 2000);
+    const reportedMs =
+      typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
+    const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
+
+    const { score } = skipnot.scorePicks(run.questions, picks);
+    run.finished = true;
+    run.finalScore = score;
+    run.finalTimeMs = elapsedMs;
+
+    const qualifies = checkQualifiesTop10ForMode('skipnot', score, elapsedMs);
+    cb({ ok: true, score, timeMs: elapsedMs, qualifies });
   });
 
   socket.on('skipnot:submit_score', ({ name } = {}, cb) => {
@@ -1360,15 +1323,14 @@ io.on('connection', (socket) => {
     if (!run) {
       return cb({ error: 'No completed run' });
     }
-    if (!run.state.finished) {
+    if (!run.finished) {
       return cb({ error: 'Run not finished' });
     }
     const sanitizedName = name?.trim();
     if (!sanitizedName || sanitizedName.length > 16) {
       return cb({ error: 'Name must be 1-16 characters' });
     }
-    const timeMs = Date.now() - run.startedAt;
-    const top10 = insertScoreForMode('skipnot', sanitizedName, run.state.score, timeMs);
+    const top10 = insertScoreForMode('skipnot', sanitizedName, run.finalScore, run.finalTimeMs);
     _disposeSkipnotRun(socket.id);
     cb({ ok: true, top10 });
   });
