@@ -70,9 +70,12 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
 });
 
 // Picking option 1 (always wrong for TEST_QUESTION) on every question should
-// produce 20 × -7 = -140. Verifies the wrong-answer path scores correctly and
-// that the run still completes (no game-over short-circuit on wrong like quiz).
-test('skipnot: 20 wrong answers → score -140, run still completes', async ({ browser }) => {
+// produce 20 × -7 = -140. Plus: negative score must still qualify for an empty
+// top-10 and land in the leaderboard (regression for a bug where the schema
+// validation silently rejected `answers < 0`).
+test('skipnot: 20 wrong answers → score -140, qualifies, lands in leaderboard', async ({
+  browser,
+}) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
 
   await api.post('/test/clear-all', {});
@@ -93,6 +96,17 @@ test('skipnot: 20 wrong answers → score -140, run still completes', async ({ b
 
   await page.locator('#skipnot-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });
   await expect(page.locator('#skipnot-go-score')).toHaveText('-140');
+
+  // Empty leaderboard → -140 should qualify (any score beats fewer than 10 entries).
+  await expect(page.locator('#skipnot-qualifies-row')).toBeVisible();
+
+  const lbName = 'e2e_neg';
+  await page.locator('#skipnot-name-input').fill(lbName);
+  await page.locator('#btn-skipnot-submit-score').click();
+  await expect(page.locator('#skipnot-qualifies-row')).toBeHidden({ timeout: 5000 });
+
+  // Name must show up in the leaderboard panel rendered on the gameover screen.
+  await expect(page.locator('#skipnot-go-lb-rows')).toContainText(lbName, { timeout: 5000 });
 
   await clearStickyQuestion();
   await api.post('/test/clear-all', {});

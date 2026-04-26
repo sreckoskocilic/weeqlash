@@ -12,6 +12,8 @@
 import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
+import { state } from './state.js';
+import { applyAuthState, showView } from './nav.js';
 
 const TIMER_RING_CIRC = 175.93;
 const RESULT_DISPLAY_MS = 800; // colored-button + flash visible time before next q
@@ -290,6 +292,11 @@ export function initSkipnot(sock) {
   el('btn-skipnot-submit-score').addEventListener('click', _onSubmitScore);
   el('btn-skipnot-back').addEventListener('click', () => {
     showScreen('screen-connect');
+    // Re-sync nav state: returning from a fullscreen game, the view router and
+    // auth-aware nav items can be left in an inconsistent state. Reset to the
+    // play view and reapply auth based on current login status.
+    applyAuthState(!!state.currentUser);
+    showView('play');
   });
 
   // Connect-screen leaderboard toggle (mirrors triviandom's btn-show-triv-lb).

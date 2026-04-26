@@ -6,7 +6,7 @@ import { el } from './dom.js';
 import { showError } from './dom.js';
 import { sanitize } from './dom.js';
 import { CAT_NAMES, CAT_COLORS, OPTION_KEYS } from './constants.js';
-import { loadPanelLeaderboard } from './leaderboard.js';
+import { loadPanelLeaderboard, buildLeaderboardRow } from './leaderboard.js';
 
 let currentQuizMode = 'triviandom';
 let quizModalOptionBtns = [];
@@ -182,34 +182,27 @@ export function showLeaderboard(result) {
       container.innerHTML = '';
 
       res.top10.forEach((entry, i) => {
-        const row = document.createElement('div');
-        row.className = 'lb-row';
-        row.innerHTML = `
-          <div class="lb-rk">${String(i + 1).padStart(2, '0')}</div>
-          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitize(entry.name)}</div>
-          <div style="text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${entry.answers}</div>
-          <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(entry.time_ms / 1000)}s</div>
-        `;
-        container.appendChild(row);
+        container.appendChild(buildLeaderboardRow(entry, i + 1));
       });
 
       if (result.qualifies) {
-        const newRow = document.createElement('div');
-        newRow.className = 'lb-row new';
-        newRow.innerHTML = `
-          <div class="lb-rk">${String(result.answers < res.top10.length ? result.answers + 1 : 10).padStart(2, '0')}</div>
-          <div class="lb-inp-wrap">
-            <input id="lb-name-input" placeholder="your name" maxlength="16" autofocus/>
-            <button id="lb-submit-score-btn">OK</button>
-          </div>
-          <div style="text-align: right; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums;">${result.answers}</div>
-          <div style="text-align: right; font-size: 0.75rem; color: #445; font-variant-numeric: tabular-nums;">${Math.round(result.timeSec)}s</div>
-        `;
         const insertPos = res.top10.filter(
           (e) =>
             e.answers > result.answers ||
             (e.answers === result.answers && e.time_ms < result.timeSec * 1000),
         ).length;
+        const newRow = document.createElement('div');
+        newRow.className = 'lb-row new';
+        const rkText = String(insertPos + 1).padStart(2, '0');
+        newRow.innerHTML = `
+          <div class="lb-rk">${rkText}</div>
+          <div class="lb-inp-wrap">
+            <input id="lb-name-input" placeholder="your name" maxlength="16" autofocus/>
+            <button id="lb-submit-score-btn">OK</button>
+          </div>
+          <div style="text-align:center;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums">${result.answers}</div>
+          <div style="text-align:right;font-size:0.85rem;color:#5ebb52;font-variant-numeric:tabular-nums">${Math.round(result.timeSec)}s</div>
+        `;
         container.insertBefore(newRow, container.children[insertPos]);
         newRow.querySelector('#lb-submit-score-btn').addEventListener('click', submitQuizScore);
       }

@@ -2341,9 +2341,6 @@ body.high-contrast {
 .qlas-recap-ans .bad {
   color: #ff5555;
 }
-.qlas-recap-ans .muted {
-  color: #556;
-}
 .qlas-recap-score {
   float: right;
   font-weight: 600;

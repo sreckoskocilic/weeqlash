@@ -41,7 +41,7 @@ export const CATEGORIES = {
   history: { label: 'History', color: '#6D4C41' },
   geography: { label: 'Geography', color: '#00695C' },
   sports: { label: 'Sports', color: '#bd1b8a' },
-  other: { label: 'Other', color: '#546E7A' },
+  other: { label: 'Other', color: '#546E7A', defaultOff: true },
 } as const;
 
 export type Category = keyof typeof CATEGORIES;
@@ -53,6 +53,8 @@ export const CATS_SET = new Set<string>(CATS);
 export const DEFAULT_CATS = (Object.entries(CATEGORIES) as [Category, { defaultOff?: boolean }][])
   .filter(([, c]) => !c.defaultOff)
   .map(([id]) => id) as readonly Category[];
+
+export const DEFAULT_CATS_SET = new Set<string>(DEFAULT_CATS);
 
 export const COORD_BASE = 100;
 const DIRS = [

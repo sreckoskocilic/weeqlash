@@ -295,7 +295,6 @@ function qlasBuildRecapCard(group) {
       typeof e.answerIdx === 'number' && e.answerIdx >= 0
         ? 'ABCD'[e.answerIdx] + '. ' + sanitize(e.opts?.[e.answerIdx] ?? '?')
         : '—';
-    const correctLabel = 'ABCD'[e.correctIdx] + '. ' + sanitize(e.opts?.[e.correctIdx] ?? '?');
     entriesHtml +=
       '<div class="qlas-recap-entry">' +
       '<div class="qlas-recap-q">' +
@@ -309,9 +308,6 @@ function qlasBuildRecapCard(group) {
       (e.correct ? '✓ ' : '✗ picked ') +
       pickedLabel +
       '</span>' +
-      (e.correct
-        ? ''
-        : '<span class="muted">·</span><span class="ok">correct ' + correctLabel + '</span>') +
       '</div>' +
       '</div>';
   }
@@ -485,7 +481,7 @@ export function initQlashique(socket) {
 
   socket.on(
     'qlashique:answer_result',
-    ({ correct, newScore, playerIdx, answerIdx, correctIdx, category, q, opts, turn }) => {
+    ({ correct, newScore, playerIdx, answerIdx, category, q, opts, turn }) => {
       const prevScore = playerIdx === qlasMyIdx ? qlasScore : 0;
       if (playerIdx === qlasMyIdx) {
         const btns = document.querySelectorAll('.qlas-opt');
@@ -515,7 +511,6 @@ export function initQlashique(socket) {
           q,
           opts,
           answerIdx,
-          correctIdx,
           correct,
           scoreAfter: newScore,
         });

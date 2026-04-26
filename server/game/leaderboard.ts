@@ -130,13 +130,7 @@ export function insertScoreForMode(
   if (dbModeId === null) {
     return [];
   }
-  if (
-    !name ||
-    name.length > 16 ||
-    typeof answers !== 'number' ||
-    answers < 0 ||
-    typeof timeMs !== 'number'
-  ) {
+  if (!name || name.length > 16 || typeof answers !== 'number' || typeof timeMs !== 'number') {
     return [];
   }
   try {
