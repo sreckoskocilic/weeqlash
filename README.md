@@ -117,3 +117,5 @@ Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Sh
 ![Board 5x5](screenshots/board.png)
 ![Correct Answer](screenshots/question.png)
 ![Wrong Answer](screenshots/answer.png)
+![Qlashique](screenshots/qlashique.png)
+![SkipNoT](screenshots/skipnot.png)
