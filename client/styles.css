@@ -1322,26 +1322,26 @@ body.high-contrast {
    identical. */
 .leaderboard-panel.lb-skipnot {
   background: transparent;
-  border-color: #5a3300;
+  border-color: var(--sk-border-2, #5a3300);
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
 .leaderboard-panel.lb-skipnot .lb-heading {
-  color: #ffd060;
-  text-shadow: 0 0 18px rgba(255, 176, 0, 0.35);
+  color: var(--sk-text, #ffd060);
+  text-shadow: 0 0 18px var(--sk-accent, #ffb000);
 }
-.leaderboard-panel.lb-skipnot .lb-heading span { color: #ffb000; }
+.leaderboard-panel.lb-skipnot .lb-heading span { color: var(--sk-accent, #ffb000); }
 .leaderboard-panel.lb-skipnot .lb-divider {
-  background: linear-gradient(90deg, #ffb000, #3a1f00, transparent);
+  background: linear-gradient(90deg, var(--sk-accent, #ffb000), var(--sk-border, #3a1f00), transparent);
 }
 .leaderboard-panel.lb-skipnot .lb-thead {
-  color: #5a3300;
-  border-bottom-color: #3a1f00;
+  color: var(--sk-border-2, #5a3300);
+  border-bottom-color: var(--sk-border, #3a1f00);
 }
 .leaderboard-panel.lb-skipnot .lb-row {
-  border-bottom-color: rgba(90, 51, 0, 0.4);
+  border-bottom-color: var(--sk-border, rgba(90, 51, 0, 0.4));
 }
 
 .leaderboard-panel::before {
@@ -1422,7 +1422,7 @@ body.high-contrast {
   text-shadow: none;
 }
 .skipnot-score-delta.hit {
-  color: #ffb000;
+  color: var(--sk-accent, #ffb000);
 }
 .skipnot-score-delta.miss {
   color: #ff4949;
@@ -1680,10 +1680,24 @@ body.high-contrast {
   flex-direction: column;
   gap: 10px;
 }
+/* SkipNoT theme variables — default = amber (Phosphor Amber).
+   Switch by adding data-skipnot-theme="green|cyan|pink" on #screen-skipnot.
+   Persisted in localStorage by the skipnot-theme module. */
 #screen-skipnot {
+  /* default amber */
+  --sk-bg: #1a0d02;
+  --sk-bg-2: #2a1605;
+  --sk-bg-3: #1a0d00;
+  --sk-border: #3a1f00;
+  --sk-border-2: #5a3300;
+  --sk-text: #ffd060;
+  --sk-accent: #ffb000;
+  --sk-accent-2: #ff7a00;
+  --sk-key: #ffffff;
+
   position: fixed;
   inset: 0;
-  background: #1a0d02;
+  background: var(--sk-bg);
   display: none;
   flex-direction: column;
   align-items: center;
@@ -1692,7 +1706,40 @@ body.high-contrast {
   z-index: 20;
   overflow-y: auto;
   font-family: 'IBM Plex Mono', monospace;
-  color: #ffd060;
+  color: var(--sk-text);
+}
+#screen-skipnot[data-skipnot-theme="green"] {
+  --sk-bg: #020c02;
+  --sk-bg-2: #071007;
+  --sk-bg-3: #041004;
+  --sk-border: #0d2e0d;
+  --sk-border-2: #1c4d1c;
+  --sk-text: #88ff88;
+  --sk-accent: #00ff41;
+  --sk-accent-2: #00b8ff;
+  --sk-key: #ffe600;
+}
+#screen-skipnot[data-skipnot-theme="cyan"] {
+  --sk-bg: #02091a;
+  --sk-bg-2: #06112a;
+  --sk-bg-3: #040d20;
+  --sk-border: #1a2a52;
+  --sk-border-2: #2a4080;
+  --sk-text: #9ed8ff;
+  --sk-accent: #00f0ff;
+  --sk-accent-2: #7c5cff;
+  --sk-key: #ff3df0;
+}
+#screen-skipnot[data-skipnot-theme="pink"] {
+  --sk-bg: #1a0218;
+  --sk-bg-2: #2a0a26;
+  --sk-bg-3: #1a081a;
+  --sk-border: #4a1840;
+  --sk-border-2: #6a2a5a;
+  --sk-text: #ffaee0;
+  --sk-accent: #ff3df0;
+  --sk-accent-2: #ff7a00;
+  --sk-key: #ffffff;
 }
 #screen-skipnot .qlas-inner {
   width: 70vw;
@@ -1701,72 +1748,104 @@ body.high-contrast {
   gap: 10px;
 }
 
-/* SkipNoT amber overrides — reskin shared qlas components inside #screen-skipnot.
+/* SkipNoT theme overrides — reskin shared qlas components via CSS vars.
    Qlashique (#screen-qlashique) zadržava zelenu phosphor paletu nepromijenjenu. */
-#screen-skipnot .qlas-pbar { background: #2a1605; }
+#screen-skipnot .qlas-pbar { background: var(--sk-bg-2); }
 #screen-skipnot .qlas-qpanel {
-  background: #2a1605;
-  border-color: #ffb000;
+  background: var(--sk-bg-2);
+  border-color: var(--sk-accent);
 }
-#screen-skipnot .qlas-pb-name { color: #ffd060; }
-#screen-skipnot .qlas-hp-num { color: #ffb000; }
-#screen-skipnot .qlas-question { color: #ffd060; }
-#screen-skipnot .qlas-options { border-top-color: #5a3300; }
+#screen-skipnot .qlas-pb-name { color: var(--sk-text); }
+#screen-skipnot .qlas-hp-num { color: var(--sk-accent); }
+#screen-skipnot .qlas-question { color: var(--sk-text); }
+#screen-skipnot .qlas-options { border-top-color: var(--sk-border-2); }
 #screen-skipnot .qlas-opt {
-  background: #1a0d00;
-  color: #ffd060;
+  background: var(--sk-bg-3);
+  color: var(--sk-text);
 }
 #screen-skipnot .qlas-opt:hover:not(:disabled) {
-  border-color: #ff7a00;
-  background: #14080a;
+  border-color: var(--sk-accent-2);
+  background: var(--sk-bg-3);
 }
 #screen-skipnot .qlas-opt.correct {
-  border-color: #ffb000 !important;
-  background: rgba(255, 176, 0, 0.15) !important;
+  border-color: var(--sk-accent) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
 }
-#screen-skipnot .qlas-opt-key { color: #ffffff; }
+#screen-skipnot .qlas-opt-key { color: var(--sk-key); }
 #screen-skipnot .btn-qlas-stop {
-  background: #1a0d00;
-  border: 2px solid #3a1f00;
-  color: #ffffff;
+  background: var(--sk-bg-3);
+  border: 2px solid var(--sk-border);
+  color: var(--sk-key);
 }
 #screen-skipnot .btn-qlas-stop:hover {
-  border-color: #ffb000;
-  color: #ffb000;
+  border-color: var(--sk-accent);
+  color: var(--sk-accent);
 }
 #screen-skipnot .qlas-go-head {
-  color: #ffb000;
+  color: var(--sk-accent);
   text-shadow:
-    0 0 18px rgba(255, 176, 0, 0.55),
-    0 0 36px rgba(255, 176, 0, 0.22);
+    0 0 18px rgba(255, 255, 255, 0.18),
+    0 0 36px rgba(255, 255, 255, 0.08);
 }
 #screen-skipnot .qlas-go-stats {
-  background: #1a0d00;
-  border-color: #3a1f00;
+  background: var(--sk-bg-3);
+  border-color: var(--sk-border);
 }
 #screen-skipnot .qlas-go-row {
-  border-bottom-color: rgba(255, 176, 0, 0.15);
+  border-bottom-color: var(--sk-border-2);
 }
-#screen-skipnot .qlas-go-k { color: #ffd060; }
-#screen-skipnot .qlas-go-v { color: #ffb000; }
+#screen-skipnot .qlas-go-k { color: var(--sk-text); }
+#screen-skipnot .qlas-go-v { color: var(--sk-accent); }
 #screen-skipnot .qlas-btn--primary {
-  background: #ffb000;
+  background: var(--sk-accent);
   color: #000;
 }
 #screen-skipnot .qlas-btn--ghost {
-  border-color: #ffb000;
-  color: #ffb000;
+  border-color: var(--sk-accent);
+  color: var(--sk-accent);
 }
 #screen-skipnot .qlas-btn--ghost:hover {
-  background: rgba(255, 176, 0, 0.15);
+  background: rgba(255, 255, 255, 0.08);
 }
 #screen-skipnot #skipnot-name-input {
-  background: #1a0d00 !important;
-  border-color: #ffb000 !important;
-  color: #ffb000 !important;
+  background: var(--sk-bg-3) !important;
+  border-color: var(--sk-accent) !important;
+  color: var(--sk-accent) !important;
 }
-#screen-skipnot .qlas-timer-ring .ring-progress { stroke: #ffb000; transition: stroke 0.2s; }
-#screen-skipnot .qlas-timer-ring .ring-track { stroke: #3a1f00; }
+#screen-skipnot .qlas-timer-ring .ring-progress { stroke: var(--sk-accent); transition: stroke 0.2s; }
+#screen-skipnot .qlas-timer-ring .ring-track { stroke: var(--sk-border); }
+
+/* Theme picker — 4 small color dots in top-right corner of game screen */
+.skipnot-theme-picker {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  display: flex;
+  gap: 6px;
+  z-index: 21;
+}
+.skipnot-theme-picker .skp {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: var(--swatch, #ffb000);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.skipnot-theme-picker .skp:hover {
+  transform: scale(1.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.skipnot-theme-picker .skp.active {
+  border-color: #fff;
+  box-shadow: 0 0 8px var(--swatch, #ffb000);
+}
+.skipnot-theme-picker .skp[data-theme="amber"]  { --swatch: #ffb000; }
+.skipnot-theme-picker .skp[data-theme="green"]  { --swatch: #00ff41; }
+.skipnot-theme-picker .skp[data-theme="cyan"]   { --swatch: #00f0ff; }
+.skipnot-theme-picker .skp[data-theme="pink"]   { --swatch: #ff3df0; }
 #screen-skipnot .qlas-timer-ring .ring-label { color: #ffb000; transition: color 0.2s; }
 /* Color escalation: ring transitions amber → yellow (warn, ≤4s) → red (danger, ≤2s) */
 #screen-skipnot .qlas-timer-ring.warn .ring-progress { stroke: #ffe600; }
@@ -1793,26 +1872,26 @@ body.high-contrast {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #1a0d00;
-  border: 1px solid #3a1f00;
+  background: var(--sk-bg-3, #1a0d00);
+  border: 1px solid var(--sk-border, #3a1f00);
   transition: all 0.2s;
 }
 .skipnot-progress .pdot.ok {
-  background: #ffb000;
-  border-color: #ffb000;
-  box-shadow: 0 0 4px rgba(255, 176, 0, 0.5);
+  background: var(--sk-accent, #ffb000);
+  border-color: var(--sk-accent, #ffb000);
+  box-shadow: 0 0 4px var(--sk-accent, #ffb000);
 }
 .skipnot-progress .pdot.bad {
   background: #ff5555;
   border-color: #ff5555;
 }
 .skipnot-progress .pdot.skip {
-  background: #5a3300;
-  border-color: #5a3300;
+  background: var(--sk-border-2, #5a3300);
+  border-color: var(--sk-border-2, #5a3300);
 }
 .skipnot-progress .pdot.now {
-  border-color: #ff7a00;
-  box-shadow: 0 0 8px rgba(255, 122, 0, 0.7);
+  border-color: var(--sk-accent-2, #ff7a00);
+  box-shadow: 0 0 8px var(--sk-accent-2, #ff7a00);
   animation: skipnotDotPulse 1.4s ease-in-out infinite;
 }
 @keyframes skipnotDotPulse {
@@ -1826,26 +1905,26 @@ body.high-contrast {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: #1a0d00;
+  background: var(--sk-bg-3, #1a0d00);
   border-radius: 2px;
-  border-left: 2px solid #ff7a00;
+  border-left: 2px solid var(--sk-accent-2, #ff7a00);
   font-family: 'IBM Plex Mono', monospace;
   flex-shrink: 0;
 }
 .skipnot-streak-icon {
   font-size: 1.3rem;
-  filter: drop-shadow(0 0 4px rgba(255, 122, 0, 0.6));
+  filter: drop-shadow(0 0 4px var(--sk-accent-2, #ff7a00));
 }
 .skipnot-streak-num {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #ff7a00;
+  color: var(--sk-accent-2, #ff7a00);
   line-height: 1;
 }
 .skipnot-streak-lbl {
   font-size: 0.55rem;
   letter-spacing: 0.18em;
-  color: #ffd060;
+  color: var(--sk-text, #ffd060);
   opacity: 0.8;
 }
 .skipnot-streak.broke {
@@ -1865,15 +1944,15 @@ body.high-contrast {
   max-width: 480px;
   margin: 0 auto 1rem;
   padding: 12px 16px;
-  background: #1a0d00;
-  border: 1px solid #3a1f00;
+  background: var(--sk-bg-3, #1a0d00);
+  border: 1px solid var(--sk-border, #3a1f00);
   border-radius: 2px;
 }
 .skipnot-heatmap-label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.7rem;
   letter-spacing: 0.18em;
-  color: #ffd060;
+  color: var(--sk-text, #ffd060);
   opacity: 0.75;
   margin-bottom: 8px;
   text-align: left;
@@ -1892,11 +1971,11 @@ body.high-contrast {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #3a1f00;
+  background: var(--sk-border, #3a1f00);
   color: transparent;
 }
 .skipnot-heatmap .hcell.ok {
-  background: #ffb000;
+  background: var(--sk-accent, #ffb000);
   color: #000;
 }
 .skipnot-heatmap .hcell.bad {
@@ -1904,8 +1983,8 @@ body.high-contrast {
   color: #000;
 }
 .skipnot-heatmap .hcell.skip {
-  background: #5a3300;
-  color: #ffd060;
+  background: var(--sk-border-2, #5a3300);
+  color: var(--sk-text, #ffd060);
 }
 
 /* Reduced motion — kill all skipnot animations */

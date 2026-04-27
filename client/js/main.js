@@ -14,6 +14,7 @@ import * as leaderboard from './leaderboard.js';
 import * as keyboard from './keyboard.js';
 import * as qlashique from './qlashique.js';
 import { initSkipnot } from './skipnot.js';
+import { initSkipnotTheme } from './skipnot-theme.js';
 import { initNav } from './nav.js';
 import { initHomeBg } from './home-bg.js';
 
@@ -47,6 +48,8 @@ async function init() {
 
   // SkipNoT (solo 20-Q quiz)
   initSkipnot(sock);
+  // SkipNoT theme switcher (amber/green/cyan/pink, persisted)
+  initSkipnotTheme();
 
   // Decorative scattered shapes behind the connect screen
   initHomeBg();
