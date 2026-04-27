@@ -865,8 +865,11 @@
         <!-- Game phase -->
         <div id="skipnot-phase-game" style="display: none">
           <div style="display: flex; flex-direction: column; gap: 10px">
+            <!-- Progress dots: 20 dots, one per question (state: pending/ok/bad/skip/now) -->
+            <div id="skipnot-progress" class="skipnot-progress" aria-label="Question progress" role="status"></div>
+
             <div style="display: flex; flex-direction: row; align-items: center; gap: 12px">
-              <div class="qlas-pbar" style="--pc: #00ff41; flex: 1">
+              <div class="qlas-pbar" style="--pc: #ffb000; flex: 1">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name">SCORE</div>
                   <div class="qlas-hp-num" style="grid-row: span 2; gap: 12px">
@@ -875,7 +878,13 @@
                   </div>
                 </div>
               </div>
-              <div class="qlas-pbar" style="--pc: #00b8ff; flex: 1">
+              <!-- Streak indicator: hidden until streak >= 3 -->
+              <div id="skipnot-streak" class="skipnot-streak" style="display: none" aria-live="polite">
+                <span class="skipnot-streak-icon" aria-hidden="true">🔥</span>
+                <span class="skipnot-streak-num" id="skipnot-streak-num">0</span>
+                <span class="skipnot-streak-lbl">STREAK</span>
+              </div>
+              <div class="qlas-pbar" style="--pc: #ff7a00; flex: 1">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name">QUESTION</div>
                   <div class="qlas-hp-num" id="skipnot-counter" style="grid-row: span 2">0/20</div>
@@ -928,6 +937,15 @@
                 <span class="qlas-go-k">DURATION</span>
                 <span class="qlas-go-v" id="skipnot-go-duration">—</span>
               </div>
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">BEST STREAK</span>
+                <span class="qlas-go-v" id="skipnot-go-best-streak">—</span>
+              </div>
+            </div>
+            <!-- Heatmap: 20 cells, one per question, color = result -->
+            <div class="skipnot-heatmap-wrap">
+              <div class="skipnot-heatmap-label">RESULTS</div>
+              <div id="skipnot-heatmap" class="skipnot-heatmap" aria-label="Per-question results"></div>
             </div>
             <div
               id="skipnot-qualifies-row"
@@ -940,9 +958,9 @@
                 style="
                   width: 100%;
                   box-sizing: border-box;
-                  background: #0d2e0d;
-                  border: 1px solid #00ff41;
-                  color: #00ff41;
+                  background: #1a0d00;
+                  border: 1px solid #ffb000;
+                  color: #ffb000;
                   font-family: 'IBM Plex Mono', monospace;
                   padding: 8px 12px;
                 "

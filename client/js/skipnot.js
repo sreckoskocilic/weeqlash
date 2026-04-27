@@ -32,6 +32,13 @@ let resolvedThisQ = false; // true between local resolve and next-q render
 let questionTimeout = null; // local 12s timeout handle
 let runStartedAt = 0;
 
+// UX state: tracks per-Q outcomes, current streak, best streak.
+// Outcomes: 'ok' | 'bad' | 'skip' (one entry per resolved question).
+let outcomes = [];
+let streak = 0;
+let bestStreak = 0;
+let scoreAnimRaf = null; // count-up animation handle
+
 function _qel(id) {
   return document.getElementById(id);
 }
@@ -47,9 +54,16 @@ function _resetRun() {
   score = 0;
   optionBtns = [];
   resolvedThisQ = false;
+  outcomes = [];
+  streak = 0;
+  bestStreak = 0;
   if (questionTimeout) {
     clearTimeout(questionTimeout);
     questionTimeout = null;
+  }
+  if (scoreAnimRaf) {
+    cancelAnimationFrame(scoreAnimRaf);
+    scoreAnimRaf = null;
   }
   runStartedAt = Date.now();
   _qel('skipnot-score').textContent = '0';
@@ -59,6 +73,91 @@ function _resetRun() {
     d.textContent = '';
     d.className = 'skipnot-score-delta';
   }
+  _resetProgressDots();
+  _hideStreak();
+}
+
+// Build 20 placeholder dots, mark idx 0 as "now".
+function _resetProgressDots() {
+  const wrap = _qel('skipnot-progress');
+  if (!wrap) return;
+  const html = [];
+  for (let i = 0; i < total; i++) {
+    html.push(`<span class="pdot${i === 0 ? ' now' : ''}" data-i="${i}"></span>`);
+  }
+  wrap.innerHTML = html.join('');
+}
+
+// Mark question idx with given state ('ok'/'bad'/'skip'); move "now" to next.
+// Use explicit classList.add() with string literals so the unused-selector
+// linter can see that .ok / .bad / .skip are referenced from JS.
+function _updateProgressDot(idx, state) {
+  const wrap = _qel('skipnot-progress');
+  if (!wrap) return;
+  const dot = wrap.querySelector(`.pdot[data-i="${idx}"]`);
+  if (dot) {
+    dot.className = 'pdot';
+    if (state === 'ok') dot.classList.add('ok');
+    else if (state === 'bad') dot.classList.add('bad');
+    else if (state === 'skip') dot.classList.add('skip');
+  }
+  const next = wrap.querySelector(`.pdot[data-i="${idx + 1}"]`);
+  if (next) {
+    next.classList.add('now');
+  }
+}
+
+// Streak: shown only when >= 3.
+function _showStreak(n) {
+  const el = _qel('skipnot-streak');
+  const num = _qel('skipnot-streak-num');
+  if (!el || !num) return;
+  num.textContent = String(n);
+  el.style.display = '';
+}
+function _hideStreak() {
+  const el = _qel('skipnot-streak');
+  if (el) el.style.display = 'none';
+}
+function _breakStreak() {
+  const el = _qel('skipnot-streak');
+  if (!el || el.style.display === 'none') return;
+  el.classList.remove('broke');
+  // force reflow so animation can replay
+  void el.offsetWidth;
+  el.classList.add('broke');
+  setTimeout(() => {
+    _hideStreak();
+    el.classList.remove('broke');
+  }, 400);
+}
+
+// Animate score from current displayed value to `target` over ~400ms.
+function _animateScore(from, target) {
+  const el = _qel('skipnot-score');
+  if (!el) return;
+  if (scoreAnimRaf) {
+    cancelAnimationFrame(scoreAnimRaf);
+  }
+  if (from === target) {
+    el.textContent = String(target);
+    return;
+  }
+  const dur = 400;
+  const startT = performance.now();
+  const step = (t) => {
+    const p = Math.min(1, (t - startT) / dur);
+    // ease-out cubic
+    const eased = 1 - Math.pow(1 - p, 3);
+    const v = Math.round(from + (target - from) * eased);
+    el.textContent = String(v);
+    if (p < 1) {
+      scoreAnimRaf = requestAnimationFrame(step);
+    } else {
+      scoreAnimRaf = null;
+    }
+  };
+  scoreAnimRaf = requestAnimationFrame(step);
 }
 
 function _ensureRing() {
@@ -164,10 +263,24 @@ function _onOptionClick(idx) {
       return;
     }
     const correct = !!res.correct;
+    const prevScore = score;
     score += correct ? POINT_CORRECT : POINT_WRONG;
-    _qel('skipnot-score').textContent = String(score);
+    _animateScore(prevScore, score);
     if (optionBtns[idx]) {
       optionBtns[idx].classList.add(correct ? 'correct' : 'wrong');
+    }
+    // Outcomes / streak / progress dot
+    outcomes.push(correct ? 'ok' : 'bad');
+    _updateProgressDot(currentIdx, correct ? 'ok' : 'bad');
+    if (correct) {
+      streak += 1;
+      if (streak > bestStreak) bestStreak = streak;
+      if (streak >= 3) _showStreak(streak);
+    } else if (streak >= 3) {
+      _breakStreak();
+      streak = 0;
+    } else {
+      streak = 0;
     }
     _flash(correct ? 'correct' : 'wrong', correct ? POINT_CORRECT : POINT_WRONG);
     _advanceAfterDelay();
@@ -191,6 +304,12 @@ function _onSkipClick() {
       console.warn('[skipnot] skip rejected:', res.error);
     }
     // skip = 0 score; nothing colored.
+    outcomes.push('skip');
+    _updateProgressDot(currentIdx, 'skip');
+    if (streak >= 3) {
+      _breakStreak();
+    }
+    streak = 0;
     _flash('skip', 0);
     _advanceAfterDelay();
   });
@@ -212,8 +331,31 @@ function _onTimeout() {
       console.warn('[skipnot] timeout-skip rejected:', res.error);
     }
   });
+  outcomes.push('skip');
+  _updateProgressDot(currentIdx, 'skip');
+  if (streak >= 3) {
+    _breakStreak();
+  }
+  streak = 0;
   _flash('timeout', 0);
   _advanceAfterDelay();
+}
+
+function _renderHeatmap() {
+  const wrap = _qel('skipnot-heatmap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const o = outcomes[i];
+    const ch = o === 'ok' ? '✓' : o === 'bad' ? '✕' : o === 'skip' ? '−' : '';
+    const cell = document.createElement('div');
+    cell.className = 'hcell';
+    if (o === 'ok') cell.classList.add('ok');
+    else if (o === 'bad') cell.classList.add('bad');
+    else if (o === 'skip') cell.classList.add('skip');
+    cell.textContent = ch;
+    wrap.appendChild(cell);
+  }
 }
 
 function _finishRun() {
@@ -229,13 +371,13 @@ function _finishRun() {
       return;
     }
     _qel('skipnot-go-score').textContent = String(res.score);
-    // Local correct count for display (server doesn't ship per-Q results to
-    // avoid leaking the answer pattern; client reconstructed from its own
-    // running tally would be score-derived: each correct = +13, each wrong =
-    // -7, others = 0 — so correctCount can't be uniquely inferred from score
-    // alone. Show "—" rather than fake the number.
-    _qel('skipnot-go-correct').textContent = '—';
+    // Per-Q outcomes tracked locally — count correct here.
+    const correctCount = outcomes.filter((o) => o === 'ok').length;
+    _qel('skipnot-go-correct').textContent = `${correctCount}/${total}`;
     _qel('skipnot-go-duration').textContent = Math.round(res.timeMs / 1000) + 's';
+    const bestEl = _qel('skipnot-go-best-streak');
+    if (bestEl) bestEl.textContent = String(bestStreak);
+    _renderHeatmap();
     _qel('skipnot-qualifies-row').style.display = res.qualifies ? '' : 'none';
     _qel('btn-skipnot-submit-score').style.display = res.qualifies ? '' : 'none';
     if (res.qualifies) {
