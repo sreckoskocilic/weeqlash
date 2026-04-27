@@ -30,6 +30,14 @@ brawl.weeqlash.icu {
     handle /admin/* {
         reverse_proxy localhost:3000
     }
+
+    # No long-lived cache for HTML/JS — files have no content hash in their
+    # names, so a stale browser/CF copy after deploy means users get a broken
+    # mix until cache expires. `no-cache` still allows caching but forces an
+    # ETag revalidation round-trip (cheap 304 when unchanged).
+    @nocache path *.html *.js /
+    header @nocache Cache-Control "no-cache, must-revalidate"
+
     root * /opt/weeqlash/client
     file_server
 }
