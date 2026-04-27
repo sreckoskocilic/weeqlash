@@ -694,6 +694,12 @@
 
     <!-- Qlashique Screen -->
     <div id="screen-qlashique">
+      <div class="game-theme-picker" role="group" aria-label="Color theme">
+        <button class="skp" type="button" data-theme="amber" aria-label="Amber theme" title="Amber"></button>
+        <button class="skp" type="button" data-theme="green" aria-label="Green theme" title="Green"></button>
+        <button class="skp" type="button" data-theme="cyan" aria-label="Cyan theme" title="Cyan"></button>
+        <button class="skp" type="button" data-theme="pink" aria-label="Pink theme" title="Pink"></button>
+      </div>
       <div class="qlas-inner">
         <div style="text-align: center">
           <svg
@@ -779,7 +785,7 @@
           <div class="qlas-combat-layout">
             <!-- Column 1: player boxes -->
             <div class="qlas-col-players">
-              <div class="qlas-pbar" id="qlas-p0bar" style="--pc: #00ff41">
+              <div class="qlas-pbar" id="qlas-p0bar" style="--pc: var(--game-accent)">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name" id="qlas-p0name">
                     <span id="qlas-p0name-text">Player 1</span>
@@ -793,7 +799,7 @@
                 </div>
                 <div class="qlas-floating-host" id="qlas-p0float" aria-hidden="true"></div>
               </div>
-              <div class="qlas-pbar" id="qlas-p1bar" style="--pc: #00b8ff">
+              <div class="qlas-pbar" id="qlas-p1bar" style="--pc: var(--game-accent-2)">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name" id="qlas-p1name">
                     <span id="qlas-p1name-text">Player 2</span>
@@ -923,7 +929,7 @@
 
     <!-- SkipNoT (solo 20-Q quiz; reuses qlas-* styling) -->
     <div id="screen-skipnot" style="display: none">
-      <div class="skipnot-theme-picker" role="group" aria-label="Color theme">
+      <div class="game-theme-picker" role="group" aria-label="Color theme">
         <button class="skp" type="button" data-theme="amber" aria-label="Amber theme" title="Amber"></button>
         <button class="skp" type="button" data-theme="green" aria-label="Green theme" title="Green"></button>
         <button class="skp" type="button" data-theme="cyan" aria-label="Cyan theme" title="Cyan"></button>
@@ -937,7 +943,7 @@
             <div id="skipnot-progress" class="skipnot-progress" aria-label="Question progress" role="status"></div>
 
             <div style="display: flex; flex-direction: row; align-items: center; gap: 12px">
-              <div class="qlas-pbar" style="--pc: #ffb000; flex: 1">
+              <div class="qlas-pbar" style="--pc: var(--game-accent); flex: 1">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name">SCORE</div>
                   <div class="qlas-hp-num" style="grid-row: span 2; gap: 12px">
@@ -952,7 +958,7 @@
                 <span class="skipnot-streak-num" id="skipnot-streak-num">0</span>
                 <span class="skipnot-streak-lbl">STREAK</span>
               </div>
-              <div class="qlas-pbar" style="--pc: #ff7a00; flex: 1">
+              <div class="qlas-pbar" style="--pc: var(--game-accent-2); flex: 1">
                 <div class="qlas-pb-grid">
                   <div class="qlas-pb-name">QUESTION</div>
                   <div class="qlas-hp-num" id="skipnot-counter" style="grid-row: span 2">0/20</div>

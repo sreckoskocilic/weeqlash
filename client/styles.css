@@ -131,7 +131,7 @@ h1 {
   height: auto;
   display: block;
   margin: 0 auto 6px;
-  filter: drop-shadow(0 0 6px rgba(0, 255, 65, 0.55)) drop-shadow(0 0 14px rgba(0, 255, 65, 0.22));
+  filter: drop-shadow(0 0 6px rgba(var(--game-accent-rgb), 0.55)) drop-shadow(0 0 14px rgba(var(--game-accent-rgb), 0.22));
 }
 .qlas-waiting-mark {
   width: 72px;
@@ -139,7 +139,7 @@ h1 {
   display: block;
   margin: 0 auto 14px;
   animation: qlas-mark-spin 4s linear infinite;
-  filter: drop-shadow(0 0 8px rgba(0, 255, 65, 0.55)) drop-shadow(0 0 18px rgba(0, 255, 65, 0.22));
+  filter: drop-shadow(0 0 8px rgba(var(--game-accent-rgb), 0.55)) drop-shadow(0 0 18px rgba(var(--game-accent-rgb), 0.22));
 }
 @keyframes qlas-mark-spin {
   to {
@@ -1320,28 +1320,49 @@ body.high-contrast {
    border, slightly wider, centered text. Use this class instead of inline
    style overrides so every place that shows a SkipNoT leaderboard looks
    identical. */
+/* Landing-page lb-skipnot — stays amber regardless of game theme.
+   Game-over copy (inside #screen-skipnot) is themed via the override below. */
 .leaderboard-panel.lb-skipnot {
   background: transparent;
-  border-color: var(--sk-border-2, #5a3300);
+  border-color: #5a3300;
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
 .leaderboard-panel.lb-skipnot .lb-heading {
-  color: var(--sk-text, #ffd060);
-  text-shadow: 0 0 18px var(--sk-accent, #ffb000);
+  color: #ffd060;
+  text-shadow: 0 0 18px rgba(255, 176, 0, 0.35);
 }
-.leaderboard-panel.lb-skipnot .lb-heading span { color: var(--sk-accent, #ffb000); }
+.leaderboard-panel.lb-skipnot .lb-heading span { color: #ffb000; }
 .leaderboard-panel.lb-skipnot .lb-divider {
-  background: linear-gradient(90deg, var(--sk-accent, #ffb000), var(--sk-border, #3a1f00), transparent);
+  background: linear-gradient(90deg, #ffb000, #3a1f00, transparent);
 }
 .leaderboard-panel.lb-skipnot .lb-thead {
-  color: var(--sk-border-2, #5a3300);
-  border-bottom-color: var(--sk-border, #3a1f00);
+  color: #5a3300;
+  border-bottom-color: #3a1f00;
 }
 .leaderboard-panel.lb-skipnot .lb-row {
-  border-bottom-color: var(--sk-border, rgba(90, 51, 0, 0.4));
+  border-bottom-color: rgba(90, 51, 0, 0.4);
+}
+/* Game-over copy of lb-skipnot inherits the active game theme */
+#screen-skipnot .leaderboard-panel.lb-skipnot {
+  border-color: var(--game-border-2);
+}
+#screen-skipnot .leaderboard-panel.lb-skipnot .lb-heading {
+  color: var(--game-text);
+  text-shadow: 0 0 18px var(--game-accent);
+}
+#screen-skipnot .leaderboard-panel.lb-skipnot .lb-heading span { color: var(--game-accent); }
+#screen-skipnot .leaderboard-panel.lb-skipnot .lb-divider {
+  background: linear-gradient(90deg, var(--game-accent), var(--game-border), transparent);
+}
+#screen-skipnot .leaderboard-panel.lb-skipnot .lb-thead {
+  color: var(--game-border-2);
+  border-bottom-color: var(--game-border);
+}
+#screen-skipnot .leaderboard-panel.lb-skipnot .lb-row {
+  border-bottom-color: var(--game-border);
 }
 
 .leaderboard-panel::before {
@@ -1422,7 +1443,7 @@ body.high-contrast {
   text-shadow: none;
 }
 .skipnot-score-delta.hit {
-  color: var(--sk-accent, #ffb000);
+  color: var(--game-accent, #ffb000);
 }
 .skipnot-score-delta.miss {
   color: #ff4949;
@@ -1644,7 +1665,7 @@ body.high-contrast {
 #screen-qlashique {
   position: fixed;
   inset: 0;
-  background: #020c02;
+  background: var(--game-bg);
   display: none;
   flex-direction: column;
   align-items: center;
@@ -1653,23 +1674,23 @@ body.high-contrast {
   z-index: 20;
   overflow-y: auto;
   font-family: 'IBM Plex Mono', monospace;
-  color: #88ff88;
+  color: var(--game-text);
 }
 #screen-qlashique h2.qlas-title {
   font-family: 'IBM Plex Mono', monospace;
   font-size: clamp(2.2rem, 5vw, 3.5rem);
   letter-spacing: 0.12em;
-  color: #00ff41;
+  color: var(--game-accent);
   text-shadow:
-    0 0 30px #00ff41,
-    0 0 60px rgba(0, 255, 65, 0.3);
+    0 0 30px var(--game-accent),
+    0 0 60px rgba(var(--game-accent-rgb), 0.3);
   line-height: 1;
   margin-bottom: 4px;
 }
 .qlas-subtitle {
   font-size: 0.65rem;
   letter-spacing: 0.2em;
-  color: #ffe600;
+  color: var(--game-key);
   text-transform: uppercase;
   margin-bottom: 16px;
 }
@@ -1680,24 +1701,63 @@ body.high-contrast {
   flex-direction: column;
   gap: 10px;
 }
-/* SkipNoT theme variables — default = amber (Phosphor Amber).
-   Switch by adding data-skipnot-theme="green|cyan|pink" on #screen-skipnot.
-   Persisted in localStorage by the skipnot-theme module. */
-#screen-skipnot {
-  /* default amber */
-  --sk-bg: #1a0d02;
-  --sk-bg-2: #2a1605;
-  --sk-bg-3: #1a0d00;
-  --sk-border: #3a1f00;
-  --sk-border-2: #5a3300;
-  --sk-text: #ffd060;
-  --sk-accent: #ffb000;
-  --sk-accent-2: #ff7a00;
-  --sk-key: #ffffff;
+/* Shared game theme tokens — apply to all in-game screens (SkipNoT, Qlashique,
+   Brawl). Default = amber. Switch by setting data-game-theme="green|cyan|pink"
+   on <body>. Persisted in localStorage by the game-theme module. Tokens are
+   only consumed inside game-screen selectors, so the landing page is unaffected. */
+body {
+  --game-bg: #1a0d02;
+  --game-bg-2: #2a1605;
+  --game-bg-3: #1a0d00;
+  --game-border: #3a1f00;
+  --game-border-2: #5a3300;
+  --game-text: #ffd060;
+  --game-accent: #ffb000;
+  --game-accent-rgb: 255, 176, 0;
+  --game-accent-2: #ff7a00;
+  --game-key: #ffffff;
+}
+body[data-game-theme="green"] {
+  --game-bg: #020c02;
+  --game-bg-2: #071007;
+  --game-bg-3: #041004;
+  --game-border: #0d2e0d;
+  --game-border-2: #1c4d1c;
+  --game-text: #88ff88;
+  --game-accent: #00ff41;
+  --game-accent-rgb: 0, 255, 65;
+  --game-accent-2: #00b8ff;
+  --game-key: #ffe600;
+}
+body[data-game-theme="cyan"] {
+  --game-bg: #02091a;
+  --game-bg-2: #06112a;
+  --game-bg-3: #040d20;
+  --game-border: #1a2a52;
+  --game-border-2: #2a4080;
+  --game-text: #9ed8ff;
+  --game-accent: #00f0ff;
+  --game-accent-rgb: 0, 240, 255;
+  --game-accent-2: #7c5cff;
+  --game-key: #ff3df0;
+}
+body[data-game-theme="pink"] {
+  --game-bg: #1a0218;
+  --game-bg-2: #2a0a26;
+  --game-bg-3: #1a081a;
+  --game-border: #4a1840;
+  --game-border-2: #6a2a5a;
+  --game-text: #ffaee0;
+  --game-accent: #ff3df0;
+  --game-accent-rgb: 255, 61, 240;
+  --game-accent-2: #ff7a00;
+  --game-key: #ffffff;
+}
 
+#screen-skipnot {
   position: fixed;
   inset: 0;
-  background: var(--sk-bg);
+  background: var(--game-bg);
   display: none;
   flex-direction: column;
   align-items: center;
@@ -1706,40 +1766,7 @@ body.high-contrast {
   z-index: 20;
   overflow-y: auto;
   font-family: 'IBM Plex Mono', monospace;
-  color: var(--sk-text);
-}
-#screen-skipnot[data-skipnot-theme="green"] {
-  --sk-bg: #020c02;
-  --sk-bg-2: #071007;
-  --sk-bg-3: #041004;
-  --sk-border: #0d2e0d;
-  --sk-border-2: #1c4d1c;
-  --sk-text: #88ff88;
-  --sk-accent: #00ff41;
-  --sk-accent-2: #00b8ff;
-  --sk-key: #ffe600;
-}
-#screen-skipnot[data-skipnot-theme="cyan"] {
-  --sk-bg: #02091a;
-  --sk-bg-2: #06112a;
-  --sk-bg-3: #040d20;
-  --sk-border: #1a2a52;
-  --sk-border-2: #2a4080;
-  --sk-text: #9ed8ff;
-  --sk-accent: #00f0ff;
-  --sk-accent-2: #7c5cff;
-  --sk-key: #ff3df0;
-}
-#screen-skipnot[data-skipnot-theme="pink"] {
-  --sk-bg: #1a0218;
-  --sk-bg-2: #2a0a26;
-  --sk-bg-3: #1a081a;
-  --sk-border: #4a1840;
-  --sk-border-2: #6a2a5a;
-  --sk-text: #ffaee0;
-  --sk-accent: #ff3df0;
-  --sk-accent-2: #ff7a00;
-  --sk-key: #ffffff;
+  color: var(--game-text);
 }
 #screen-skipnot .qlas-inner {
   width: 70vw;
@@ -1750,73 +1777,73 @@ body.high-contrast {
 
 /* SkipNoT theme overrides — reskin shared qlas components via CSS vars.
    Qlashique (#screen-qlashique) zadržava zelenu phosphor paletu nepromijenjenu. */
-#screen-skipnot .qlas-pbar { background: var(--sk-bg-2); }
+#screen-skipnot .qlas-pbar { background: var(--game-bg-2); }
 #screen-skipnot .qlas-qpanel {
-  background: var(--sk-bg-2);
-  border-color: var(--sk-accent);
+  background: var(--game-bg-2);
+  border-color: var(--game-accent);
 }
-#screen-skipnot .qlas-pb-name { color: var(--sk-text); }
-#screen-skipnot .qlas-hp-num { color: var(--sk-accent); }
-#screen-skipnot .qlas-question { color: var(--sk-text); }
-#screen-skipnot .qlas-options { border-top-color: var(--sk-border-2); }
+#screen-skipnot .qlas-pb-name { color: var(--game-text); }
+#screen-skipnot .qlas-hp-num { color: var(--game-accent); }
+#screen-skipnot .qlas-question { color: var(--game-text); }
+#screen-skipnot .qlas-options { border-top-color: var(--game-border-2); }
 #screen-skipnot .qlas-opt {
-  background: var(--sk-bg-3);
-  color: var(--sk-text);
+  background: var(--game-bg-3);
+  color: var(--game-text);
 }
 #screen-skipnot .qlas-opt:hover:not(:disabled) {
-  border-color: var(--sk-accent-2);
-  background: var(--sk-bg-3);
+  border-color: var(--game-accent-2);
+  background: var(--game-bg-3);
 }
 #screen-skipnot .qlas-opt.correct {
-  border-color: var(--sk-accent) !important;
+  border-color: var(--game-accent) !important;
   background: rgba(255, 255, 255, 0.06) !important;
 }
-#screen-skipnot .qlas-opt-key { color: var(--sk-key); }
+#screen-skipnot .qlas-opt-key { color: var(--game-key); }
 #screen-skipnot .btn-qlas-stop {
-  background: var(--sk-bg-3);
-  border: 2px solid var(--sk-border);
-  color: var(--sk-key);
+  background: var(--game-bg-3);
+  border: 2px solid var(--game-border);
+  color: var(--game-key);
 }
 #screen-skipnot .btn-qlas-stop:hover {
-  border-color: var(--sk-accent);
-  color: var(--sk-accent);
+  border-color: var(--game-accent);
+  color: var(--game-accent);
 }
 #screen-skipnot .qlas-go-head {
-  color: var(--sk-accent);
+  color: var(--game-accent);
   text-shadow:
     0 0 18px rgba(255, 255, 255, 0.18),
     0 0 36px rgba(255, 255, 255, 0.08);
 }
 #screen-skipnot .qlas-go-stats {
-  background: var(--sk-bg-3);
-  border-color: var(--sk-border);
+  background: var(--game-bg-3);
+  border-color: var(--game-border);
 }
 #screen-skipnot .qlas-go-row {
-  border-bottom-color: var(--sk-border-2);
+  border-bottom-color: var(--game-border-2);
 }
-#screen-skipnot .qlas-go-k { color: var(--sk-text); }
-#screen-skipnot .qlas-go-v { color: var(--sk-accent); }
+#screen-skipnot .qlas-go-k { color: var(--game-text); }
+#screen-skipnot .qlas-go-v { color: var(--game-accent); }
 #screen-skipnot .qlas-btn--primary {
-  background: var(--sk-accent);
+  background: var(--game-accent);
   color: #000;
 }
 #screen-skipnot .qlas-btn--ghost {
-  border-color: var(--sk-accent);
-  color: var(--sk-accent);
+  border-color: var(--game-accent);
+  color: var(--game-accent);
 }
 #screen-skipnot .qlas-btn--ghost:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 #screen-skipnot #skipnot-name-input {
-  background: var(--sk-bg-3) !important;
-  border-color: var(--sk-accent) !important;
-  color: var(--sk-accent) !important;
+  background: var(--game-bg-3) !important;
+  border-color: var(--game-accent) !important;
+  color: var(--game-accent) !important;
 }
-#screen-skipnot .qlas-timer-ring .ring-progress { stroke: var(--sk-accent); transition: stroke 0.2s; }
-#screen-skipnot .qlas-timer-ring .ring-track { stroke: var(--sk-border); }
+#screen-skipnot .qlas-timer-ring .ring-progress { stroke: var(--game-accent); transition: stroke 0.2s; }
+#screen-skipnot .qlas-timer-ring .ring-track { stroke: var(--game-border); }
 
 /* Theme picker — 4 small color dots in top-right corner of game screen */
-.skipnot-theme-picker {
+.game-theme-picker {
   position: absolute;
   top: 14px;
   right: 18px;
@@ -1824,7 +1851,7 @@ body.high-contrast {
   gap: 6px;
   z-index: 21;
 }
-.skipnot-theme-picker .skp {
+.game-theme-picker .skp {
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -1834,22 +1861,22 @@ body.high-contrast {
   padding: 0;
   transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.skipnot-theme-picker .skp:hover {
+.game-theme-picker .skp:hover {
   transform: scale(1.15);
   border-color: rgba(255, 255, 255, 0.5);
 }
-.skipnot-theme-picker .skp.active {
+.game-theme-picker .skp.active {
   border-color: #fff;
   box-shadow: 0 0 8px var(--swatch, #ffb000);
 }
-.skipnot-theme-picker .skp[data-theme="amber"]  { --swatch: #ffb000; }
-.skipnot-theme-picker .skp[data-theme="green"]  { --swatch: #00ff41; }
-.skipnot-theme-picker .skp[data-theme="cyan"]   { --swatch: #00f0ff; }
-.skipnot-theme-picker .skp[data-theme="pink"]   { --swatch: #ff3df0; }
+.game-theme-picker .skp[data-theme="amber"]  { --swatch: #ffb000; }
+.game-theme-picker .skp[data-theme="green"]  { --swatch: #00ff41; }
+.game-theme-picker .skp[data-theme="cyan"]   { --swatch: #00f0ff; }
+.game-theme-picker .skp[data-theme="pink"]   { --swatch: #ff3df0; }
 #screen-skipnot .qlas-timer-ring .ring-label { color: #ffb000; transition: color 0.2s; }
 /* Color escalation: ring transitions amber → yellow (warn, ≤4s) → red (danger, ≤2s) */
 #screen-skipnot .qlas-timer-ring.warn .ring-progress { stroke: #ffe600; }
-#screen-skipnot .qlas-timer-ring.warn .ring-label { color: #ffe600; }
+#screen-skipnot .qlas-timer-ring.warn .ring-label { color: var(--game-key); }
 #screen-skipnot .qlas-timer-ring.danger .ring-progress { stroke: #ff5555; }
 #screen-skipnot .qlas-timer-ring.danger .ring-label { color: #ff5555; }
 #screen-skipnot .qlas-timer-ring.danger {
@@ -1872,26 +1899,26 @@ body.high-contrast {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--sk-bg-3, #1a0d00);
-  border: 1px solid var(--sk-border, #3a1f00);
+  background: var(--game-bg-3, #1a0d00);
+  border: 1px solid var(--game-border, #3a1f00);
   transition: all 0.2s;
 }
 .skipnot-progress .pdot.ok {
-  background: var(--sk-accent, #ffb000);
-  border-color: var(--sk-accent, #ffb000);
-  box-shadow: 0 0 4px var(--sk-accent, #ffb000);
+  background: var(--game-accent, #ffb000);
+  border-color: var(--game-accent, #ffb000);
+  box-shadow: 0 0 4px var(--game-accent, #ffb000);
 }
 .skipnot-progress .pdot.bad {
   background: #ff5555;
   border-color: #ff5555;
 }
 .skipnot-progress .pdot.skip {
-  background: var(--sk-border-2, #5a3300);
-  border-color: var(--sk-border-2, #5a3300);
+  background: var(--game-border-2, #5a3300);
+  border-color: var(--game-border-2, #5a3300);
 }
 .skipnot-progress .pdot.now {
-  border-color: var(--sk-accent-2, #ff7a00);
-  box-shadow: 0 0 8px var(--sk-accent-2, #ff7a00);
+  border-color: var(--game-accent-2, #ff7a00);
+  box-shadow: 0 0 8px var(--game-accent-2, #ff7a00);
   animation: skipnotDotPulse 1.4s ease-in-out infinite;
 }
 @keyframes skipnotDotPulse {
@@ -1905,26 +1932,26 @@ body.high-contrast {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: var(--sk-bg-3, #1a0d00);
+  background: var(--game-bg-3, #1a0d00);
   border-radius: 2px;
-  border-left: 2px solid var(--sk-accent-2, #ff7a00);
+  border-left: 2px solid var(--game-accent-2, #ff7a00);
   font-family: 'IBM Plex Mono', monospace;
   flex-shrink: 0;
 }
 .skipnot-streak-icon {
   font-size: 1.3rem;
-  filter: drop-shadow(0 0 4px var(--sk-accent-2, #ff7a00));
+  filter: drop-shadow(0 0 4px var(--game-accent-2, #ff7a00));
 }
 .skipnot-streak-num {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--sk-accent-2, #ff7a00);
+  color: var(--game-accent-2, #ff7a00);
   line-height: 1;
 }
 .skipnot-streak-lbl {
   font-size: 0.55rem;
   letter-spacing: 0.18em;
-  color: var(--sk-text, #ffd060);
+  color: var(--game-text, #ffd060);
   opacity: 0.8;
 }
 .skipnot-streak.broke {
@@ -1944,15 +1971,15 @@ body.high-contrast {
   max-width: 480px;
   margin: 0 auto 1rem;
   padding: 12px 16px;
-  background: var(--sk-bg-3, #1a0d00);
-  border: 1px solid var(--sk-border, #3a1f00);
+  background: var(--game-bg-3, #1a0d00);
+  border: 1px solid var(--game-border, #3a1f00);
   border-radius: 2px;
 }
 .skipnot-heatmap-label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.7rem;
   letter-spacing: 0.18em;
-  color: var(--sk-text, #ffd060);
+  color: var(--game-text, #ffd060);
   opacity: 0.75;
   margin-bottom: 8px;
   text-align: left;
@@ -1971,11 +1998,11 @@ body.high-contrast {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--sk-border, #3a1f00);
+  background: var(--game-border, #3a1f00);
   color: transparent;
 }
 .skipnot-heatmap .hcell.ok {
-  background: var(--sk-accent, #ffb000);
+  background: var(--game-accent, #ffb000);
   color: #000;
 }
 .skipnot-heatmap .hcell.bad {
@@ -1983,8 +2010,8 @@ body.high-contrast {
   color: #000;
 }
 .skipnot-heatmap .hcell.skip {
-  background: var(--sk-border-2, #5a3300);
-  color: var(--sk-text, #ffd060);
+  background: var(--game-border-2, #5a3300);
+  color: var(--game-text, #ffd060);
 }
 
 /* Reduced motion — kill all skipnot animations */
@@ -2006,7 +2033,7 @@ body.high-contrast {
   transition: all 0.15s;
 }
 .qlas-btn--primary {
-  background: #00ff41;
+  background: var(--game-accent);
   border: none;
   color: #000;
 }
@@ -2019,37 +2046,37 @@ body.high-contrast {
 }
 .qlas-btn--ghost {
   background: transparent;
-  border: 2px solid #00ff41;
-  color: #00ff41;
+  border: 2px solid var(--game-accent);
+  color: var(--game-accent);
 }
 .qlas-btn--ghost:hover {
-  background: rgba(0, 255, 65, 0.15);
+  background: rgba(var(--game-accent-rgb), 0.15);
 }
 /* Waiting */
 .qlas-waiting {
   text-align: center;
   padding: 24px;
-  background: #071007;
-  border: 1px solid #0d2e0d;
+  background: var(--game-bg-2);
+  border: 1px solid var(--game-border);
   border-radius: 2px;
 }
 .qlas-code-display {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 2.8rem;
   letter-spacing: 0.3em;
-  color: #ffe600;
+  color: var(--game-key);
   margin: 8px 0;
 }
 .qlas-waiting-msg {
   font-size: 0.7rem;
-  color: #ffe600;
+  color: var(--game-key);
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 /* Player bars */
 .qlas-pbar {
   flex: 1;
-  background: #071007;
+  background: var(--game-bg-2);
   border-radius: 2px;
   padding: 6px 7px;
   position: relative;
@@ -2120,8 +2147,8 @@ body.high-contrast {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #071007;
-  border: 1px solid #00ff41;
+  background: var(--game-bg-2);
+  border: 1px solid var(--game-accent);
   border-radius: 2px;
   padding: 9px 16px;
 }
@@ -2149,7 +2176,7 @@ body.high-contrast {
   animation: qlas-score-pop 0.35s ease-out;
 }
 .qlas-turn-score.combo-2 {
-  color: #ffe600;
+  color: var(--game-key);
   text-shadow: 0 0 6px rgba(255, 230, 0, 0.5);
 }
 .qlas-turn-score.combo-5 {
@@ -2209,8 +2236,8 @@ body.high-contrast {
 }
 /* Question panel */
 .qlas-qpanel {
-  background: #071007;
-  border: 2px solid #00ff41;
+  background: var(--game-bg-2);
+  border: 2px solid var(--game-accent);
   border-radius: 2px;
   padding: 18px 20px;
 }
@@ -2218,7 +2245,7 @@ body.high-contrast {
   font-size: 0.96rem;
   line-height: 1.65;
   margin-bottom: 10px;
-  color: #88ff88;
+  color: var(--game-text);
   font-family: 'IBM Plex Mono', monospace;
 }
 .qlas-options {
@@ -2233,10 +2260,10 @@ body.high-contrast {
   display: flex;
   align-items: center;
   gap: 11px;
-  background: #041004;
+  background: var(--game-bg-3);
   border: 1.5px solid transparent;
   border-radius: 2px;
-  color: #88ff88;
+  color: var(--game-text);
   font-size: 0.86rem;
   cursor: pointer;
   transition: all 0.15s;
@@ -2245,12 +2272,12 @@ body.high-contrast {
   width: 100%;
 }
 .qlas-opt:hover:not(:disabled) {
-  border-color: #00b8ff;
+  border-color: var(--game-accent-2);
   background: #030803;
 }
 .qlas-opt.correct {
   border-color: #00ff41 !important;
-  background: rgba(0, 255, 65, 0.15) !important;
+  background: rgba(var(--game-accent-rgb), 0.15) !important;
 }
 .qlas-opt.wrong {
   border-color: #ff5555 !important;
@@ -2266,7 +2293,7 @@ body.high-contrast {
   flex-shrink: 0;
   width: 28px;
   font-weight: 500;
-  color: #ffe600;
+  color: var(--game-key);
   letter-spacing: 0.04em;
 }
 .qlas-opt-key::before {
@@ -2284,10 +2311,10 @@ body.high-contrast {
 }
 .btn-qlas-end {
   flex: 2;
-  background: #041004;
-  border: 2px solid #0d2e0d;
+  background: var(--game-bg-3);
+  border: 2px solid var(--game-border);
   border-radius: 2px;
-  color: #ffe600;
+  color: var(--game-key);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.05rem;
   letter-spacing: 0.12em;
@@ -2295,8 +2322,8 @@ body.high-contrast {
   transition: all 0.15s;
 }
 .btn-qlas-end:hover:not(:disabled) {
-  border-color: #88ff88;
-  color: #88ff88;
+  border-color: var(--game-text);
+  color: var(--game-text);
 }
 .btn-qlas-end:disabled {
   opacity: 0.3;
@@ -2304,10 +2331,10 @@ body.high-contrast {
 }
 .btn-qlas-stop {
   flex: 2;
-  background: rgba(0, 255, 65, 0.15);
-  border: 2px solid #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.15);
+  border: 2px solid var(--game-accent);
   border-radius: 2px;
-  color: #00ff41;
+  color: var(--game-accent);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.05rem;
   letter-spacing: 0.12em;
@@ -2315,8 +2342,8 @@ body.high-contrast {
   transition: all 0.15s;
 }
 .btn-qlas-stop:hover:not(:disabled) {
-  background: rgba(0, 255, 65, 0.28);
-  box-shadow: 0 0 12px -4px #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.28);
+  box-shadow: 0 0 12px -4px var(--game-accent);
 }
 .btn-qlas-stop:disabled {
   opacity: 0.3;
@@ -2325,10 +2352,10 @@ body.high-contrast {
 .btn-qlas-heal {
   flex: 1;
   padding: 12px 14px;
-  background: rgba(0, 255, 65, 0.12);
-  border: 2px solid rgba(0, 255, 65, 0.35);
+  background: rgba(var(--game-accent-rgb), 0.12);
+  border: 2px solid rgba(var(--game-accent-rgb), 0.35);
   border-radius: 2px;
-  color: #00ff41;
+  color: var(--game-accent);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.05rem;
   letter-spacing: 0.12em;
@@ -2340,8 +2367,8 @@ body.high-contrast {
   gap: 7px;
 }
 .btn-qlas-heal:hover:not(:disabled) {
-  background: rgba(0, 255, 65, 0.22);
-  border-color: #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.22);
+  border-color: var(--game-accent);
 }
 .btn-qlas-heal:disabled {
   opacity: 0.3;
@@ -2350,8 +2377,8 @@ body.high-contrast {
 .qlas-heal-val {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.68rem;
-  background: rgba(0, 255, 65, 0.2);
-  border: 1px solid rgba(0, 255, 65, 0.3);
+  background: rgba(var(--game-accent-rgb), 0.2);
+  border: 1px solid rgba(var(--game-accent-rgb), 0.3);
   padding: 2px 6px;
   border-radius: 2px;
 }
@@ -2363,11 +2390,11 @@ body.high-contrast {
 .qlas-gameover h1.qlas-go-head {
   font-family: 'IBM Plex Mono', monospace;
   font-size: clamp(1.4rem, 3.5vw, 1.9rem);
-  color: #00ff41;
+  color: var(--game-accent);
   letter-spacing: 0.14em;
   text-shadow:
-    0 0 18px rgba(0, 255, 65, 0.55),
-    0 0 36px rgba(0, 255, 65, 0.22);
+    0 0 18px rgba(var(--game-accent-rgb), 0.55),
+    0 0 36px rgba(var(--game-accent-rgb), 0.22);
   margin-bottom: 22px;
   text-align: center;
 }
@@ -2378,8 +2405,8 @@ body.high-contrast {
   padding: 16px 22px;
   margin: 0 auto 24px;
   max-width: 420px;
-  background: #071007;
-  border: 1px solid #0d2e0d;
+  background: var(--game-bg-2);
+  border: 1px solid var(--game-border);
   border-radius: 2px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.95rem;
@@ -2390,7 +2417,7 @@ body.high-contrast {
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  border-bottom: 1px dashed rgba(0, 255, 65, 0.15);
+  border-bottom: 1px dashed rgba(var(--game-accent-rgb), 0.15);
   padding-bottom: 6px;
 }
 .qlas-go-row:last-child {
@@ -2398,7 +2425,7 @@ body.high-contrast {
   padding-bottom: 0;
 }
 .qlas-go-k {
-  color: #88ff88;
+  color: var(--game-text);
   opacity: 0.75;
   font-weight: 500;
   letter-spacing: 0.14em;
@@ -2419,10 +2446,10 @@ body.high-contrast {
 }
 @keyframes qlasHeal {
   0% {
-    background: rgba(0, 255, 65, 0);
+    background: rgba(var(--game-accent-rgb), 0);
   }
   20% {
-    background: rgba(0, 255, 65, 0.2);
+    background: rgba(var(--game-accent-rgb), 0.2);
   }
   100% {
     background: transparent;
@@ -2551,17 +2578,17 @@ body.high-contrast {
 .btn-qlashique {
   width: 100%;
   margin-top: 0.6rem;
-  background: rgba(0, 255, 65, 0.1);
-  border: 1px solid rgba(0, 255, 65, 0.4);
-  color: #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--game-accent-rgb), 0.4);
+  color: var(--game-accent);
   border-radius: var(--radius);
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.1rem;
 }
 .btn-qlashique:hover {
-  background: rgba(0, 255, 65, 0.2);
-  border-color: #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.2);
+  border-color: var(--game-accent);
 }
 /* SkipNoT amber variant — leaderboard toggle on landing.
    (Start button is now a .mode-card with its own styling below.) */
@@ -2578,22 +2605,22 @@ body.high-contrast {
 /* Join buttons — color-match the mode cards above
    (Brawl=green, Qlashique=yellow) */
 #btn-join {
-  background: rgba(0, 255, 65, 0.12);
-  border: 1px solid rgba(0, 255, 65, 0.5);
-  color: #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.12);
+  border: 1px solid rgba(var(--game-accent-rgb), 0.5);
+  color: var(--game-accent);
 }
 #btn-join:hover {
-  background: rgba(0, 255, 65, 0.22);
-  border-color: #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.22);
+  border-color: var(--game-accent);
 }
 #btn-qlas-start.btn-qlashique {
   background: rgba(255, 230, 0, 0.10);
   border-color: rgba(255, 230, 0, 0.5);
-  color: #ffe600;
+  color: var(--game-key);
 }
 #btn-qlas-start.btn-qlashique:hover {
   background: rgba(255, 230, 0, 0.22);
-  border-color: #ffe600;
+  border-color: var(--game-key);
 }
 
 /* Mode cards — 3 visual cards (Brawl / Qlashique / SkipNoT) on the home page */
@@ -2652,22 +2679,22 @@ body.high-contrast {
 }
 
 .mode-card--brawl {
-  border-color: rgba(0, 255, 65, 0.45);
-  color: #00ff41;
-  background: rgba(0, 255, 65, 0.06);
+  border-color: rgba(var(--game-accent-rgb), 0.45);
+  color: var(--game-accent);
+  background: rgba(var(--game-accent-rgb), 0.06);
 }
 .mode-card--brawl:hover {
-  background: rgba(0, 255, 65, 0.14);
-  border-color: #00ff41;
+  background: rgba(var(--game-accent-rgb), 0.14);
+  border-color: var(--game-accent);
 }
 .mode-card--qlas {
   border-color: rgba(255, 230, 0, 0.45);
-  color: #ffe600;
+  color: var(--game-key);
   background: rgba(255, 230, 0, 0.04);
 }
 .mode-card--qlas:hover {
   background: rgba(255, 230, 0, 0.12);
-  border-color: #ffe600;
+  border-color: var(--game-key);
 }
 .mode-card--skipnot {
   border-color: rgba(255, 176, 0, 0.45);
@@ -2840,10 +2867,10 @@ body.high-contrast {
   stroke-linecap: round;
 }
 .qlas-timer-ring .ring-track {
-  stroke: #0d2e0d;
+  stroke: var(--game-border);
 }
 .qlas-timer-ring .ring-progress {
-  stroke: #00ff41;
+  stroke: var(--game-accent);
   transition:
     stroke-dashoffset 0.1s linear,
     stroke 0.2s ease;
@@ -2864,7 +2891,7 @@ body.high-contrast {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #88ff88;
+  color: var(--game-text);
 }
 .qlas-timer-ring.warn .ring-label {
   color: #ffff00;
@@ -2899,20 +2926,20 @@ body.high-contrast {
   padding: 1rem;
 }
 .qlas-recap-card {
-  background: #041004;
-  border: 1px solid #0d2e0d;
+  background: var(--game-bg-3);
+  border: 1px solid var(--game-border);
   border-radius: 2px;
   padding: 0.6rem 0.8rem;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.82rem;
-  color: #88ff88;
+  color: var(--game-text);
   text-align: left;
 }
 .qlas-recap-card.p0 {
-  border-color: #00ff41;
+  border-color: var(--game-accent);
 }
 .qlas-recap-card.p1 {
-  border-color: #00b8ff;
+  border-color: var(--game-accent-2);
 }
 .qlas-recap-card.wrong {
   border-style: dashed;
@@ -2929,18 +2956,18 @@ body.high-contrast {
   letter-spacing: 0.06em;
 }
 .qlas-recap-turn {
-  color: #88ff88;
+  color: var(--game-text);
 }
 .qlas-recap-p0 {
-  color: #00ff41;
+  color: var(--game-accent);
 }
 .qlas-recap-p1 {
-  color: #00b8ff;
+  color: var(--game-accent-2);
 }
 .qlas-recap-entry + .qlas-recap-entry {
   margin-top: 0.4rem;
   padding-top: 0.4rem;
-  border-top: 1px dashed #0d2e0d;
+  border-top: 1px dashed var(--game-border);
 }
 .qlas-recap-q {
   color: #aaffaa;
@@ -2960,7 +2987,7 @@ body.high-contrast {
   font-size: 0.76rem;
 }
 .qlas-recap-ans .ok {
-  color: #00ff41;
+  color: var(--game-accent);
 }
 .qlas-recap-ans .bad {
   color: #ff5555;
@@ -2968,30 +2995,30 @@ body.high-contrast {
 .qlas-recap-score {
   float: right;
   font-weight: 600;
-  color: #ffe600;
+  color: var(--game-key);
 }
 .qlas-recap-toggle {
   margin-top: 1rem;
   padding: 0.5rem 1rem;
   background: transparent;
-  border: 1px solid #0d2e0d;
-  color: #88ff88;
+  border: 1px solid var(--game-border);
+  color: var(--game-text);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.82rem;
   letter-spacing: 0.1em;
   cursor: pointer;
 }
 .qlas-recap-toggle:hover {
-  border-color: #00ff41;
-  color: #00ff41;
+  border-color: var(--game-accent);
+  color: var(--game-accent);
 }
 .qlas-recap-live-btn {
   display: block;
   width: 100%;
   padding: 0.3rem 0.5rem;
   background: transparent;
-  border: 1px solid #0d2e0d;
-  color: #88ff88;
+  border: 1px solid var(--game-border);
+  color: var(--game-text);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
@@ -2999,8 +3026,8 @@ body.high-contrast {
   text-align: center;
 }
 .qlas-recap-live-btn:hover {
-  border-color: #00ff41;
-  color: #00ff41;
+  border-color: var(--game-accent);
+  color: var(--game-accent);
 }
 .qlas-recap-modal {
   position: fixed;
@@ -3016,7 +3043,7 @@ body.high-contrast {
 }
 .qlas-recap-modal-body {
   background: #0a0a0a;
-  border: 1px solid #00ff41;
+  border: 1px solid var(--game-accent);
   padding: 1rem;
   max-width: 720px;
   width: calc(100% - 2rem);
@@ -3031,22 +3058,22 @@ body.high-contrast {
   justify-content: center;
   align-items: center;
   font-family: 'IBM Plex Mono', monospace;
-  color: #00ff41;
+  color: var(--game-accent);
   letter-spacing: 0.1em;
-  border-bottom: 1px solid #0d2e0d;
+  border-bottom: 1px solid var(--game-border);
   padding-bottom: 0.4rem;
 }
 .qlas-recap-modal-close {
   background: transparent;
-  border: 1px solid #0d2e0d;
-  color: #88ff88;
+  border: 1px solid var(--game-border);
+  color: var(--game-text);
   padding: 0.2rem 0.6rem;
   font-family: inherit;
   cursor: pointer;
 }
 .qlas-recap-modal-close:hover {
-  border-color: #00ff41;
-  color: #00ff41;
+  border-color: var(--game-accent);
+  color: var(--game-accent);
 }
 
 /* ===== TERMINAL QUERY META (#9) ===== */
@@ -3055,7 +3082,7 @@ body.high-contrast {
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  border-bottom: 1px dashed rgba(0, 255, 65, 0.25);
+  border-bottom: 1px dashed rgba(var(--game-accent-rgb), 0.25);
   padding-bottom: 6px;
   margin-bottom: 10px;
   font-size: 0.72rem;
@@ -3067,7 +3094,7 @@ body.high-contrast {
   font-weight: 600;
 }
 .qlas-q-cat {
-  color: #ffe600;
+  color: var(--game-key);
   opacity: 0.72;
   font-weight: 500;
 }
@@ -3094,9 +3121,9 @@ body.high-contrast {
   animation: qlas-flash-in 220ms ease-out;
 }
 .qlas-flash.hit {
-  color: #00ff41;
-  border-left-color: #00ff41;
-  text-shadow: 0 0 8px rgba(0, 255, 65, 0.55);
+  color: var(--game-accent);
+  border-left-color: var(--game-accent);
+  text-shadow: 0 0 8px rgba(var(--game-accent-rgb), 0.55);
 }
 .qlas-flash.miss {
   color: #ff5577;
@@ -3133,8 +3160,8 @@ body.high-contrast {
   letter-spacing: 0.1em;
   padding: 5px 9px;
   background: rgba(0, 0, 0, 0.55);
-  border-left: 2px solid #ffe600;
-  color: #ffe600;
+  border-left: 2px solid var(--game-key);
+  color: var(--game-key);
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;

@@ -523,7 +523,9 @@ export function initQlashique(socket) {
 
     const isMyTurn = playerIdx === qlasMyIdx;
     const turnPlayerName = qlasPlayers[playerIdx].name || 'Player ' + (playerIdx + 1);
-    const activeColor = playerIdx === 0 ? '#00ff41' : '#00b8ff';
+    // Active player color follows the global game theme via CSS vars.
+    const activeColor =
+      playerIdx === 0 ? 'var(--game-accent)' : 'var(--game-accent-2)';
     qEl('qlas-turn-bar').style.setProperty('--active-pc', activeColor);
     qEl('qlas-turn-name').textContent = turnPlayerName;
     qEl('qlas-turn-timer').className = 'qlas-timer-ring';

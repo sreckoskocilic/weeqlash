@@ -1,8 +1,9 @@
-// SkipNoT theme switcher — toggles a data-skipnot-theme attribute on
-// #screen-skipnot, persists choice to localStorage. Available themes are
-// defined in styles.css under #screen-skipnot[data-skipnot-theme="..."].
+// Game theme switcher — toggles a data-game-theme attribute on <body>,
+// persists choice to localStorage. Affects all in-game screens (SkipNoT,
+// Qlashique, Brawl) since theme tokens live on <body>. Available themes:
+// amber (default), green, cyan, pink — defined in styles.css.
 
-const STORAGE_KEY = 'skipnot.theme';
+const STORAGE_KEY = 'weeqlash.theme';
 const KNOWN = new Set(['amber', 'green', 'cyan', 'pink']);
 
 function _getStored() {
@@ -20,27 +21,34 @@ function _setStored(theme) {
   } catch (_) {}
 }
 
+function _applyTheme(theme) {
+  if (!KNOWN.has(theme)) theme = 'amber';
+  if (theme === 'amber') {
+    document.body.removeAttribute('data-game-theme');
+  } else {
+    document.body.setAttribute('data-game-theme', theme);
+  }
+  // Sync any visible picker UI (each game screen may have its own picker
+  // pointing at the same shared state).
+  document.querySelectorAll('.game-theme-picker .skp').forEach((b) => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+}
+
 export function initSkipnotTheme() {
-  const screen = document.getElementById('screen-skipnot');
-  const picker = document.querySelector('.skipnot-theme-picker');
-  if (!screen || !picker) return;
+  // Apply persisted theme on init (called once globally).
+  _applyTheme(_getStored());
 
-  const apply = (theme) => {
-    if (!KNOWN.has(theme)) theme = 'amber';
-    screen.setAttribute('data-skipnot-theme', theme);
-    picker.querySelectorAll('.skp').forEach((b) => {
-      b.classList.toggle('active', b.dataset.theme === theme);
+  // Wire all pickers (one per game screen at most). Event delegation per
+  // picker so dynamically added pickers also work.
+  document.querySelectorAll('.game-theme-picker').forEach((picker) => {
+    picker.addEventListener('click', (e) => {
+      const btn = e.target.closest('.skp');
+      if (!btn) return;
+      const theme = btn.dataset.theme;
+      if (!KNOWN.has(theme)) return;
+      _applyTheme(theme);
+      _setStored(theme);
     });
-  };
-
-  apply(_getStored());
-
-  picker.addEventListener('click', (e) => {
-    const btn = e.target.closest('.skp');
-    if (!btn) return;
-    const theme = btn.dataset.theme;
-    if (!KNOWN.has(theme)) return;
-    apply(theme);
-    _setStored(theme);
   });
 }
