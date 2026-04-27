@@ -228,6 +228,33 @@ h1 {
 }
 .connect-card {
   width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Home-page scattered shape background (populated by home-bg module).
+   z-index:-1 places it behind static body content (h1, announcements, screen-connect).
+   Overlay screens (#screen-skipnot, etc.) are position:fixed inset:0 and naturally
+   cover this since they have higher z-index. */
+#home-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+#home-bg .home-bg-shape {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+#home-bg .home-bg-shape svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  #home-bg { display: none; }
 }
 .col-triviandom {
   --triv-accent: #125f9d;
@@ -2338,13 +2365,15 @@ body.high-contrast {
   background: rgba(0, 255, 65, 0.2);
   border-color: #00ff41;
 }
-/* SkipNoT start button — amber variant of .btn-qlashique */
-#btn-skipnot-create.btn-qlashique {
+/* SkipNoT amber variant of .btn-qlashique — start + leaderboard buttons */
+#btn-skipnot-create.btn-qlashique,
+#btn-show-skipnot-lb.btn-qlashique {
   background: rgba(255, 176, 0, 0.1);
   border-color: rgba(255, 176, 0, 0.45);
   color: #ffb000;
 }
-#btn-skipnot-create.btn-qlashique:hover {
+#btn-skipnot-create.btn-qlashique:hover,
+#btn-show-skipnot-lb.btn-qlashique:hover {
   background: rgba(255, 176, 0, 0.2);
   border-color: #ffb000;
 }

@@ -10,7 +10,7 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen is split: **Brawl** setup on the left, **Triviandom / Qlashique** on the right.
+- Open the site. The landing screen is split: **Brawl** setup on the left, **Qlashique / SkipNoT** on the right.
 - **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
 - To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
 
@@ -82,17 +82,33 @@ Clear **10+ correct answers in a single turn with zero misses** (perfect streak 
 
 ---
 
-## 3. Triviandom — solo arena
+## 3. SkipNoT — solo 20-question gauntlet
 
-_No opponents? No problem. Just you, your clicking finger, and the void._
+_No opponents. No timer between questions. No mercy._
 
-Triviandom is the single-player arena for those who have no one to blame but themselves. Answer as many questions as you can, as fast as you can. Your score and your time both go on the board — under **DEM QWIZZACKS**, where the real ones live.
+Twenty questions, twelve seconds each. Click an answer, click skip, or let the timer run out — the run keeps going. Your final score is what survives.
 
-Hunt for that second digit. You know the one.
+### Scoring
 
-- **Start Triviandom** — the full question pool.
+| Outcome | Delta |
+| --- | --- |
+| Correct answer | **+13** |
+| Wrong answer | **−7** |
+| Skip | **0** |
+| Timeout | **0** |
 
-The leaderboard is visible from the landing screen via `Show Triviandom Leaderboard`.
+A perfect run is **+260**. A worst-case all-wrong run is **−140**. Skipping is free — use it when you don't know.
+
+### What you'll see
+
+- **Progress dots** at the top — 20 dots, one per question, color-coded by result (filled amber = correct, red = wrong, dimmed = skip / timeout, pulsing = current).
+- **Streak** counter — pops up at 3+ consecutive correct answers, breaks (with a shake) on wrong / skip / timeout.
+- **Timer ring** — amber → yellow at 4s → red-pulsing at 2s.
+- **Game-over heatmap** — grid showing every question's result side by side, plus best streak of the run.
+
+### Leaderboard
+
+Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Show SkipNoT Leaderboard`. Logged-in accounts get their name on the board; anonymous runs work but don't qualify.
 
 ---
 
