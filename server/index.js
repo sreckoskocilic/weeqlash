@@ -162,28 +162,6 @@ app.use((req, res, next) => {
 // Gzip/br responses (index.html, styles.css, and any /api JSON)
 app.use(compression());
 
-// Single source of truth for CATEGORIES: serve the server's engine.ts copy as
-// an ES module to the client. Must come BEFORE express.static so we override
-// any literal file at this path.
-import { CATEGORIES as _CATS_FOR_CLIENT } from './game/engine.ts';
-const _categoriesModuleSrc = `// Auto-generated from server/game/engine.ts at server startup.
-// Single source of truth for question categories.
-export const CATEGORIES = ${JSON.stringify(_CATS_FOR_CLIENT, null, 2)};
-export const CATS = Object.keys(CATEGORIES);
-export const CAT_NAMES = Object.fromEntries(
-  Object.entries(CATEGORIES).map(([id, c]) => [id, c.label]),
-);
-export const CAT_COLORS = Object.fromEntries(
-  Object.entries(CATEGORIES).map(([id, c]) => [id, c.color]),
-);
-export const DEFAULT_CATS = Object.entries(CATEGORIES)
-  .filter(([, c]) => !c.defaultOff)
-  .map(([id]) => id);
-`;
-app.get('/js/categories.js', (_req, res) => {
-  res.type('application/javascript').send(_categoriesModuleSrc);
-});
-
 // Serve client files for browser access
 app.use(express.static(path.join(__dirname, '../client')));
 const CORS_ORIGIN = process.env.CORS_ORIGIN
