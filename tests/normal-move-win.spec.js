@@ -212,7 +212,9 @@ test('normal move: play until one player wins', async ({ browser }) => {
   const p1Stats = await getUserQuestionStats(p1);
   const p2Stats = await getUserQuestionStats(p2);
 
+  await p1.locator('[data-view="settings"]').click();
   await p1.locator('[data-val="4"]').click();
+  await p1.locator('[data-view="play"]').click();
   await p1.locator('#btn-create').click();
   await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
   const code = await p1.locator('#lobby-code').innerText();

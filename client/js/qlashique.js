@@ -23,6 +23,11 @@ let qlasToken = null;
 let qlasLiveHistory = [];
 let qlasMatchStart = null;
 let qlasStreak = [0, 0];
+// Per-turn UX bookkeeping
+let qlasActivePlayerIdx = null; // who's currently taking the turn
+let qlasLastScoreByPlayer = [0, 0]; // remembered after each answer; classified at turn_end
+let qlasTurnAnswerCount = [0, 0]; // # answers given this turn (for recap line)
+let qlasTurnCorrectCount = [0, 0];
 
 const QLAS_TIMER_RING_CIRC = 175.93; // 2 * PI * r where r=28
 
@@ -57,8 +62,76 @@ export function qlasSetScore(score) {
 
 export function qlasFlash(playerIdx, type) {
   const bar = qEl('qlas-p' + playerIdx + 'bar');
-  bar.classList.add(type === 'dmg' ? 'qlas-take-dmg' : 'qlas-take-heal');
+  if (type === 'dmg') bar.classList.add('qlas-take-dmg');
+  else bar.classList.add('qlas-take-heal');
   setTimeout(() => bar.classList.remove('qlas-take-dmg', 'qlas-take-heal'), 700);
+}
+
+// Spawn a floating "−4" / "+2" number above a player's pbar; auto-removes after anim.
+function qlasFloatNum(playerIdx, delta, type) {
+  const host = qEl('qlas-p' + playerIdx + 'float');
+  if (!host || !delta) return;
+  const span = document.createElement('span');
+  span.className = 'qlas-floating-num';
+  if (type === 'dmg') span.classList.add('dmg');
+  else if (type === 'heal') span.classList.add('heal');
+  const sign = delta > 0 ? '+' : '';
+  span.textContent = sign + delta;
+  host.appendChild(span);
+  setTimeout(() => span.remove(), 1300);
+}
+
+// Spawn a small +1 / −1 next to the running score; auto-removes after anim.
+function qlasScoreMiniFlash(delta) {
+  if (!delta) return;
+  const host = qEl('qlas-turn-score');
+  if (!host) return;
+  const span = document.createElement('span');
+  span.className = 'qlas-score-mini';
+  if (delta > 0) span.classList.add('up');
+  else span.classList.add('down');
+  span.textContent = (delta > 0 ? '+' : '') + delta;
+  host.appendChild(span);
+  setTimeout(() => span.remove(), 1000);
+}
+
+// Push one outcome dot for the just-ended turn.
+function qlasPushHistoryDot(playerIdx, score) {
+  const host = qEl('qlas-history-dots');
+  if (!host) return;
+  const dot = document.createElement('span');
+  dot.className = 'hd';
+  if (score > 0) dot.classList.add('win');
+  else if (score < 0) dot.classList.add('loss');
+  else dot.classList.add('zero');
+  dot.title =
+    'T' +
+    (host.childElementCount + 1) +
+    ' · ' +
+    (qlasPlayers[playerIdx]?.name || 'P' + (playerIdx + 1)) +
+    ' · ' +
+    (score > 0 ? '+' : '') +
+    score;
+  host.appendChild(dot);
+}
+
+function qlasResetHistoryDots() {
+  const host = qEl('qlas-history-dots');
+  if (host) host.innerHTML = '';
+}
+
+// Show / update / hide the streak badge for a player.
+function qlasUpdateStreakBadge(playerIdx) {
+  const el = qEl('qlas-p' + playerIdx + 'streak');
+  if (!el) return;
+  const num = el.querySelector('.num');
+  const n = qlasStreak[playerIdx] || 0;
+  if (n >= 2) {
+    if (num) num.textContent = String(n);
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
 }
 
 export function qlasRenderQuestion(q, idx) {
@@ -120,7 +193,10 @@ export function qlasStopTimer() {
 export function qlasRenderPlayerInfo() {
   [0, 1].forEach((i) => {
     const p = qlasPlayers[i];
-    qEl('qlas-p' + i + 'name').textContent = p.name || 'Player ' + (i + 1);
+    const textEl = qEl('qlas-p' + i + 'name-text');
+    if (textEl) {
+      textEl.textContent = p.name || 'Player ' + (i + 1);
+    }
   });
 }
 
@@ -414,6 +490,9 @@ export function initQlashique(socket) {
   socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds }) => {
     qlasStopTimer();
     qlasScore = 0;
+    qlasActivePlayerIdx = playerIdx;
+    qlasTurnAnswerCount = [0, 0];
+    qlasTurnCorrectCount = [0, 0];
     qlasGuessingActive = false;
     qEl('qlas-qpanel').style.display = 'none';
     qEl('qlas-action-row').style.display = 'none';
@@ -434,6 +513,13 @@ export function initQlashique(socket) {
 
     qEl('qlas-p0bar').classList.toggle('active-turn', playerIdx === 0);
     qEl('qlas-p1bar').classList.toggle('active-turn', playerIdx === 1);
+
+    // New turn → clear thinking + streak indicators; will re-show on first question.
+    [0, 1].forEach((i) => {
+      qEl('qlas-p' + i + 'thinking')?.classList.remove('active');
+      qlasStreak[i] = 0;
+      qlasUpdateStreakBadge(i);
+    });
 
     const isMyTurn = playerIdx === qlasMyIdx;
     const turnPlayerName = qlasPlayers[playerIdx].name || 'Player ' + (playerIdx + 1);
@@ -458,6 +544,14 @@ export function initQlashique(socket) {
 
   socket.on('qlashique:question', ({ question, questionIdx, activePlayerIdx }) => {
     const isMyTurn = activePlayerIdx === qlasMyIdx;
+    qlasActivePlayerIdx = activePlayerIdx;
+    // Show "guessing..." on the opponent's pbar while they answer.
+    [0, 1].forEach((i) => {
+      const t = qEl('qlas-p' + i + 'thinking');
+      if (!t) return;
+      if (i === activePlayerIdx && i !== qlasMyIdx) t.classList.add('active');
+      else t.classList.remove('active');
+    });
     if (questionIdx === 0) {
       qlasGuessingActive = isMyTurn;
       qEl('qlas-decision-panel').style.display = 'none';
@@ -482,18 +576,23 @@ export function initQlashique(socket) {
   socket.on(
     'qlashique:answer_result',
     ({ correct, newScore, playerIdx, answerIdx, category, q, opts, turn }) => {
-      const prevScore = playerIdx === qlasMyIdx ? qlasScore : 0;
+      const prevScore = playerIdx === qlasMyIdx ? qlasScore : qlasLastScoreByPlayer[playerIdx] || 0;
+      const delta = newScore - prevScore;
       if (playerIdx === qlasMyIdx) {
         const btns = document.querySelectorAll('.qlas-opt');
         if (qlasLastAnswerIdx >= 0 && btns[qlasLastAnswerIdx]) {
           btns[qlasLastAnswerIdx].classList.add(correct ? 'correct' : 'wrong');
         }
         qlasSetScore(newScore);
-        qlasShowFlash(correct, newScore - prevScore);
+        qlasShowFlash(correct, delta);
+        qlasScoreMiniFlash(delta);
       } else {
         qlasSetScoreOther(playerIdx, newScore);
       }
-      // Streak tracking → combo log
+      qlasLastScoreByPlayer[playerIdx] = newScore;
+      qlasTurnAnswerCount[playerIdx] = (qlasTurnAnswerCount[playerIdx] || 0) + 1;
+      if (correct) qlasTurnCorrectCount[playerIdx] = (qlasTurnCorrectCount[playerIdx] || 0) + 1;
+      // Streak tracking → combo log + visible badge on player's pbar
       if (correct) {
         qlasStreak[playerIdx] = (qlasStreak[playerIdx] || 0) + 1;
         if (qlasStreak[playerIdx] >= 2) {
@@ -503,6 +602,7 @@ export function initQlashique(socket) {
       } else {
         qlasStreak[playerIdx] = 0;
       }
+      qlasUpdateStreakBadge(playerIdx);
       if (typeof q === 'string') {
         qlasLiveHistory.push({
           turn,
@@ -523,6 +623,24 @@ export function initQlashique(socket) {
     qlasGuessingActive = false;
     qEl('qlas-action-row').style.display = 'none';
     qEl('qlas-qpanel').style.opacity = '0.4';
+    // Hide thinking indicators (turn over, no one is guessing).
+    [0, 1].forEach((i) => qEl('qlas-p' + i + 'thinking')?.classList.remove('active'));
+
+    // Push a history dot + a brief recap line into the log.
+    const idx = qlasActivePlayerIdx;
+    if (idx === 0 || idx === 1) {
+      const finalScore = qlasLastScoreByPlayer[idx] || 0;
+      qlasPushHistoryDot(idx, finalScore);
+      const name = qlasPlayers[idx]?.name || 'P' + (idx + 1);
+      const correct = qlasTurnCorrectCount[idx] || 0;
+      const total = qlasTurnAnswerCount[idx] || 0;
+      const sign = finalScore > 0 ? '+' : '';
+      qlasLogEntry(
+        '> ' + name.toUpperCase() + ' · ' + correct + '/' + total + ' · ' + sign + finalScore,
+      );
+      // Reset that player's per-turn counters so next turn starts clean.
+      qlasLastScoreByPlayer[idx] = 0;
+    }
   });
 
   socket.on('qlashique:attack_stopped', ({ score }) => {
@@ -556,12 +674,24 @@ export function initQlashique(socket) {
   socket.on('qlashique:hp_update', ({ p0hp, p1hp }) => {
     const prev0 = qlasHp[0];
     const prev1 = qlasHp[1];
+    const delta0 = p0hp - prev0;
+    const delta1 = p1hp - prev1;
     qlasSetHP(0, p0hp);
     qlasSetHP(1, p1hp);
-    if (p0hp < prev0) qlasFlash(0, 'dmg');
-    if (p1hp < prev1) qlasFlash(1, 'dmg');
-    if (p0hp > prev0) qlasFlash(0, 'heal');
-    if (p1hp > prev1) qlasFlash(1, 'heal');
+    if (delta0 < 0) {
+      qlasFlash(0, 'dmg');
+      qlasFloatNum(0, delta0, 'dmg');
+    } else if (delta0 > 0) {
+      qlasFlash(0, 'heal');
+      qlasFloatNum(0, delta0, 'heal');
+    }
+    if (delta1 < 0) {
+      qlasFlash(1, 'dmg');
+      qlasFloatNum(1, delta1, 'dmg');
+    } else if (delta1 > 0) {
+      qlasFlash(1, 'heal');
+      qlasFloatNum(1, delta1, 'heal');
+    }
   });
 
   socket.on('qlashique:game_over', ({ winnerIdx, reason, history }) => {
@@ -616,6 +746,16 @@ export function initQlashique(socket) {
     qlasToken = null;
     qlasGuessingActive = false;
     qlasLiveHistory = [];
+    qlasActivePlayerIdx = null;
+    qlasLastScoreByPlayer = [0, 0];
+    qlasTurnAnswerCount = [0, 0];
+    qlasTurnCorrectCount = [0, 0];
+    qlasStreak = [0, 0];
+    qlasResetHistoryDots();
+    [0, 1].forEach((i) => {
+      qEl('qlas-p' + i + 'thinking')?.classList.remove('active');
+      qEl('qlas-p' + i + 'streak')?.classList.remove('show');
+    });
   }
 
   el('btn-qlas-create').addEventListener('click', () => {

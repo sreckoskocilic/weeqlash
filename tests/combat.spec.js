@@ -29,8 +29,10 @@ test('combat: Q1/3 → Q2/3 → Q3/3 sequential flow, outcome matches answers', 
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_attacker');
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_defender');
 
-  // P1 creates 5×5 room (more space for combat)
+  // P1 creates 5×5 room (more space for combat); board size lives under Settings tab now
+  await p1.locator('[data-view="settings"]').click();
   await p1.locator('[data-val="5"]').click();
+  await p1.locator('[data-view="play"]').click();
   await p1.locator('#btn-create').click();
   await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
   const code = await p1.locator('#lobby-code').innerText();

@@ -30,8 +30,10 @@ test('normal move: select peg → click empty tile → peg moves', async ({ brow
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1');
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2');
 
-  // P1 creates 4×4 room
+  // P1 creates 4×4 room (board size lives under Settings tab now)
+  await p1.locator('[data-view="settings"]').click();
   await p1.locator('[data-val="4"]').click();
+  await p1.locator('[data-view="play"]').click();
   await p1.locator('#btn-create').click();
   await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
   const code = await p1.locator('#lobby-code').innerText();

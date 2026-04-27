@@ -69,6 +69,7 @@ h1 {
 #main-title.brand:empty {
   display: none;
 }
+
 /* Emblem as backdrop inside #announcements */
 #announcements {
   position: relative;
@@ -2008,6 +2009,11 @@ body.high-contrast {
   font-weight: 600;
   font-size: 0.9rem;
   font-family: 'IBM Plex Mono', monospace;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
 }
 .qlas-hp-bar-bg {
   height: 6px;
@@ -2107,7 +2113,7 @@ body.high-contrast {
 /* Combat two-column layout */
 .qlas-combat-layout {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 175px 1fr;
   gap: 12px;
   align-items: start;
 }
@@ -2349,6 +2355,119 @@ body.high-contrast {
 .qlas-take-heal {
   animation: qlasHeal 0.6s ease-out;
 }
+
+/* Floating damage / heal numbers above pbar (added by JS, removed after anim) */
+.qlas-floating-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.qlas-floating-num {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  pointer-events: none;
+  animation: qlasFloat 1.2s ease-out forwards;
+  text-shadow: 0 0 12px currentColor;
+}
+.qlas-floating-num.dmg { color: #ff5555; }
+.qlas-floating-num.heal { color: #4ade80; }
+@keyframes qlasFloat {
+  0% { opacity: 0; transform: translateY(-50%); }
+  20% { opacity: 1; transform: translateY(calc(-50% - 10px)); }
+  100% { opacity: 0; transform: translateY(calc(-50% - 36px)); }
+}
+
+/* Score delta micro-flash next to running score */
+.qlas-turn-score { position: relative; }
+.qlas-score-mini {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+  animation: qlasFloat 0.9s ease-out forwards;
+  white-space: nowrap;
+}
+.qlas-score-mini.up { color: #4ade80; }
+.qlas-score-mini.down { color: #ff5555; }
+
+/* Turn history dots — single row, color by outcome */
+.qlas-history-dots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 6px 2px 0;
+  min-height: 14px;
+}
+.qlas-history-dots .hd {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1a2a1a;
+  border: 1px solid #244524;
+  flex-shrink: 0;
+}
+.qlas-history-dots .hd.win { background: #4ade80; border-color: #4ade80; }
+.qlas-history-dots .hd.loss { background: #ff5555; border-color: #ff5555; }
+.qlas-history-dots .hd.zero { background: #5a5a5a; border-color: #5a5a5a; }
+
+/* Opponent thinking indicator next to active player's name */
+.qlas-thinking {
+  display: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.12em;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+.qlas-thinking.active {
+  display: inline;
+}
+.qlas-thinking .dots {
+  display: inline-block;
+  animation: qlasThinkDots 1.2s steps(4) infinite;
+  width: 1ch;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+@keyframes qlasThinkDots {
+  0% { width: 0; }
+  100% { width: 1ch; }
+}
+
+/* Streak fire badge inside player name row */
+.qlas-streak-badge {
+  display: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-left: 8px;
+  letter-spacing: 0.04em;
+  color: #ff7a00;
+}
+.qlas-streak-badge.show { display: inline; }
+.qlas-streak-badge .flame {
+  font-size: 0.95rem;
+  margin-right: 2px;
+  filter: drop-shadow(0 0 4px rgba(255, 122, 0, 0.6));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qlas-floating-num,
+  .qlas-score-mini { animation: none; opacity: 0; }
+  .qlas-thinking .dots { animation: none; width: 1ch; }
+}
 /* Qlashique buttons in right column */
 .btn-qlashique {
   width: 100%;
@@ -2365,16 +2484,119 @@ body.high-contrast {
   background: rgba(0, 255, 65, 0.2);
   border-color: #00ff41;
 }
-/* SkipNoT amber variant of .btn-qlashique — start + leaderboard buttons */
-#btn-skipnot-create.btn-qlashique,
+/* SkipNoT amber variant — leaderboard toggle on landing.
+   (Start button is now a .mode-card with its own styling below.) */
 #btn-show-skipnot-lb.btn-qlashique {
   background: rgba(255, 176, 0, 0.1);
   border-color: rgba(255, 176, 0, 0.45);
   color: #ffb000;
 }
-#btn-skipnot-create.btn-qlashique:hover,
 #btn-show-skipnot-lb.btn-qlashique:hover {
   background: rgba(255, 176, 0, 0.2);
+  border-color: #ffb000;
+}
+
+/* Join buttons — color-match the mode cards above
+   (Brawl=green, Qlashique=yellow) */
+#btn-join {
+  background: rgba(0, 255, 65, 0.12);
+  border: 1px solid rgba(0, 255, 65, 0.5);
+  color: #00ff41;
+}
+#btn-join:hover {
+  background: rgba(0, 255, 65, 0.22);
+  border-color: #00ff41;
+}
+#btn-qlas-start.btn-qlashique {
+  background: rgba(255, 230, 0, 0.10);
+  border-color: rgba(255, 230, 0, 0.5);
+  color: #ffe600;
+}
+#btn-qlas-start.btn-qlashique:hover {
+  background: rgba(255, 230, 0, 0.22);
+  border-color: #ffe600;
+}
+
+/* Mode cards — 3 visual cards (Brawl / Qlashique / SkipNoT) on the home page */
+.mode-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 18px;
+  min-height: 76px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  text-align: left;
+  transition: transform 0.12s ease, border-color 0.12s, background 0.12s;
+  width: 100%;
+  margin: 0;
+}
+.mode-card:hover {
+  transform: translateY(-1px);
+}
+.mode-card .mode-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mode-card .mode-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.mode-card .mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mode-card .mode-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+.mode-card .mode-desc {
+  font-size: 0.72rem;
+  opacity: 0.78;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.mode-card--brawl {
+  border-color: rgba(0, 255, 65, 0.45);
+  color: #00ff41;
+  background: rgba(0, 255, 65, 0.06);
+}
+.mode-card--brawl:hover {
+  background: rgba(0, 255, 65, 0.14);
+  border-color: #00ff41;
+}
+.mode-card--qlas {
+  border-color: rgba(255, 230, 0, 0.45);
+  color: #ffe600;
+  background: rgba(255, 230, 0, 0.04);
+}
+.mode-card--qlas:hover {
+  background: rgba(255, 230, 0, 0.12);
+  border-color: #ffe600;
+}
+.mode-card--skipnot {
+  border-color: rgba(255, 176, 0, 0.45);
+  color: #ffb000;
+  background: rgba(255, 176, 0, 0.06);
+}
+.mode-card--skipnot:hover {
+  background: rgba(255, 176, 0, 0.14);
   border-color: #ffb000;
 }
 .btn-show-triv-lb {
