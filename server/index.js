@@ -93,28 +93,42 @@ const httpServer = createServer(app);
 // SECURITY MIDDLEWARE
 // =============================================================================
 
-// CSP Header - Content Security Policy
-const CSP_HEADER =
+// CSP Headers - strict for game client, relaxed for AdminJS
+const CSP_BASE =
   "default-src 'self'; " +
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
   "font-src 'self' https://fonts.gstatic.com; " +
   "img-src 'self' data:; " +
   "connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; " +
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; " +
   "frame-ancestors 'none'; " +
   "object-src 'none'; " +
   "base-uri 'self'; " +
   "form-action 'self';";
 
+const CSP_APP = CSP_BASE.replace(
+  "default-src 'self'",
+  "default-src 'self'; script-src 'self' http://localhost:3000",
+);
+const CSP_ADMIN = CSP_BASE.replace(
+  "default-src 'self'",
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000",
+);
+
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+};
+
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', CSP_HEADER);
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  // Additional security headers
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  const csp = req.path.startsWith('/admin') ? CSP_ADMIN : CSP_APP;
+  res.setHeader('Content-Security-Policy', csp);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    res.setHeader(k, v);
+  }
   next();
 });
 

@@ -9,7 +9,7 @@ import {
   getUserById,
   getUserStats,
 } from './auth.ts';
-import type { Transporter } from 'nodemailer';
+import { sendEmail } from './email.ts';
 import type { Request, Response, Express } from 'express';
 import type { Server as IoServer } from 'socket.io';
 import 'express-session';
@@ -73,53 +73,6 @@ function applyAuthRateLimit(req: Request, res: Response): boolean {
     return false;
   }
   return true;
-}
-
-function getSmtpConfig() {
-  return {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-    from: process.env.SMTP_FROM || 'noreply@weeqlash.icu',
-  } as const;
-}
-
-let transporter: Transporter | null = null;
-
-async function getTransporter(): Promise<Transporter | null> {
-  if (transporter) {
-    return transporter;
-  }
-  const cfg = getSmtpConfig();
-  console.log('[smtp] initializing transporter for host:', cfg.host);
-  if (!cfg.host) {
-    console.warn('[auth] SMTP not configured — emails will be logged to console');
-    return null;
-  }
-  // At this point, we know cfg.host is not null/undefined, but TypeScript needs help
-  const host: string = cfg.host as string;
-  const port: number = cfg.port as number;
-  const user: string = cfg.user as string;
-  const pass: string = cfg.pass as string;
-  const nodemailer = await import('nodemailer');
-  transporter = nodemailer.createTransport({
-    host: host,
-    port: port,
-    secure: port === 465,
-    auth: { user: user, pass: pass },
-  });
-  return transporter;
-}
-
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const t = await getTransporter();
-  const cfg = getSmtpConfig();
-  if (!t) {
-    console.log(`[auth:email] To: ${to} | Subject: ${subject} | ${html}`);
-    return;
-  }
-  await t.sendMail({ from: cfg.from, to, subject, html });
 }
 
 // Disconnect any live sockets still attached to a session we just killed.
@@ -313,7 +266,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
   });
 
   // Resend confirmation
-  app.post('/auth/resend-confirmation', (req: Request, res: Response) => {
+  app.post('/auth/resend-confirmation', async (req: Request, res: Response) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not logged in' });
     }
@@ -327,17 +280,21 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.status(400).json({ error: 'User not found' });
     }
     const confirmUrl = `${CLIENT_URL}?confirm=${result.confirmToken}`;
-    sendEmail(
-      user.email,
-      'Confirm your Weeqlash account',
-      `<p>Click to confirm: <a href="${confirmUrl}">${confirmUrl}</a></p>`,
-    );
+    try {
+      await sendEmail(
+        user.email,
+        'Confirm your Weeqlash account',
+        `<p>Click to confirm: <a href="${confirmUrl}">${confirmUrl}</a></p>`,
+      );
+    } catch {
+      return res.status(500).json({ error: 'Failed to send email' });
+    }
 
     res.json({ ok: true, message: 'Confirmation email sent' });
   });
 
   // Request password reset
-  app.post('/auth/forgot-password', (req: Request, res: Response) => {
+  app.post('/auth/forgot-password', async (req: Request, res: Response) => {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -346,11 +303,15 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     const result = createResetToken(email);
     if (result.resetToken) {
       const resetUrl = `${CLIENT_URL}?reset=${result.resetToken}`;
-      sendEmail(
-        email,
-        'Reset your WEEQLASH password',
-        `<p>Click to reset your password: <a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
-      );
+      try {
+        await sendEmail(
+          email,
+          'Reset your WEEQLASH password',
+          `<p>Click to reset your password: <a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
+        );
+      } catch {
+        console.error('[auth] Failed to send password reset email');
+      }
     }
 
     // Always return success to avoid email enumeration

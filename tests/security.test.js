@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../server/index.js';
+import * as emailModule from '../server/game/email.ts';
 
 /**
  * Security Tests Suite
@@ -212,5 +213,37 @@ describe('Security Tests', () => {
           expect(response.headers['set-cookie']).toBeDefined();
         });
     });
+  });
+});
+
+describe('Resend confirmation email error handling', () => {
+  const unique = Math.random().toString(36).slice(2, 8);
+  const email = `resend_${unique}@test.invalid`;
+  let cookies;
+
+  it('registers and logs in a test user', async () => {
+    await request(app)
+      .post('/auth/register')
+      .send({ username: `resend_${unique}`, email, password: 'testpass123' });
+
+    const login = await request(app)
+      .post('/auth/login')
+      .send({ username: `resend_${unique}`, password: 'testpass123' });
+    expect(login.status).toBe(200);
+    cookies = login.headers['set-cookie'];
+  });
+
+  it('returns 500 when sendEmail throws', async () => {
+    const spy = vi.spyOn(emailModule, 'sendEmail').mockRejectedValueOnce(new Error('SMTP down'));
+    const res = await request(app).post('/auth/resend-confirmation').set('Cookie', cookies);
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('Failed to send email');
+    spy.mockRestore();
+  });
+
+  it('returns 200 when sendEmail succeeds', async () => {
+    const res = await request(app).post('/auth/resend-confirmation').set('Cookie', cookies);
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
   });
 });

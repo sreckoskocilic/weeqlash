@@ -195,7 +195,9 @@ export async function authenticateUser(
     throw new Error('Database not initialized');
   }
   const user = db
-    .prepare('SELECT * FROM users WHERE username = ? OR email = ?')
+    .prepare(
+      'SELECT id, username, email, password_hash, email_confirmed, is_blocked, is_admin FROM users WHERE username = ? OR email = ?',
+    )
     .get(usernameOrEmail, usernameOrEmail) as
     | {
         id: number;
