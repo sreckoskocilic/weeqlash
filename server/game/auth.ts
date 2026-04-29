@@ -130,7 +130,7 @@ function applySchemaMigrations(db: Database.Database) {
 
 // --- User CRUD ---
 
-export function createUser({
+export async function createUser({
   username,
   email,
   password,
@@ -167,7 +167,7 @@ export function createUser({
     return { error: 'Registration failed' };
   }
 
-  const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const confirmToken = crypto.randomBytes(32).toString('hex');
 
   const stmt = db.prepare(`
@@ -183,12 +183,13 @@ export function createUser({
   };
 }
 
-export function authenticateUser(
+export async function authenticateUser(
   usernameOrEmail: string,
   password: string,
-):
+): Promise<
   | { error: string; needsConfirmation?: boolean; userId?: number }
-  | { ok: true; user: { id: number; username: string; email: string; is_admin: number } } {
+  | { ok: true; user: { id: number; username: string; email: string; is_admin: number } }
+> {
   const db: Database.Database | null = getDb();
   if (!db) {
     throw new Error('Database not initialized');
@@ -217,7 +218,7 @@ export function authenticateUser(
     return { error: 'Account is blocked' };
   }
 
-  if (!bcrypt.compareSync(password, user.password_hash)) {
+  if (!(await bcrypt.compare(password, user.password_hash))) {
     return { error: 'Invalid credentials' };
   }
 
@@ -319,7 +320,7 @@ export function createResetToken(email: string) {
   return { ok: true, resetToken };
 }
 
-export function resetPassword(token: string, newPassword: string) {
+export async function resetPassword(token: string, newPassword: string) {
   const db: Database.Database | null = getDb();
   if (!db) {
     throw new Error('Database not initialized');
@@ -332,7 +333,7 @@ export function resetPassword(token: string, newPassword: string) {
     return { error: 'Invalid or expired reset token' };
   }
 
-  const passwordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
   db.prepare(
     'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
   ).run(passwordHash, user.id);

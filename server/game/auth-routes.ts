@@ -163,7 +163,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.status(400).json({ error: 'Invalid email address' });
     }
 
-    const result = createUser({ username, email, password });
+    const result = await createUser({ username, email, password });
     if (result.error) {
       return res.status(409).json({ error: result.error });
     }
@@ -190,7 +190,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const result = authenticateUser(username, password);
+    const result = await authenticateUser(username, password);
     if ('error' in result) {
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
@@ -363,7 +363,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
   });
 
   // Reset password
-  app.post('/auth/reset-password', (req: Request, res: Response) => {
+  app.post('/auth/reset-password', async (req: Request, res: Response) => {
     if (!applyAuthRateLimit(req, res)) {
       return;
     }
@@ -376,7 +376,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
-    const result = resetPassword(token, password);
+    const result = await resetPassword(token, password);
     if (result.error) {
       return res.status(400).json(result);
     }

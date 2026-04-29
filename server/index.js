@@ -222,6 +222,11 @@ const cleanupInterval = setInterval(() => {
       }
     }
   }
+  for (const [socketId, run] of skipnotRuns) {
+    if (now - run.startedAt > 10 * 60_000) {
+      skipnotRuns.delete(socketId);
+    }
+  }
 }, 30_000);
 cleanupInterval.unref();
 
@@ -336,7 +341,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Missing fields' });
     }
-    const result = createUser({ username, email, password, autoConfirm: true });
+    const result = await createUser({ username, email, password, autoConfirm: true });
     if (result.error) {
       return res.status(409).json({ error: result.error });
     }
@@ -355,7 +360,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
       { username: 'e2e_qlas_p2', email: 'e2e_qlas_p2@test.invalid' },
     ];
     for (const u of users) {
-      createUser({
+      await createUser({
         username: u.username,
         email: u.email,
         password: 'testpass123',
@@ -722,8 +727,9 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid session token' });
     }
 
-    // Clean up any lingering quiz session on reconnect
+    // Clean up any lingering quiz/skipnot session on reconnect
     quizRuns.delete(socket.id);
+    _disposeSkipnotRun(socket.id);
 
     const oldSocketId = player.id;
     unregisterActiveSocket(oldSocketId);
