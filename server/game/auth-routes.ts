@@ -92,7 +92,7 @@ async function getTransporter(): Promise<Transporter | null> {
     return transporter;
   }
   const cfg = getSmtpConfig();
-  console.log('[smtp] getTransporter config:', cfg);
+  console.log('[smtp] initializing transporter for host:', cfg.host);
   if (!cfg.host) {
     console.warn('[auth] SMTP not configured — emails will be logged to console');
     return null;
@@ -137,9 +137,6 @@ function kickSocketsForSid(io: IoServer, sid: string): void {
 }
 
 export function registerAuthRoutes(app: Express, io: IoServer): void {
-  console.log('[auth-routes] SMTP_HOST at registration:', process.env.SMTP_HOST);
-  console.log('[auth-routes] SMTP_USER at registration:', process.env.SMTP_USER);
-
   // Register
   app.post('/auth/register', async (req: Request, res: Response) => {
     if (!applyAuthRateLimit(req, res)) {

@@ -438,7 +438,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     room.state.board[row][col].pegId = pegId;
     const sockets = io.sockets.adapter.rooms.get(code);
     io.to(code).emit('state:update', {
-      state: structuredClone(room.state),
+      state: publicState(room.state),
       events: [],
       gameOver: false,
     });
@@ -1101,7 +1101,7 @@ io.on('connection', (socket) => {
     }
 
     run.answers++;
-    cb({ ok: true, correct: true, correctIdx: q.a });
+    cb({ ok: true, correct: true });
   });
 
   socket.on('quiz:next', (cb) => {
