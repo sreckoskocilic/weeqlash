@@ -1854,9 +1854,9 @@ function _consumeQuestionOverride(db) {
 // Categories to exclude from qlashique by default
 
 function _pickQlasQuestion(room, db) {
-  if (_testOverride) {
-    const q = db._byId[_testOverride];
-    _testOverride = null; // one-shot
+  const overrideId = _consumeQuestionOverride(db);
+  if (overrideId) {
+    const q = db._byId[overrideId];
     if (q) {
       room.usedQIds.add(q.id);
       return q;

@@ -704,8 +704,9 @@ export function applyTurn(
 
   events.push({ type: 'answer', questionId, correct });
   if (!noAnswer) {
-    // Only update stats if player actually gave an answer (not timeout)
-    handleIncorrectAnswer(state, questionId);
+    if (!correct) {
+      handleIncorrectAnswer(state, questionId);
+    }
     updatePlayerStats(state, state.currentPlayerIdx, questionId, correct, questionsDb);
   }
 
