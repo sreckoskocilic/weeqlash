@@ -41,13 +41,16 @@ describe('createQlasGame', () => {
 // ---------------------------------------------------------------------------
 
 describe('calcTimer', () => {
-  it('returns 5s on turn 1', () => {
+  it('returns 5s for both players in round 1', () => {
     expect(calcTimer(1)).toBe(5);
+    expect(calcTimer(2)).toBe(5);
   });
 
-  it('grows +3s per turn', () => {
-    expect(calcTimer(2)).toBe(8);
-    expect(calcTimer(3)).toBe(11);
+  it('grows +3s per round (pair of turns)', () => {
+    expect(calcTimer(3)).toBe(8);
+    expect(calcTimer(4)).toBe(8);
+    expect(calcTimer(5)).toBe(11);
+    expect(calcTimer(6)).toBe(11);
   });
 
   it('caps at 25s', () => {

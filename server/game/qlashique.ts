@@ -48,7 +48,8 @@ export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
 // ---------------------------------------------------------------------------
 
 export function calcTimer(turnNumber: number): number {
-  return Math.min(5 + (turnNumber - 1) * 3, 25);
+  const round = Math.ceil(turnNumber / 2);
+  return Math.min(5 + (round - 1) * 3, 25);
 }
 
 // ---------------------------------------------------------------------------
