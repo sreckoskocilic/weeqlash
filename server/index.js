@@ -730,9 +730,8 @@ io.on('connection', (socket) => {
 
     const oldSocketId = player.id;
     unregisterActiveSocket(oldSocketId);
-    player.id = socket.id; // re-attach new socket id
-    registerActiveSocket(socket.id);
     reattachSocket(oldSocketId, socket.id, code);
+    registerActiveSocket(socket.id);
     socket.join(code);
     console.log(`[reconnect] ${player.name} re-joined ${code}`);
     // Notify other players that someone reconnected
@@ -1022,9 +1021,7 @@ io.on('connection', (socket) => {
 
     if (result.gameOver) {
       console.log(`[game] ${code} over — winner player ${result.winner}, calling recordGameStats`);
-      const roomForStats = getRoom(code);
-      console.log('[game] roomForStats:', roomForStats ? 'found' : 'NOT FOUND');
-      recordGameStats(roomForStats);
+      recordGameStats(room);
     }
   });
 
@@ -1101,7 +1098,9 @@ io.on('connection', (socket) => {
         timeSec: Math.round(timeSec * 10) / 10,
         qualifies,
       };
-      if (answerIdx !== -1) res.correctIdx = q.a;
+      if (answerIdx !== -1) {
+        res.correctIdx = q.a;
+      }
       return cb(res);
     }
 
@@ -1385,6 +1384,7 @@ io.on('connection', (socket) => {
         },
       ];
       room.players = fakePlayers;
+      room.playersBySocket = new Map(fakePlayers.map((p) => [p.id, p]));
       socketToRoom.set(socket.id, room.code);
       socket.join(room.code);
 
@@ -1503,6 +1503,9 @@ io.on('connection', (socket) => {
     }
     if (room.state.phase !== QLAS_PHASE.GUESSING) {
       return cb({ error: 'Not in guessing phase' });
+    }
+    if (room.qlasTimerExpired) {
+      return cb({ error: 'Turn time expired' });
     }
     if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
       return cb({ error: 'Invalid answer' });
@@ -1735,6 +1738,9 @@ io.on('connection', (socket) => {
               gameOver: true,
               winner: winner.index,
             });
+          }
+          if (room.mode !== 'qlashique') {
+            recordGameStats(room);
           }
           console.log(
             `[game] ${room.code} ended — ${player.name} disconnected, ${winner.name} wins`,

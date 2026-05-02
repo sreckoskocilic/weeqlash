@@ -50,6 +50,9 @@ export function initSocketEvents() {
           return;
         }
         if (res.state) {
+          state.spectateGen++;
+          state.pendingQuestions = [];
+          state.pendingAnswers = [];
           state.gameState = res.state;
           renderAll(res.state);
         }

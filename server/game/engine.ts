@@ -354,6 +354,7 @@ function eliminatePeg(state: GameState, pegId: string): void {
   state.players[peg.playerId].pegIds = state.players[peg.playerId].pegIds.filter(
     (id) => id !== pegId,
   );
+  delete state.pegs[pegId];
 }
 
 // ---------------------------------------------------------------------------
@@ -846,7 +847,7 @@ export function createGame(
       return {
         category: val === 'F' ? 'flag' : activeCats[val],
         pegId: null,
-        cornerOwner: val === 'F' ? cornerMap[`${rowIdx},${colIdx}`] : null,
+        cornerOwner: val === 'F' ? (cornerMap[`${rowIdx},${colIdx}`] ?? null) : null,
       };
     }),
   );

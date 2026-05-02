@@ -190,7 +190,11 @@ router.use(requireAdmin);
 // ========== USERS PAGE ==========
 router.get('/users', (_req, res) => {
   const db = getDb();
-  const users = db.prepare('SELECT * FROM users ORDER BY id DESC').all();
+  const users = db
+    .prepare(
+      'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users ORDER BY id DESC',
+    )
+    .all();
 
   const userRows = users
     .map(
@@ -283,7 +287,11 @@ router.get('/users/:id', (req, res) => {
     return badRequest(res, 'Invalid user id.');
   }
   const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  const user = db
+    .prepare(
+      'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users WHERE id = ?',
+    )
+    .get(userId);
 
   if (!user) {
     return res.send(
