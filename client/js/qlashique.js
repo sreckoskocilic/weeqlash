@@ -5,8 +5,7 @@
 import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
-
-const QLAS_DEFAULT_HP = 30;
+import { QLAS_DEFAULT_HP } from './constants.js';
 
 // State
 let qlasCode = null;

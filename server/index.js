@@ -582,36 +582,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Client can emit this after login to refresh session
-  socket.on('auth:refresh', (cb) => {
-    const sess = socket.request.session;
-    if (DEBUG) {
-      console.log('[auth] refresh session received, full session:', JSON.stringify(sess));
-    }
-    if (sess?.userId) {
-      socket.userId = sess.userId;
-      socket.userName = sess.username;
-      if (DEBUG) {
-        console.log(`[auth] ${socket.id} refreshed to user ${sess.userId}`);
-      }
-      // Update the player's userId in the room if they're in one
-      const code = socketToRoom.get(socket.id);
-      if (code) {
-        const room = rooms.get(code);
-        if (room) {
-          const player = getPlayerBySocket(room, socket.id);
-          if (player) {
-            player.userId = sess.userId;
-            if (DEBUG) {
-              console.log('[auth] Updated player userId in room:', player.userId);
-            }
-          }
-        }
-      }
-    }
-    cb?.({ ok: true, userId: socket.userId });
-  });
-
   // --- Lobby ---
 
   socket.on('room:create', ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
@@ -1816,25 +1786,25 @@ function recordGameStats(room) {
   }
 
   const players = room.state.players;
-  const player1UserId = room.players[0]?.userId;
-  const player2UserId = room.players[1]?.userId;
   const winnerIdx = room.state.winner;
   const durationMs = Date.now() - room.startedAt;
+  const winnerUserId =
+    winnerIdx !== null && winnerIdx < room.players.length
+      ? (room.players[winnerIdx]?.userId ?? null)
+      : null;
 
-  if (player1UserId && player2UserId) {
-    let winnerId = null;
-    if (winnerIdx !== null && winnerIdx < players.length) {
-      winnerId = winnerIdx === 0 ? player1UserId : player2UserId;
-    }
+  const player1UserId = room.players[0]?.userId;
+  const player2UserId = room.players[1]?.userId;
 
-    const player1Stats = players[0]?.stats ?? { byCategory: {} };
-    const player2Stats = players[1]?.stats ?? { byCategory: {} };
+  try {
+    if (player1UserId && player2UserId) {
+      const player1Stats = players[0]?.stats ?? { byCategory: {} };
+      const player2Stats = players[1]?.stats ?? { byCategory: {} };
 
-    try {
       insertGameResult({
         player1Id: player1UserId,
         player2Id: player2UserId,
-        winnerId,
+        winnerId: winnerUserId,
         gameMode: 'duel',
         boardSize: room.settings.boardSize,
         durationMs,
@@ -1848,26 +1818,19 @@ function recordGameStats(room) {
       for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
         trackAnswersBatch(player2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
       }
-
-      const updateGames = _getUpdateGamesStmt();
-      if (updateGames) {
-        updateGames.run(winnerIdx === 0 ? 1 : 0, player1UserId);
-        updateGames.run(winnerIdx === 1 ? 1 : 0, player2UserId);
-      }
-    } catch (err) {
-      console.error('[stats] Failed to record game:', err.message);
     }
-    return;
-  }
 
-  const updateGames = _getUpdateGamesStmt();
-
-  if (player1UserId) {
-    updateGames?.run(winnerIdx === 0 ? 1 : 0, player1UserId);
-  }
-
-  if (player2UserId) {
-    updateGames?.run(winnerIdx === 1 ? 1 : 0, player2UserId);
+    const updateGames = _getUpdateGamesStmt();
+    if (updateGames) {
+      for (let i = 0; i < room.players.length; i++) {
+        const uid = room.players[i]?.userId;
+        if (uid) {
+          updateGames.run(winnerIdx === i ? 1 : 0, uid);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[stats] Failed to record game:', err.message);
   }
 }
 
@@ -1918,7 +1881,6 @@ function _saveQlasResult(room, winnerIdx) {
   }
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
   const [s0, s1] = room.qlasStats ?? [{}, {}];
-  const db = getDb();
 
   try {
     insertGameResult({
@@ -1932,16 +1894,14 @@ function _saveQlasResult(room, winnerIdx) {
       player2Stats: { ...s1, finalHp: room.state.players[1].hp },
     });
 
-    // Update games_played and games_won for both players
-    if (db && p0?.userId) {
-      db.prepare(
-        'UPDATE users SET games_played = COALESCE(games_played, 0) + 1, games_won = COALESCE(games_won, 0) + ? WHERE id = ?',
-      ).run(winnerIdx === 0 ? 1 : 0, p0.userId);
-    }
-    if (db && p1?.userId) {
-      db.prepare(
-        'UPDATE users SET games_played = COALESCE(games_played, 0) + 1, games_won = COALESCE(games_won, 0) + ? WHERE id = ?',
-      ).run(winnerIdx === 1 ? 1 : 0, p1.userId);
+    const updateGames = _getUpdateGamesStmt();
+    if (updateGames) {
+      if (p0?.userId) {
+        updateGames.run(winnerIdx === 0 ? 1 : 0, p0.userId);
+      }
+      if (p1?.userId) {
+        updateGames.run(winnerIdx === 1 ? 1 : 0, p1.userId);
+      }
     }
   } catch (e) {
     console.warn('[qlashique] Failed to save game result:', e.message);

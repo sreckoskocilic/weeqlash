@@ -41,6 +41,8 @@ export const DEFAULT_CATS = Object.entries(CATEGORIES)
   .filter(([, c]) => !c.defaultOff)
   .map(([id]) => id);
 
+export const QLAS_DEFAULT_HP = 30;
+
 // Timing constants
 export const TIMING = {
   RESULT_DISPLAY_MS: 1500,
