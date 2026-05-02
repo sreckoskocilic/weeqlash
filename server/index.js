@@ -61,6 +61,7 @@ import {
   applyOutcome,
   checkInstantWin,
   checkGameOver,
+  QLAS_DEFAULT_HP,
   PHASE as QLAS_PHASE,
 } from './game/qlashique.ts';
 import {
@@ -239,6 +240,11 @@ const cleanupInterval = setInterval(() => {
   for (const [socketId, run] of skipnotRuns) {
     if (now - run.startedAt > 10 * 60_000) {
       skipnotRuns.delete(socketId);
+    }
+  }
+  for (const [socketId, run] of quizRuns) {
+    if (now - run.startedAt > 10 * 60_000) {
+      quizRuns.delete(socketId);
     }
   }
 }, 30_000);
@@ -1131,6 +1137,9 @@ io.on('connection', (socket) => {
     if (!run) {
       return cb({ error: 'Quiz not started' });
     }
+    if (run.gameOver) {
+      return cb({ error: 'Quiz already ended' });
+    }
 
     const randomQ = pickRandomQuestion(
       questionsDb,
@@ -1525,7 +1534,11 @@ io.on('connection', (socket) => {
     }
 
     if (player.userId) {
-      trackAnswer(player.userId, 'qlashique', result.correct);
+      try {
+        trackAnswer(player.userId, 'qlashique', result.correct);
+      } catch (err) {
+        console.error('[qlas] trackAnswer failed:', err.message);
+      }
     }
     if (room.qlasStats) {
       room.qlasStats[player.index].answered++;
@@ -1784,7 +1797,9 @@ let _updateGamesStmt = null;
 function _getUpdateGamesStmt() {
   if (!_updateGamesStmt) {
     const db = getDb();
-    if (!db) {return null;}
+    if (!db) {
+      return null;
+    }
     _updateGamesStmt = db.prepare(
       `UPDATE users SET
         games_played = COALESCE(games_played, 0) + 1,
@@ -1936,7 +1951,7 @@ function _saveQlasResult(room, winnerIdx) {
 function _initQlasRoomState(room) {
   room.started = true;
   room.startedAt = Date.now();
-  room.state = createQlasGame(_testHPOverride ?? 30);
+  room.state = createQlasGame(_testHPOverride ?? QLAS_DEFAULT_HP);
   _testHPOverride = null;
   room.qlasStats = [
     { answered: 0, correct: 0 },
