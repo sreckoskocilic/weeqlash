@@ -585,6 +585,7 @@ io.on('connection', (socket) => {
   // --- Lobby ---
 
   socket.on('room:create', ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
+    if (!socket.userId) {return cb({ error: 'Login required' });}
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -616,6 +617,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('room:join', ({ code, playerName }, cb) => {
+    if (!socket.userId) {return cb({ error: 'Login required' });}
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -1033,6 +1035,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       ((cb = mode), (mode = 'triviandom'));
     } // backward compat
+    if (!socket.userId) {return cb({ error: 'Login required' });}
 
     if (!QUIZ_MODES_BY_ID[mode]) {
       return cb({ error: `Unknown quiz mode: ${mode}` });
@@ -1189,6 +1192,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       return;
     }
+    if (!socket.userId) {return cb({ error: 'Login required' });}
 
     const now = Date.now();
     const lastQuiz = quizTimestamps.get(socket.id) || 0;
@@ -1404,6 +1408,7 @@ io.on('connection', (socket) => {
   // --- Qlashique ---
 
   socket.on('qlashique:create_room', ({ playerName } = {}, cb) => {
+    if (!socket.userId) {return cb({ error: 'Login required' });}
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -1633,12 +1638,13 @@ io.on('connection', (socket) => {
     }
 
     const scoreBeforeEnd = room.state.currentScore;
-    const { outcome, error } = endTurn(room.state);
+    const { outcome, error, actingPlayerIdx } = endTurn(room.state);
     if (error) {
       return cb({ error });
     }
 
     let finalOutcome = outcome;
+    let finalActingIdx = actingPlayerIdx;
     if (outcome === 'choose') {
       const safeChoice = choice === 'heal' ? 'heal' : 'attack';
       const result = applyOutcome(room.state, safeChoice);
@@ -1646,6 +1652,7 @@ io.on('connection', (socket) => {
         return cb(result);
       }
       finalOutcome = safeChoice;
+      finalActingIdx = result.actingPlayerIdx;
     }
 
     io.to(code).emit('qlashique:turn_end', {
@@ -1657,7 +1664,7 @@ io.on('connection', (socket) => {
       p1hp: room.state.players[1].hp,
     });
 
-    const winnerIdx = checkGameOver(room.state);
+    const winnerIdx = checkGameOver(room.state, finalActingIdx);
     if (winnerIdx >= 0 && winnerIdx < 2) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
       _saveQlasResult(room, winnerIdx);

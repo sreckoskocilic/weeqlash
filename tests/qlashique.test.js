@@ -252,27 +252,26 @@ describe('checkInstantWin', () => {
 describe('checkGameOver', () => {
   it('returns -1 when both players have HP', () => {
     const s = createQlasGame();
-    expect(checkGameOver(s)).toBe(-1);
+    expect(checkGameOver(s, 0)).toBe(-1);
   });
 
   it('returns 1 when player 0 reaches 0 HP', () => {
     const s = createQlasGame();
     s.players[0].hp = 0;
-    expect(checkGameOver(s)).toBe(1);
+    expect(checkGameOver(s, 0)).toBe(1);
   });
 
   it('returns 0 when player 1 reaches 0 HP', () => {
     const s = createQlasGame();
     s.players[1].hp = 0;
-    expect(checkGameOver(s)).toBe(0);
+    expect(checkGameOver(s, 0)).toBe(0);
   });
 
   it('returns opponent as winner when both die simultaneously (self-damage edge case)', () => {
     const s = createQlasGame();
     s.players[0].hp = 0;
     s.players[1].hp = 0;
-    s.currentPlayerIdx = 0; // p0 caused their own death
-    expect(checkGameOver(s)).toBe(1);
+    expect(checkGameOver(s, 0)).toBe(1);
   });
 });
 
@@ -365,18 +364,16 @@ describe('edge cases: simultaneous death scenarios', () => {
     s.players[0].hp = 0; // Attacker already at 0 HP
     s.players[1].hp = 2; // Defender at 2 HP
 
-    const { outcome } = endTurn(s); // outcome will be 'choose'
+    const { outcome } = endTurn(s);
     expect(outcome).toBe('choose');
     expect(s.phase).toBe(PHASE.OUTCOME);
 
-    // Apply the attack choice - defender takes damage
-    applyOutcome(s, 'attack');
-    expect(s.players[0].hp).toBe(0); // Attacker unchanged
-    expect(s.players[1].hp).toBe(0); // Defender: 2 - 2 = 0
+    const result = applyOutcome(s, 'attack');
+    expect(s.players[0].hp).toBe(0);
+    expect(s.players[1].hp).toBe(0);
 
-    // Check who wins - attacker wins when both die (defender is current player)
-    const winner = checkGameOver(s);
-    expect(winner).toBe(0); // Player 0 wins (attacker wins)
+    const winner = checkGameOver(s, result.actingPlayerIdx);
+    expect(winner).toBe(1);
   });
 
   it('both players die from self-damage - current player loses', () => {
@@ -386,20 +383,18 @@ describe('edge cases: simultaneous death scenarios', () => {
     s.players[0].hp = 5; // Will die from self damage
     s.players[1].hp = 5; // Opponent also at 5 HP
 
-    const { outcome } = endTurn(s); // outcome will be 'self_damage'
+    const { outcome, actingPlayerIdx } = endTurn(s);
     expect(outcome).toBe('self_damage');
+    expect(actingPlayerIdx).toBe(0);
 
-    // After endTurn, p0 took -5 damage and turn advanced to p1
     expect(s.players[0].hp).toBe(0);
     expect(s.players[1].hp).toBe(5);
     expect(s.currentPlayerIdx).toBe(1);
 
-    // Simulate the opponent also dying (e.g., from a later move)
     s.players[1].hp = 0;
 
-    // Check who wins - current player (after advance) is p1, so p1 loses → p0 wins
-    const winner = checkGameOver(s);
-    expect(winner).toBe(0);
+    const winner = checkGameOver(s, actingPlayerIdx);
+    expect(winner).toBe(1);
   });
 });
 

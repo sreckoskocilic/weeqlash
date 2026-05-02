@@ -62,7 +62,7 @@ export interface PlayerInRoom {
   index: number;
   isHost: boolean;
   token: string; // reconnect token, sent only to this player
-  userId: string | null; // linked user account (null for guest)
+  userId: number | null;
 }
 
 function generateCode(): string {
@@ -136,7 +136,7 @@ export function joinRoom(
   code: string,
   socketId: string,
   playerName: string,
-  userId: string | null = null,
+  userId: number | null = null,
 ): PlayerInRoom | { error: string } {
   const normalizedCode = code?.toUpperCase();
   // Validate room code format

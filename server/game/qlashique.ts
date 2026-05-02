@@ -86,21 +86,24 @@ export function processAnswer(
 // For 'choose', caller must follow up with applyOutcome().
 // ---------------------------------------------------------------------------
 
-export function endTurn(
-  state: QlashiqueState,
-):
-  | { state: QlashiqueState; outcome: 'self_damage' | 'nothing' | 'attack' | 'choose' }
+export function endTurn(state: QlashiqueState):
+  | {
+      state: QlashiqueState;
+      outcome: 'self_damage' | 'nothing' | 'attack' | 'choose';
+      actingPlayerIdx: number;
+    }
   | { error: string } {
   if (state.phase !== PHASE.GUESSING) {
     return { error: 'Not in guessing phase' };
   }
 
+  const actingPlayerIdx = state.currentPlayerIdx;
   const score = state.currentScore;
   let outcome: 'self_damage' | 'nothing' | 'attack' | 'choose';
 
   if (score < 0) {
     outcome = 'self_damage';
-    state.players[state.currentPlayerIdx].hp += score; // score is negative
+    state.players[actingPlayerIdx].hp += score; // score is negative
     state.phase = PHASE.DECISION;
     _advanceTurn(state);
   } else if (score === 0) {
@@ -109,7 +112,7 @@ export function endTurn(
     _advanceTurn(state);
   } else if (score === 1) {
     outcome = 'attack';
-    const opponentIdx = 1 - state.currentPlayerIdx;
+    const opponentIdx = 1 - actingPlayerIdx;
     state.players[opponentIdx].hp -= 1;
     state.phase = PHASE.DECISION;
     _advanceTurn(state);
@@ -120,7 +123,7 @@ export function endTurn(
     // do NOT advance turn yet — wait for applyOutcome
   }
 
-  return { state, outcome };
+  return { state, outcome, actingPlayerIdx };
 }
 
 // ---------------------------------------------------------------------------
@@ -131,19 +134,21 @@ export function endTurn(
 export function applyOutcome(
   state: QlashiqueState,
   choice: 'attack' | 'heal',
-): { state: QlashiqueState; p0hp: number; p1hp: number } | { error: string } {
+):
+  | { state: QlashiqueState; p0hp: number; p1hp: number; actingPlayerIdx: number }
+  | { error: string } {
   if (state.phase !== PHASE.OUTCOME) {
     return { error: 'Not in outcome phase' };
   }
 
   const score = state.currentScore;
-  const playerIdx = state.currentPlayerIdx;
-  const opponentIdx = 1 - playerIdx;
+  const actingPlayerIdx = state.currentPlayerIdx;
+  const opponentIdx = 1 - actingPlayerIdx;
 
   if (choice === 'attack') {
     state.players[opponentIdx].hp -= score;
   } else {
-    state.players[playerIdx].hp += 2;
+    state.players[actingPlayerIdx].hp += 2;
   }
 
   state.phase = PHASE.DECISION;
@@ -153,6 +158,7 @@ export function applyOutcome(
     state,
     p0hp: state.players[0].hp,
     p1hp: state.players[1].hp,
+    actingPlayerIdx,
   };
 }
 
@@ -170,11 +176,10 @@ export function checkInstantWin(state: QlashiqueState): boolean {
 // Returns winnerIdx (0 or 1) or -1 if game continues
 // ---------------------------------------------------------------------------
 
-export function checkGameOver(state: QlashiqueState): number {
+export function checkGameOver(state: QlashiqueState, actingPlayerIdx: number): number {
   const [p0, p1] = state.players;
   if (p0.hp <= 0 && p1.hp <= 0) {
-    // Both dead simultaneously: current player loses (self-damage scenario)
-    return 1 - state.currentPlayerIdx;
+    return 1 - actingPlayerIdx;
   }
   if (p0.hp <= 0) {
     return 1;
