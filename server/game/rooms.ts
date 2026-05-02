@@ -42,7 +42,6 @@ export interface QlashiqueHistoryEntry {
   q: string;
   opts: string[];
   answerIdx: number;
-  correctIdx: number;
   correct: boolean;
   scoreAfter: number;
   p0hp: number;

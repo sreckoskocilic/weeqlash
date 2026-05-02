@@ -245,10 +245,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     }
 
     try {
-      console.log('[auth-routes] Fetching stats for userId:', requestedId);
       const stats = getUserStats(requestedId);
-
-      console.log('[auth-routes] Sending stats result:', stats);
       res.json(stats);
     } catch (err) {
       console.error('[auth-routes] Error fetching user stats:', (err as Error).message);

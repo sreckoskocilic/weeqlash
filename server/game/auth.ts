@@ -404,7 +404,7 @@ export function getUserStats(userId: number) {
 
   const categoryStats = db
     .prepare(
-      'SELECT category, answered, correct FROM user_stats WHERE user_id = ? ORDER BY category',
+      "SELECT category, answered, correct FROM user_stats WHERE user_id = ? AND category != 'qlashique' ORDER BY category",
     )
     .all(userId) as { category: string; answered: number; correct: number }[];
 
@@ -457,12 +457,12 @@ export function insertGameResult({
   player1Stats,
   player2Stats,
 }: {
-  player1Id: number;
-  player2Id: number;
-  winnerId: number;
+  player1Id: number | null;
+  player2Id: number | null;
+  winnerId: number | null;
   gameMode: string;
-  boardSize: number;
-  durationMs: number;
+  boardSize: number | null;
+  durationMs: number | null;
   player1Stats: any;
   player2Stats: any;
 }) {

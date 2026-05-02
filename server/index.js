@@ -623,8 +623,9 @@ io.on('connection', (socket) => {
     // Apply pending userId from earlier login if any
     const userId = socket.userId || socket.pendingUserId;
     const player = joinRoom(room.code, socket.id, playerName, userId || null);
-    if (!player) {
-      return cb({ error: 'Failed to create room' });
+    if ('error' in player) {
+      rooms.delete(room.code);
+      return cb({ error: player.error || 'Failed to create room' });
     }
     socket.join(room.code);
     console.log(`[room] ${room.code} created by ${playerName}`);
