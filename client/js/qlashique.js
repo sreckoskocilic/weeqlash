@@ -12,7 +12,7 @@ let qlasCode = null;
 let qlasMyIdx = null;
 let qlasIsHost = false;
 let qlasPlayers = [{ name: '' }, { name: '' }];
-let qlasHp = [30, 30];
+let qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
 let qlasScore = 0;
 let qlasCurrentQ = null;
 let qlasQIdx = 0;
@@ -739,7 +739,7 @@ export function initQlashique(socket) {
 
   function qlasResetForNewMatch() {
     qlasPlayers = [{ name: '' }, { name: '' }];
-    qlasHp = [30, 30];
+    qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
     qlasScore = 0;
     qlasToken = null;
     qlasGuessingActive = false;

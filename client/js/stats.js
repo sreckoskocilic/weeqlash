@@ -130,7 +130,10 @@ export function showStatsModal(statsData) {
 
   const catColors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899', '#10b981', '#3b82f6'];
   statsData.categories.forEach((cat, idx) => {
-    const catName = CAT_NAMES[cat.category] || cat.category;
+    const rawCat = cat.category ?? '';
+    const catName =
+      CAT_NAMES[rawCat] ||
+      rawCat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const catAccuracy = cat.answered > 0 ? Math.round((cat.correct / cat.answered) * 100) : 0;
     const barColor = catColors[idx % catColors.length];
 

@@ -120,6 +120,10 @@ export function submitQuizAnswer(answerIdx) {
         document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
         document.getElementById('modal-continue-btn').onclick = () => {
           socket.emit('quiz:next', (nextQ) => {
+            if (nextQ.error) {
+              document.getElementById('modal-overlay').classList.remove('visible');
+              return;
+            }
             if (nextQ.ok) {
               showQuizQuestion(nextQ);
             }

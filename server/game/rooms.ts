@@ -154,7 +154,7 @@ export function joinRoom(
   if (room.players.length >= room.settings.playerCount) {
     return { error: 'Room is full' };
   }
-  if (userId && room.players.some((p) => p.userId === userId)) {
+  if (userId !== null && room.players.some((p) => p.userId === userId)) {
     return { error: 'You are already in this room' };
   }
 
@@ -223,6 +223,10 @@ export function removePlayerFromRoom(
     setTimeout(() => {
       const existingRoom = rooms.get(codeToCheck);
       if (existingRoom && existingRoom.players.length === 0) {
+        if (existingRoom.qlasTimer) {
+          clearTimeout(existingRoom.qlasTimer);
+          existingRoom.qlasTimer = null;
+        }
         console.log(`[room] cleaning up empty room ${codeToCheck}`);
         rooms.delete(codeToCheck);
       }
