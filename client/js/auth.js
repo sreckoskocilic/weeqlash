@@ -26,7 +26,7 @@ export function initAuth(svrUrl, sock) {
         ? 'Prijavljeni ste s drugog uređaja. Ova sesija je zatvorena.'
         : 'Sesija je zatvorena.';
     showAuthMessage(msg, true);
-    showScreen('setup-screen');
+    showScreen('screen-connect');
   });
 }
 

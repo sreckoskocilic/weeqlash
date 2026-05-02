@@ -260,6 +260,7 @@ function _onOptionClick(idx) {
         b.disabled = false;
       });
       _ensureRing().start(timerSec); // approximate; small fairness loss
+      questionTimeout = setTimeout(_onTimeout, timerSec * 1000);
       return;
     }
     const correct = !!res.correct;

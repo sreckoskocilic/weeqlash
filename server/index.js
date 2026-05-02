@@ -1104,6 +1104,7 @@ io.on('connection', (socket) => {
     const correct = q.a === answerIdx;
 
     if (!correct) {
+      run.gameOver = true;
       const timeSec = (Date.now() - run.startedAt) / 1000;
       const qualifies = checkQualifiesTop10ForMode(
         run.mode,
@@ -1148,6 +1149,10 @@ io.on('connection', (socket) => {
     const run = quizRuns.get(socket.id);
     if (!run) {
       return cb({ error: 'No completed run' });
+    }
+
+    if (!run.gameOver) {
+      return cb({ error: 'Quiz not finished' });
     }
 
     const sanitizedName = name?.trim();
@@ -1558,6 +1563,11 @@ io.on('connection', (socket) => {
     io.to(code).emit('qlashique:answer_result', answerPayload);
 
     if (checkInstantWin(room.state)) {
+      if (room.qlasTimer) {
+        clearTimeout(room.qlasTimer);
+        room.qlasTimer = null;
+      }
+      room.qlasTimerExpired = true;
       room.state.phase = QLAS_PHASE.GAME_OVER;
       _saveQlasResult(room, player.index);
       io.to(code).emit('qlashique:game_over', {
@@ -1658,7 +1668,6 @@ io.on('connection', (socket) => {
     io.to(code).emit('qlashique:turn_end', {
       score: scoreBeforeEnd,
       outcome: finalOutcome,
-      history: room.qlasHistory ?? [],
     });
     io.to(code).emit('qlashique:hp_update', {
       p0hp: room.state.players[0].hp,
@@ -1771,7 +1780,21 @@ function publicState(state) {
   };
 }
 
-// Record game result to database (only for regular game ends, not disconnects)
+let _updateGamesStmt = null;
+function _getUpdateGamesStmt() {
+  if (!_updateGamesStmt) {
+    const db = getDb();
+    if (!db) {return null;}
+    _updateGamesStmt = db.prepare(
+      `UPDATE users SET
+        games_played = COALESCE(games_played, 0) + 1,
+        games_won = COALESCE(games_won, 0) + ?
+        WHERE id = ?`,
+    );
+  }
+  return _updateGamesStmt;
+}
+
 function recordGameStats(room) {
   if (!room || !room.startedAt || !room.state?.players || room.state.players.length < 2) {
     return;
@@ -1811,15 +1834,8 @@ function recordGameStats(room) {
         trackAnswersBatch(player2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
       }
 
-      // Update games played and won for both players
-      const db = getDb();
-      if (db) {
-        const updateGames = db.prepare(
-          `UPDATE users SET
-          games_played = COALESCE(games_played, 0) + 1,
-          games_won = COALESCE(games_won, 0) + ?
-          WHERE id = ?`,
-        );
+      const updateGames = _getUpdateGamesStmt();
+      if (updateGames) {
         updateGames.run(winnerIdx === 0 ? 1 : 0, player1UserId);
         updateGames.run(winnerIdx === 1 ? 1 : 0, player2UserId);
       }
@@ -1829,12 +1845,7 @@ function recordGameStats(room) {
     return;
   }
 
-  const updateGames = getDb()?.prepare(
-    `UPDATE users SET
-      games_played = COALESCE(games_played, 0) + 1,
-      games_won = COALESCE(games_won, 0) + ?
-      WHERE id = ?`,
-  );
+  const updateGames = _getUpdateGamesStmt();
 
   if (player1UserId) {
     updateGames?.run(winnerIdx === 0 ? 1 : 0, player1UserId);

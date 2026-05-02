@@ -2,9 +2,11 @@
 // QLASHIQUE MODULE (1v1 trivia duel)
 // ============================================================
 
-import { el, showScreen, showError, sanitize, getPlayerName } from './dom.js';
+import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
+
+const QLAS_DEFAULT_HP = 30;
 
 // State
 let qlasCode = null;
@@ -33,10 +35,6 @@ const QLAS_TIMER_RING_CIRC = 175.93; // 2 * PI * r where r=28
 
 // --- UI helpers ---
 
-function qEl(id) {
-  return document.getElementById(id);
-}
-
 export function qlasShowPhase(phase) {
   ['qlas-phase-waiting', 'qlas-phase-combat', 'qlas-phase-gameover'].forEach((id) => {
     qEl(id).style.display = 'none';
@@ -44,11 +42,11 @@ export function qlasShowPhase(phase) {
   qEl('qlas-phase-' + phase).style.display = '';
 }
 
-export function qlasSetHP(playerIdx, hp) {
-  hp = Math.max(0, Math.min(30, hp));
+export function qlasSetHP(playerIdx, hp, maxHp = QLAS_DEFAULT_HP) {
+  hp = Math.max(0, Math.min(maxHp, hp));
   qlasHp[playerIdx] = hp;
   qEl('qlas-p' + playerIdx + 'hp').textContent = hp;
-  qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / 30) * 100 + '%';
+  qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / maxHp) * 100 + '%';
 }
 
 export function qlasSetScore(score) {
@@ -390,7 +388,7 @@ function qlasBuildRecapCard(group) {
   card.innerHTML =
     '<div class="qlas-recap-head">' +
     '<span class="qlas-recap-turn">T' +
-    group.turn +
+    Number(group.turn) +
     '</span>' +
     '<span class="' +
     playerClass +
@@ -399,7 +397,7 @@ function qlasBuildRecapCard(group) {
     '</span>' +
     '<span class="qlas-recap-score">' +
     scoreSign +
-    lastEntry.scoreAfter +
+    Number(lastEntry.scoreAfter) +
     '</span>' +
     '</div>' +
     entriesHtml;
@@ -524,8 +522,7 @@ export function initQlashique(socket) {
     const isMyTurn = playerIdx === qlasMyIdx;
     const turnPlayerName = qlasPlayers[playerIdx].name || 'Player ' + (playerIdx + 1);
     // Active player color follows the global game theme via CSS vars.
-    const activeColor =
-      playerIdx === 0 ? 'var(--game-accent)' : 'var(--game-accent-2)';
+    const activeColor = playerIdx === 0 ? 'var(--game-accent)' : 'var(--game-accent-2)';
     qEl('qlas-turn-bar').style.setProperty('--active-pc', activeColor);
     qEl('qlas-turn-name').textContent = turnPlayerName;
     qEl('qlas-turn-timer').className = 'qlas-timer-ring';
