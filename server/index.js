@@ -585,7 +585,9 @@ io.on('connection', (socket) => {
   // --- Lobby ---
 
   socket.on('room:create', ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
-    if (!socket.userId) {return cb({ error: 'Login required' });}
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -617,7 +619,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('room:join', ({ code, playerName }, cb) => {
-    if (!socket.userId) {return cb({ error: 'Login required' });}
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -1035,7 +1039,9 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       ((cb = mode), (mode = 'triviandom'));
     } // backward compat
-    if (!socket.userId) {return cb({ error: 'Login required' });}
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
 
     if (!QUIZ_MODES_BY_ID[mode]) {
       return cb({ error: `Unknown quiz mode: ${mode}` });
@@ -1080,25 +1086,23 @@ io.on('connection', (socket) => {
       return cb({ error: 'Question not found' });
     }
 
-    const correct = q.a === answerIdx;
+    const correct = answerIdx !== -1 && q.a === answerIdx;
 
     if (!correct) {
       run.gameOver = true;
-      const timeSec = (Date.now() - run.startedAt) / 1000;
-      const qualifies = checkQualifiesTop10ForMode(
-        run.mode,
-        run.answers,
-        Date.now() - run.startedAt,
-      );
-      return cb({
+      const endTime = Date.now();
+      const timeSec = (endTime - run.startedAt) / 1000;
+      const qualifies = checkQualifiesTop10ForMode(run.mode, run.answers, endTime - run.startedAt);
+      const res = {
         ok: true,
         correct: false,
-        correctIdx: q.a,
         gameOver: true,
         answers: run.answers,
         timeSec: Math.round(timeSec * 10) / 10,
         qualifies,
-      });
+      };
+      if (answerIdx !== -1) res.correctIdx = q.a;
+      return cb(res);
     }
 
     run.answers++;
@@ -1192,7 +1196,9 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       return;
     }
-    if (!socket.userId) {return cb({ error: 'Login required' });}
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
 
     const now = Date.now();
     const lastQuiz = quizTimestamps.get(socket.id) || 0;
@@ -1408,7 +1414,9 @@ io.on('connection', (socket) => {
   // --- Qlashique ---
 
   socket.on('qlashique:create_room', ({ playerName } = {}, cb) => {
-    if (!socket.userId) {return cb({ error: 'Login required' });}
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }

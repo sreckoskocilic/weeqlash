@@ -268,6 +268,16 @@ export function cleanupStaleRooms(): number {
   }
 
   for (const code of toDelete) {
+    const room = rooms.get(code);
+    if (room) {
+      for (const p of room.players) {
+        socketsInActiveGames.delete(p.id);
+      }
+      if (room.qlasTimer) {
+        clearTimeout(room.qlasTimer);
+        room.qlasTimer = null;
+      }
+    }
     rooms.delete(code);
     removed++;
   }
