@@ -1021,6 +1021,7 @@ io.on('connection', (socket) => {
 
     if (result.gameOver) {
       console.log(`[game] ${code} over — winner player ${result.winner}, calling recordGameStats`);
+      for (const p of room.players) {unregisterActiveSocket(p.id);}
       recordGameStats(room);
     }
   });
@@ -1072,6 +1073,9 @@ io.on('connection', (socket) => {
     const run = quizRuns.get(socket.id);
     if (!run) {
       return cb({ error: 'Quiz not started' });
+    }
+    if (run.gameOver) {
+      return cb({ error: 'Quiz already ended' });
     }
 
     if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
@@ -1568,6 +1572,7 @@ io.on('connection', (socket) => {
       }
       room.qlasTimerExpired = true;
       room.state.phase = QLAS_PHASE.GAME_OVER;
+      for (const p of room.players) {unregisterActiveSocket(p.id);}
       _saveQlasResult(room, player.index);
       io.to(code).emit('qlashique:game_over', {
         winnerIdx: player.index,
@@ -1678,6 +1683,7 @@ io.on('connection', (socket) => {
     const winnerIdx = checkGameOver(room.state, finalActingIdx);
     if (winnerIdx >= 0 && winnerIdx < 2) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
+      for (const p of room.players) {unregisterActiveSocket(p.id);}
       _saveQlasResult(room, winnerIdx);
       io.to(code).emit('qlashique:game_over', {
         winnerIdx,

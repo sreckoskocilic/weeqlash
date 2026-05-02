@@ -252,18 +252,20 @@ router.post('/users/toggle-admin', express.urlencoded({ extended: true }), (req,
     return badRequest(res, 'Invalid user id.');
   }
   const flag = req.body.is_admin === '1' || req.body.is_admin === 1 ? 1 : 0;
+  const db = getDb();
+  if (!db) {
+    return badRequest(res, 'Database unavailable.');
+  }
   if (flag === 0) {
     if (req.session.userId === id) {
       return badRequest(res, 'You cannot remove admin from the account you are signed in as.');
     }
-    const adminCount = getDb()
-      .prepare('SELECT COUNT(*) as c FROM users WHERE is_admin = 1')
-      .get().c;
+    const adminCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE is_admin = 1').get().c;
     if (adminCount <= 1) {
       return badRequest(res, 'Cannot remove the last remaining admin.');
     }
   }
-  getDb().prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(flag, id);
+  db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(flag, id);
   res.redirect('/admin/users');
 });
 
@@ -273,10 +275,14 @@ router.post('/users/toggle-block', express.urlencoded({ extended: true }), (req,
     return badRequest(res, 'Invalid user id.');
   }
   const flag = req.body.is_blocked === '1' || req.body.is_blocked === 1 ? 1 : 0;
+  const db = getDb();
+  if (!db) {
+    return badRequest(res, 'Database unavailable.');
+  }
   if (flag === 1 && req.session.userId === id) {
     return badRequest(res, 'You cannot block the account you are signed in as.');
   }
-  getDb().prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(flag, id);
+  db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(flag, id);
   res.redirect('/admin/users');
 });
 
@@ -365,7 +371,7 @@ router.get('/users/:id', (req, res) => {
       <td>${esc(opponent || 'Unknown')}</td>
       <td>${g.winner_id ? (isWinner ? '<span class="badge badge-success">Won</span>' : '<span class="badge badge-danger">Lost</span>') : '-'}</td>
       <td>${esc(g.game_mode || '-')}</td>
-      <td>${Math.round(g.duration_ms / 1000)}s</td>
+      <td>${g.duration_ms !== null && g.duration_ms !== undefined ? Math.round(g.duration_ms / 1000) + 's' : '-'}</td>
       <td>${new Date(g.created_at).toLocaleDateString()}</td>
     </tr>`;
     })
@@ -643,8 +649,8 @@ router.get('/stats', (_req, res) => {
       <td>${esc(g.p1_name || g.player1_id)} vs ${esc(g.p2_name || g.player2_id)}</td>
       <td>${esc(g.winner_name || '-')}</td>
       <td>${esc(g.game_mode || '-')}</td>
-      <td>${g.board_size}x${g.board_size}</td>
-      <td>${Math.round(g.duration_ms / 1000)}s</td>
+      <td>${g.board_size !== null && g.board_size !== undefined ? g.board_size + 'x' + g.board_size : '-'}</td>
+      <td>${g.duration_ms !== null && g.duration_ms !== undefined ? Math.round(g.duration_ms / 1000) + 's' : '-'}</td>
       <td>${new Date(g.created_at).toLocaleString()}</td>
     </tr>
   `,

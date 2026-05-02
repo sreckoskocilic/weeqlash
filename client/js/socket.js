@@ -2,8 +2,9 @@
 // SOCKET
 // ============================================================
 
-import { showError } from './dom.js';
+import { showError, el } from './dom.js';
 import { renderAll } from './render.js';
+import { stopTimer } from './question.js';
 import { state } from './state.js';
 
 let socket = null;
@@ -53,6 +54,12 @@ export function initSocketEvents() {
           state.spectateGen++;
           state.pendingQuestions = [];
           state.pendingAnswers = [];
+          state.localPhase = null;
+          state.localSelectedPegId = null;
+          state.validMovesSet = new Set();
+          state.pendingMove = null;
+          stopTimer();
+          el('modal-overlay').classList.remove('visible');
           state.gameState = res.state;
           renderAll(res.state);
         }

@@ -434,7 +434,7 @@ function checkAndHandleGameOver(
     events,
     gameOver: true,
     winner: winnerIdx,
-    correct: false,
+    correct: true,
     combatContinues: false,
   };
 }
