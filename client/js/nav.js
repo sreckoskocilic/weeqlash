@@ -27,10 +27,10 @@ export function applyAuthState(loggedIn) {
 
 export function initNav() {
   const nav = document.getElementById('connect-nav');
-  if (!nav) return;
+  if (!nav) {return;}
   nav.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-view]');
-    if (!btn || btn.hidden) return;
+    if (!btn || btn.hidden) {return;}
     showView(btn.dataset.view);
   });
 }

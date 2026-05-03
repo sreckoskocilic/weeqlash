@@ -90,12 +90,12 @@ Twenty questions, twelve seconds each. Click an answer, click skip, or let the t
 
 ### Scoring
 
-| Outcome | Delta |
-| --- | --- |
+| Outcome        | Delta   |
+| -------------- | ------- |
 | Correct answer | **+13** |
-| Wrong answer | **−7** |
-| Skip | **0** |
-| Timeout | **0** |
+| Wrong answer   | **−7**  |
+| Skip           | **0**   |
+| Timeout        | **0**   |
 
 A perfect run is **+260**. A worst-case all-wrong run is **−140**. Skipping is free — use it when you don't know.
 

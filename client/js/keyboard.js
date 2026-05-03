@@ -3,16 +3,9 @@
 // ============================================================
 
 import { el } from './dom.js';
-import { PHASE, OPTION_KEYS } from './constants.js';
+import { PHASE } from './constants.js';
 import { state } from './state.js';
-import {
-  getGameModalOptionBtns,
-  stopTimer,
-  getPendingQuestions,
-  getCurrentQIdx,
-  setCurrentQIdx,
-  continueAfterQuestion,
-} from './question.js';
+import { getGameModalOptionBtns, continueAfterQuestion } from './question.js';
 
 // KEY_MAP for answer shortcuts
 const KEY_MAP = { a: 0, b: 1, c: 2, d: 3 };

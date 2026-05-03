@@ -80,7 +80,9 @@ function _resetRun() {
 // Build 20 placeholder dots, mark idx 0 as "now".
 function _resetProgressDots() {
   const wrap = _qel('skipnot-progress');
-  if (!wrap) return;
+  if (!wrap) {
+    return;
+  }
   const html = [];
   for (let i = 0; i < total; i++) {
     html.push(`<span class="pdot${i === 0 ? ' now' : ''}" data-i="${i}"></span>`);
@@ -93,13 +95,19 @@ function _resetProgressDots() {
 // linter can see that .ok / .bad / .skip are referenced from JS.
 function _updateProgressDot(idx, state) {
   const wrap = _qel('skipnot-progress');
-  if (!wrap) return;
+  if (!wrap) {
+    return;
+  }
   const dot = wrap.querySelector(`.pdot[data-i="${idx}"]`);
   if (dot) {
     dot.className = 'pdot';
-    if (state === 'ok') dot.classList.add('ok');
-    else if (state === 'bad') dot.classList.add('bad');
-    else if (state === 'skip') dot.classList.add('skip');
+    if (state === 'ok') {
+      dot.classList.add('ok');
+    } else if (state === 'bad') {
+      dot.classList.add('bad');
+    } else if (state === 'skip') {
+      dot.classList.add('skip');
+    }
   }
   const next = wrap.querySelector(`.pdot[data-i="${idx + 1}"]`);
   if (next) {
@@ -109,38 +117,46 @@ function _updateProgressDot(idx, state) {
 
 // Streak: shown only when >= 3.
 function _showStreak(n) {
-  const el = _qel('skipnot-streak');
+  const streakEl = _qel('skipnot-streak');
   const num = _qel('skipnot-streak-num');
-  if (!el || !num) return;
+  if (!streakEl || !num) {
+    return;
+  }
   num.textContent = String(n);
-  el.style.display = '';
+  streakEl.style.display = '';
 }
 function _hideStreak() {
-  const el = _qel('skipnot-streak');
-  if (el) el.style.display = 'none';
+  const streakEl = _qel('skipnot-streak');
+  if (streakEl) {
+    streakEl.style.display = 'none';
+  }
 }
 function _breakStreak() {
-  const el = _qel('skipnot-streak');
-  if (!el || el.style.display === 'none') return;
-  el.classList.remove('broke');
+  const streakEl = _qel('skipnot-streak');
+  if (!streakEl || streakEl.style.display === 'none') {
+    return;
+  }
+  streakEl.classList.remove('broke');
   // force reflow so animation can replay
-  void el.offsetWidth;
-  el.classList.add('broke');
+  void streakEl.offsetWidth;
+  streakEl.classList.add('broke');
   setTimeout(() => {
     _hideStreak();
-    el.classList.remove('broke');
+    streakEl.classList.remove('broke');
   }, 400);
 }
 
 // Animate score from current displayed value to `target` over ~400ms.
 function _animateScore(from, target) {
-  const el = _qel('skipnot-score');
-  if (!el) return;
+  const scoreEl = _qel('skipnot-score');
+  if (!scoreEl) {
+    return;
+  }
   if (scoreAnimRaf) {
     cancelAnimationFrame(scoreAnimRaf);
   }
   if (from === target) {
-    el.textContent = String(target);
+    scoreEl.textContent = String(target);
     return;
   }
   const dur = 400;
@@ -150,7 +166,7 @@ function _animateScore(from, target) {
     // ease-out cubic
     const eased = 1 - Math.pow(1 - p, 3);
     const v = Math.round(from + (target - from) * eased);
-    el.textContent = String(v);
+    scoreEl.textContent = String(v);
     if (p < 1) {
       scoreAnimRaf = requestAnimationFrame(step);
     } else {
@@ -275,8 +291,12 @@ function _onOptionClick(idx) {
     _updateProgressDot(currentIdx, correct ? 'ok' : 'bad');
     if (correct) {
       streak += 1;
-      if (streak > bestStreak) bestStreak = streak;
-      if (streak >= 3) _showStreak(streak);
+      if (streak > bestStreak) {
+        bestStreak = streak;
+      }
+      if (streak >= 3) {
+        _showStreak(streak);
+      }
     } else if (streak >= 3) {
       _breakStreak();
       streak = 0;
@@ -344,16 +364,22 @@ function _onTimeout() {
 
 function _renderHeatmap() {
   const wrap = _qel('skipnot-heatmap');
-  if (!wrap) return;
+  if (!wrap) {
+    return;
+  }
   wrap.innerHTML = '';
   for (let i = 0; i < total; i++) {
     const o = outcomes[i];
     const ch = o === 'ok' ? '✓' : o === 'bad' ? '✕' : o === 'skip' ? '−' : '';
     const cell = document.createElement('div');
     cell.className = 'hcell';
-    if (o === 'ok') cell.classList.add('ok');
-    else if (o === 'bad') cell.classList.add('bad');
-    else if (o === 'skip') cell.classList.add('skip');
+    if (o === 'ok') {
+      cell.classList.add('ok');
+    } else if (o === 'bad') {
+      cell.classList.add('bad');
+    } else if (o === 'skip') {
+      cell.classList.add('skip');
+    }
     cell.textContent = ch;
     wrap.appendChild(cell);
   }
@@ -377,7 +403,9 @@ function _finishRun() {
     _qel('skipnot-go-correct').textContent = `${correctCount}/${total}`;
     _qel('skipnot-go-duration').textContent = Math.round(res.timeMs / 1000) + 's';
     const bestEl = _qel('skipnot-go-best-streak');
-    if (bestEl) bestEl.textContent = String(bestStreak);
+    if (bestEl) {
+      bestEl.textContent = String(bestStreak);
+    }
     _renderHeatmap();
     _qel('skipnot-qualifies-row').style.display = res.qualifies ? '' : 'none';
     _qel('btn-skipnot-submit-score').style.display = res.qualifies ? '' : 'none';

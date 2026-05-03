@@ -4,7 +4,6 @@
 
 import { showAuthMessage } from './auth.js';
 import { CAT_NAMES } from './constants.js';
-import { getSocket } from './socket.js';
 import { sanitize } from './dom.js';
 import { state } from './state.js';
 
@@ -81,9 +80,13 @@ export function showStatsModal(statsData) {
   const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
 
   let accuracyColor = '#ef4444';
-  if (accuracy >= 80) accuracyColor = '#22c55e';
-  else if (accuracy >= 60) accuracyColor = '#eab308';
-  else if (accuracy >= 40) accuracyColor = '#f97316';
+  if (accuracy >= 80) {
+    accuracyColor = '#22c55e';
+  } else if (accuracy >= 60) {
+    accuracyColor = '#eab308';
+  } else if (accuracy >= 40) {
+    accuracyColor = '#f97316';
+  }
 
   let _statsHTML = `
     <div>

@@ -8,10 +8,8 @@ import { stopTimer } from './question.js';
 import { state } from './state.js';
 
 let socket = null;
-let serverUrl = '';
 
-export function initSocket(svrUrl, sock) {
-  serverUrl = svrUrl;
+export function initSocket(_svrUrl, sock) {
   socket = sock;
 }
 

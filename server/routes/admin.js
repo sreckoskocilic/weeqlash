@@ -573,7 +573,7 @@ router.post('/users/reset-password', express.urlencoded({ extended: true }), (re
   const resetLink = `${clientUrl}/?reset=${token}`;
   req.session.resetLinkFlash = { userId, url: resetLink, expiresAt: Date.now() + FLASH_TTL_MS };
   req.session.save(() => {
-    console.log(`[admin] Generated password reset link for user id=${userId}`);
+    console.log(`[admin] Generated password reset link for user id=${userId} (token redacted)`);
     res.redirect(`/admin/users/${userId}`);
   });
 });

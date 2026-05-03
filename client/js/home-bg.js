@@ -19,7 +19,7 @@ function _rand(min, max) {
 
 export function initHomeBg() {
   const host = document.getElementById('home-bg');
-  if (!host) return;
+  if (!host) {return;}
   host.innerHTML = '';
   for (let i = 0; i < SHAPE_COUNT; i++) {
     const wrap = document.createElement('span');

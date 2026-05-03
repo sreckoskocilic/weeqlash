@@ -147,7 +147,11 @@ app.use((req, res, next) => {
 function createSessionMiddleware() {
   return session({
     store: new RedisStore({ client: redisClient, prefix: SESSION_PREFIX + 'session:' }),
-    secret: process.env.SESSION_SECRET || 'dev-secret',
+    secret:
+      process.env.SESSION_SECRET ||
+      (() => {
+        throw new Error('SESSION_SECRET env var is required');
+      })(),
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -181,7 +185,7 @@ app.use(compression());
 app.use(express.static(path.join(__dirname, '../client')));
 const CORS_ORIGIN = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
-  : ['https://brawl.weeqlash.icu', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+  : ['https://brawl.weeqlash.icu'];
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN },
   // Enable default cookie parsing
@@ -1021,7 +1025,9 @@ io.on('connection', (socket) => {
 
     if (result.gameOver) {
       console.log(`[game] ${code} over — winner player ${result.winner}, calling recordGameStats`);
-      for (const p of room.players) {unregisterActiveSocket(p.id);}
+      for (const p of room.players) {
+        unregisterActiveSocket(p.id);
+      }
       recordGameStats(room);
     }
   });
@@ -1572,7 +1578,9 @@ io.on('connection', (socket) => {
       }
       room.qlasTimerExpired = true;
       room.state.phase = QLAS_PHASE.GAME_OVER;
-      for (const p of room.players) {unregisterActiveSocket(p.id);}
+      for (const p of room.players) {
+        unregisterActiveSocket(p.id);
+      }
       _saveQlasResult(room, player.index);
       io.to(code).emit('qlashique:game_over', {
         winnerIdx: player.index,
@@ -1683,7 +1691,9 @@ io.on('connection', (socket) => {
     const winnerIdx = checkGameOver(room.state, finalActingIdx);
     if (winnerIdx >= 0 && winnerIdx < 2) {
       room.state.phase = QLAS_PHASE.GAME_OVER;
-      for (const p of room.players) {unregisterActiveSocket(p.id);}
+      for (const p of room.players) {
+        unregisterActiveSocket(p.id);
+      }
       _saveQlasResult(room, winnerIdx);
       io.to(code).emit('qlashique:game_over', {
         winnerIdx,
