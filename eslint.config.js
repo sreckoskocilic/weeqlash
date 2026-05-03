@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import html from 'eslint-plugin-html';
+import tseslint from 'typescript-eslint';
 
 const sharedRules = {
   'no-unused-vars': [
@@ -43,6 +44,38 @@ export default [
       ...js.configs.recommended.rules,
       ...sharedRules,
       'no-console': 'off',
+    },
+  },
+
+  // Server — TypeScript (type-aware)
+  {
+    files: ['server/**/*.ts'],
+    ...js.configs.recommended,
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node },
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: { '@typescript-eslint': tseslint.plugin },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...sharedRules,
+      'no-console': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { ignoreRestSiblings: true, argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      'no-shadow': 'off',
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
     },
   },
 

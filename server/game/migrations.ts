@@ -66,7 +66,7 @@ const MIGRATIONS: Migration[] = [
       const tables = db
         .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         .all();
-      if (tables.length === 0) return;
+      if (tables.length === 0) {return;}
       const cols = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
       if (cols.some((c) => c.name === 'confirmation_token_expires')) {
         return;
@@ -91,7 +91,7 @@ export function runMigrations(db: Database.Database): void {
   const insert = db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)');
 
   for (const m of MIGRATIONS) {
-    if (applied.has(m.id)) continue;
+    if (applied.has(m.id)) {continue;}
     const tx = db.transaction(() => {
       m.up(db);
       insert.run(m.id, Date.now());

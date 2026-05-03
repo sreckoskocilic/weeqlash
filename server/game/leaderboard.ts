@@ -135,7 +135,7 @@ export function insertScoreForMode(
   }
   try {
     db.prepare(
-      `INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)`,
+      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
     ).run(name, answers, timeMs, Date.now(), dbModeId);
     return getTop10ForMode(modeId);
   } catch (err) {
@@ -178,7 +178,7 @@ export function clearTestEntries(): void {
     throw new Error('Database not initialized');
   }
   try {
-    db.prepare(`DELETE FROM leaderboard WHERE name LIKE 'e2e_%'`).run();
+    db.prepare('DELETE FROM leaderboard WHERE name LIKE \'e2e_%\'').run();
   } catch (err) {
     console.error('[leaderboard] clearTestEntries() failed:', (err as Error).message);
   }

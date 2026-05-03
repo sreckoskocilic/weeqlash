@@ -116,6 +116,7 @@ export function submitQuizAnswer(answerIdx) {
       });
 
       if (res.correct) {
+        quizState.run.answers++;
         document.getElementById('modal-continue-wrap').style.display = 'flex';
         document.getElementById('modal-continue-btn').textContent = 'NEXT QUESTION';
         document.getElementById('modal-continue-btn').onclick = () => {

@@ -93,7 +93,7 @@ export function getAllQuestions(db: QuestionsDb): Question[] {
   if (!_allCacheByDb.has(db)) {
     const flat: Question[] = [];
     for (const [cat, qs] of Object.entries(db)) {
-      if (!Array.isArray(qs)) continue;
+      if (!Array.isArray(qs)) {continue;}
       for (const q of qs) {
         if (q.id !== undefined) {
           flat.push({ ...q, category: cat as Category });
@@ -116,7 +116,7 @@ export function getQuestionsForCategories(db: QuestionsDb, categories: Category[
     // Evict oldest if we have too many DB references
     if (_catCacheByDb.size > MAX_CACHED_KEYS) {
       const firstKey = _catCacheByDb.keys().next().value;
-      if (firstKey) _catCacheByDb.delete(firstKey);
+      if (firstKey) {_catCacheByDb.delete(firstKey);}
     }
   }
   const dbCache = _catCacheByDb.get(db)!;
@@ -130,7 +130,7 @@ export function getQuestionsForCategories(db: QuestionsDb, categories: Category[
     // Evict oldest entry if cache is too large for this db
     if (dbCache.size > MAX_CACHED_KEYS) {
       const firstEntryKey = dbCache.keys().next().value;
-      if (firstEntryKey) dbCache.delete(firstEntryKey);
+      if (firstEntryKey) {dbCache.delete(firstEntryKey);}
     }
   }
   return dbCache.get(key)!;

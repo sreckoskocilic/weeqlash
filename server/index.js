@@ -986,7 +986,7 @@ io.on('connection', (socket) => {
           }
         : null;
       const { correctIdx, ...nextPublic } = nextQuestion ?? {};
-      const qIdx = pending.questionsTotal - room.state.pendingTurn.questionsRemaining + 1;
+      const qIdx = pending.questionsTotal - room.state.pendingTurn.questionsRemaining;
 
       room.lastQuestionStart = Date.now();
 

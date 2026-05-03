@@ -31,7 +31,7 @@ jobs:
       - run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint:all
 
       - name: Run tests
         env:
@@ -40,6 +40,29 @@ jobs:
           NODE_ENV: test
           REDIS_URL: redis://127.0.0.1:6379
         run: npm test
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run e2e tests
+        env:
+          QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
+          SESSION_SECRET: test-secret-for-ci
+          NODE_ENV: test
+          REDIS_URL: redis://127.0.0.1:6379
+        run: npm run test:e2e
 
   deploy:
     name: Deploy to Server

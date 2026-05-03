@@ -407,7 +407,7 @@ router.get('/export', (req: express.Request, res: express.Response) => {
   const exportType = (req.query.type as string) || 'all';
 
   try {
-    let exportData: any = { exportedAt: new Date().toISOString() };
+    const exportData: any = { exportedAt: new Date().toISOString() };
 
     if (exportType === 'all' || exportType === 'users') {
       exportData.users = db

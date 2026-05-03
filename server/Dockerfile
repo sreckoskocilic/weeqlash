@@ -9,4 +9,6 @@ COPY server/ ./server/
 COPY client/ ./client/
 WORKDIR /app/server
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
+  CMD wget -qO- http://localhost:3000/ || exit 1
 CMD ["node", "index.js"]

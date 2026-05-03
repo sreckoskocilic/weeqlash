@@ -335,7 +335,7 @@ export function unregisterActiveSocket(socketId: string): void {
 
 export function getPlayerBySocket(room: RoomState, socketId: string): PlayerInRoom | undefined {
   const player = room.playersBySocket.get(socketId);
-  if (player) return player;
+  if (player) {return player;}
   const fallback = room.players.find((p) => p.id === socketId);
   if (fallback) {
     console.warn(`[rooms] playersBySocket desync for socket ${socketId} in room — used fallback`);
