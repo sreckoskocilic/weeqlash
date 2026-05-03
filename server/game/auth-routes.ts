@@ -269,6 +269,9 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
 
   // Resend confirmation
   app.post('/auth/resend-confirmation', async (req: Request, res: Response) => {
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not logged in' });
     }
@@ -297,6 +300,9 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
 
   // Request password reset
   app.post('/auth/forgot-password', async (req: Request, res: Response) => {
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });

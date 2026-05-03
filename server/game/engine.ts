@@ -451,11 +451,18 @@ function ensureQuestionTrackingSet(state: GameState, key: Category | '__all__'):
   return state.usedQ[key as Category];
 }
 
+const _allPoolCache = new WeakMap<QuestionsDb, Question[]>();
 function getAllQuestionPool(questionsDb: QuestionsDb): Question[] {
-  return Object.values(questionsDb)
-    .filter(Array.isArray)
-    .flat()
-    .filter((q): q is Question => !!q?.id);
+  if (!_allPoolCache.has(questionsDb)) {
+    _allPoolCache.set(
+      questionsDb,
+      Object.values(questionsDb)
+        .filter(Array.isArray)
+        .flat()
+        .filter((q): q is Question => !!q?.id),
+    );
+  }
+  return _allPoolCache.get(questionsDb)!;
 }
 
 function takeQuestions(
@@ -816,7 +823,9 @@ function advanceTurn(state: GameState): void {
     next = (next + 1) % state.numPlayers;
     tries++;
   }
-  if (state.players[next].pegIds.length === 0) {return;}
+  if (state.players[next].pegIds.length === 0) {
+    return;
+  }
   state.currentPlayerIdx = next;
   state.turnNumber++;
   // Reset all per-turn state for the new player
