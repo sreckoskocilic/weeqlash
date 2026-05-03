@@ -92,5 +92,3 @@ function handleKey(e) {
     // Will be handled by onTileClick/onPegClick in game.js
   }
 }
-
-export { KEY_MAP, NAV_DIRS };

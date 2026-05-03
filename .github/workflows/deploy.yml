@@ -30,6 +30,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
       - name: Run tests
         env:
           QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}

@@ -58,6 +58,16 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: '003_add_confirmation_token_expires',
+    up: (db) => {
+      const cols = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
+      if (cols.some((c) => c.name === 'confirmation_token_expires')) {
+        return;
+      }
+      db.exec('ALTER TABLE users ADD COLUMN confirmation_token_expires INTEGER');
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

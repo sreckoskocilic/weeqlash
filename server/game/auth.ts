@@ -150,6 +150,9 @@ export async function createUser({
   if (!password || password.length < 8) {
     return { error: 'Password must be at least 8 characters' };
   }
+  if (password.length > 128) {
+    return { error: 'Password must not exceed 128 characters' };
+  }
 
   const now = Date.now();
 
@@ -169,12 +172,21 @@ export async function createUser({
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const confirmToken = crypto.randomBytes(32).toString('hex');
+  const confirmTokenExpires = now + 24 * 60 * 60 * 1000;
 
   const stmt = db.prepare(`
-    INSERT INTO users (username, email, password_hash, confirmation_token, created_at, email_confirmed, games_played, games_won)
-    VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+    INSERT INTO users (username, email, password_hash, confirmation_token, confirmation_token_expires, created_at, email_confirmed, games_played, games_won)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
   `);
-  const result = stmt.run(username, email, passwordHash, confirmToken, now, autoConfirm ? 1 : 0);
+  const result = stmt.run(
+    username,
+    email,
+    passwordHash,
+    confirmToken,
+    confirmTokenExpires,
+    now,
+    autoConfirm ? 1 : 0,
+  );
 
   return {
     ok: true,
@@ -285,11 +297,13 @@ export function confirmEmail(token: string) {
   if (!db) {
     throw new Error('Database not initialized');
   }
-  const user = db.prepare('SELECT id FROM users WHERE confirmation_token = ?').get(token) as
-    | { id: number }
-    | undefined;
+  const user = db
+    .prepare(
+      'SELECT id FROM users WHERE confirmation_token = ? AND (confirmation_token_expires IS NULL OR confirmation_token_expires > ?)',
+    )
+    .get(token, Date.now()) as { id: number } | undefined;
   if (!user) {
-    return { error: 'Invalid confirmation token' };
+    return { error: 'Invalid or expired confirmation token' };
   }
   db.prepare('UPDATE users SET email_confirmed = 1, confirmation_token = NULL WHERE id = ?').run(
     user.id,
@@ -362,7 +376,10 @@ export function resendConfirmation(userId: number) {
   }
 
   const confirmToken = crypto.randomBytes(32).toString('hex');
-  db.prepare('UPDATE users SET confirmation_token = ? WHERE id = ?').run(confirmToken, userId);
+  const confirmTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+  db.prepare(
+    'UPDATE users SET confirmation_token = ?, confirmation_token_expires = ? WHERE id = ?',
+  ).run(confirmToken, confirmTokenExpires, userId);
   return { ok: true, confirmToken };
 }
 

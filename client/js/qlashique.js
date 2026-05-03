@@ -15,12 +15,10 @@ let qlasPlayers = [{ name: '' }, { name: '' }];
 let qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
 let qlasScore = 0;
 let qlasCurrentQ = null;
-let _qlasQIdx = 0;
 let qlasTimerTotal = 5;
 let qlasRing = null; // CountdownRing, lazily created on first qlasStartTimer
 let qlasGuessingActive = false;
 let qlasLastAnswerIdx = -1;
-let _qlasToken = null;
 let qlasLiveHistory = [];
 let qlasMatchStart = null;
 let qlasStreak = [0, 0];
@@ -163,7 +161,6 @@ export function qlasRenderQuestion(q, idx) {
     qlasMatchStart = Date.now();
   }
   qlasCurrentQ = q;
-  _qlasQIdx = idx;
   renderQuestion(
     {
       questionEl: qEl('qlas-question'),
@@ -783,7 +780,7 @@ export function initQlashique(socket) {
     qlasPlayers = [{ name: '' }, { name: '' }];
     qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
     qlasScore = 0;
-    _qlasToken = null;
+
     qlasGuessingActive = false;
     qlasLiveHistory = [];
     qlasActivePlayerIdx = null;
@@ -814,7 +811,7 @@ export function initQlashique(socket) {
         return;
       }
       qlasCode = res.code;
-      _qlasToken = res.token;
+
       qlasMyIdx = 0;
       qlasPlayers[0].name = playerName;
       qEl('qlas-waiting-label').textContent = 'Waiting for opponent…';
@@ -844,7 +841,7 @@ export function initQlashique(socket) {
         showError(res.error);
         return;
       }
-      _qlasToken = res.token;
+
       qlasMyIdx = res.myIdx;
       qlasPlayers[0].name = res.players[0]?.name || '';
       qlasPlayers[1].name = res.players[1]?.name || '';

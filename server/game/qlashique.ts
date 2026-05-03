@@ -148,7 +148,10 @@ export function applyOutcome(
   if (choice === 'attack') {
     state.players[opponentIdx].hp -= score;
   } else {
-    state.players[actingPlayerIdx].hp += 2;
+    state.players[actingPlayerIdx].hp = Math.min(
+      state.players[actingPlayerIdx].hp + 2,
+      QLAS_DEFAULT_HP,
+    );
   }
 
   state.phase = PHASE.DECISION;

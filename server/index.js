@@ -302,7 +302,7 @@ initDb();
 initAuthDb();
 
 // Parse JSON bodies
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Fail-closed gate: if Redis is not ready, auth/admin cannot read/write sessions.
 // Applied before auth and admin routes so 503 lands on the HTTP boundary,

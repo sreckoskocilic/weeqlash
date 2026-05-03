@@ -53,7 +53,7 @@ Each peg starts with **3 HP** and never heals. Lose all three and the peg is gon
 Four corners. Four flags. One throne.
 
 - Each corner flag needs **3 correct answers** to capture
-- Capture all four → you win, your legacy is secured, your enemies are invited to reflect
+- Capture any flag → you win, your legacy is secured, your enemies are invited to reflect
 
 ---
 
@@ -67,7 +67,7 @@ A head-to-head knife fight over a single question queue. No board, no pegs, no m
 
 ### How a turn works
 
-You get a batch of questions under a timer that **starts at 5 seconds and grows by 3 each turn** (cap 25). Your running **score** for the turn goes up +1 per correct answer and down −1 per miss. When you end the turn:
+You get a batch of questions under a timer that **starts at 5 seconds and grows by 3 every round** (2 turns = 1 round, cap 25s). Your running **score** for the turn goes up +1 per correct answer and down −1 per miss. When you end the turn:
 
 | Score | What happens                                                  |
 | ----- | ------------------------------------------------------------- |
