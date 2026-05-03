@@ -1,9 +1,11 @@
 services:
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - '127.0.0.1:3000:3000'
     env_file:
       - .env
     environment:
@@ -15,8 +17,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./server/questions.enc:/app/questions.enc:ro
-      - ./data:/app/data
+      - ./server/questions.enc:/app/server/questions.enc:ro
+      - ./data:/app/server/data
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
@@ -31,7 +33,7 @@ services:
     volumes:
       - ./data/redis:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
