@@ -26,7 +26,8 @@ export function initAuthDb() {
        created_at INTEGER NOT NULL,
        last_login INTEGER,
        games_played INTEGER NOT NULL DEFAULT 0,
-       games_won INTEGER NOT NULL DEFAULT 0
+       games_won INTEGER NOT NULL DEFAULT 0,
+       confirmation_token_expires INTEGER
      );
 
     CREATE TABLE IF NOT EXISTS user_stats (
