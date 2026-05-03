@@ -246,45 +246,53 @@ router.get('/users', (_req, res) => {
   res.send(renderHTML('Users', content));
 });
 
-router.post('/users/toggle-admin', express.urlencoded({ extended: true }), (req, res) => {
-  const id = parseId(req.body.id);
-  if (id === null) {
-    return badRequest(res, 'Invalid user id.');
-  }
-  const flag = req.body.is_admin === '1' || req.body.is_admin === 1 ? 1 : 0;
-  const db = getDb();
-  if (!db) {
-    return badRequest(res, 'Database unavailable.');
-  }
-  if (flag === 0) {
-    if (req.session.userId === id) {
-      return badRequest(res, 'You cannot remove admin from the account you are signed in as.');
+router.post(
+  '/users/toggle-admin',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req, res) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
     }
-    const adminCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE is_admin = 1').get().c;
-    if (adminCount <= 1) {
-      return badRequest(res, 'Cannot remove the last remaining admin.');
+    const flag = req.body.is_admin === '1' || req.body.is_admin === 1 ? 1 : 0;
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
     }
-  }
-  db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(flag, id);
-  res.redirect('/admin/users');
-});
+    if (flag === 0) {
+      if (req.session.userId === id) {
+        return badRequest(res, 'You cannot remove admin from the account you are signed in as.');
+      }
+      const adminCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE is_admin = 1').get().c;
+      if (adminCount <= 1) {
+        return badRequest(res, 'Cannot remove the last remaining admin.');
+      }
+    }
+    db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(flag, id);
+    res.redirect('/admin/users');
+  },
+);
 
-router.post('/users/toggle-block', express.urlencoded({ extended: true }), (req, res) => {
-  const id = parseId(req.body.id);
-  if (id === null) {
-    return badRequest(res, 'Invalid user id.');
-  }
-  const flag = req.body.is_blocked === '1' || req.body.is_blocked === 1 ? 1 : 0;
-  const db = getDb();
-  if (!db) {
-    return badRequest(res, 'Database unavailable.');
-  }
-  if (flag === 1 && req.session.userId === id) {
-    return badRequest(res, 'You cannot block the account you are signed in as.');
-  }
-  db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(flag, id);
-  res.redirect('/admin/users');
-});
+router.post(
+  '/users/toggle-block',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req, res) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const flag = req.body.is_blocked === '1' || req.body.is_blocked === 1 ? 1 : 0;
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    if (flag === 1 && req.session.userId === id) {
+      return badRequest(res, 'You cannot block the account you are signed in as.');
+    }
+    db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(flag, id);
+    res.redirect('/admin/users');
+  },
+);
 
 // ========== USER DETAIL PAGE ==========
 router.get('/users/:id', (req, res) => {
@@ -487,7 +495,7 @@ router.get('/users/:id', (req, res) => {
   res.send(renderHTML('User: ' + esc(user.username), content));
 });
 
-router.post('/users/update', express.urlencoded({ extended: true }), (req, res) => {
+router.post('/users/update', express.urlencoded({ extended: true, limit: '1mb' }), (req, res) => {
   const id = parseId(req.body.id);
   if (id === null) {
     return badRequest(res, 'Invalid user id.');
@@ -509,7 +517,7 @@ router.post('/users/update', express.urlencoded({ extended: true }), (req, res) 
   res.redirect(`/admin/users/${id}`);
 });
 
-router.post('/users/delete', express.urlencoded({ extended: true }), (req, res) => {
+router.post('/users/delete', express.urlencoded({ extended: true, limit: '1mb' }), (req, res) => {
   const userId = parseId(req.body.id);
   if (userId === null) {
     return badRequest(res, 'Invalid user id.');
@@ -539,66 +547,78 @@ router.post('/users/delete', express.urlencoded({ extended: true }), (req, res) 
   res.redirect('/admin/users');
 });
 
-router.post('/users/reset-stats', express.urlencoded({ extended: true }), (req, res) => {
-  const id = parseId(req.body.id);
-  if (id === null) {
-    return badRequest(res, 'Invalid user id.');
-  }
-  const db = getDb();
-  db.transaction(() => {
-    db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(id);
-    db.prepare('UPDATE users SET games_played = 0, games_won = 0 WHERE id = ?').run(id);
-  })();
-  res.redirect(`/admin/users/${id}`);
-});
-
-router.post('/users/reset-password', express.urlencoded({ extended: true }), (req, res) => {
-  const userId = parseId(req.body.id);
-  if (userId === null) {
-    return badRequest(res, 'Invalid user id.');
-  }
-  const db = getDb();
-  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
-  if (!user) {
-    return res.redirect('/admin/users');
-  }
-  const token = crypto.randomBytes(32).toString('hex');
-  const expires = Date.now() + 3600000; // 1 hour
-  db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(
-    token,
-    expires,
-    userId,
-  );
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  const resetLink = `${clientUrl}/?reset=${token}`;
-  req.session.resetLinkFlash = { userId, url: resetLink, expiresAt: Date.now() + FLASH_TTL_MS };
-  req.session.save(() => {
-    console.log(`[admin] Generated password reset link for user id=${userId}`);
-    res.redirect(`/admin/users/${userId}`);
-  });
-});
-
-router.post('/users/resend-email', express.urlencoded({ extended: true }), (req, res) => {
-  const id = parseId(req.body.id);
-  if (id === null) {
-    return badRequest(res, 'Invalid user id.');
-  }
-  const result = resendConfirmation(id);
-  if (result.error) {
-    return badRequest(res, result.error);
-  }
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-  const confirmLink = `${clientUrl}/?confirm=${result.confirmToken}`;
-  req.session.confirmLinkFlash = {
-    userId: id,
-    url: confirmLink,
-    expiresAt: Date.now() + FLASH_TTL_MS,
-  };
-  req.session.save(() => {
-    console.log(`[admin] Generated email confirmation link for user id=${id}`);
+router.post(
+  '/users/reset-stats',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req, res) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const db = getDb();
+    db.transaction(() => {
+      db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(id);
+      db.prepare('UPDATE users SET games_played = 0, games_won = 0 WHERE id = ?').run(id);
+    })();
     res.redirect(`/admin/users/${id}`);
-  });
-});
+  },
+);
+
+router.post(
+  '/users/reset-password',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req, res) => {
+    const userId = parseId(req.body.id);
+    if (userId === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const db = getDb();
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+    if (!user) {
+      return res.redirect('/admin/users');
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 3600000; // 1 hour
+    db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(
+      token,
+      expires,
+      userId,
+    );
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const resetLink = `${clientUrl}/?reset=${token}`;
+    req.session.resetLinkFlash = { userId, url: resetLink, expiresAt: Date.now() + FLASH_TTL_MS };
+    req.session.save(() => {
+      console.log(`[admin] Generated password reset link for user id=${userId} (token redacted)`);
+      res.redirect(`/admin/users/${userId}`);
+    });
+  },
+);
+
+router.post(
+  '/users/resend-email',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req, res) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const result = resendConfirmation(id);
+    if (result.error) {
+      return badRequest(res, result.error);
+    }
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const confirmLink = `${clientUrl}/?confirm=${result.confirmToken}`;
+    req.session.confirmLinkFlash = {
+      userId: id,
+      url: confirmLink,
+      expiresAt: Date.now() + FLASH_TTL_MS,
+    };
+    req.session.save(() => {
+      console.log(`[admin] Generated email confirmation link for user id=${id}`);
+      res.redirect(`/admin/users/${id}`);
+    });
+  },
+);
 
 // ========== STATISTICS PAGE ==========
 router.get('/stats', (_req, res) => {

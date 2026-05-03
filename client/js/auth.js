@@ -2,8 +2,7 @@
 // AUTHENTICATION
 // ============================================================
 
-import { el, $ } from './dom.js';
-import { showError } from './dom.js';
+import { $ } from './dom.js';
 import { showScreen } from './dom.js';
 import { state } from './state.js';
 import { applyAuthState, showView } from './nav.js';

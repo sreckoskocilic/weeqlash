@@ -479,7 +479,7 @@ export function setupBoardSocketHandlers(sock) {
 export function setupBoardGameHandlers(sock) {
   el('btn-create').addEventListener('click', () => {
     const playerName = getPlayerName();
-    if (!playerName) return;
+    if (!playerName) {return;}
     if (state.setupEnabledCats.length === 0) {
       return showError('Select at least one category.');
     }
@@ -493,7 +493,7 @@ export function setupBoardGameHandlers(sock) {
         enabledCats: state.setupEnabledCats,
       },
       ({ error, code, players, token }) => {
-        if (error) return showError(error);
+        if (error) {return showError(error);}
         const me = players.find((p) => p.id === state.myId);
         if (me) {
           el('player-name').value = me.name;
@@ -516,7 +516,7 @@ export function setupBoardGameHandlers(sock) {
 
   el('btn-join').addEventListener('click', () => {
     const playerName = getPlayerName();
-    if (!playerName) return;
+    if (!playerName) {return;}
     const code = el('join-code')
       .value.trim()
       .toUpperCase()
@@ -525,7 +525,7 @@ export function setupBoardGameHandlers(sock) {
       return showError('Room code must be 5 characters.');
     }
     sock.emit('room:join', { code, playerName }, ({ error, players, settings, token }) => {
-      if (error) return showError(error);
+      if (error) {return showError(error);}
       const me = players.find((p) => p.id === state.myId);
       if (me) {
         el('player-name').value = me.name;
@@ -543,12 +543,12 @@ export function setupBoardGameHandlers(sock) {
 
   el('btn-start').addEventListener('click', () => {
     sock.emit('room:start', { code: state.myRoom.code }, ({ error }) => {
-      if (error) showError(error);
+      if (error) {showError(error);}
     });
   });
 
   el('btn-copy-code').addEventListener('click', () => {
-    if (!state.myRoom?.code) return;
+    if (!state.myRoom?.code) {return;}
     navigator.clipboard
       .writeText(state.myRoom.code)
       .then(() => {

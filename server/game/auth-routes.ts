@@ -79,8 +79,7 @@ function applyAuthRateLimit(req: Request, res: Response): boolean {
 // Emits 'auth:kicked' so the client can show feedback and redirect before the
 // socket hangs up. Fire-and-forget: failures here don't affect login response.
 function kickSocketsForSid(io: IoServer, sid: string): void {
-  for (const [, socket] of io.of('/').sockets) {
-    // socket.request.sessionID is set by express-session via io.engine.use(sessionMiddleware)
+  for (const [, socket] of Array.from(io.of('/').sockets)) {
     const socketSid = (socket.request as { sessionID?: string }).sessionID;
     if (socketSid === sid) {
       socket.emit('auth:kicked', { reason: 'logged_in_elsewhere' });
@@ -112,6 +111,9 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
+    if (password.length > 128) {
+      return res.status(400).json({ error: 'Password must not exceed 128 characters' });
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
@@ -141,6 +143,9 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
+    }
+    if (password.length > 128) {
+      return res.status(400).json({ error: 'Password must not exceed 128 characters' });
     }
 
     const result = await authenticateUser(username, password);
@@ -332,6 +337,9 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    if (password.length > 128) {
+      return res.status(400).json({ error: 'Password must not exceed 128 characters' });
     }
 
     const result = await resetPassword(token, password);

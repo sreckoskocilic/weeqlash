@@ -735,7 +735,7 @@ export function applyTurn(
       events.push({ type: 'combat_hit', defPegId, hp: defPeg.hp });
     }
 
-    const defEliminated = defPeg !== null && defPeg.hp === 0;
+    const defEliminated = defPeg !== null && defPeg.hp <= 0;
     if (defEliminated) {
       eliminatePeg(state, defPegId as string);
       events.push({ type: 'peg_eliminated', pegId: defPegId as string });

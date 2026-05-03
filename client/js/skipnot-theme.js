@@ -10,7 +10,7 @@ function _getStored() {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     return KNOWN.has(v) ? v : 'amber';
-  } catch (_) {
+  } catch {
     return 'amber';
   }
 }
@@ -18,11 +18,15 @@ function _getStored() {
 function _setStored(theme) {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
-  } catch (_) {}
+  } catch {
+    /* persist failure ok */
+  }
 }
 
 function _applyTheme(theme) {
-  if (!KNOWN.has(theme)) theme = 'amber';
+  if (!KNOWN.has(theme)) {
+    theme = 'amber';
+  }
   if (theme === 'amber') {
     document.body.removeAttribute('data-game-theme');
   } else {
@@ -44,9 +48,13 @@ export function initSkipnotTheme() {
   document.querySelectorAll('.game-theme-picker').forEach((picker) => {
     picker.addEventListener('click', (e) => {
       const btn = e.target.closest('.skp');
-      if (!btn) return;
+      if (!btn) {
+        return;
+      }
       const theme = btn.dataset.theme;
-      if (!KNOWN.has(theme)) return;
+      if (!KNOWN.has(theme)) {
+        return;
+      }
       _applyTheme(theme);
       _setStored(theme);
     });

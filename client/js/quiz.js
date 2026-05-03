@@ -231,7 +231,7 @@ export function showLeaderboard(result) {
       document.getElementById('screen-leaderboard').classList.remove('show');
       document.getElementById('screen-connect').style.display = '';
       leaderboardLoaded = false;
-      import('./leaderboard.js').then(({ loadMainLeaderboard }) => loadMainLeaderboard());
+      import('./leaderboard.js').then((mod) => mod.loadMainLeaderboard());
       quizState.run = null;
       clearInterval(quizState.timerInterval);
       clearInterval(quizState.gameTimerInterval);
@@ -261,8 +261,8 @@ export function loadMainLeaderboard() {
     return;
   }
   leaderboardLoaded = true;
-  import('./leaderboard.js').then(({ loadPanelLeaderboard }) => {
-    loadPanelLeaderboard('triviandom', 'triv-lb-rows');
+  import('./leaderboard.js').then((mod) => {
+    mod.loadPanelLeaderboard('triviandom', 'triv-lb-rows');
   });
 }
 
@@ -278,6 +278,8 @@ export function initQuiz() {
     el('btn-show-triv-lb').textContent = visible
       ? 'Show Triviandom Leaderboard'
       : 'Hide Leaderboard';
-    if (!visible) loadPanelLeaderboard('triviandom', 'triv-lb-rows');
+    if (!visible) {
+      loadPanelLeaderboard('triviandom', 'triv-lb-rows');
+    }
   });
 }

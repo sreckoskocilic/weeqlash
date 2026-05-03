@@ -58,6 +58,22 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: '003_add_confirmation_token_expires',
+    up: (db) => {
+      // On fresh DBs, users table doesn't exist yet (created by initAuthDb after
+      // migrations). The CREATE TABLE in auth.ts already includes the column.
+      const tables = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        .all();
+      if (tables.length === 0) return;
+      const cols = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
+      if (cols.some((c) => c.name === 'confirmation_token_expires')) {
+        return;
+      }
+      db.exec('ALTER TABLE users ADD COLUMN confirmation_token_expires INTEGER');
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {

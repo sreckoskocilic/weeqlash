@@ -5,7 +5,7 @@
 // shows a leaderboard (panel toggles, gameover screens, post-submit) uses
 // `renderLeaderboardRows` — same DOM, same styling, everywhere.
 
-import { el, sanitize } from './dom.js';
+import { sanitize } from './dom.js';
 import { getSocket } from './socket.js';
 
 export function buildLeaderboardRow(entry, rankNum) {
