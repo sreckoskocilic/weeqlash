@@ -77,10 +77,6 @@ You get a batch of questions under a timer that **starts at 5 seconds and grows 
 | `= 1` | **Automatic attack** for 1 damage.                            |
 | `≥ 2` | **Choose**: `attack` (deal `score` damage) or `heal` (+2 HP). |
 
-### Instant win
-
-Clear **10+ correct answers in a single turn with zero misses** (perfect streak ≥ 10) and you win on the spot. Flawless victory. Insufferable bragging rights.
-
 ---
 
 ## 3. SkipNoT — solo 20-question gauntlet

@@ -59,7 +59,6 @@ import {
   processAnswer,
   endTurn,
   applyOutcome,
-  checkInstantWin,
   checkGameOver,
   QLAS_DEFAULT_HP,
   PHASE as QLAS_PHASE,
@@ -1570,26 +1569,6 @@ io.on('connection', (socket) => {
       turn: room.state.turnNumber,
     };
     io.to(code).emit('qlashique:answer_result', answerPayload);
-
-    if (checkInstantWin(room.state)) {
-      if (room.qlasTimer) {
-        clearTimeout(room.qlasTimer);
-        room.qlasTimer = null;
-      }
-      room.qlasTimerExpired = true;
-      room.state.phase = QLAS_PHASE.GAME_OVER;
-      for (const p of room.players) {
-        unregisterActiveSocket(p.id);
-      }
-      _saveQlasResult(room, player.index);
-      io.to(code).emit('qlashique:game_over', {
-        winnerIdx: player.index,
-        reason: 'instant_win',
-        history: room.qlasHistory ?? [],
-        stats: room.qlasStats ?? null,
-      });
-      return cb({ ok: true });
-    }
 
     room.questionIdx++;
     if (!room.qlasTimerExpired) {

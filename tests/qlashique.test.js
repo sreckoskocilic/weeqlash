@@ -5,7 +5,6 @@ import {
   processAnswer,
   endTurn,
   applyOutcome,
-  checkInstantWin,
   checkGameOver,
   PHASE,
 } from '../server/game/qlashique.ts';
@@ -216,36 +215,6 @@ describe('applyOutcome', () => {
 });
 
 // ---------------------------------------------------------------------------
-// checkInstantWin
-// ---------------------------------------------------------------------------
-
-describe('checkInstantWin', () => {
-  it('returns true when score >= 10 with no wrong answers', () => {
-    const s = createQlasGame();
-    s.phase = PHASE.GUESSING;
-    s.currentScore = 10;
-    s.correctStreak = 10;
-    expect(checkInstantWin(s)).toBe(true);
-  });
-
-  it('returns false when score >= 10 but has wrong answers', () => {
-    const s = createQlasGame();
-    s.phase = PHASE.GUESSING;
-    s.currentScore = 10;
-    s.correctStreak = 8; // had a wrong answer somewhere
-    expect(checkInstantWin(s)).toBe(false);
-  });
-
-  it('returns false when score < 10 even with no wrong answers', () => {
-    const s = createQlasGame();
-    s.phase = PHASE.GUESSING;
-    s.currentScore = 9;
-    s.correctStreak = 9;
-    expect(checkInstantWin(s)).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // checkGameOver
 // ---------------------------------------------------------------------------
 
@@ -302,23 +271,7 @@ describe('full turn flow', () => {
 // Edge Cases
 // ---------------------------------------------------------------------------
 
-describe('edge cases: instant win and self-destruct', () => {
-  it('instant win triggers at exactly 10 correct', () => {
-    const s = createQlasGame();
-    s.phase = PHASE.GUESSING;
-    s.currentScore = 10;
-    s.correctStreak = 10;
-    expect(checkInstantWin(s)).toBe(true);
-  });
-
-  it('instant win does not trigger with wrong answers', () => {
-    const s = createQlasGame();
-    s.phase = PHASE.GUESSING;
-    s.currentScore = 10;
-    s.correctStreak = 9; // One wrong answer
-    expect(checkInstantWin(s)).toBe(false);
-  });
-
+describe('edge cases: self-destruct', () => {
   it('self-destruct on negative score', () => {
     const s = createQlasGame();
     s.phase = PHASE.GUESSING;

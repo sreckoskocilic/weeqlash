@@ -168,15 +168,6 @@ export function applyOutcome(
 }
 
 // ---------------------------------------------------------------------------
-// Public: check instant win condition
-// Must be called at end of guessing phase, before endTurn() mutates state.
-// ---------------------------------------------------------------------------
-
-export function checkInstantWin(state: QlashiqueState): boolean {
-  return state.currentScore >= 10 && state.correctStreak === state.currentScore;
-}
-
-// ---------------------------------------------------------------------------
 // Public: check if the game is over (any player at or below 0 HP)
 // Returns winnerIdx (0 or 1) or -1 if game continues
 // ---------------------------------------------------------------------------

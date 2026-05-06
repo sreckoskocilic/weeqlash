@@ -740,7 +740,6 @@ export function initQlashique(socket) {
     qEl('qlas-winner-text').textContent = isWinner ? '🏆 YOU WIN!' : winnerName + ' WINS';
     const reasonMap = {
       hp: 'Player defeated (0 HP)',
-      instant_win: 'perfect streak',
       self_destruct: 'self-destruct',
       disconnect: 'disconnect',
     };
