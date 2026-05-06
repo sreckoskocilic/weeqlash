@@ -517,8 +517,15 @@ export function initQlashique(socket) {
     }
   });
 
+  socket.on('room:full', ({ maxHp }) => {
+    if (maxHp !== undefined) {
+      qlasMaxHp = maxHp;
+      qlasHp = [maxHp, maxHp];
+    }
+  });
+
   socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds, maxHp }) => {
-    if (maxHp) {
+    if (maxHp !== undefined) {
       qlasMaxHp = maxHp;
     }
     qlasStopTimer();

@@ -660,6 +660,7 @@ io.on('connection', (socket) => {
     if (room.players.length === room.settings.playerCount) {
       io.to(code).emit('room:full', {
         players: room.players.map(publicPlayer),
+        maxHp: room.qlasHP || undefined,
       });
       if (room.mode === 'qlashique' && !room.started) {
         _initQlasRoomState(room);
