@@ -87,9 +87,9 @@ export function initLogin() {
     if (data.error) {
       return showAuthMessage(data.error, true);
     }
-    showUserBar(data.user);
-    // Send userId directly to socket
-    socket.emit('auth:setUserId', data.user.id);
+    socket.emit('auth:setUserId', data.user.id, () => {
+      showUserBar(data.user);
+    });
   });
 
   $('login-password').addEventListener('keydown', (e) => {

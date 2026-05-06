@@ -9,7 +9,9 @@ let client: RedisClientType | null = null;
 let ready = false;
 
 export function initRedis(): RedisClientType {
-  if (client) {return client;}
+  if (client) {
+    return client;
+  }
 
   const url = process.env.REDIS_URL;
   if (!url) {
@@ -34,9 +36,8 @@ export function initRedis(): RedisClientType {
     ready = false;
   });
 
-  // Start the connection; connect() resolves on first 'ready'.
   client.connect().catch((err) => {
-    console.error('[redis] initial connect failed:', err.message);
+    console.error('[redis] INITIAL CONNECT FAILED — auth/sessions will not work:', err.message);
   });
 
   return client;
@@ -56,7 +57,9 @@ export function isRedisReady(): boolean {
 export function waitForRedisReady(timeoutMs = 10_000): Promise<void> {
   const c = getRedisClient();
   return new Promise((resolve, reject) => {
-    if (ready) {return resolve();}
+    if (ready) {
+      return resolve();
+    }
     const timer = setTimeout(() => {
       reject(new Error(`Redis not ready within ${timeoutMs}ms`));
     }, timeoutMs);

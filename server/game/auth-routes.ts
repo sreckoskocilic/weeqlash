@@ -124,11 +124,18 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     }
 
     const confirmUrl = `${CLIENT_URL}?confirm=${result.confirmToken}`;
-    await sendEmail(
-      email,
-      'Confirm your Weeqlash account',
-      `<h2>Welcome to Weeqlash!</h2><p>Click the link below to confirm your email:</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`,
-    );
+    try {
+      await sendEmail(
+        email,
+        'Confirm your Weeqlash account',
+        `<h2>Welcome to Weeqlash!</h2><p>Click the link below to confirm your email:</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`,
+      );
+    } catch (err) {
+      console.error('[auth] registration email failed:', (err as Error).message);
+      return res
+        .status(500)
+        .json({ error: 'Account created but confirmation email failed. Try resending.' });
+    }
 
     res.json({ ok: true, message: 'Check your email to confirm your account' });
   });

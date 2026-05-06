@@ -31,7 +31,8 @@ export interface QlashiqueState {
 // Public: create initial game state
 // ---------------------------------------------------------------------------
 
-export const QLAS_DEFAULT_HP = 30;
+export const QLAS_DEFAULT_HP = 15;
+export const QLAS_HP_OPTIONS = [10, 15, 20, 30] as const;
 
 export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
   return {

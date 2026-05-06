@@ -61,6 +61,7 @@ import {
   applyOutcome,
   checkGameOver,
   QLAS_DEFAULT_HP,
+  QLAS_HP_OPTIONS,
   PHASE as QLAS_PHASE,
 } from './game/qlashique.ts';
 import {
@@ -541,7 +542,8 @@ io.on('connection', (socket) => {
   // Client hint after login; authoritative userId always comes from the session.
   // The socket was usually established before login, so the snapshot on
   // socket.request.session is stale — reload from the store first.
-  socket.on('auth:setUserId', (_clientUserId) => {
+  socket.on('auth:setUserId', (_clientUserId, cb) => {
+    const ack = typeof cb === 'function' ? cb : () => {};
     const sess = socket.request.session;
     const applyUserId = (userId) => {
       socket.userId = userId;
@@ -561,8 +563,12 @@ io.on('connection', (socket) => {
     if (!reload) {
       if (sess?.userId) {
         applyUserId(sess.userId);
-      } else if (DEBUG) {
-        console.log('[auth] auth:setUserId rejected — no session available');
+        ack({ ok: true });
+      } else {
+        if (DEBUG) {
+          console.log('[auth] auth:setUserId rejected — no session available');
+        }
+        ack({ error: 'no session' });
       }
       return;
     }
@@ -572,6 +578,7 @@ io.on('connection', (socket) => {
         if (DEBUG) {
           console.log('[auth] auth:setUserId reload error:', err.message);
         }
+        ack({ error: 'reload failed' });
         return;
       }
       const sessionUserId = socket.request.session?.userId;
@@ -579,9 +586,11 @@ io.on('connection', (socket) => {
         if (DEBUG) {
           console.log('[auth] auth:setUserId rejected — session has no userId after reload');
         }
+        ack({ error: 'no userId' });
         return;
       }
       applyUserId(sessionUserId);
+      ack({ ok: true });
     });
   });
 
@@ -1422,7 +1431,7 @@ io.on('connection', (socket) => {
 
   // --- Qlashique ---
 
-  socket.on('qlashique:create_room', ({ playerName } = {}, cb) => {
+  socket.on('qlashique:create_room', ({ playerName, hp } = {}, cb) => {
     if (!socket.userId) {
       return cb({ error: 'Login required' });
     }
@@ -1432,6 +1441,7 @@ io.on('connection', (socket) => {
     quizRuns.delete(socket.id);
     const userId = socket.userId || socket.pendingUserId;
     const room = createQlasRoom();
+    room.qlasHP = QLAS_HP_OPTIONS.includes(hp) ? hp : QLAS_DEFAULT_HP;
     const player = joinRoom(room.code, socket.id, playerName, userId || null);
     if (player.error) {
       return cb(player);
@@ -1489,11 +1499,15 @@ io.on('connection', (socket) => {
     room.qlasTimerExpired = false;
     room.qlasTimer = setTimeout(() => {
       room.qlasTimer = null;
-      if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
-        return;
+      try {
+        if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
+          return;
+        }
+        room.qlasTimerExpired = true;
+        io.to(code).emit('qlashique:timer_expired');
+      } catch (err) {
+        console.error('[qlashique] timer callback error:', err);
       }
-      room.qlasTimerExpired = true;
-      io.to(code).emit('qlashique:timer_expired');
     }, _gracedMs);
   });
 
@@ -1925,7 +1939,7 @@ function _saveQlasResult(room, winnerIdx) {
 function _initQlasRoomState(room) {
   room.started = true;
   room.startedAt = Date.now();
-  room.state = createQlasGame(_testHPOverride ?? QLAS_DEFAULT_HP);
+  room.state = createQlasGame(_testHPOverride ?? room.qlasHP ?? QLAS_DEFAULT_HP);
   _testHPOverride = null;
   room.qlasStats = [
     { answered: 0, correct: 0 },
@@ -1946,6 +1960,7 @@ function _emitQlasTurnStart(ioServer, code, room) {
   ioServer.to(code).emit('qlashique:turn_start', {
     playerIdx: idx,
     timerSeconds,
+    maxHp: room.state.maxHp,
   });
 }
 

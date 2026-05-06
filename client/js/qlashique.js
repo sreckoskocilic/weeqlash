@@ -5,13 +5,14 @@
 import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
-import { QLAS_DEFAULT_HP } from './constants.js';
+import { QLAS_DEFAULT_HP, QLAS_HP_OPTIONS } from './constants.js';
 
 // State
 let qlasCode = null;
 let qlasMyIdx = null;
 let qlasIsHost = false;
 let qlasPlayers = [{ name: '' }, { name: '' }];
+let qlasMaxHp = QLAS_DEFAULT_HP;
 let qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
 let qlasScore = 0;
 let qlasCurrentQ = null;
@@ -39,11 +40,11 @@ export function qlasShowPhase(phase) {
   qEl('qlas-phase-' + phase).style.display = '';
 }
 
-export function qlasSetHP(playerIdx, hp, maxHp = QLAS_DEFAULT_HP) {
-  hp = Math.max(0, Math.min(maxHp, hp));
+export function qlasSetHP(playerIdx, hp) {
+  hp = Math.max(0, Math.min(qlasMaxHp, hp));
   qlasHp[playerIdx] = hp;
   qEl('qlas-p' + playerIdx + 'hp').textContent = hp;
-  qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / maxHp) * 100 + '%';
+  qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / qlasMaxHp) * 100 + '%';
 }
 
 export function qlasSetScore(score) {
@@ -516,7 +517,10 @@ export function initQlashique(socket) {
     }
   });
 
-  socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds }) => {
+  socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds, maxHp }) => {
+    if (maxHp) {
+      qlasMaxHp = maxHp;
+    }
     qlasStopTimer();
     qlasScore = 0;
     qlasActivePlayerIdx = playerIdx;
@@ -777,7 +781,7 @@ export function initQlashique(socket) {
 
   function qlasResetForNewMatch() {
     qlasPlayers = [{ name: '' }, { name: '' }];
-    qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
+    qlasHp = [qlasMaxHp, qlasMaxHp];
     qlasScore = 0;
 
     qlasGuessingActive = false;
@@ -794,9 +798,29 @@ export function initQlashique(socket) {
     });
   }
 
+  const hpContainer = el('qlas-hp-selector');
+  const label = document.createElement('span');
+  label.className = 'qlas-hp-label';
+  label.textContent = 'HP';
+  hpContainer.appendChild(label);
+  for (const hp of QLAS_HP_OPTIONS) {
+    const btn = document.createElement('button');
+    btn.className = 'qlas-hp-opt' + (hp === QLAS_DEFAULT_HP ? ' selected' : '');
+    btn.type = 'button';
+    btn.dataset.hp = hp;
+    btn.textContent = hp;
+    btn.addEventListener('click', () => {
+      hpContainer.querySelectorAll('.qlas-hp-opt').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    hpContainer.appendChild(btn);
+  }
+
   el('btn-qlas-create').addEventListener('click', () => {
     qlasIsHost = true;
     qlasCode = null;
+    const hpSel = document.querySelector('.qlas-hp-opt.selected');
+    qlasMaxHp = hpSel ? Number(hpSel.dataset.hp) : QLAS_DEFAULT_HP;
     qlasResetForNewMatch();
 
     const playerName = getPlayerName();
@@ -804,7 +828,7 @@ export function initQlashique(socket) {
     qlasShowPhase('waiting');
     qEl('qlas-waiting-panel').style.display = '';
 
-    socket.emit('qlashique:create_room', { playerName }, (res) => {
+    socket.emit('qlashique:create_room', { playerName, hp: qlasMaxHp }, (res) => {
       if (res.error) {
         showError(res.error);
         return;
