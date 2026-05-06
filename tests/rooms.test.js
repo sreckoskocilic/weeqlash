@@ -181,6 +181,25 @@ describe('Rooms: removePlayerFromRoom', () => {
     expect(result.room).toBeUndefined();
     expect(result.player).toBeUndefined();
   });
+
+  it('preserves player.index after earlier player disconnects', () => {
+    const room = createRoom({});
+    joinRoom(room.code, 'socket-0', 'Alice', null);
+    joinRoom(room.code, 'socket-1', 'Bob', null);
+    expect(room.players[0].index).toBe(0);
+    expect(room.players[1].index).toBe(1);
+
+    removePlayerFromRoom('socket-0');
+    expect(room.players).toHaveLength(1);
+    expect(room.players[0].name).toBe('Bob');
+    expect(room.players[0].index).toBe(1);
+
+    // After player 0 disconnects, player 1 is at array position 0 but
+    // retains index=1. Lookups by .index must still work — this is the
+    // pattern recordGameStats relies on for correct winner/player attribution.
+    expect(room.players.find((p) => p.index === 0)).toBeUndefined();
+    expect(room.players.find((p) => p.index === 1)?.name).toBe('Bob');
+  });
 });
 
 describe('Rooms: reattachSocket', () => {
