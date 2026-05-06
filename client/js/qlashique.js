@@ -546,6 +546,8 @@ export function initQlashique(socket) {
     showScreen('screen-qlashique');
 
     qlasRenderPlayerInfo();
+    qlasSetHP(0, qlasHp[0]);
+    qlasSetHP(1, qlasHp[1]);
     [0, 1].forEach((i) => {
       qlasSetScoreOther(i, null);
     });

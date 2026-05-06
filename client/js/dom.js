@@ -73,25 +73,3 @@ export function getPlayerName() {
   showError('');
   return state.currentUser.username;
 }
-
-// Predefined names for guest players (currently unused)
-const RANDOM_NAMES = [
-  'Qwizakk',
-  'PacMoan',
-  'EE-TEE',
-  'Issous',
-  'Sihirator',
-  'Bogamber',
-  'Dandalf',
-  'Burim',
-  'Kesko',
-  'Lepi',
-  'Aliya',
-  'Pcheko',
-  'Dnepr',
-  'nasmirglAna',
-];
-
-export function _getRandomName() {
-  return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
-}
