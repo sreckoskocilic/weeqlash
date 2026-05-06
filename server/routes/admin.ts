@@ -1,7 +1,20 @@
 import express from 'express';
+import crypto from 'crypto';
 import { getDb } from '../game/leaderboard.ts';
+import { resendConfirmation } from '../game/auth.ts';
 
 const router = express.Router();
+
+const FLASH_TTL_MS = 5 * 60_000;
+
+function parseId(raw: unknown): number | null {
+  const n = parseInt(String(raw), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function badRequest(res: express.Response, msg: string): void {
+  res.status(400).send(renderHTML('Bad Request', `<h1>Bad Request</h1><p>${esc(msg)}</p>`));
+}
 
 function esc(v: unknown): string {
   if (v === null || v === undefined) {
@@ -15,7 +28,6 @@ function esc(v: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-// Helper to render simple HTML
 function renderHTML(title: string, content: string, extra = ''): string {
   return `
 <!DOCTYPE html>
@@ -40,25 +52,27 @@ function renderHTML(title: string, content: string, extra = ''): string {
     .btn-primary { background: #d93939; color: #fff; }
     .btn-secondary { background: #2f3741; color: #bdb5b5; }
     .form-group { margin-bottom: 15px; }
-    .form-label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .form-input { width: 100%; padding: 8px; border: 1px solid #2f3741; border-radius: 4px; background: #0d1525; color: #fff; }
-    .form-textarea { width: 100%; height: 100px; padding: 8px; border: 1px solid #2f3741; border-radius: 4px; background: #0d1525; color: #fff; }
-    .alert { padding: 12px; margin-bottom: 15px; border-radius: 4px; }
-    .alert-success { background: #2f3741; color: #4ade80; border: 1px solid #16213e; }
-    .alert-error { background: #2f3741; color: #f87171; border: 1px solid #16213e; }
-    .alert-info { background: #2f3741; color: #60a5fa; border: 1px solid #16213e; }
+    label { display: block; margin-bottom: 5px; color: #a4b2a0; }
+    input, select { padding: 10px; width: 100%; max-width: 300px; background: #1a1a2e; border: 1px solid #2f3741; color: #bdb5b5; border-radius: 4px; }
+    .card { background: #16213e; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .stat { display: inline-block; margin-right: 30px; }
+    .stat-value { font-size: 2em; color: #fff; font-weight: bold; }
+    .stat-label { color: #a4b2a0; font-size: 0.9em; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; }
+    .badge-success { background: #22c55e; color: #fff; }
+    .badge-danger { background: #ef4444; color: #fff; }
+    .badge-warning { background: #eab308; color: #fff; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
     .stat-card { background: #16213e; padding: 15px; border-radius: 8px; border: 1px solid #2f3741; }
-    .stat-value { font-size: 2rem; font-weight: bold; color: #60a5fa; }
-    .stat-label { font-size: 0.9rem; color: #bdb5b5; text-transform: uppercase; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
   <div class="nav">
-    <a href="/admin/">Dashboard</a>
-    <a href="/admin/users">Users</a>
-    <a href="/admin/stats">Statistics</a>
-    <a href="/admin/export">Export Data</a>
+    <a href="/admin/" class="${title === 'Dashboard' ? 'active' : ''}">Dashboard</a>
+    <a href="/admin/users" class="${title === 'Users' || title.startsWith('User:') ? 'active' : ''}">Users</a>
+    <a href="/admin/stats" class="${title === 'Statistics' ? 'active' : ''}">Statistics</a>
+    <a href="/admin/export" class="${title === 'Export' ? 'active' : ''}">Export Data</a>
+    <a href="/" style="float:right">← Back to Game</a>
   </div>
   ${content}
   ${extra}
@@ -69,18 +83,19 @@ function renderHTML(title: string, content: string, extra = ''): string {
 // Admin magic key — loaded once from env at startup
 const ADMIN_MAGIC_KEY = process.env.ADMIN_SECRET || '';
 
-// Rate limiting for failed admin access attempts: IP -> { count, windowStart, blockedUntil }
+// Rate limiting for failed admin access attempts
 const adminAttempts = new Map<
   string,
   { count: number; windowStart: number; blockedUntil: number }
 >();
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 60_000; // 1 minute window
-const BLOCK_MS = 300_000; // 5 minute block after exceeding limit
+const WINDOW_MS = 60_000;
+const BLOCK_MS = 300_000;
 
 function recordFailedAttempt(ip: string): { blocked: boolean; retryAfter?: number } {
   const now = Date.now();
   const entry = adminAttempts.get(ip) ?? { count: 0, windowStart: now, blockedUntil: 0 };
+  adminAttempts.set(ip, entry);
 
   if (now < entry.blockedUntil) {
     return { blocked: true, retryAfter: Math.ceil((entry.blockedUntil - now) / 1000) };
@@ -94,67 +109,91 @@ function recordFailedAttempt(ip: string): { blocked: boolean; retryAfter?: numbe
   entry.count++;
   if (entry.count >= MAX_ATTEMPTS) {
     entry.blockedUntil = now + BLOCK_MS;
-    return { blocked: true };
-  }
-
-  return { blocked: false };
-}
-
-// Middleware to check admin magic key
-function checkAdminKey(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-): void {
-  const providedKey =
-    (Array.isArray(req.headers['x-admin-key'])
-      ? req.headers['x-admin-key'][0]
-      : (req.headers['x-admin-key'] ?? '')) ||
-    req.query.key ||
-    '';
-  if (providedKey === ADMIN_MAGIC_KEY && ADMIN_MAGIC_KEY !== '') {
-    next();
+    console.warn(
+      `[admin] IP ${ip} blocked for ${BLOCK_MS / 1000}s after ${entry.count} failed attempts`,
+    );
   } else {
-    res.status(401).send(renderHTML('Unauthorized', '<p>Invalid or missing admin key</p>'));
+    console.warn(`[admin] Failed admin access from IP ${ip} (${entry.count}/${MAX_ATTEMPTS})`);
   }
+
+  return entry.blockedUntil > 0
+    ? { blocked: true, retryAfter: Math.ceil(BLOCK_MS / 1000) }
+    : { blocked: false };
 }
 
-// Apply admin key check to all routes
-router.use(checkAdminKey);
+setInterval(() => {
+  const cutoff = Date.now() - (BLOCK_MS + WINDOW_MS);
+  for (const [ip, entry] of adminAttempts) {
+    if (entry.windowStart < cutoff && entry.blockedUntil < Date.now()) {
+      adminAttempts.delete(ip);
+    }
+  }
+}, 10 * 60_000).unref();
 
-// Middleware to track failed attempts by IP
-function trackFailedAttempts(
+function getClientIp(req: express.Request): string {
+  return (
+    (((req.headers['x-forwarded-for'] as string) || '').split(',')[0] || '').trim() ||
+    (req.headers['x-real-ip'] as string) ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
+}
+
+function requireAdmin(
   req: express.Request,
   res: express.Response,
   next: express.NextFunction,
 ): void {
-  const ip =
-    (Array.isArray(req.headers['x-forwarded-for'])
-      ? req.headers['x-forwarded-for'][0]
-      : req.headers['x-forwarded-for']) ||
-    (req.socket.remoteAddress ?? 'unknown');
+  if ((req.session as any).isAdmin) {
+    return next();
+  }
+
+  const key = (req.headers['x-admin-key'] as string) || (req.query.admin_key as string);
+  if (
+    typeof key === 'string' &&
+    ADMIN_MAGIC_KEY &&
+    key.length === ADMIN_MAGIC_KEY.length &&
+    crypto.timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_MAGIC_KEY))
+  ) {
+    req.session.regenerate((err) => {
+      if (err) {
+        return next(err);
+      }
+      (req.session as any).isAdmin = true;
+      req.session.save(() => next());
+    });
+    return;
+  }
+
+  const ip = getClientIp(req);
   const result = recordFailedAttempt(ip);
 
   if (result.blocked) {
-    const retryAfter = result.retryAfter || 300;
     res
       .status(429)
       .send(
         renderHTML(
           'Too Many Requests',
-          `<p>Too many failed attempts. Please try again after ${retryAfter} seconds.</p>`,
+          `<h1>Too Many Requests</h1><p>Try again in ${result.retryAfter} seconds.</p>`,
         ),
       );
-  } else {
-    next();
+    return;
   }
+
+  res
+    .status(403)
+    .send(
+      renderHTML(
+        'Access Denied',
+        '<h1>Access Denied</h1><p>You must be an admin to access this page.</p>',
+      ),
+    );
 }
 
-// Apply rate limiting middleware
-router.use(trackFailedAttempts);
+router.use(requireAdmin);
 
-// Dashboard route
-router.get('/', (req: express.Request, res: express.Response) => {
+// ========== DASHBOARD ==========
+router.get('/', (_req: express.Request, res: express.Response) => {
   const db = getDb();
   if (!db) {
     res.status(500).send(renderHTML('Error', '<p>Database not available</p>'));
@@ -162,49 +201,49 @@ router.get('/', (req: express.Request, res: express.Response) => {
   }
 
   try {
-    // Get basic stats
-    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-    const qlasGameCount = db
-      .prepare("SELECT COUNT(*) as count FROM game_history WHERE game_mode = 'qlashique'")
-      .get() as { count: number };
-    const quizCount = db.prepare('SELECT COUNT(*) as count FROM leaderboard').get() as {
-      count: number;
-    };
+    const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number })
+      .count;
+    const qlasGameCount = (
+      db
+        .prepare("SELECT COUNT(*) as count FROM game_history WHERE game_mode = 'qlashique'")
+        .get() as { count: number }
+    ).count;
+    const quizCount = (
+      db.prepare('SELECT COUNT(*) as count FROM leaderboard').get() as { count: number }
+    ).count;
 
-    const html = renderHTML(
-      'Dashboard',
-      `
+    res.send(
+      renderHTML(
+        'Dashboard',
+        `
       <h1>Weeqlash Admin Dashboard</h1>
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">${userCount.count}</div>
+          <div class="stat-value">${userCount}</div>
           <div class="stat-label">Total Users</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">${qlasGameCount.count}</div>
+          <div class="stat-value">${qlasGameCount}</div>
           <div class="stat-label">Qlashique Games</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">${quizCount.count}</div>
+          <div class="stat-value">${quizCount}</div>
           <div class="stat-label">Quiz Scores</div>
         </div>
       </div>
-      <p><a href="/admin/users" class="btn btn-primary">Manage Users</a></p>
-      <p><a href="/admin/stats" class="btn btn-primary">View Statistics</a></p>
-      <p><a href="/admin/export" class="btn btn-primary">Export Data</a></p>
     `,
+      ),
     );
-    res.send(html);
   } catch (error) {
-    console.error('[admin] Dashboard error:', error as Error);
+    console.error('[admin] Dashboard error:', error);
     res
       .status(500)
       .send(renderHTML('Error', `<p>Failed to load dashboard: ${(error as Error).message}</p>`));
   }
 });
 
-// Users list route
-router.get('/users', (req: express.Request, res: express.Response) => {
+// ========== USERS PAGE ==========
+router.get('/users', (_req: express.Request, res: express.Response) => {
   const db = getDb();
   if (!db) {
     res.status(500).send(renderHTML('Error', '<p>Database not available</p>'));
@@ -214,73 +253,514 @@ router.get('/users', (req: express.Request, res: express.Response) => {
   try {
     const users = db
       .prepare(
-        'SELECT id, username, email, email_confirmed, is_blocked, is_admin, created_at FROM users ORDER BY created_at DESC',
+        'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users ORDER BY id DESC',
       )
       .all() as Array<{
       id: number;
       username: string;
       email: string;
-      email_confirmed: number;
-      is_blocked: number;
       is_admin: number;
+      is_blocked: number;
+      email_confirmed: number;
       created_at: number;
+      last_login: number | null;
+      games_played: number;
+      games_won: number;
     }>;
 
-    const usersHtml =
-      users.length > 0
-        ? `
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Confirmed</th>
-            <th>Blocked</th>
-            <th>Admin</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${users
-            .map(
-              (user) => `
-            <tr>
-              <td>${user.id}</td>
-              <td>${esc(user.username)}</td>
-              <td>${esc(user.email)}</td>
-              <td>${user.email_confirmed === 1 ? 'Yes' : 'No'}</td>
-              <td>${user.is_blocked === 1 ? 'Yes' : 'No'}</td>
-              <td>${user.is_admin === 1 ? 'Yes' : 'No'}</td>
-              <td>${new Date(user.created_at).toLocaleString()}</td>
-            </tr>
-          `,
-            )
-            .join('')}
-        </tbody>
-      </table>
-      `
-        : '<p>No users found</p>';
-
-    const html = renderHTML(
-      'Users',
-      `
-      <h1>User Management</h1>
-      ${usersHtml}
-      <p><a href="/admin/" class="btn btn-secondary">← Back to Dashboard</a></p>
+    const userRows = users
+      .map(
+        (u) => `
+      <tr>
+        <td>${u.id}</td>
+        <td><a href="/admin/users/${u.id}" style="color:#d93939">${esc(u.username)}</a></td>
+        <td>${esc(u.email)}</td>
+        <td>${u.is_admin ? '<span class="badge badge-success">Admin</span>' : '-'}</td>
+        <td>${u.is_blocked ? '<span class="badge badge-danger">Blocked</span>' : '<span class="badge badge-success">Active</span>'}</td>
+        <td>${u.email_confirmed ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-warning">No</span>'}</td>
+        <td>
+          <form method="post" action="/admin/users/toggle-admin" style="display:inline">
+            <input type="hidden" name="id" value="${u.id}">
+            <input type="hidden" name="is_admin" value="${u.is_admin ? 0 : 1}">
+            <button class="btn btn-secondary">${u.is_admin ? 'Remove Admin' : 'Make Admin'}</button>
+          </form>
+          <form method="post" action="/admin/users/toggle-block" style="display:inline">
+            <input type="hidden" name="id" value="${u.id}">
+            <input type="hidden" name="is_blocked" value="${u.is_blocked ? 0 : 1}">
+            <button class="btn btn-secondary">${u.is_blocked ? 'Unblock' : 'Block'}</button>
+          </form>
+        </td>
+      </tr>
     `,
+      )
+      .join('');
+
+    res.send(
+      renderHTML(
+        'Users',
+        `
+      <h1>Users</h1>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Verified</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>${userRows}</tbody>
+        </table>
+      </div>
+    `,
+      ),
     );
-    res.send(html);
   } catch (error) {
-    console.error('[admin] Users error:', error as Error);
+    console.error('[admin] Users error:', error);
     res
       .status(500)
       .send(renderHTML('Error', `<p>Failed to load users: ${(error as Error).message}</p>`));
   }
 });
 
-// Stats route
-router.get('/stats', (req: express.Request, res: express.Response) => {
+router.post(
+  '/users/toggle-admin',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const flag = req.body.is_admin === '1' || req.body.is_admin === 1 ? 1 : 0;
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    if (flag === 0) {
+      if ((req.session as any).userId === id) {
+        return badRequest(res, 'You cannot remove admin from the account you are signed in as.');
+      }
+      const adminCount = (
+        db.prepare('SELECT COUNT(*) as c FROM users WHERE is_admin = 1').get() as { c: number }
+      ).c;
+      if (adminCount <= 1) {
+        return badRequest(res, 'Cannot remove the last remaining admin.');
+      }
+    }
+    db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(flag, id);
+    res.redirect('/admin/users');
+  },
+);
+
+router.post(
+  '/users/toggle-block',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const flag = req.body.is_blocked === '1' || req.body.is_blocked === 1 ? 1 : 0;
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    if (flag === 1 && (req.session as any).userId === id) {
+      return badRequest(res, 'You cannot block the account you are signed in as.');
+    }
+    db.prepare('UPDATE users SET is_blocked = ? WHERE id = ?').run(flag, id);
+    res.redirect('/admin/users');
+  },
+);
+
+// ========== USER DETAIL PAGE ==========
+router.get('/users/:id', (req: express.Request, res: express.Response) => {
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
+  const db = getDb();
+  if (!db) {
+    res.status(500).send(renderHTML('Error', '<p>Database not available</p>'));
+    return;
+  }
+
+  const user = db
+    .prepare(
+      'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users WHERE id = ?',
+    )
+    .get(userId) as
+    | {
+        id: number;
+        username: string;
+        email: string;
+        is_admin: number;
+        is_blocked: number;
+        email_confirmed: number;
+        created_at: number;
+        last_login: number | null;
+        games_played: number;
+        games_won: number;
+      }
+    | undefined;
+
+  if (!user) {
+    return res
+      .status(404)
+      .send(renderHTML('User Not Found', '<h1>User Not Found</h1><p>The user does not exist.</p>'));
+  }
+
+  const userStats = db
+    .prepare(
+      `
+    SELECT category, SUM(answered) as answered, SUM(correct) as correct
+    FROM user_stats WHERE user_id = ? GROUP BY category
+  `,
+    )
+    .all(userId) as Array<{ category: string; answered: number; correct: number }>;
+
+  const totalAnswered = userStats.reduce((sum, s) => sum + s.answered, 0);
+  const totalCorrect = userStats.reduce((sum, s) => sum + s.correct, 0);
+  const overallAccuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+
+  const qlasRow = db
+    .prepare(
+      `
+    SELECT COUNT(*) as played, SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won
+    FROM game_history
+    WHERE (player1_id = ? OR player2_id = ?)
+      AND game_mode = 'qlashique'
+      AND json_extract(player1_stats, '$.finalHp') IS NOT NULL
+  `,
+    )
+    .get(userId, userId, userId) as { played: number; won: number };
+  const totalGamesPlayed = (user.games_played || 0) + (qlasRow?.played || 0);
+  const totalGamesWon = (user.games_won || 0) + (qlasRow?.won || 0);
+
+  const recentGames = db
+    .prepare(
+      `
+    SELECT gh.*,
+           u1.username as p1_name, u2.username as p2_name,
+           (SELECT username FROM users WHERE id = gh.winner_id) as winner_name
+    FROM game_history gh
+    LEFT JOIN users u1 ON gh.player1_id = u1.id
+    LEFT JOIN users u2 ON gh.player2_id = u2.id
+    WHERE gh.player1_id = ? OR gh.player2_id = ?
+    ORDER BY gh.created_at DESC LIMIT 20
+  `,
+    )
+    .all(userId, userId) as Array<{
+    id: number;
+    player1_id: number;
+    player2_id: number;
+    winner_id: number | null;
+    game_mode: string;
+    board_size: number | null;
+    duration_ms: number | null;
+    p1_name: string | null;
+    p2_name: string | null;
+    winner_name: string | null;
+    created_at: number;
+  }>;
+
+  const statsRows = userStats
+    .map((s) => {
+      const acc = s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0;
+      return `<tr><td>${esc(s.category)}</td><td>${s.answered}</td><td>${s.correct}</td><td>${acc}%</td></tr>`;
+    })
+    .join('');
+
+  const gameRows = recentGames
+    .map((g) => {
+      const isWinner = g.winner_id === userId;
+      const isPlayer1 = g.player1_id === userId;
+      const opponent = isPlayer1 ? g.p2_name : g.p1_name;
+      return `<tr>
+      <td>${esc(opponent || 'Unknown')}</td>
+      <td>${g.winner_id ? (isWinner ? '<span class="badge badge-success">Won</span>' : '<span class="badge badge-danger">Lost</span>') : '-'}</td>
+      <td>${esc(g.game_mode || '-')}</td>
+      <td>${g.duration_ms !== null ? Math.round(g.duration_ms / 1000) + 's' : '-'}</td>
+      <td>${new Date(g.created_at).toLocaleDateString()}</td>
+    </tr>`;
+    })
+    .join('');
+
+  const flashBanners = (
+    [
+      ['resetLinkFlash', 'Password reset link generated'],
+      ['confirmLinkFlash', 'Email confirmation link generated'],
+    ] as const
+  )
+    .map(([key, label]) => {
+      const f = (req.session as any)[key];
+      if (!f) {
+        return '';
+      }
+      const expired = typeof f.expiresAt === 'number' && f.expiresAt < Date.now();
+      if (expired || f.userId !== userId) {
+        delete (req.session as any)[key];
+        return '';
+      }
+      if (typeof f.url !== 'string') {
+        return '';
+      }
+      delete (req.session as any)[key];
+      return `<div class="card" style="border:1px solid #22c55e"><strong>${label}</strong> (expires in 1 hour). Share with user:<br><code style="word-break:break-all;color:#fff">${esc(f.url)}</code></div>`;
+    })
+    .join('');
+
+  res.send(
+    renderHTML(
+      'User: ' + esc(user.username),
+      `
+    <script src="/js/admin-confirm.js"></script>
+    <h1>User: ${esc(user.username)}</h1>
+    <p><a href="/admin/users" style="color:#a4b2a0">← Back to Users</a></p>
+    ${flashBanners}
+
+    <div class="card">
+      <h2>Account Details</h2>
+      <form method="post" action="/admin/users/update">
+        <input type="hidden" name="id" value="${user.id}">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="username" value="${esc(user.username)}">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" value="${esc(user.email)}">
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Statistics</h2>
+      <div class="stat"><div class="stat-value">${totalGamesWon}</div><div class="stat-label">Games Won</div></div>
+      <div class="stat"><div class="stat-value">${totalGamesPlayed}</div><div class="stat-label">Games Played</div></div>
+      <div class="stat"><div class="stat-value">${overallAccuracy}%</div><div class="stat-label">Overall Accuracy</div></div>
+    </div>
+
+    <h2>Category Performance</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Category</th><th>Answered</th><th>Correct</th><th>Accuracy</th></tr></thead>
+        <tbody>${statsRows || '<tr><td colspan="4">No stats yet</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <h2>Recent Games</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Opponent</th><th>Result</th><th>Mode</th><th>Duration</th><th>Date</th></tr></thead>
+        <tbody>${gameRows || '<tr><td colspan="5">No games yet</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <h2>Actions</h2>
+    <div class="card">
+      <form method="post" action="/admin/users/toggle-block" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <input type="hidden" name="is_blocked" value="${user.is_blocked ? 0 : 1}">
+        <button class="btn btn-secondary">${user.is_blocked ? 'Activate User' : 'Deactivate User'}</button>
+      </form>
+      <form method="post" action="/admin/users/toggle-admin" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <input type="hidden" name="is_admin" value="${user.is_admin ? 0 : 1}">
+        <button class="btn btn-secondary">${user.is_admin ? 'Remove Admin' : 'Make Admin'}</button>
+      </form>
+      <form method="post" action="/admin/users/reset-stats" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-secondary" data-confirm="Reset all statistics for this user?">Reset Statistics</button>
+      </form>
+      <form method="post" action="/admin/users/reset-password" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-secondary" data-confirm="Generate a password reset link for this user?">Send Reset Link</button>
+      </form>
+      ${
+        user.email_confirmed
+          ? ''
+          : `<form method="post" action="/admin/users/resend-email" style="display:inline;margin-right:10px">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-secondary" data-confirm="Generate an email confirmation link for this user?">Resend Confirmation</button>
+      </form>`
+      }
+      <form method="get" action="/admin/users/${user.id}/export" style="display:inline;margin-right:10px">
+        <button class="btn btn-secondary">Export Statistics (JSON)</button>
+      </form>
+      <form method="post" action="/admin/users/delete" style="display:inline"
+            data-delete-confirm="${esc(user.username)}">
+        <input type="hidden" name="id" value="${user.id}">
+        <button class="btn btn-primary" style="background:#ef4444">Delete User (Cascade)</button>
+      </form>
+    </div>
+  `,
+    ),
+  );
+});
+
+router.post(
+  '/users/update',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    if (!username || !email) {
+      return badRequest(res, 'Username and email are required.');
+    }
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    const dupe = db
+      .prepare(
+        'SELECT id, username, email FROM users WHERE (username = ? OR email = ?) AND id <> ?',
+      )
+      .get(username, email, id) as { id: number; username: string; email: string } | undefined;
+    if (dupe) {
+      const field = dupe.username === username ? 'username' : 'email';
+      return badRequest(res, `Another user already has that ${field}.`);
+    }
+    db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(username, email, id);
+    res.redirect(`/admin/users/${id}`);
+  },
+);
+
+router.post(
+  '/users/delete',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const userId = parseId(req.body.id);
+    if (userId === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    if ((req.session as any).userId === userId) {
+      return res
+        .status(400)
+        .send(
+          renderHTML(
+            'Forbidden',
+            '<h1>Forbidden</h1><p>You cannot delete the account you are signed in as.</p>',
+          ),
+        );
+    }
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId) as
+      | { id: number; username: string }
+      | undefined;
+    if (!user) {
+      return res.redirect('/admin/users');
+    }
+    const cascade = db.transaction((uid: number) => {
+      db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(uid);
+      db.prepare('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?').run(uid, uid);
+      db.prepare('DELETE FROM users WHERE id = ?').run(uid);
+    });
+    cascade(userId);
+    console.log(`[admin] Cascade-deleted user id=${userId} username=${user.username}`);
+    res.redirect('/admin/users');
+  },
+);
+
+router.post(
+  '/users/reset-stats',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    db.transaction(() => {
+      db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(id);
+      db.prepare('UPDATE users SET games_played = 0, games_won = 0 WHERE id = ?').run(id);
+    })();
+    res.redirect(`/admin/users/${id}`);
+  },
+);
+
+router.post(
+  '/users/reset-password',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const userId = parseId(req.body.id);
+    if (userId === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const db = getDb();
+    if (!db) {
+      return badRequest(res, 'Database unavailable.');
+    }
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId) as
+      | { id: number }
+      | undefined;
+    if (!user) {
+      return res.redirect('/admin/users');
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 3600000;
+    db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(
+      token,
+      expires,
+      userId,
+    );
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const resetLink = `${clientUrl}/?reset=${token}`;
+    (req.session as any).resetLinkFlash = {
+      userId,
+      url: resetLink,
+      expiresAt: Date.now() + FLASH_TTL_MS,
+    };
+    req.session.save(() => {
+      console.log(`[admin] Generated password reset link for user id=${userId} (token redacted)`);
+      res.redirect(`/admin/users/${userId}`);
+    });
+  },
+);
+
+router.post(
+  '/users/resend-email',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const id = parseId(req.body.id);
+    if (id === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    const result = resendConfirmation(id);
+    if (result.error) {
+      return badRequest(res, result.error);
+    }
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const confirmLink = `${clientUrl}/?confirm=${result.confirmToken}`;
+    (req.session as any).confirmLinkFlash = {
+      userId: id,
+      url: confirmLink,
+      expiresAt: Date.now() + FLASH_TTL_MS,
+    };
+    req.session.save(() => {
+      console.log(`[admin] Generated email confirmation link for user id=${id}`);
+      res.redirect(`/admin/users/${id}`);
+    });
+  },
+);
+
+// ========== STATISTICS PAGE ==========
+router.get('/stats', (_req: express.Request, res: express.Response) => {
   const db = getDb();
   if (!db) {
     res.status(500).send(renderHTML('Error', '<p>Database not available</p>'));
@@ -288,115 +768,147 @@ router.get('/stats', (req: express.Request, res: express.Response) => {
   }
 
   try {
-    // Get game statistics
-    const gameStats = db
+    const totalUsers = (
+      db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }
+    ).count;
+    const activeUsers = (
+      db.prepare('SELECT COUNT(*) as count FROM users WHERE is_blocked = 0').get() as {
+        count: number;
+      }
+    ).count;
+    const totalGames = (
+      db.prepare('SELECT COUNT(*) as count FROM game_history').get() as { count: number }
+    ).count;
+    const totalAdmins = (
+      db.prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1').get() as {
+        count: number;
+      }
+    ).count;
+
+    const recentGames = db
       .prepare(
         `
-      SELECT
-        game_mode,
-        COUNT(*) as total_games,
-        SUM(CASE WHEN winner_id = 1 THEN 1 ELSE 0 END) as player1_wins,
-        SUM(CASE WHEN winner_id = 2 THEN 1 ELSE 0 END) as player2_wins
-      FROM game_history
-      GROUP BY game_mode
+      SELECT gh.*,
+             u1.username as p1_name, u2.username as p2_name,
+             (SELECT username FROM users WHERE id = gh.winner_id) as winner_name
+      FROM game_history gh
+      LEFT JOIN users u1 ON gh.player1_id = u1.id
+      LEFT JOIN users u2 ON gh.player2_id = u2.id
+      ORDER BY gh.created_at DESC
+      LIMIT 20
     `,
       )
       .all() as Array<{
+      id: number;
+      player1_id: number;
+      player2_id: number;
+      winner_id: number | null;
       game_mode: string;
-      total_games: number;
-      player1_wins: number;
-      player2_wins: number;
+      board_size: number | null;
+      duration_ms: number | null;
+      p1_name: string | null;
+      p2_name: string | null;
+      winner_name: string | null;
+      created_at: number;
     }>;
 
-    // Get top players
-    const topPlayers = db
+    const categoryStats = db
       .prepare(
         `
-      SELECT username, games_played, games_won
-      FROM users
-      WHERE games_played > 0
-      ORDER BY (games_won * 1.0 / games_played) DESC, games_won DESC
-      LIMIT 10
+      SELECT category, SUM(answered) as answered, SUM(correct) as correct
+      FROM user_stats
+      GROUP BY category
+      ORDER BY answered DESC
     `,
       )
-      .all() as Array<{
-      username: string;
-      games_played: number;
-      games_won: number;
-    }>;
+      .all() as Array<{ category: string; answered: number; correct: number }>;
 
-    const statsHtml = `
-      <h2>Game Statistics</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Game Mode</th>
-            <th>Total Games</th>
-            <th>Player 1 Wins</th>
-            <th>Player 2 Wins</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${gameStats
-            .map(
-              (stat) => `
-            <tr>
-              <td>${esc(stat.game_mode)}</td>
-              <td>${stat.total_games}</td>
-              <td>${stat.player1_wins}</td>
-              <td>${stat.player2_wins}</td>
-            </tr>
-          `,
-            )
-            .join('')}
-        </tbody>
-      </table>
-
-      <h2>Top Players (Win Rate)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Games Played</th>
-            <th>Games Won</th>
-            <th>Win Rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${topPlayers
-            .map(
-              (player) => `
-            <tr>
-              <td>${esc(player.username)}</td>
-              <td>${player.games_played}</td>
-              <td>${player.games_won}</td>
-              <td>${((player.games_won / player.games_played) * 100).toFixed(1)}%</td>
-            </tr>
-          `,
-            )
-            .join('')}
-        </tbody>
-      </table>
-    `;
-
-    const html = renderHTML(
-      'Statistics',
-      `
-      <h1>Weeqlash Statistics</h1>
-      ${statsHtml}
-      <p><a href="/admin/" class="btn btn-secondary">← Back to Dashboard</a></p>
+    const gameRows = recentGames
+      .map(
+        (g) => `
+      <tr>
+        <td>${g.id}</td>
+        <td>${esc(g.p1_name || String(g.player1_id))} vs ${esc(g.p2_name || String(g.player2_id))}</td>
+        <td>${esc(g.winner_name || '-')}</td>
+        <td>${esc(g.game_mode || '-')}</td>
+        <td>${g.board_size !== null ? g.board_size + 'x' + g.board_size : '-'}</td>
+        <td>${g.duration_ms !== null ? Math.round(g.duration_ms / 1000) + 's' : '-'}</td>
+        <td>${new Date(g.created_at).toLocaleString()}</td>
+      </tr>
     `,
+      )
+      .join('');
+
+    const catRows = categoryStats
+      .map((c) => {
+        const accuracy = c.answered > 0 ? Math.round((c.correct / c.answered) * 100) : 0;
+        return `
+        <tr>
+          <td>${esc(c.category)}</td>
+          <td>${c.answered}</td>
+          <td>${c.correct}</td>
+          <td>${accuracy}%</td>
+        </tr>
+      `;
+      })
+      .join('');
+
+    res.send(
+      renderHTML(
+        'Statistics',
+        `
+      <h1>Statistics</h1>
+
+      <div class="card">
+        <div class="stat">
+          <div class="stat-value">${totalUsers}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">${activeUsers}</div>
+          <div class="stat-label">Active Users</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">${totalGames}</div>
+          <div class="stat-label">Total Games</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">${totalAdmins}</div>
+          <div class="stat-label">Admins</div>
+        </div>
+      </div>
+
+      <h2>Recent Games</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Players</th><th>Winner</th><th>Mode</th><th>Board</th><th>Duration</th><th>Date</th></tr>
+          </thead>
+          <tbody>${gameRows}</tbody>
+        </table>
+      </div>
+
+      <h2>Category Performance</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Category</th><th>Questions</th><th>Correct</th><th>Accuracy</th></tr>
+          </thead>
+          <tbody>${catRows}</tbody>
+        </table>
+      </div>
+    `,
+      ),
     );
-    res.send(html);
   } catch (error) {
-    console.error('[admin] Stats error:', error as Error);
+    console.error('[admin] Stats error:', error);
     res
       .status(500)
       .send(renderHTML('Error', `<p>Failed to load statistics: ${(error as Error).message}</p>`));
   }
 });
 
-// Export data route
+// ========== EXPORT DATA ==========
 router.get('/export', (req: express.Request, res: express.Response) => {
   const db = getDb();
   if (!db) {
@@ -407,7 +919,7 @@ router.get('/export', (req: express.Request, res: express.Response) => {
   const exportType = (req.query.type as string) || 'all';
 
   try {
-    const exportData: any = { exportedAt: new Date().toISOString() };
+    const exportData: Record<string, unknown> = { exportedAt: new Date().toISOString() };
 
     if (exportType === 'all' || exportType === 'users') {
       exportData.users = db
@@ -419,17 +931,7 @@ router.get('/export', (req: express.Request, res: express.Response) => {
         ORDER BY id
       `,
         )
-        .all() as Array<{
-        id: number;
-        username: string;
-        email: string;
-        email_confirmed: number;
-        is_blocked: number;
-        is_admin: number;
-        created_at: number;
-        games_played: number;
-        games_won: number;
-      }>;
+        .all();
     }
 
     if (exportType === 'all' || exportType === 'games') {
@@ -442,36 +944,20 @@ router.get('/export', (req: express.Request, res: express.Response) => {
         ORDER BY id
       `,
         )
-        .all() as Array<{
-        id: number;
-        player1_id: number;
-        player2_id: number;
-        winner_id: number | null;
-        game_mode: string;
-        board_size: number | null;
-        duration_ms: number | null;
-        player1_stats: string;
-        player2_stats: string;
-        created_at: number;
-      }>;
+        .all();
     }
 
     if (exportType === 'all' || exportType === 'leaderboard') {
       exportData.leaderboard = db
         .prepare(
           `
-        SELECT mode, name, answers, time_ms, created_at
-        FROM leaderboard
-        ORDER BY mode, answers DESC, time_ms ASC
+        SELECT gm.slug AS mode, l.name, l.answers, l.time_ms, l.created_at
+        FROM leaderboard l
+        JOIN game_modes gm ON gm.id = l.mode_id
+        ORDER BY gm.slug, l.answers DESC, l.time_ms ASC
       `,
         )
-        .all() as Array<{
-        mode: string;
-        name: string;
-        answers: number;
-        time_ms: number;
-        created_at: number;
-      }>;
+        .all();
     }
 
     res.setHeader('Content-Type', 'application/json');
@@ -481,150 +967,50 @@ router.get('/export', (req: express.Request, res: express.Response) => {
     );
     res.send(JSON.stringify(exportData, null, 2));
   } catch (error) {
-    console.error('[admin] Export error:', error as Error);
+    console.error('[admin] Export error:', error);
     res
       .status(500)
       .send(renderHTML('Error', `<p>Failed to export data: ${(error as Error).message}</p>`));
   }
 });
 
-// Individual user stats route
-router.get('/user/:id', (req: express.Request, res: express.Response) => {
+// ========== PER-USER EXPORT ==========
+router.get('/users/:id/export', (req: express.Request, res: express.Response) => {
+  const userId = parseId(req.params.id);
+  if (userId === null) {
+    return badRequest(res, 'Invalid user id.');
+  }
   const db = getDb();
   if (!db) {
     res.status(500).send(renderHTML('Error', '<p>Database not available</p>'));
     return;
   }
 
-  const userId = parseInt(String(req.params.id));
-  if (isNaN(userId)) {
-    res.status(400).send(renderHTML('Error', '<p>Invalid user ID</p>'));
-    return;
+  const user = db
+    .prepare(
+      'SELECT id, username, email, is_admin, is_blocked, email_confirmed, created_at, last_login, games_played, games_won FROM users WHERE id = ?',
+    )
+    .get(userId);
+
+  if (!user) {
+    return res
+      .status(404)
+      .send(renderHTML('User Not Found', '<h1>User Not Found</h1><p>The user does not exist.</p>'));
   }
 
-  try {
-    const user = db
-      .prepare(
-        `
-      SELECT id, username, email, email_confirmed, is_blocked, is_admin, created_at,
-             games_played, games_won
-      FROM users
-      WHERE id = ?
-    `,
-      )
-      .get(userId) as
-      | {
-          id: number;
-          username: string;
-          email: string;
-          email_confirmed: number;
-          is_blocked: number;
-          is_admin: number;
-          created_at: number;
-          games_played: number;
-          games_won: number;
-        }
-      | undefined;
+  const userStats = db
+    .prepare('SELECT category, answered, correct FROM user_stats WHERE user_id = ?')
+    .all(userId);
 
-    if (!user) {
-      res.status(404).send(renderHTML('Error', `<p>User with ID ${userId} not found</p>`));
-      return;
-    }
+  const exportData = {
+    user,
+    statistics: userStats,
+    exportedAt: new Date().toISOString(),
+  };
 
-    const userStats = db
-      .prepare(
-        `
-      SELECT category, answered, correct
-      FROM user_stats
-      WHERE user_id = ?
-      ORDER BY category
-    `,
-      )
-      .all(userId) as Array<{
-      category: string;
-      answered: number;
-      correct: number;
-    }>;
-
-    const html = renderHTML(
-      `User ${esc(user.username)}`,
-      `
-      <h1>User Details</h1>
-      <div class="stat-card">
-        <div class="stat-value">${esc(user.username)}</div>
-        <div class="stat-label">Username</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${esc(user.email)}</div>
-        <div class="stat-label">Email</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${user.email_confirmed === 1 ? 'Yes' : 'No'}</div>
-        <div class="stat-label">Email Confirmed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${user.is_blocked === 1 ? 'Yes' : 'No'}</div>
-        <div class="stat-label">Blocked</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${user.is_admin === 1 ? 'Yes' : 'No'}</div>
-        <div class="stat-label">Admin</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${user.games_played}</div>
-        <div class="stat-label">Games Played</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${user.games_won}</div>
-        <div class="stat-label">Games Won</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${new Date(user.created_at).toLocaleString()}</div>
-        <div class="stat-label">Created At</div>
-      </div>
-
-      <h2>Statistics by Category</h2>
-      ${
-        userStats.length > 0
-          ? `
-        <table>
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Questions Answered</th>
-              <th>Correct Answers</th>
-              <th>Accuracy</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${userStats
-              .map(
-                (stat) => `
-              <tr>
-                <td>${esc(stat.category)}</td>
-                <td>${stat.answered}</td>
-                <td>${stat.correct}</td>
-                <td>${stat.answered > 0 ? ((stat.correct / stat.answered) * 100).toFixed(1) + '%' : '0%'}</td>
-              </tr>
-            `,
-              )
-              .join('')}
-          </tbody>
-        </table>
-        `
-          : '<p>No statistics available</p>'
-      }
-
-      <p><a href="/admin/users" class="btn btn-secondary">← Back to Users</a></p>
-    `,
-    );
-    res.send(html);
-  } catch (error) {
-    console.error('[admin] User stats error:', error as Error);
-    res
-      .status(500)
-      .send(renderHTML('Error', `<p>Failed to load user stats: ${(error as Error).message}</p>`));
-  }
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename=user-${userId}-stats.json`);
+  res.send(JSON.stringify(exportData, null, 2));
 });
 
 export default router;

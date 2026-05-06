@@ -83,7 +83,7 @@ import {
   clearTestHistory,
 } from './game/auth.ts';
 import { registerAuthRoutes } from './game/auth-routes.ts';
-import adminRoutes from './routes/admin.js';
+import adminRoutes from './routes/admin.ts';
 import { rooms, socketToRoom } from './game/rooms.ts';
 
 const app = express();
@@ -1968,13 +1968,19 @@ function _emitQlasTurnStart(ioServer, code, room) {
 
 // Wait for Redis to be ready before accepting traffic — any request before
 // this would be a cache miss into a broken session store.
-waitForRedisReady(10_000)
-  .then(() => {
-    httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
-  })
-  .catch((err) => {
+if (process.env.VITEST) {
+  waitForRedisReady(10_000).catch((err) => {
     console.error('[startup] Redis not ready:', err.message);
-    process.exit(1);
   });
+} else {
+  waitForRedisReady(10_000)
+    .then(() => {
+      httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
+    })
+    .catch((err) => {
+      console.error('[startup] Redis not ready:', err.message);
+      process.exit(1);
+    });
+}
 
 export { app };

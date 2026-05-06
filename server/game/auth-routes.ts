@@ -202,6 +202,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     req.session.save((err) => {
       if (err) {
         console.error('[auth] session save error:', err.message);
+        return res.status(503).json({ error: 'Service temporarily unavailable' });
       }
       res.json({ ok: true, user: result.user });
     });

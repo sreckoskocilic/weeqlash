@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../server/index.js';
 import * as emailModule from '../server/game/email.ts';
+import { clearTestUsers } from '../server/game/auth.ts';
 
 /**
  * Security Tests Suite
@@ -220,6 +221,8 @@ describe('Resend confirmation email error handling', () => {
   const unique = Math.random().toString(36).slice(2, 8);
   const email = `resend_${unique}@test.invalid`;
   let cookies;
+
+  afterAll(() => clearTestUsers());
 
   it('registers and logs in a test user', async () => {
     await request(app)
