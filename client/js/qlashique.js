@@ -846,7 +846,7 @@ export function initQlashique(socket) {
 
       qlasMyIdx = 0;
       qlasPlayers[0].name = playerName;
-      qEl('qlas-waiting-label').textContent = 'Waiting for opponent…';
+      qEl('qlas-waiting-label').textContent = `HP ${qlasMaxHp} · Waiting for opponent…`;
       qEl('qlas-code-row').style.display = '';
       qEl('qlas-code-val').textContent = res.code;
     });
@@ -877,7 +877,13 @@ export function initQlashique(socket) {
       qlasMyIdx = res.myIdx;
       qlasPlayers[0].name = res.players[0]?.name || '';
       qlasPlayers[1].name = res.players[1]?.name || '';
-      qEl('qlas-waiting-label').textContent = 'Waiting for game to start…';
+      if (res.qlasHP) {
+        qlasMaxHp = res.qlasHP;
+        qlasHp = [res.qlasHP, res.qlasHP];
+      }
+      qEl('qlas-waiting-label').textContent = res.qlasHP
+        ? `HP ${res.qlasHP} · Waiting for game to start…`
+        : 'Waiting for game to start…';
     });
   });
 }

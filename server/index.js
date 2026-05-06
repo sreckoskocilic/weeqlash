@@ -656,6 +656,7 @@ io.on('connection', (socket) => {
       players: room.players.map(publicPlayer),
       settings: room.settings,
       token: joiningPlayer?.token,
+      qlasHP: room.qlasHP || undefined,
     });
     if (room.players.length === room.settings.playerCount) {
       io.to(code).emit('room:full', {
