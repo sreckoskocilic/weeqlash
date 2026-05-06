@@ -65,6 +65,7 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
 
   await clearStickyQuestion();
   await api.post('/test/clear-all', {});
+  await api.post('/test/setup-users', {});
   await api.dispose();
   await ctx.close();
 });
@@ -110,6 +111,7 @@ test('skipnot: 20 wrong answers → score -140, qualifies, lands in leaderboard'
 
   await clearStickyQuestion();
   await api.post('/test/clear-all', {});
+  await api.post('/test/setup-users', {});
   await api.dispose();
   await ctx.close();
 });

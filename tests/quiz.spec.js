@@ -78,6 +78,7 @@ test('triviandom: answer Q1 correctly, answer until wrong, submit to leaderboard
   expect(rowsText).toContain(lbName);
 
   await api.post('/test/clear-all', {});
+  await api.post('/test/setup-users', {});
   await api.dispose();
   await ctx.close();
 });
