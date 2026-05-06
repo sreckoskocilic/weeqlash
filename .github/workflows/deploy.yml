@@ -37,6 +37,7 @@ jobs:
         env:
           QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
           SESSION_SECRET: test-secret-for-ci
+          ADMIN_SECRET: test-admin-secret-for-ci
           NODE_ENV: test
           REDIS_URL: redis://127.0.0.1:6379
         run: npm test
@@ -60,6 +61,7 @@ jobs:
         env:
           QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
           SESSION_SECRET: test-secret-for-ci
+          ADMIN_SECRET: test-admin-secret-for-ci
           NODE_ENV: test
           REDIS_URL: redis://127.0.0.1:6379
         run: npm run test:e2e
