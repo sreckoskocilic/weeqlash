@@ -2810,13 +2810,11 @@ body[data-game-theme='pink'] {
   border-color: var(--game-accent);
 }
 .mode-card--qlas {
-  border-color: rgba(255, 230, 0, 0.45);
   color: var(--game-key);
   background: rgba(255, 230, 0, 0.04);
 }
 .mode-card--qlas:hover {
   background: rgba(255, 230, 0, 0.12);
-  border-color: var(--game-key);
 }
 .mode-card-wrap--qlas {
   display: flex;
@@ -2841,7 +2839,7 @@ body[data-game-theme='pink'] {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 18px 8px 62px;
+  padding: 4px 18px 8px 66px;
   background: rgba(255, 230, 0, 0.04);
   border-top: 1px solid rgba(255, 230, 0, 0.15);
 }
