@@ -1826,12 +1826,10 @@ function recordGameStats(room) {
   const winnerIdx = room.state.winner;
   const durationMs = Date.now() - room.startedAt;
   const winnerUserId =
-    winnerIdx !== null && winnerIdx < room.players.length
-      ? (room.players[winnerIdx]?.userId ?? null)
-      : null;
+    winnerIdx !== null ? (room.players.find((p) => p.index === winnerIdx)?.userId ?? null) : null;
 
-  const player1UserId = room.players[0]?.userId;
-  const player2UserId = room.players[1]?.userId;
+  const player1UserId = room.players.find((p) => p.index === 0)?.userId;
+  const player2UserId = room.players.find((p) => p.index === 1)?.userId;
 
   try {
     if (player1UserId && player2UserId) {
@@ -1862,7 +1860,7 @@ function recordGameStats(room) {
       for (let i = 0; i < room.players.length; i++) {
         const uid = room.players[i]?.userId;
         if (uid) {
-          updateGames.run(winnerIdx === i ? 1 : 0, uid);
+          updateGames.run(winnerIdx === room.players[i]?.index ? 1 : 0, uid);
         }
       }
     }

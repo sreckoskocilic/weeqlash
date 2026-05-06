@@ -24,6 +24,7 @@ export interface QlashiqueState {
   currentScore: number;
   correctStreak: number;
   phase: Phase;
+  maxHp: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,7 @@ export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
     currentScore: 0,
     correctStreak: 0,
     phase: PHASE.DECISION,
+    maxHp: hp,
   };
 }
 
@@ -150,7 +152,7 @@ export function applyOutcome(
   } else {
     state.players[actingPlayerIdx].hp = Math.min(
       state.players[actingPlayerIdx].hp + 2,
-      QLAS_DEFAULT_HP,
+      state.maxHp,
     );
   }
 

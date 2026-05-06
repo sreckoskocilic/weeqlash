@@ -10,7 +10,7 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen is split: **Brawl** setup on the left, **Qlashique / SkipNoT** on the right.
+- Open the site. The landing screen shows three mode cards: **Brawl**, **Qlashique**, and **SkipNoT**.
 - **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
 - To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
 
@@ -52,6 +52,7 @@ Each peg starts with **3 HP** and never heals. Lose all three and the peg is gon
 
 Four corners. Four flags. One throne.
 
+- Flags appear on boards 5×5 and larger; each player gets one corner flag to defend
 - Each corner flag needs **3 correct answers** to capture
 - Capture any flag → you win, your legacy is secured, your enemies are invited to reflect
 

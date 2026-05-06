@@ -10,10 +10,10 @@ function createWindow() {
     height: 768,
     webPreferences: {
       contextIsolation: true,
-      sandbox: false, // needed for socket.io-client in renderer
+      sandbox: false,
       nodeIntegration: false,
-      preload: path.join(__dirname, 'preload.mjs')
-    }
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
   });
 
   win.loadFile('index.html');

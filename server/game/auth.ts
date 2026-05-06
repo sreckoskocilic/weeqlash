@@ -350,6 +350,13 @@ export async function resetPassword(token: string, newPassword: string) {
     return { error: 'Invalid or expired reset token' };
   }
 
+  if (!newPassword || newPassword.length < 8) {
+    return { error: 'Password must be at least 8 characters' };
+  }
+  if (newPassword.length > 128) {
+    return { error: 'Password must not exceed 128 characters' };
+  }
+
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
   db.prepare(
     'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',

@@ -12,13 +12,7 @@ brawl.weeqlash.icu {
 
     # robots.txt
     handle /robots.txt {
-        respond * "User-agent: *\nAllow: /\nSitemap: https://brawl.weeqlash.icu/sitemap.xml"
-    }
-
-    # sitemap.xml (serve from disk)
-    handle /sitemap.xml {
-        root * /opt/weeqlash/client
-        try_files {path}
+        respond * "User-agent: *\nAllow: /"
     }
 
     handle /socket.io/* {
