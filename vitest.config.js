@@ -7,5 +7,11 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./tests/setup-env.js'],
     envFilePath: '.env',
+    coverage: {
+      provider: 'v8',
+      include: ['server/game/**/*.ts'],
+      reporter: ['text', 'html'],
+      reportsDirectory: './coverage',
+    },
   },
 });

@@ -9,6 +9,7 @@ data/
 .env
 test-results/
 playwright-report/
+coverage/
 qlashique
 screenshots/iphone13
 docs/
