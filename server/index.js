@@ -95,12 +95,13 @@ const httpServer = createServer(app);
 // =============================================================================
 
 // CSP Headers - strict for game client, relaxed for AdminJS
+const cspOrigin = process.env.CLIENT_URL || 'http://localhost:3000';
 const CSP_BASE =
   "default-src 'self'; " +
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
   "font-src 'self' https://fonts.gstatic.com; " +
   "img-src 'self' data:; " +
-  "connect-src 'self' ws: wss: http://localhost:3000 https://brawl.weeqlash.icu; " +
+  `connect-src 'self' ws: wss: ${cspOrigin}; ` +
   "frame-ancestors 'none'; " +
   "object-src 'none'; " +
   "base-uri 'self'; " +
@@ -108,11 +109,11 @@ const CSP_BASE =
 
 const CSP_APP = CSP_BASE.replace(
   "default-src 'self'",
-  "default-src 'self'; script-src 'self' 'sha256-dh6sSYhhOB6Z6qn3ymLEm+EKaj1t4qjIbvfhaKQgQGE=' http://localhost:3000",
+  `default-src 'self'; script-src 'self' ${cspOrigin}`,
 );
 const CSP_ADMIN = CSP_BASE.replace(
   "default-src 'self'",
-  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000",
+  `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' ${cspOrigin}`,
 );
 
 const SECURITY_HEADERS = {
