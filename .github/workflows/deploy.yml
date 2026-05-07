@@ -86,6 +86,6 @@ jobs:
             docker image prune -f
             if ! diff -q /opt/weeqlash/Caddyfile /etc/caddy/Caddyfile >/dev/null 2>&1; then
               /usr/bin/caddy validate --config /opt/weeqlash/Caddyfile
-              cp /opt/weeqlash/Caddyfile /etc/caddy/Caddyfile
+              sudo cp /opt/weeqlash/Caddyfile /etc/caddy/Caddyfile
               sudo systemctl restart caddy
             fi
