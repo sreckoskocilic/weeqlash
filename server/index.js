@@ -108,7 +108,7 @@ const CSP_BASE =
 
 const CSP_APP = CSP_BASE.replace(
   "default-src 'self'",
-  "default-src 'self'; script-src 'self' http://localhost:3000",
+  "default-src 'self'; script-src 'self' 'sha256-dh6sSYhhOB6Z6qn3ymLEm+EKaj1t4qjIbvfhaKQgQGE=' http://localhost:3000",
 );
 const CSP_ADMIN = CSP_BASE.replace(
   "default-src 'self'",
