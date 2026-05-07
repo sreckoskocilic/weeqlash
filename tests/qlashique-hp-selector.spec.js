@@ -29,11 +29,7 @@ test('qlashique: HP selector sets game HP to 10', async ({ browser }) => {
   await expect(p1.locator('.qlas-hp-opt[data-hp="10"]')).toHaveClass(/selected/);
 
   await p1.locator('#btn-qlas-create').click();
-  await p1.waitForFunction(
-    // eslint-disable-next-line no-undef
-    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
-    { timeout: 8000 },
-  );
+  await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   await p2.locator('#qlas-join-code').fill(code.trim());

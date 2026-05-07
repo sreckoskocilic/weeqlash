@@ -14,6 +14,12 @@ export default async function globalSetup() {
   }
 
   const api = await request.newContext({ baseURL: BASE });
-  await api.post('/test/setup-users').catch(() => {});
+  const res = await api.post('/test/setup-users').catch((e) => {
+    console.error('[e2e-setup] /test/setup-users failed:', e.message);
+    return null;
+  });
+  if (res && !res.ok()) {
+    console.error(`[e2e-setup] /test/setup-users returned ${res.status()}`);
+  }
   await api.dispose();
 }

@@ -38,7 +38,7 @@ test('board: wrong answer on normal move keeps peg in original tile', async ({ b
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
 
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
-  await p1.waitForTimeout(1200);
+  await p1.waitForTimeout(1100);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });
@@ -57,7 +57,7 @@ test('board: wrong answer on normal move keeps peg in original tile', async ({ b
 
   // Select peg
   await pegLocator.click();
-  await p1.waitForTimeout(500);
+  await p1.locator('.tile.valid-move').first().waitFor({ timeout: 5000 });
 
   // Click a valid move tile (normal, not combat)
   const moveTiles = p1.locator('.tile.valid-move');
@@ -77,8 +77,10 @@ test('board: wrong answer on normal move keeps peg in original tile', async ({ b
   const wrongBtn = p1.locator('#modal-options .modal-option').nth(1);
   await wrongBtn.click();
 
-  // Wait for answer feedback + modal close
-  await p1.waitForTimeout(1500);
+  // Non-combat: must click Continue to submit turn
+  await p1.locator('#modal-continue-btn').waitFor({ state: 'visible', timeout: 5000 });
+  await p1.locator('#modal-continue-btn').click();
+  await p1.locator('#modal-overlay:not(.visible)').waitFor({ timeout: 5000 });
 
   // Peg should still be at original position, NOT at target
   const afterPos = await p1.evaluate((pid) => {

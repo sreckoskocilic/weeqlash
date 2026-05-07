@@ -1,20 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-
-const BASE = 'http://localhost:3000';
-
-async function loginPlayer(browser, username) {
-  const ctx = await browser.newContext({ baseURL: BASE });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await page.locator('[data-view="login"]').click();
-  await page.locator('#login-username').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#login-username').fill(username);
-  await page.locator('#login-password').fill('testpass123');
-  await page.locator('#btn-login').click();
-  await page.locator('#btn-logout').waitFor({ state: 'visible', timeout: 5000 });
-  return { ctx, page };
-}
+import { registerAndLogin as loginPlayer, BASE } from './e2e-helpers.js';
 
 // Play one turn: set the predefined question, click ATTACK, answer, stop, end turn.
 // answerIdx is the option to click (pass correctIdx to win, a wrong idx to self-damage).
@@ -47,11 +33,7 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
 
   // P1 creates qlashique room
   await p1.locator('#btn-qlas-create').click();
-  await p1.waitForFunction(
-    // eslint-disable-next-line no-undef
-    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
-    { timeout: 8000 },
-  );
+  await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   // Set HP=3 before P2 joins — the override is consumed when the room auto-starts on join
@@ -91,7 +73,11 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
       p1.locator('#qlas-phase-gameover').waitFor({ state: 'visible', timeout: 12000 }),
       p1.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 12000 }),
       p2.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 12000 }),
-    ]).catch(() => {});
+    ]).catch((e) => {
+      if (e.name !== 'TimeoutError') {
+        throw e;
+      }
+    });
   }
 
   // Both screens must show the game over panel with a winner
@@ -141,11 +127,7 @@ test('qlashique: live recap populates after a few turns', async ({ browser }) =>
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
   await p1.locator('#btn-qlas-create').click();
-  await p1.waitForFunction(
-    // eslint-disable-next-line no-undef
-    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
-    { timeout: 8000 },
-  );
+  await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   // Use HP=20 so two turns won't end the game — we need the match alive to open recap.
@@ -167,7 +149,11 @@ test('qlashique: live recap populates after a few turns', async ({ browser }) =>
     await Promise.race([
       p1.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 12000 }),
       p2.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 12000 }),
-    ]).catch(() => {});
+    ]).catch((e) => {
+      if (e.name !== 'TimeoutError') {
+        throw e;
+      }
+    });
   }
 
   // Open the live recap on whichever page is now on its decision panel
@@ -217,11 +203,7 @@ test('qlashique: real pool serves a question (no override)', async ({ browser })
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
   await p1.locator('#btn-qlas-create').click();
-  await p1.waitForFunction(
-    // eslint-disable-next-line no-undef
-    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
-    { timeout: 8000 },
-  );
+  await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   await p2.locator('#qlas-join-code').fill(code.trim());

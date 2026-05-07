@@ -24,7 +24,7 @@ test('correct answer highlights attacker button green', async ({ browser }) => {
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
 
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
-  await p1.waitForTimeout(1200);
+  await p1.waitForTimeout(1100);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });
@@ -43,8 +43,8 @@ test('correct answer highlights attacker button green', async ({ browser }) => {
   await p1.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
   await expect(p1.locator('#modal-question')).toHaveText(TEST_QUESTION.q);
 
-  // Client delays answer submission by MIN_ANSWER_DELAY_MS; wait it out.
-  await p1.waitForTimeout(1200);
+  // Server rejects answers before MIN_ANSWER_DELAY_MS (300ms).
+  await p1.waitForTimeout(400);
 
   const correctBtn = p1.locator('#modal-options .modal-option').nth(TEST_QUESTION.correctIdx);
   await correctBtn.click();

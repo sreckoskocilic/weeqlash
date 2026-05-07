@@ -1,22 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-
-const BASE = 'http://localhost:3000';
-
-async function registerAndLogin(browser, username) {
-  const ctx = await browser.newContext({ baseURL: BASE });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await page.waitForTimeout(500);
-
-  // Just login - test emails (@test.invalid) bypass confirmation
-  await page.locator('[data-view="login"]').click();
-  await page.locator('#login-username').fill(username);
-  await page.locator('#login-password').fill('testpass123');
-  await page.locator('#btn-login').click();
-  await page.locator('#btn-logout').waitFor({ state: 'visible', timeout: 5000 });
-  return { ctx, page };
-}
+import { registerAndLogin, BASE } from './e2e-helpers.js';
 
 async function getUserGamesPlayed(email) {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
@@ -45,7 +29,7 @@ test('normal move: select peg → click empty tile → peg moves', async ({ brow
 
   // Start game
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
-  await p1.waitForTimeout(1200);
+  await p1.waitForTimeout(1100);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });
@@ -61,7 +45,7 @@ test('normal move: select peg → click empty tile → peg moves', async ({ brow
 
   // Select peg
   await p1.locator(`.peg[data-peg-id="${p1PegId}"]`).click();
-  await p1.waitForTimeout(500);
+  await p1.locator('.tile.valid-move, .tile.can-move').first().waitFor({ timeout: 5000 });
 
   // Find valid move tile (not occupied, not own corner)
   const validTiles = await p1.locator('.tile:not(.corner).can-move').all();
@@ -83,8 +67,8 @@ test('normal move: select peg → click empty tile → peg moves', async ({ brow
   const optBtns = p1.locator('#modal-options .modal-option');
   await optBtns.nth(0).click();
 
-  // Wait for answer feedback and modal to close
-  await p1.waitForTimeout(1200);
+  // Wait for modal to close after answer
+  await p1.locator('#modal-overlay:not(.visible)').waitFor({ timeout: 5000 });
 
   const newPos = await p1.evaluate((pegId) => {
     // eslint-disable-next-line no-undef
@@ -96,9 +80,6 @@ test('normal move: select peg → click empty tile → peg moves', async ({ brow
   // Verify position changed
   expect(newPos.r).not.toBe(startPos.r);
   expect(newPos.c).not.toBe(startPos.c);
-
-  // Wait for game end
-  await p1.waitForTimeout(3000);
 
   // Verify stats were updated after game
   const p1GamesAfter = await getUserGamesPlayed('e2e_normal_p1@test.invalid');

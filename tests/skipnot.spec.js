@@ -23,26 +23,23 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
-  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player');
+  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
+    query: 'testSpeed=2',
+  });
 
   await page.locator('#btn-skipnot-create').click();
   await page.locator('#screen-skipnot').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#skipnot-phase-game').waitFor({ state: 'visible', timeout: 5000 });
 
-  // 20 questions. After each click the client paints the chosen button green
-  // (correct) and waits ~800ms before rendering the next. We assert via the
-  // counter (`N/20`) so timing drift doesn't cause flakes.
   for (let i = 0; i < 20; i++) {
     const counter = page.locator('#skipnot-counter');
     await expect(counter).toHaveText(`${i + 1}/20`, { timeout: 5000 });
     await expect(page.locator('#skipnot-question')).toContainText(TEST_QUESTION.q);
 
-    // Option 0 is the always-correct slot for TEST_QUESTION.
     await page
       .locator(`#skipnot-options button:nth-child(${TEST_QUESTION.correctIdx + 1})`)
       .click();
-    // Pause longer than the client's RESULT_DISPLAY_MS (800) so the next q renders.
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(500);
   }
 
   await page.locator('#skipnot-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });
@@ -83,16 +80,17 @@ test('skipnot: 20 wrong answers → score -140, qualifies, lands in leaderboard'
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
-  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player');
+  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
+    query: 'testSpeed=2',
+  });
 
   await page.locator('#btn-skipnot-create').click();
   await page.locator('#skipnot-phase-game').waitFor({ state: 'visible', timeout: 5000 });
 
   for (let i = 0; i < 20; i++) {
     await expect(page.locator('#skipnot-counter')).toHaveText(`${i + 1}/20`, { timeout: 5000 });
-    // Option 1 is always wrong for TEST_QUESTION (only option 0 is correct).
     await page.locator('#skipnot-options button:nth-child(2)').click();
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(500);
   }
 
   await page.locator('#skipnot-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });

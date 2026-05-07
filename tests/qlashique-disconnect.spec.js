@@ -1,21 +1,7 @@
 // @ts-check
 // Qlashique e2e: one player disconnects mid-game → other player sees game-over with 'disconnect' reason.
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-
-const BASE = 'http://localhost:3000';
-
-async function loginPlayer(browser, username) {
-  const ctx = await browser.newContext({ baseURL: BASE });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await page.locator('[data-view="login"]').click();
-  await page.locator('#login-username').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#login-username').fill(username);
-  await page.locator('#login-password').fill('testpass123');
-  await page.locator('#btn-login').click();
-  await page.locator('#btn-logout').waitFor({ state: 'visible', timeout: 5000 });
-  return { ctx, page };
-}
+import { registerAndLogin as loginPlayer, BASE } from './e2e-helpers.js';
 
 test('qlashique: disconnect mid-game awards win to remaining player', async ({ browser }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
@@ -24,11 +10,7 @@ test('qlashique: disconnect mid-game awards win to remaining player', async ({ b
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
   await p1.locator('#btn-qlas-create').click();
-  await p1.waitForFunction(
-    // eslint-disable-next-line no-undef
-    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
-    { timeout: 8000 },
-  );
+  await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   await api.post('/test/set-hp', { data: { hp: 20 } });

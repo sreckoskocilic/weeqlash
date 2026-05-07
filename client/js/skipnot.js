@@ -15,7 +15,8 @@ import { loadPanelLeaderboard } from './leaderboard.js';
 import { showView } from './nav.js';
 
 const TIMER_RING_CIRC = 175.93;
-const RESULT_DISPLAY_MS = 800; // colored-button + flash visible time before next q
+const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
+const RESULT_DISPLAY_MS = 800 / _testSpeed;
 const POINT_CORRECT = 13;
 const POINT_WRONG = -7;
 

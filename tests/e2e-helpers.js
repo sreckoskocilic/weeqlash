@@ -15,13 +15,13 @@ export const TEST_QUESTION = {
   correctIdx: 0,
 };
 
-export async function registerAndLogin(browser, username) {
+export async function registerAndLogin(browser, username, { query = '' } = {}) {
   const ctx = await browser.newContext({ baseURL: BASE });
   const page = await ctx.newPage();
-  await page.goto('/');
-  await page.waitForTimeout(500);
-  // The horizontal nav defaults to the Play view; reveal the login form first.
+  await page.goto(query ? `/?${query}` : '/');
+  await page.locator('[data-view="login"]').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('[data-view="login"]').click();
+  await page.locator('#login-username').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill('testpass123');
   await page.locator('#btn-login').click();

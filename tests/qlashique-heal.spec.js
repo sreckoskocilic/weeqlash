@@ -28,11 +28,7 @@ test('qlashique: score >= 2 heal restores HP, opponent untouched', async ({ brow
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
 
   await p1.locator('#btn-qlas-create').click();
-  await p1.waitForFunction(
-    // eslint-disable-next-line no-undef
-    () => document.getElementById('qlas-code-val')?.textContent?.trim().length === 5,
-    { timeout: 8000 },
-  );
+  await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   await api.post('/test/set-hp', { data: { hp: 20 } });
@@ -54,7 +50,6 @@ test('qlashique: score >= 2 heal restores HP, opponent untouched', async ({ brow
         .waitFor({ state: 'visible', timeout: 5000 });
     }
   }
-  await p1.waitForTimeout(300);
 
   await p1.locator('#btn-qlas-stop').click();
   await p1.locator('#btn-qlas-end').waitFor({ state: 'visible', timeout: 3000 });
@@ -85,7 +80,6 @@ test('qlashique: score >= 2 heal restores HP, opponent untouched', async ({ brow
 
   // Correct answer 2
   await p1.locator('.qlas-opt').nth(correctIdx).click();
-  await p1.waitForTimeout(300);
 
   // Stop → heal button visible (score >= 2)
   await p1.locator('#btn-qlas-stop').click();

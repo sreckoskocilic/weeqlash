@@ -1,20 +1,6 @@
 // @ts-check
 import { test } from '@playwright/test';
-
-const BASE = 'http://localhost:3000';
-
-async function registerAndLogin(browser, username) {
-  const ctx = await browser.newContext({ baseURL: BASE });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await page.waitForTimeout(500);
-  await page.locator('[data-view="login"]').click();
-  await page.locator('#login-username').fill(username);
-  await page.locator('#login-password').fill('testpass123');
-  await page.locator('#btn-login').click();
-  await page.locator('#btn-logout').waitFor({ state: 'visible', timeout: 5000 });
-  return { ctx, page };
-}
+import { registerAndLogin } from './e2e-helpers.js';
 
 async function answerRandom(page) {
   const btns = page.locator('#modal-options .modal-option:not([disabled])');
@@ -44,7 +30,7 @@ test('combat: Q1/3 → Q2/3 → Q3/3 sequential flow, outcome matches answers', 
 
   // Start game
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
-  await p1.waitForTimeout(1200);
+  await p1.waitForTimeout(1100);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });
   await p2.locator('#screen-game').waitFor({ timeout: 8000 });
@@ -55,8 +41,7 @@ test('combat: Q1/3 → Q2/3 → Q3/3 sequential flow, outcome matches answers', 
   // Select peg - may see attack options if adjacent
   await p1.locator(`.peg[data-peg-id="${p1PegId}"]`).click();
 
-  // Wait a bit for valid moves to calculate
-  await p1.waitForTimeout(500);
+  await p1.locator('.tile.valid-move, .tile.can-attack').first().waitFor({ timeout: 5000 });
 
   // Try to find attackable tile, or just make a normal move
   const attackTiles = await p1.locator('.tile.can-attack').count();
@@ -68,14 +53,16 @@ test('combat: Q1/3 → Q2/3 → Q3/3 sequential flow, outcome matches answers', 
       await p1.locator(`#modal-combat-label:has-text("Q${q}/3")`).waitFor({ timeout: 10000 });
       await p2.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
       await answerRandom(p1);
-      await p1.waitForTimeout(800);
+      if (q < 3) {
+        await p1.locator(`#modal-combat-label:has-text("Q${q + 1}/3")`).waitFor({ timeout: 10000 });
+      }
     }
   } else {
     // Make normal move instead - just verify modal shows
     const moveTiles = await p1.locator('.tile.can-move').count();
     if (moveTiles > 0) {
       await p1.locator('.tile.can-move').first().click();
-      await p1.waitForTimeout(500);
+      await p1.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
       await answerRandom(p1);
     }
   }

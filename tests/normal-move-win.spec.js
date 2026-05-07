@@ -1,26 +1,17 @@
 // @ts-check
 /* global document */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { TEST_QUESTION, setNextQuestion, clearStickyQuestion } from './e2e-helpers.js';
-
-const BASE = 'http://localhost:3000';
+import {
+  TEST_QUESTION,
+  setNextQuestion,
+  clearStickyQuestion,
+  registerAndLogin,
+  BASE,
+} from './e2e-helpers.js';
 
 test.afterEach(async () => {
   await clearStickyQuestion();
 });
-
-async function registerAndLogin(browser, username) {
-  const ctx = await browser.newContext({ baseURL: BASE });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await page.locator('[data-view="login"]').click();
-  await page.locator('#login-username').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#login-username').fill(username);
-  await page.locator('#login-password').fill('testpass123');
-  await page.locator('#btn-login').click();
-  await page.locator('#btn-logout').waitFor({ state: 'visible', timeout: 5000 });
-  return { ctx, page };
-}
 
 async function getUserQuestionStats(page) {
   const meRes = await page.request.get('/auth/me');
@@ -36,6 +27,9 @@ async function getUserQuestionStats(page) {
 
 async function getUserStats(api, email) {
   const res = await api.get(`/test/user-stats/${email}`);
+  if (!res.ok()) {
+    throw new Error(`/test/user-stats/${email} returned ${res.status()}`);
+  }
   return res.json();
 }
 
@@ -224,8 +218,7 @@ test('normal move: play until one player wins', async ({ browser }) => {
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
 
   await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
-  // Host socket must respect LOBBY_RATE_LIMIT_MS=1000 between room:create and room:start;
-  // a smaller delay causes the server to reject the start event and the game never begins.
+  // Server LOBBY_RATE_LIMIT_MS=1000; must wait ≥1100ms between create and start.
   await p1.waitForTimeout(1100);
   await p1.locator('#btn-start').click();
   await p1.locator('#screen-game').waitFor({ timeout: 8000 });

@@ -22,7 +22,9 @@ test('skipnot: skip button scores 0, mixed run produces correct total', async ({
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
-  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player');
+  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
+    query: 'testSpeed=2',
+  });
 
   await page.locator('#btn-skipnot-create').click();
   await page.locator('#skipnot-phase-game').waitFor({ state: 'visible', timeout: 5000 });
@@ -32,18 +34,15 @@ test('skipnot: skip button scores 0, mixed run produces correct total', async ({
     await expect(page.locator('#skipnot-counter')).toHaveText(`${i + 1}/20`, { timeout: 5000 });
 
     if (i < 10) {
-      // Correct: click option at correctIdx (0)
       await page
         .locator(`#skipnot-options button:nth-child(${TEST_QUESTION.correctIdx + 1})`)
         .click();
     } else if (i < 15) {
-      // Wrong: click option 2 (index 1, always wrong for TEST_QUESTION)
       await page.locator('#skipnot-options button:nth-child(2)').click();
     } else {
-      // Skip
       await page.locator('#btn-skipnot-skip').click();
     }
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(500);
   }
 
   await page.locator('#skipnot-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });
