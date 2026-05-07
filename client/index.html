@@ -40,74 +40,44 @@
 
     <h1 id="main-title" class="brand" aria-label="wQ$x — multiplayer trivia brawls"></h1>
 
+    <div id="board-banner" aria-hidden="true">
+      <div class="bb-ambient"></div>
+      <div class="bb-grid">
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--dark"></div>
+        <div class="bb-t bb-t--peg-r"></div>
+        <div class="bb-t bb-t--dark"></div>
+        <div class="bb-t bb-t--light"></div>
+
+        <div class="bb-t bb-t--dark"></div>
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--a">A</div>
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--dark"></div>
+
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--b">B</div>
+        <div class="bb-t bb-t--q">?</div>
+        <div class="bb-t bb-t--c">C</div>
+        <div class="bb-t bb-t--light"></div>
+
+        <div class="bb-t bb-t--dark"></div>
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--d">D</div>
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--dark"></div>
+
+        <div class="bb-t bb-t--light"></div>
+        <div class="bb-t bb-t--dark"></div>
+        <div class="bb-t bb-t--peg-b"></div>
+        <div class="bb-t bb-t--dark"></div>
+        <div class="bb-t bb-t--light"></div>
+      </div>
+      <div class="bb-vignette"></div>
+    </div>
+
     <!-- Announcements — edit the <li> items to update -->
     <section id="announcements">
-      <svg
-        class="ann-bg"
-        viewBox="0 0 72 64"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
-        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
-        <circle cx="4" cy="32" r="2" fill="#00ff41" />
-        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
-        <circle cx="32" cy="4" r="2" fill="#00ff41" />
-        <path
-          d="M 42 42 L 52 52 L 62 52"
-          stroke="#ffe600"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
-      </svg>
-      <svg
-        class="ann-bg ann-bg-2"
-        viewBox="0 0 72 64"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
-        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
-        <circle cx="4" cy="32" r="2" fill="#00ff41" />
-        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
-        <circle cx="32" cy="4" r="2" fill="#00ff41" />
-        <path
-          d="M 42 42 L 52 52 L 62 52"
-          stroke="#ffe600"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
-      </svg>
-      <svg
-        class="ann-bg ann-bg-3"
-        viewBox="0 0 72 64"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" />
-        <path d="M 4 32 L 18 32" stroke="#00ff41" stroke-width="2.5" />
-        <circle cx="4" cy="32" r="2" fill="#00ff41" />
-        <path d="M 32 4 L 32 18" stroke="#00ff41" stroke-width="2.5" />
-        <circle cx="32" cy="4" r="2" fill="#00ff41" />
-        <path
-          d="M 42 42 L 52 52 L 62 52"
-          stroke="#ffe600"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <circle cx="62" cy="52" r="2.5" fill="#ffe600" />
-      </svg>
       <div class="ann-header">Latest</div>
       <ul>
         <li>
@@ -330,6 +300,32 @@
                 <span class="mode-desc">Solo · 20 questions, 12s each, climb DEM SLEEPLESS</span>
               </span>
             </button>
+            <div class="mode-join-card">
+              <div class="join-title">JOIN GAME</div>
+              <div class="join-desc">Enter a 5-letter room code to join.</div>
+              <div class="join-row">
+                <h3 id="label-join-code" style="display: none">Room Code</h3>
+                <input
+                  id="join-code"
+                  class="join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                  aria-labelledby="label-join-code"
+                />
+                <button id="btn-join" class="join-go" type="button">BRAWL</button>
+              </div>
+              <div class="join-row">
+                <input
+                  id="qlas-join-code"
+                  class="join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                />
+                <button id="btn-qlas-start" class="join-go" type="button">DUEL</button>
+              </div>
+            </div>
           </div>
 
           <div
@@ -346,62 +342,7 @@
                 display: none;
               "
             >
-              ⚡ Dev: Quick Game
-            </button>
-          </div>
-
-          <div class="divider">enter room code to join the game</div>
-
-          <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
-            <h3 id="label-join-code" style="display: none">Room Code</h3>
-            <input
-              id="join-code"
-              type="text"
-              maxlength="5"
-              placeholder="CODE"
-              style="
-                flex: 1;
-                height: 42px;
-                text-transform: uppercase;
-                letter-spacing: 0.2em;
-                padding: 0.5rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 1rem;
-              "
-              aria-labelledby="label-join-code"
-            />
-            <button id="btn-join" style="flex: 2; margin-top: 0; height: 42px">
-              Join Weeqlash
-            </button>
-          </div>
-          <div style="display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.6rem">
-            <input
-              id="qlas-join-code"
-              type="text"
-              maxlength="5"
-              placeholder="CODE"
-              style="
-                flex: 1;
-                height: 42px;
-                text-transform: uppercase;
-                letter-spacing: 0.2em;
-                padding: 0.5rem;
-                background: var(--bg);
-                border: 1px solid var(--bg3);
-                color: var(--text);
-                border-radius: var(--radius);
-                font-size: 1rem;
-              "
-            />
-            <button
-              class="btn-qlashique"
-              id="btn-qlas-start"
-              style="flex: 2; margin-top: 0; height: 42px"
-            >
-              Join Qlashique
+              Dev: Quick Game
             </button>
           </div>
 
