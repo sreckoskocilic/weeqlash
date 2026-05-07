@@ -29,7 +29,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600;700&family=Montserrat:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -824,38 +824,18 @@
 
     <!-- Qlashique Screen -->
     <div id="screen-qlashique">
-      <div class="game-theme-picker" role="group" aria-label="Color theme">
-        <button
-          class="skp"
-          type="button"
-          data-theme="amber"
-          aria-label="Amber theme"
-          title="Amber"
-        ></button>
-        <button
-          class="skp"
-          type="button"
-          data-theme="green"
-          aria-label="Green theme"
-          title="Green"
-        ></button>
-        <button
-          class="skp"
-          type="button"
-          data-theme="cyan"
-          aria-label="Cyan theme"
-          title="Cyan"
-        ></button>
-        <button
-          class="skp"
-          type="button"
-          data-theme="pink"
-          aria-label="Pink theme"
-          title="Pink"
-        ></button>
+      <div class="qlb-theme-picker">
+        <select id="qlas-theme-picker">
+          <option value="terminal">Terminal Green</option>
+          <option value="crimson">Crimson</option>
+          <option value="cyber">Cyber Blue</option>
+          <option value="amber">Amber</option>
+          <option value="synthwave">Synthwave</option>
+          <option value="hiberbee">Hiberbee Dark</option>
+        </select>
       </div>
       <div class="qlas-inner">
-        <div style="text-align: center">
+        <div id="qlas-brand" style="text-align: center">
           <svg
             class="qlas-mark"
             viewBox="0 0 72 64"
@@ -934,108 +914,111 @@
           </div>
         </div>
 
-        <!-- Combat -->
+        <!-- Combat (Concept B: Centered Arena) -->
         <div id="qlas-phase-combat" style="display: none">
           <div class="qlas-combat-layout">
-            <!-- Column 1: player boxes -->
-            <div class="qlas-col-players">
-              <div class="qlas-pbar" id="qlas-p0bar" style="--pc: var(--game-accent)">
-                <div class="qlas-pb-grid">
-                  <div class="qlas-pb-name" id="qlas-p0name">
-                    <span id="qlas-p0name-text">Player 1</span>
-                    <span class="qlas-thinking" id="qlas-p0thinking" aria-hidden="true"
-                      >guessing<span class="dots">...</span></span
-                    >
-                    <span class="qlas-streak-badge" id="qlas-p0streak" aria-hidden="true"
-                      ><span class="flame">🔥</span><span class="num">0</span></span
-                    >
-                  </div>
-                  <div class="qlas-hp-num" id="qlas-p0hp" style="grid-row: span 2"></div>
+            <div class="qlb-vs-header">
+              <div
+                class="qlb-player qlb-player--left"
+                id="qlas-p0bar"
+                style="--pc: var(--game-accent)"
+              >
+                <div class="qlb-name" id="qlas-p0name">
+                  <span id="qlas-p0name-text">Player 1</span>
+                  <span class="qlas-thinking" id="qlas-p0thinking" aria-hidden="true"
+                    >guessing<span class="dots">...</span></span
+                  >
+                  <span class="qlas-streak-badge" id="qlas-p0streak" aria-hidden="true"
+                    ><span class="flame">🔥</span><span class="num">0</span></span
+                  >
                 </div>
-                <div class="qlas-hp-bar-bg">
+                <div class="qlb-hp" id="qlas-p0hp">30</div>
+                <div class="qlb-hpbar-bg">
                   <div class="qlas-hp-bar-fill" id="qlas-p0hpbar" style="width: 100%"></div>
                 </div>
                 <div class="qlas-floating-host" id="qlas-p0float" aria-hidden="true"></div>
               </div>
-              <div class="qlas-pbar" id="qlas-p1bar" style="--pc: var(--game-accent-2)">
-                <div class="qlas-pb-grid">
-                  <div class="qlas-pb-name" id="qlas-p1name">
-                    <span id="qlas-p1name-text">Player 2</span>
-                    <span class="qlas-thinking" id="qlas-p1thinking" aria-hidden="true"
-                      >guessing<span class="dots">...</span></span
-                    >
-                    <span class="qlas-streak-badge" id="qlas-p1streak" aria-hidden="true"
-                      ><span class="flame">🔥</span><span class="num">0</span></span
-                    >
-                  </div>
-                  <div class="qlas-hp-num" id="qlas-p1hp" style="grid-row: span 2"></div>
+              <div class="qlb-divider">
+                <span class="qlb-vs-text">VS</span>
+              </div>
+              <div
+                class="qlb-player qlb-player--right"
+                id="qlas-p1bar"
+                style="--pc: var(--game-accent-2)"
+              >
+                <div class="qlb-name" id="qlas-p1name">
+                  <span id="qlas-p1name-text">Player 2</span>
+                  <span class="qlas-thinking" id="qlas-p1thinking" aria-hidden="true"
+                    >guessing<span class="dots">...</span></span
+                  >
+                  <span class="qlas-streak-badge" id="qlas-p1streak" aria-hidden="true"
+                    ><span class="flame">🔥</span><span class="num">0</span></span
+                  >
                 </div>
-                <div class="qlas-hp-bar-bg">
+                <div class="qlb-hp" id="qlas-p1hp">30</div>
+                <div class="qlb-hpbar-bg">
                   <div class="qlas-hp-bar-fill" id="qlas-p1hpbar" style="width: 100%"></div>
                 </div>
                 <div class="qlas-floating-host" id="qlas-p1float" aria-hidden="true"></div>
               </div>
+            </div>
+
+            <div class="qlb-turn-strip" id="qlas-turn-bar">
+              <div class="qlb-turn-label" id="qlas-turn-name">—</div>
               <div class="qlas-history-dots" id="qlas-history-dots" aria-label="Turn history"></div>
-              <button class="qlas-recap-live-btn" id="qlas-recap-live-btn" type="button">
-                [ recap ]
+              <div class="qlas-turn-score" id="qlas-turn-score"></div>
+              <div class="qlas-timer-ring" id="qlas-turn-timer">
+                <svg viewBox="0 0 64 64" aria-hidden="true">
+                  <circle class="ring-track" cx="32" cy="32" r="28"></circle>
+                  <circle
+                    class="ring-progress"
+                    id="qlas-timer-ring-progress"
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke-dasharray="175.93"
+                    stroke-dashoffset="0"
+                  ></circle>
+                </svg>
+                <span class="ring-label" id="qlas-timer-ring-label">—</span>
+              </div>
+            </div>
+
+            <div class="qlas-flash" id="qlas-flash" aria-live="polite"></div>
+
+            <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
+              <div class="qlas-question" id="qlas-question"></div>
+              <div class="qlas-options" id="qlas-options"></div>
+            </div>
+
+            <div class="qlas-log" id="qlas-log" aria-live="polite"></div>
+
+            <div class="qlas-action-row" id="qlas-action-row" style="display: none">
+              <button class="btn-qlas-stop" id="btn-qlas-stop" style="display: none">
+                [ ABORT ]
+              </button>
+              <button class="btn-qlas-end" id="btn-qlas-end" style="display: none">
+                [ END TURN ]
+              </button>
+              <button class="btn-qlas-heal" id="btn-qlas-heal" style="display: none">
+                [ HEAL ] <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
               </button>
             </div>
 
-            <!-- Column 2: turn info + questions + buttons -->
-            <div class="qlas-col-game">
-              <div class="qlas-turn-bar" id="qlas-turn-bar">
-                <div class="qlas-turn-name" id="qlas-turn-name">—</div>
-                <div class="qlas-turn-score" id="qlas-turn-score"></div>
-                <div class="qlas-timer-ring" id="qlas-turn-timer">
-                  <svg viewBox="0 0 64 64" aria-hidden="true">
-                    <circle class="ring-track" cx="32" cy="32" r="28"></circle>
-                    <circle
-                      class="ring-progress"
-                      id="qlas-timer-ring-progress"
-                      cx="32"
-                      cy="32"
-                      r="28"
-                      stroke-dasharray="175.93"
-                      stroke-dashoffset="0"
-                    ></circle>
-                  </svg>
-                  <span class="ring-label" id="qlas-timer-ring-label">—</span>
-                </div>
-              </div>
-
-              <div class="qlas-qpanel" id="qlas-qpanel" style="display: none">
-                <div class="qlas-flash" id="qlas-flash" aria-live="polite"></div>
-                <div class="qlas-question" id="qlas-question"></div>
-                <div class="qlas-options" id="qlas-options"></div>
-              </div>
-
-              <div class="qlas-log" id="qlas-log" aria-live="polite"></div>
-
-              <div class="qlas-action-row" id="qlas-action-row" style="display: none">
-                <button class="btn-qlas-stop" id="btn-qlas-stop" style="display: none">
-                  [ ABORT ]
-                </button>
-                <button class="btn-qlas-end" id="btn-qlas-end" style="display: none">
-                  [ END TURN ]
-                </button>
-                <button class="btn-qlas-heal" id="btn-qlas-heal" style="display: none">
-                  [ HEAL ] <span class="qlas-heal-val" id="qlas-heal-val">+2 HP</span>
-                </button>
-              </div>
-
-              <div
-                id="qlas-decision-panel"
-                style="display: none; text-align: center; margin-top: 4px"
+            <div
+              id="qlas-decision-panel"
+              style="display: none; text-align: center; margin-top: 4px"
+            >
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-qlas-attack"
+                style="font-size: 1.3rem; width: 100%"
               >
-                <button
-                  class="qlas-btn qlas-btn--primary"
-                  id="btn-qlas-attack"
-                  style="font-size: 1.3rem; width: 100%"
-                >
-                  [ ENGAGE ]
-                </button>
-              </div>
+                [ ENGAGE ]
+              </button>
             </div>
+
+            <button class="qlb-recap-btn" id="qlas-recap-live-btn" type="button">[ recap ]</button>
           </div>
         </div>
 

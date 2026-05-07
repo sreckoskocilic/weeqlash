@@ -381,6 +381,9 @@ function _renderHeatmap() {
       cell.classList.add('skip');
     }
     cell.textContent = ch;
+    cell.title =
+      'Q' + (i + 1) + ': ' + (o === 'ok' ? 'Correct' : o === 'bad' ? 'Wrong' : 'Skipped');
+    cell.style.animationDelay = i * 40 + 'ms';
     wrap.appendChild(cell);
   }
 }

@@ -7,6 +7,102 @@ import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { QLAS_DEFAULT_HP, QLAS_HP_OPTIONS } from './constants.js';
 
+const QLAS_THEMES = {
+  terminal: {
+    'game-bg': '#020c02',
+    'game-bg-2': '#071007',
+    'game-bg-3': '#041004',
+    'game-border': '#0d2e0d',
+    'game-border-2': '#1c4d1c',
+    'game-text': '#88ff88',
+    'game-accent': '#00ff41',
+    'game-accent-rgb': '0, 255, 65',
+    'game-accent-2': '#00b8ff',
+    'game-key': '#ffe600',
+  },
+  crimson: {
+    'game-bg': '#0a0406',
+    'game-bg-2': '#120810',
+    'game-bg-3': '#0e060a',
+    'game-border': '#2e0d1a',
+    'game-border-2': '#4d1c2e',
+    'game-text': '#ff8888',
+    'game-accent': '#ff2244',
+    'game-accent-rgb': '255, 34, 68',
+    'game-accent-2': '#ff8800',
+    'game-key': '#ffe600',
+  },
+  cyber: {
+    'game-bg': '#020810',
+    'game-bg-2': '#071220',
+    'game-bg-3': '#041018',
+    'game-border': '#0d2040',
+    'game-border-2': '#1c3d6d',
+    'game-text': '#88ccff',
+    'game-accent': '#00d4ff',
+    'game-accent-rgb': '0, 212, 255',
+    'game-accent-2': '#ff44aa',
+    'game-key': '#ffe600',
+  },
+  amber: {
+    'game-bg': '#0c0a02',
+    'game-bg-2': '#141006',
+    'game-bg-3': '#100e04',
+    'game-border': '#2e2a0d',
+    'game-border-2': '#4d441c',
+    'game-text': '#eedd88',
+    'game-accent': '#ffb000',
+    'game-accent-rgb': '255, 176, 0',
+    'game-accent-2': '#ff6644',
+    'game-key': '#ffe600',
+  },
+  synthwave: {
+    'game-bg': '#0a020c',
+    'game-bg-2': '#100718',
+    'game-bg-3': '#0c0412',
+    'game-border': '#2a0d3e',
+    'game-border-2': '#441c6d',
+    'game-text': '#cc88ff',
+    'game-accent': '#aa44ff',
+    'game-accent-rgb': '170, 68, 255',
+    'game-accent-2': '#ff44aa',
+    'game-key': '#ffe600',
+  },
+  hiberbee: {
+    'game-bg': '#171615',
+    'game-bg-2': '#222120',
+    'game-bg-3': '#1e1e1e',
+    'game-border': '#373635',
+    'game-border-2': '#525150',
+    'game-text': '#cfcecd',
+    'game-accent': '#5efbef',
+    'game-accent-rgb': '94, 251, 239',
+    'game-accent-2': '#ee7762',
+    'game-key': '#ffd866',
+  },
+};
+const QLAS_THEME_KEY = 'weeqlash.qlasTheme';
+
+function qlasApplyTheme(name) {
+  const t = QLAS_THEMES[name];
+  if (!t) {
+    return;
+  }
+  const screen = document.getElementById('screen-qlashique');
+  for (const [k, v] of Object.entries(t)) {
+    screen.style.setProperty('--' + k, v);
+  }
+}
+
+function qlasGetStoredTheme() {
+  try {
+    const v = localStorage.getItem(QLAS_THEME_KEY);
+    return QLAS_THEMES[v] ? v : 'terminal';
+  } catch {
+    return 'terminal';
+  }
+}
+
 // State
 let qlasCode = null;
 let qlasMyIdx = null;
@@ -24,6 +120,7 @@ let qlasLiveHistory = [];
 let qlasMatchStart = null;
 let qlasStreak = [0, 0];
 // Per-turn UX bookkeeping
+let qlasNextQTimeout = null; // delay next question render to show answer color
 let qlasActivePlayerIdx = null; // who's currently taking the turn
 let qlasLastScoreByPlayer = [0, 0]; // remembered after each answer; classified at turn_end
 let qlasTurnAnswerCount = [0, 0]; // # answers given this turn (for recap line)
@@ -44,7 +141,11 @@ export function qlasSetHP(playerIdx, hp) {
   hp = Math.max(0, Math.min(qlasMaxHp, hp));
   qlasHp[playerIdx] = hp;
   qEl('qlas-p' + playerIdx + 'hp').textContent = hp;
-  qEl('qlas-p' + playerIdx + 'hpbar').style.width = (hp / qlasMaxHp) * 100 + '%';
+  const bar = qEl('qlas-p' + playerIdx + 'hpbar');
+  bar.style.width = (hp / qlasMaxHp) * 100 + '%';
+  const pct = hp / qlasMaxHp;
+  bar.classList.toggle('hp-low', pct > 0.15 && pct <= 0.35);
+  bar.classList.toggle('hp-critical', pct > 0 && pct <= 0.15);
 }
 
 export function qlasSetScore(score) {
@@ -60,6 +161,13 @@ export function qlasFlash(playerIdx, type) {
   const bar = qEl('qlas-p' + playerIdx + 'bar');
   if (type === 'dmg') {
     bar.classList.add('qlas-take-dmg');
+    const layout = document.querySelector('.qlas-combat-layout');
+    if (layout) {
+      layout.classList.remove('screen-shake');
+      void layout.offsetWidth;
+      layout.classList.add('screen-shake');
+      setTimeout(() => layout.classList.remove('screen-shake'), 350);
+    }
   } else {
     bar.classList.add('qlas-take-heal');
   }
@@ -491,6 +599,22 @@ function qlasCloseLiveRecap() {
 }
 
 export function initQlashique(socket) {
+  // Theme picker
+  const storedTheme = qlasGetStoredTheme();
+  qlasApplyTheme(storedTheme);
+  const themePicker = document.getElementById('qlas-theme-picker');
+  if (themePicker) {
+    themePicker.value = storedTheme;
+    themePicker.addEventListener('change', function () {
+      qlasApplyTheme(this.value);
+      try {
+        localStorage.setItem(QLAS_THEME_KEY, this.value);
+      } catch {
+        /* ok */
+      }
+    });
+  }
+
   qEl('qlas-btn-copy-code').addEventListener('click', () => {
     navigator.clipboard.writeText(qEl('qlas-code-val').textContent);
   });
@@ -534,6 +658,7 @@ export function initQlashique(socket) {
     qlasTurnAnswerCount = [0, 0];
     qlasTurnCorrectCount = [0, 0];
     qlasGuessingActive = false;
+    qEl('qlas-brand')?.style.setProperty('display', 'none');
     qEl('qlas-qpanel').style.display = 'none';
     qEl('qlas-action-row').style.display = 'none';
     qEl('btn-qlas-stop').style.display = 'none';
@@ -588,6 +713,7 @@ export function initQlashique(socket) {
   socket.on('qlashique:question', ({ question, questionIdx, activePlayerIdx }) => {
     const isMyTurn = activePlayerIdx === qlasMyIdx;
     qlasActivePlayerIdx = activePlayerIdx;
+    clearTimeout(qlasNextQTimeout);
     // Show "guessing..." on the opponent's pbar while they answer.
     [0, 1].forEach((i) => {
       const t = qEl('qlas-p' + i + 'thinking');
@@ -612,11 +738,17 @@ export function initQlashique(socket) {
       if (isMyTurn) {
         qlasStartTimer(qlasTimerTotal);
       }
+      qlasRenderQuestion(question, questionIdx);
+      if (!isMyTurn) {
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
+      }
     } else if (isMyTurn) {
-      document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
-    }
-    qlasRenderQuestion(question, questionIdx);
-    if (!isMyTurn) {
+      qlasNextQTimeout = setTimeout(() => {
+        document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
+        qlasRenderQuestion(question, questionIdx);
+      }, 600);
+    } else {
+      qlasRenderQuestion(question, questionIdx);
       document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
     }
   });
@@ -653,6 +785,10 @@ export function initQlashique(socket) {
         qlasStreak[playerIdx] = 0;
       }
       qlasUpdateStreakBadge(playerIdx);
+      const pbar = qEl('qlas-p' + playerIdx + 'bar');
+      if (pbar) {
+        pbar.classList.toggle('streak-high', qlasStreak[playerIdx] >= 4);
+      }
       if (typeof q === 'string') {
         qlasLiveHistory.push({
           turn,
@@ -669,6 +805,7 @@ export function initQlashique(socket) {
   );
 
   socket.on('qlashique:turn_end', () => {
+    clearTimeout(qlasNextQTimeout);
     qlasStopTimer();
     qlasGuessingActive = false;
     qEl('qlas-action-row').style.display = 'none';
@@ -694,6 +831,7 @@ export function initQlashique(socket) {
   });
 
   socket.on('qlashique:attack_stopped', ({ score }) => {
+    clearTimeout(qlasNextQTimeout);
     qlasGuessingActive = false;
     document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
     qEl('btn-qlas-stop').style.display = 'none';
@@ -706,6 +844,7 @@ export function initQlashique(socket) {
   });
 
   socket.on('qlashique:timer_expired', () => {
+    clearTimeout(qlasNextQTimeout);
     if (!qlasGuessingActive) {
       return;
     }
@@ -745,9 +884,11 @@ export function initQlashique(socket) {
   });
 
   socket.on('qlashique:game_over', ({ winnerIdx, reason, history }) => {
+    clearTimeout(qlasNextQTimeout);
     qlasStopTimer();
     qEl('qlas-phase-combat').style.display = 'none';
     qEl('qlas-phase-gameover').style.display = '';
+    qEl('qlas-brand')?.style.setProperty('display', '');
     const isWinner = winnerIdx === qlasMyIdx;
     const winnerName = qlasPlayers[winnerIdx]?.name || 'Player ' + (winnerIdx + 1);
     qEl('qlas-winner-text').textContent = isWinner ? '🏆 YOU WIN!' : winnerName + ' WINS';
@@ -789,6 +930,7 @@ export function initQlashique(socket) {
   });
 
   function qlasResetForNewMatch() {
+    clearTimeout(qlasNextQTimeout);
     qlasPlayers = [{ name: '' }, { name: '' }];
     qlasHp = [qlasMaxHp, qlasMaxHp];
     qlasScore = 0;

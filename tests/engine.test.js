@@ -738,3 +738,68 @@ describe('Engine: Win Condition', () => {
     expect(winner).toBe(-1);
   });
 });
+
+describe('Engine: Turn Number', () => {
+  function burnMoves(state, playerIdx, questionsDb) {
+    while (state.currentPlayerIdx === playerIdx) {
+      const pegId = state.players[playerIdx].pegIds[0];
+      selectPeg(state, playerIdx, pegId);
+      const moves = getValidMoves(state, pegId);
+      const target = moves[0];
+      planTurnQuestions(state, pegId, target.r, target.c, questionsDb);
+      const qId = state.pendingTurn.questionId;
+      const wrongIdx = (questionsDb._byId[qId].a + 1) % 4;
+      applyTurn(
+        state,
+        playerIdx,
+        { pegId, targetR: target.r, targetC: target.c, answerIdx: wrongIdx },
+        questionsDb,
+      );
+    }
+  }
+
+  it('starts at 1', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    expect(state.turnNumber).toBe(1);
+  });
+
+  it('stays 1 after only P1 finishes', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const questionsDb = createQuestionsDb();
+    burnMoves(state, 0, questionsDb);
+    expect(state.currentPlayerIdx).toBe(1);
+    expect(state.turnNumber).toBe(1);
+  });
+
+  it('increments to 2 after both players finish a round', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const questionsDb = createQuestionsDb();
+    burnMoves(state, 0, questionsDb);
+    burnMoves(state, 1, questionsDb);
+    expect(state.currentPlayerIdx).toBe(0);
+    expect(state.turnNumber).toBe(2);
+  });
+
+  it('increments correctly over multiple rounds', () => {
+    const state = createGame([
+      { name: 'P1', color: '#f00' },
+      { name: 'P2', color: '#00f' },
+    ]);
+    const questionsDb = createQuestionsDb();
+    for (let round = 0; round < 3; round++) {
+      burnMoves(state, 0, questionsDb);
+      expect(state.turnNumber).toBe(round + 1);
+      burnMoves(state, 1, questionsDb);
+      expect(state.turnNumber).toBe(round + 2);
+    }
+  });
+});

@@ -826,8 +826,11 @@ function advanceTurn(state: GameState): void {
   if (state.players[next].pegIds.length === 0) {
     return;
   }
+  const prev = state.currentPlayerIdx;
   state.currentPlayerIdx = next;
-  state.turnNumber++;
+  if (next <= prev) {
+    state.turnNumber++;
+  }
   // Reset all per-turn state for the new player
   resetTurnState(state);
 }
