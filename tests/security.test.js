@@ -224,7 +224,7 @@ describe('Resend confirmation email error handling', () => {
 
   afterAll(() => {
     const db = getDb();
-    if (!db) return;
+    if (!db) {return;}
     db.prepare(
       "DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'resend_%')",
     ).run();
