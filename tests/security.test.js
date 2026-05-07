@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../server/index.js';
 import * as emailModule from '../server/game/email.ts';
-import { clearTestUsers } from '../server/game/auth.ts';
+import { getDb } from '../server/game/leaderboard.ts';
 
 /**
  * Security Tests Suite
@@ -222,7 +222,14 @@ describe('Resend confirmation email error handling', () => {
   const email = `resend_${unique}@test.invalid`;
   let cookies;
 
-  afterAll(() => clearTestUsers());
+  afterAll(() => {
+    const db = getDb();
+    if (!db) return;
+    db.prepare(
+      "DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'resend_%')",
+    ).run();
+    db.prepare("DELETE FROM users WHERE username LIKE 'resend_%'").run();
+  });
 
   it('registers and logs in a test user', async () => {
     await request(app)
