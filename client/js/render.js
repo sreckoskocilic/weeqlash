@@ -234,7 +234,7 @@ export function updateTile(r, c, state) {
     if (movedPegs.has(tile.pegId)) {
       pegEl.classList.add('just-moved');
     }
-    if (state.currentPlayerIdx === S.myPlayerIndex) {
+    if (state.currentPlayerIdx === S.myPlayerIndex && peg.playerId === S.myPlayerIndex) {
       pegEl.classList.add('can-move');
     }
     pegEl.style.background = player.color;

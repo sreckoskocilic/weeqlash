@@ -60,7 +60,7 @@ Four corners. Four flags. One throne.
 
 ## 2. Qlashique — 1v1 trivia duel ⚔
 
-A head-to-head knife fight over a single question queue. No board, no pegs, no mercy. Each duelist starts with **30 HP**. First to 0 is dust.
+A head-to-head knife fight over a single question queue. No board, no pegs, no mercy. Each duelist starts with **15 HP** (configurable: 10 / 15 / 20 / 30). First to 0 is dust.
 
 ### Before the bell
 

@@ -79,6 +79,7 @@ jobs:
           username: deploy
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/weeqlash
             git pull
             docker compose up -d --build
