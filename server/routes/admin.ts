@@ -38,32 +38,102 @@ function renderHTML(title: string, content: string, extra = ''): string {
   <title>${title} - Weeqlash Admin</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Montserrat', 'Segoe UI', sans-serif; background: #1a1a2e; color: #bdb5b5; padding: 20px; }
-    h1 { color: #d93939; margin-bottom: 20px; }
-    h2 { color: #fff; margin: 20px 0 10px; }
-    .nav { margin-bottom: 20px; padding: 10px; background: #16213e; border-radius: 8px; }
-    .nav a { color: #a4b2a0; text-decoration: none; margin-right: 20px; padding: 8px 16px; border-radius: 4px; }
-    .nav a:hover, .nav a.active { background: #d93939; color: #fff; }
-    table { width: 100%; border-collapse: collapse; background: #16213e; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2f3741; }
-    th { background: #0d1525; color: #fff; }
-    tr:hover { background: #1a2744; }
-    .btn { padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; font-size: 14px; }
-    .btn-primary { background: #d93939; color: #fff; }
-    .btn-secondary { background: #2f3741; color: #bdb5b5; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; color: #a4b2a0; }
-    input, select { padding: 10px; width: 100%; max-width: 300px; background: #1a1a2e; border: 1px solid #2f3741; color: #bdb5b5; border-radius: 4px; }
-    .card { background: #16213e; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    .stat { display: inline-block; margin-right: 30px; }
-    .stat-value { font-size: 2em; color: #fff; font-weight: bold; }
-    .stat-label { color: #a4b2a0; font-size: 0.9em; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; }
-    .badge-success { background: #22c55e; color: #fff; }
-    .badge-danger { background: #ef4444; color: #fff; }
-    .badge-warning { background: #eab308; color: #fff; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-    .stat-card { background: #16213e; padding: 15px; border-radius: 8px; border: 1px solid #2f3741; }
+    body {
+      font-family: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
+      background: #0e0e1a; color: #c8c0c0; padding: 24px;
+      line-height: 1.55; font-size: 0.92rem;
+    }
+    h1 {
+      color: #e8e4e4; font-size: 1.5rem; font-weight: 600;
+      letter-spacing: 0.04em; margin-bottom: 20px;
+      border-bottom: 1px solid #2a2a48; padding-bottom: 12px;
+    }
+    h2 {
+      color: #c8c0c0; font-size: 1rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin: 28px 0 12px; font-size: 0.78rem;
+      color: #e53935;
+    }
+    a { color: #e53935; }
+    .nav {
+      margin-bottom: 24px; padding: 8px; background: rgba(14, 14, 26, 0.85);
+      border-radius: 8px; border: 1px solid #2a2a48;
+      display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    }
+    .nav a {
+      color: #777; text-decoration: none; padding: 8px 16px;
+      border-radius: 6px; font-size: 0.82rem; font-weight: 500;
+      border: 1px solid transparent; transition: all 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .nav a:hover { color: #c8c0c0; border-color: #2a2a48; }
+    .nav a.active { color: #e53935; border-color: #e53935; background: rgba(229,57,53,0.08); }
+    .nav a[style*="float"] {
+      margin-left: auto; float: none !important;
+      color: #777; font-size: 0.78rem;
+    }
+    .nav a[style*="float"]:hover { color: #c8c0c0; }
+    table {
+      width: 100%; border-collapse: collapse;
+      background: #161625; border-radius: 8px; overflow: hidden;
+      font-size: 0.82rem; border: 1px solid #2a2a48;
+    }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #1e1e32; }
+    th {
+      background: #0e0e1a; color: #777; font-size: 0.7rem;
+      text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+    }
+    tr:hover { background: rgba(229, 57, 53, 0.03); }
+    td a { color: #e53935; text-decoration: none; }
+    td a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .btn {
+      padding: 7px 14px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #2a2a48; font-size: 0.76rem; font-weight: 500;
+      font-family: inherit; letter-spacing: 0.02em; transition: all 0.15s;
+    }
+    .btn-primary {
+      background: rgba(229, 57, 53, 0.12); color: #e53935;
+      border-color: rgba(229, 57, 53, 0.4);
+    }
+    .btn-primary:hover { background: rgba(229, 57, 53, 0.22); border-color: #e53935; }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.03); color: #999;
+      border-color: #2a2a48;
+    }
+    .btn-secondary:hover { color: #c8c0c0; border-color: #444; background: rgba(255,255,255,0.06); }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; color: #777; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    input, select {
+      padding: 9px 12px; width: 100%; max-width: 320px;
+      background: #0e0e1a; border: 1px solid #2a2a48; color: #c8c0c0;
+      border-radius: 6px; font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem; transition: border-color 0.15s;
+    }
+    input:focus, select:focus { border-color: #e53935; outline: none; }
+    .card {
+      background: #161625; padding: 20px; border-radius: 8px;
+      margin-bottom: 16px; border: 1px solid #2a2a48;
+    }
+    .stat { display: inline-block; margin-right: 36px; }
+    .stat-value {
+      font-size: 2.2em; color: #fff; font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.02em;
+    }
+    .stat-label { color: #777; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+    .badge {
+      padding: 3px 8px; border-radius: 4px; font-size: 0.68rem;
+      font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .badge-success { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+    .badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-warning { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .stat-card {
+      background: #161625; padding: 20px; border-radius: 8px;
+      border: 1px solid #2a2a48; transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(229, 57, 53, 0.3); }
+    code { background: #0e0e1a; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; }
   </style>
 </head>
 <body>
@@ -72,7 +142,6 @@ function renderHTML(title: string, content: string, extra = ''): string {
     <a href="/admin/users" class="${title === 'Users' || title.startsWith('User:') ? 'active' : ''}">Users</a>
     <a href="/admin/stats" class="${title === 'Statistics' ? 'active' : ''}">Statistics</a>
     <a href="/admin/export" class="${title === 'Export' ? 'active' : ''}">Export Data</a>
-    <a href="/" style="float:right">← Back to Game</a>
   </div>
   ${content}
   ${extra}
@@ -596,7 +665,7 @@ router.get('/users/:id', (req: express.Request, res: express.Response) => {
       <form method="post" action="/admin/users/delete" style="display:inline"
             data-delete-confirm="${esc(user.username)}">
         <input type="hidden" name="id" value="${user.id}">
-        <button class="btn btn-primary" style="background:#ef4444">Delete User (Cascade)</button>
+        <button class="btn btn-primary" style="background:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.4)">Delete User (Cascade)</button>
       </form>
     </div>
   `,
