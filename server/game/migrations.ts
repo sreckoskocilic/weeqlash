@@ -64,7 +64,9 @@ const MIGRATIONS: Migration[] = [
       const tables = db
         .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='howhigh_challenges'")
         .all();
-      if (tables.length > 0) {return;}
+      if (tables.length > 0) {
+        return;
+      }
       db.exec(`
         CREATE TABLE howhigh_challenges (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,7 +133,9 @@ export function runMigrations(db: Database.Database): void {
     (db.prepare('SELECT id FROM schema_migrations').all() as { id: string }[]).map((r) => r.id),
   );
 
-  const insert = db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)');
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO schema_migrations (id, applied_at) VALUES (?, ?)',
+  );
 
   for (const m of MIGRATIONS) {
     if (applied.has(m.id)) {

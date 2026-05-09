@@ -35,6 +35,7 @@ export function getDb(): Database.Database | null {
 export function initDb(): void {
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
   db.pragma('foreign_keys = ON');
 
   // Mode registry. Created before leaderboard so the FK can resolve on fresh DBs.
@@ -178,7 +179,7 @@ export function clearTestEntries(): void {
     throw new Error('Database not initialized');
   }
   try {
-    db.prepare('DELETE FROM leaderboard WHERE name LIKE \'e2e_%\'').run();
+    db.prepare("DELETE FROM leaderboard WHERE name LIKE 'e2e_%'").run();
   } catch (err) {
     console.error('[leaderboard] clearTestEntries() failed:', (err as Error).message);
   }
