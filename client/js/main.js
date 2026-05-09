@@ -15,6 +15,7 @@ import * as keyboard from './keyboard.js';
 import * as qlashique from './qlashique.js';
 import { initSkipnot } from './skipnot.js';
 import { initSkipnotTheme } from './skipnot-theme.js';
+import { initHowHigh } from './howhigh.js';
 import { initNav } from './nav.js';
 import { initHomeBg } from './home-bg.js';
 
@@ -50,6 +51,9 @@ async function init() {
   initSkipnot(sock);
   // SkipNoT theme switcher (amber/green/cyan/pink, persisted)
   initSkipnotTheme();
+
+  // HowHigh? (async 2P challenge)
+  initHowHigh(sock);
 
   // Decorative scattered shapes behind the connect screen
   initHomeBg();
@@ -99,10 +103,14 @@ function initUI() {
   // Category toggles
   dom.el('cat-toggle-btns').addEventListener('click', (e) => {
     const btn = e.target.closest('.cat-toggle-btn');
-    if (!btn) {return;}
+    if (!btn) {
+      return;
+    }
     const cat = btn.dataset.cat;
     if (state.setupEnabledCats.includes(cat)) {
-      if (state.setupEnabledCats.length <= 1) {return;}
+      if (state.setupEnabledCats.length <= 1) {
+        return;
+      }
       state.setupEnabledCats = state.setupEnabledCats.filter((c) => c !== cat);
       btn.classList.remove('active');
     } else {
@@ -143,7 +151,9 @@ function initUI() {
 
   dom.el('btn-help-close').addEventListener('click', closeHelp);
   dom.el('help-modal').addEventListener('click', (e) => {
-    if (e.target === dom.el('help-modal')) {closeHelp();}
+    if (e.target === dom.el('help-modal')) {
+      closeHelp();
+    }
   });
 
   document.querySelectorAll('[data-legal-open]').forEach((link) => {
@@ -157,7 +167,9 @@ function initUI() {
   });
   ['privacy', 'cookies', 'terms'].forEach((page) => {
     dom.el('modal-' + page).addEventListener('click', (e) => {
-      if (e.target === dom.el('modal-' + page)) {closeLegal(page);}
+      if (e.target === dom.el('modal-' + page)) {
+        closeLegal(page);
+      }
     });
   });
 
@@ -179,7 +191,9 @@ function initOptBtnGroup(groupId, setter) {
   const group = dom.el(groupId);
   group.addEventListener('click', (e) => {
     const btn = e.target.closest('.opt-btn');
-    if (!btn) {return;}
+    if (!btn) {
+      return;
+    }
     group.querySelectorAll('.opt-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     setter(parseInt(btn.dataset.val));

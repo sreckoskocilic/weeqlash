@@ -22,6 +22,7 @@ interface QuizModeInput {
 const _MODES: QuizModeInput[] = [
   { id: 'triviandom', label: 'Triviandom', categories: null },
   { id: 'skipnot', label: 'SkipNoT', categories: null },
+  { id: 'howhigh', label: 'HowHigh?', categories: null },
 ];
 
 export const QUIZ_MODES: QuizMode[] = _MODES.map((m) => ({

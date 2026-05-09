@@ -59,6 +59,47 @@ const MIGRATIONS: Migration[] = [
     },
   },
   {
+    id: '004_create_howhigh_challenges',
+    up: (db) => {
+      const tables = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='howhigh_challenges'")
+        .all();
+      if (tables.length > 0) {return;}
+      db.exec(`
+        CREATE TABLE howhigh_challenges (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          code TEXT UNIQUE NOT NULL,
+          player1_id INTEGER NOT NULL REFERENCES users(id),
+          player2_id INTEGER REFERENCES users(id),
+          question_ids TEXT NOT NULL,
+          extra_question_ids TEXT,
+          dice_die1 INTEGER NOT NULL,
+          dice_die2 INTEGER NOT NULL,
+          p1_score INTEGER,
+          p1_results TEXT,
+          p1_dice_accepted INTEGER,
+          p1_gowild_accepted INTEGER,
+          p1_time_ms INTEGER,
+          p1_finished_at INTEGER,
+          p2_score INTEGER,
+          p2_results TEXT,
+          p2_dice_accepted INTEGER,
+          p2_gowild_accepted INTEGER,
+          p2_time_ms INTEGER,
+          p2_finished_at INTEGER,
+          winner_id INTEGER REFERENCES users(id),
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at INTEGER NOT NULL,
+          completed_at INTEGER
+        );
+        CREATE INDEX idx_howhigh_code ON howhigh_challenges(code);
+        CREATE INDEX idx_howhigh_p1 ON howhigh_challenges(player1_id);
+        CREATE INDEX idx_howhigh_p2 ON howhigh_challenges(player2_id);
+        CREATE INDEX idx_howhigh_status ON howhigh_challenges(status);
+      `);
+    },
+  },
+  {
     id: '003_add_confirmation_token_expires',
     up: (db) => {
       // On fresh DBs, users table doesn't exist yet (created by initAuthDb after
@@ -66,7 +107,9 @@ const MIGRATIONS: Migration[] = [
       const tables = db
         .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         .all();
-      if (tables.length === 0) {return;}
+      if (tables.length === 0) {
+        return;
+      }
       const cols = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
       if (cols.some((c) => c.name === 'confirmation_token_expires')) {
         return;
@@ -91,7 +134,9 @@ export function runMigrations(db: Database.Database): void {
   const insert = db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)');
 
   for (const m of MIGRATIONS) {
-    if (applied.has(m.id)) {continue;}
+    if (applied.has(m.id)) {
+      continue;
+    }
     const tx = db.transaction(() => {
       m.up(db);
       insert.run(m.id, Date.now());

@@ -23,9 +23,10 @@ export function showScreen(id) {
   const isConnect = id === 'screen-connect';
   const isQlas = id === 'screen-qlashique';
   const isSkipnot = id === 'screen-skipnot';
-  el('main-title').style.display = isGame || isQlas || isSkipnot ? 'none' : '';
+  const isHowHigh = id === 'screen-howhigh';
+  el('main-title').style.display = isGame || isQlas || isSkipnot || isHowHigh ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
-  el('announcements').style.display = isGame || isQlas || isSkipnot ? 'none' : '';
+  el('announcements').style.display = isGame || isQlas || isSkipnot || isHowHigh ? 'none' : '';
   [
     'screen-connect',
     'screen-lobby',
@@ -34,11 +35,12 @@ export function showScreen(id) {
     'screen-leaderboard',
     'screen-qlashique',
     'screen-skipnot',
+    'screen-howhigh',
   ].forEach((s) => {
     el(s).style.display = 'none';
     el(s).classList.remove('show');
   });
-  if (isGame || isQlas || isSkipnot) {
+  if (isGame || isQlas || isSkipnot || isHowHigh) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
     // Clear inline display so the `.main-columns` class CSS (display: flex

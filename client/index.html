@@ -76,10 +76,10 @@
       <div class="ann-header">Latest</div>
       <ul>
         <li>
-          <strong>SkipNoT</strong> — new solo mode. 20 questions, 12 seconds each.
-          <strong>+13</strong> correct, <strong>−7</strong> wrong, <strong>0</strong> skip /
-          timeout. Skip wisely, chase the streak, beat the leaderboard.
-          <em>Hit "Start SkipNoT" below to play.</em>
+          <strong>HowHigh?</strong> — async 2-player challenge. 10 questions, 7 seconds each.
+          <strong>+2</strong> correct, <strong>−2</strong> wrong. Dice bonus after Q3, Go Wild after
+          Q6. Finish, get a code, send it to a friend — they play the same questions. Highest score
+          wins.
         </li>
       </ul>
     </section>
@@ -94,6 +94,9 @@
         </button>
         <button class="nav-item" data-view="settings" type="button">Settings</button>
         <button class="nav-item" id="btn-view-stats" data-auth="in" type="button">Stats</button>
+        <button class="nav-item" data-view="challenges" data-auth="in" type="button">
+          HowHigh
+        </button>
         <button class="nav-item" id="btn-help" type="button">Help</button>
         <button class="nav-item" id="btn-hc" type="button">High contrast</button>
         <button class="nav-item" id="btn-admin" data-auth="in" hidden type="button">Admin</button>
@@ -295,6 +298,51 @@
                 <span class="mode-desc">Solo · 20 questions, 12s each, climb DEM SLEEPLESS</span>
               </span>
             </button>
+            <button id="btn-howhigh-create" class="mode-card mode-card--howhigh" type="button">
+              <span class="mode-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect
+                    x="4"
+                    y="8"
+                    width="10"
+                    height="10"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                  />
+                  <rect
+                    x="18"
+                    y="8"
+                    width="10"
+                    height="10"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                  />
+                  <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                  <circle cx="21" cy="11" r="1.5" fill="currentColor" />
+                  <circle cx="25" cy="11" r="1.5" fill="currentColor" />
+                  <circle cx="21" cy="15" r="1.5" fill="currentColor" />
+                  <circle cx="25" cy="15" r="1.5" fill="currentColor" />
+                  <path
+                    d="M10 22 L16 26 L22 22"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    fill="none"
+                  />
+                </svg>
+              </span>
+              <span class="mode-text">
+                <span class="mode-name">HowHigh?</span>
+                <span class="mode-desc"
+                  >Async 2P · dice bonus · GoWild card · challenge a friend</span
+                >
+              </span>
+            </button>
             <div class="mode-join-card">
               <div class="join-title">JOIN GAME</div>
               <div class="join-desc">Enter a 5-letter room code to join.</div>
@@ -321,6 +369,17 @@
                   autocomplete="off"
                 />
                 <button id="btn-qlas-start" class="join-go" type="button">DUEL</button>
+              </div>
+              <div class="join-row">
+                <input
+                  id="howhigh-join-code"
+                  class="join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                  autocomplete="off"
+                />
+                <button id="btn-howhigh-join" class="join-go" type="button">HOWHIGH</button>
               </div>
             </div>
           </div>
@@ -428,6 +487,20 @@
               placeholder="Password (min 6 chars)"
             />
             <button id="btn-register" class="auth-submit">Create account</button>
+          </div>
+        </div>
+
+        <!-- Challenges view -->
+        <div class="view" data-view-name="challenges" hidden>
+          <div class="setup-section">
+            <div id="howhigh-challenges-list" class="howhigh-challenges-list"></div>
+            <p
+              id="howhigh-challenges-empty"
+              class="howhigh-challenges-empty"
+              style="display: none; opacity: 0.5; text-align: center"
+            >
+              No games yet. Start one from the Play tab!
+            </p>
           </div>
         </div>
 
@@ -657,6 +730,27 @@
         <p>
           The <strong>💊 HEAL</strong> button is available during your turn (disabled if score &lt;
           2). Clicking it immediately heals +2 HP and ends your turn.
+        </p>
+        <h2>HOW TO PLAY — HOWHIGH?</h2>
+        <p>
+          Solo trivia challenge you can send to a friend. Answer
+          <strong>10 questions</strong> (7 s each). Correct: <strong>+2</strong>, wrong:
+          <strong>−2</strong>, timeout: <strong>0</strong>.
+        </p>
+        <p>
+          After question 3 you roll <strong>two dice</strong>. Accept the roll and question 4
+          becomes a bonus round — correct adds the dice sum, wrong subtracts half (rounded up).
+          Decline to play it safe.
+        </p>
+        <p>
+          After question 6 you're offered <strong>Go Wild</strong> — accept and 2 extra questions
+          are added (12 total) but the timer drops to 5 s for all remaining questions. Decline to
+          keep the normal pace.
+        </p>
+        <p>
+          When finished you get a <strong>5-letter code</strong>. Share it with a friend — they play
+          the <em>same questions</em> with the same dice roll. Highest score wins; ties broken by
+          speed.
         </p>
         <button id="btn-help-close">GOT IT</button>
       </div>
@@ -1189,6 +1283,187 @@
                 <div style="text-align: right">TIME</div>
               </div>
               <div id="skipnot-go-lb-rows" class="lb-rows"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HowHigh? Screen -->
+    <div id="screen-howhigh" style="display: none">
+      <div class="qlas-inner">
+        <!-- Game phase -->
+        <div id="howhigh-phase-game" style="display: none">
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div
+              id="howhigh-progress"
+              class="skipnot-progress"
+              aria-label="Question progress"
+              role="status"
+            ></div>
+
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 12px">
+              <div class="qlas-pbar" style="--pc: var(--game-accent); flex: 1">
+                <div class="qlas-pb-grid">
+                  <div class="qlas-pb-name">SCORE</div>
+                  <div class="qlas-hp-num" style="grid-row: span 2; gap: 12px">
+                    <span class="skipnot-score-delta" id="howhigh-score-delta"></span>
+                    <span id="howhigh-score">0</span>
+                  </div>
+                </div>
+              </div>
+              <div class="qlas-pbar" style="--pc: var(--game-accent-2); flex: 1">
+                <div class="qlas-pb-grid">
+                  <div class="qlas-pb-name">QUESTION</div>
+                  <div class="qlas-hp-num" id="howhigh-counter" style="grid-row: span 2">0/10</div>
+                </div>
+              </div>
+              <div class="qlas-timer-ring" id="howhigh-turn-timer" style="flex: none">
+                <svg viewBox="0 0 64 64" aria-hidden="true">
+                  <circle class="ring-track" cx="32" cy="32" r="28"></circle>
+                  <circle
+                    class="ring-progress"
+                    id="howhigh-timer-ring-progress"
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke-dasharray="175.93"
+                    stroke-dashoffset="0"
+                  ></circle>
+                </svg>
+                <span class="ring-label" id="howhigh-timer-ring-label">—</span>
+              </div>
+            </div>
+
+            <div class="qlas-col-game">
+              <div class="qlas-qpanel">
+                <div class="qlas-question" id="howhigh-question"></div>
+                <div class="qlas-options" id="howhigh-options"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dice offer phase -->
+        <div id="howhigh-phase-dice" style="display: none">
+          <div class="howhigh-bonus-card">
+            <h2 class="howhigh-bonus-title">DICE BONUS</h2>
+            <p class="howhigh-bonus-desc">
+              Roll the dice! Accept the token to risk it on the next question.
+            </p>
+            <div class="howhigh-dice-container">
+              <div class="howhigh-die" id="howhigh-die1">?</div>
+              <div class="howhigh-die" id="howhigh-die2">?</div>
+            </div>
+            <div class="howhigh-dice-info" id="howhigh-dice-info"></div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem">
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-howhigh-dice-accept"
+                type="button"
+                style="flex: 1"
+              >
+                ACCEPT TOKEN
+              </button>
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-howhigh-dice-decline"
+                type="button"
+                style="flex: 1"
+              >
+                DECLINE
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GoWild offer phase -->
+        <div id="howhigh-phase-gowild" style="display: none">
+          <div class="howhigh-bonus-card">
+            <h2 class="howhigh-bonus-title">GO WILD CARD</h2>
+            <p class="howhigh-bonus-desc">
+              Accept to play 12 questions instead of 10, but timer drops to 5 seconds from now on!
+            </p>
+            <div class="howhigh-gowild-stakes">
+              <div class="howhigh-gowild-pro">+ 2 extra questions = more points possible</div>
+              <div class="howhigh-gowild-con">− Timer drops from 7s to 5s</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem">
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-howhigh-gowild-accept"
+                type="button"
+                style="flex: 1"
+              >
+                GO WILD!
+              </button>
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-howhigh-gowild-decline"
+                type="button"
+                style="flex: 1"
+              >
+                STAY SAFE
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Game over phase -->
+        <div id="howhigh-phase-gameover" style="display: none">
+          <div class="qlas-gameover">
+            <h1 class="qlas-go-head" id="howhigh-go-heading">&gt; HOWHIGH COMPLETE</h1>
+            <div class="qlas-go-stats">
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">YOUR SCORE</span>
+                <span class="qlas-go-v" id="howhigh-go-score">—</span>
+              </div>
+              <div class="qlas-go-row" id="howhigh-go-result-row" style="display: none">
+                <span class="qlas-go-k">OPPONENT</span>
+                <span class="qlas-go-v" id="howhigh-go-opponent-score">—</span>
+              </div>
+              <div class="qlas-go-row" id="howhigh-go-winner-row" style="display: none">
+                <span class="qlas-go-k">RESULT</span>
+                <span class="qlas-go-v" id="howhigh-go-winner">—</span>
+              </div>
+            </div>
+            <div class="skipnot-heatmap-wrap">
+              <div class="skipnot-heatmap-label">RESULTS</div>
+              <div
+                id="howhigh-heatmap"
+                class="skipnot-heatmap"
+                aria-label="Per-question results"
+              ></div>
+            </div>
+            <div
+              id="howhigh-challenge-code-row"
+              style="margin: 1rem auto 0; max-width: 480px; text-align: center"
+            >
+              <p style="margin-bottom: 0.5rem; opacity: 0.8">Share this code with your opponent:</p>
+              <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center">
+                <span
+                  id="howhigh-challenge-code"
+                  style="font-size: 1.8rem; font-weight: bold; letter-spacing: 4px"
+                ></span>
+                <button
+                  class="qlas-btn qlas-btn--ghost"
+                  id="btn-howhigh-copy-code"
+                  type="button"
+                  style="padding: 4px 12px; font-size: 0.8rem"
+                >
+                  COPY
+                </button>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-howhigh-back"
+                type="button"
+                style="flex: 1 1 0"
+              >
+                [ BACK ]
+              </button>
             </div>
           </div>
         </div>

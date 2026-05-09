@@ -53,6 +53,17 @@ import {
 import { loadQuestions, pickRandomQuestion } from './game/questions.ts';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
 import * as skipnot from './game/skipnot.ts';
+import * as howhigh from './game/howhigh.ts';
+import {
+  createChallenge,
+  finishP1,
+  joinChallenge,
+  finishP2,
+  getChallengeByCode,
+  getChallengesForUser,
+  getUsernameById,
+  expireStale as expireHowHighStale,
+} from './game/howhigh-store.ts';
 import {
   createQlasGame,
   calcTimer,
@@ -230,6 +241,7 @@ const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 
 //   finalScore, finalTimeMs                     // populated on skipnot:finish
 // }
 const skipnotRuns = new Map();
+const howHighRuns = new Map();
 
 // Periodic cleanup of stale rate limit entries (every 30s)
 const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
@@ -252,8 +264,26 @@ const cleanupInterval = setInterval(() => {
       quizRuns.delete(socketId);
     }
   }
+  for (const [socketId, run] of howHighRuns) {
+    if (now - run.startedAt > 10 * 60_000) {
+      howHighRuns.delete(socketId);
+    }
+  }
 }, 30_000);
 cleanupInterval.unref();
+
+// Expire stale HowHigh challenges every 10 minutes (48h TTL)
+const howHighExpireInterval = setInterval(() => {
+  try {
+    const n = expireHowHighStale(48 * 60 * 60_000);
+    if (n > 0) {
+      console.log(`[howhigh] expired ${n} stale challenges`);
+    }
+  } catch {
+    /* DB may not be initialized yet */
+  }
+}, 10 * 60_000);
+howHighExpireInterval.unref();
 
 // Periodic cleanup of orphaned rooms (every 60s)
 const roomCleanupInterval = setInterval(() => {
@@ -1378,6 +1408,477 @@ io.on('connection', (socket) => {
     cb({ ok: true, top10: getTop10ForMode('skipnot') });
   });
 
+  // --- HowHigh? (async 2P challenge) ---
+
+  function _pickHowHighPool(count) {
+    const overrideId = _consumeQuestionOverride(questionsDb);
+    if (overrideId && questionsDb._byId?.[overrideId]) {
+      const q = questionsDb._byId[overrideId];
+      return Array.from({ length: count }, () => q);
+    }
+    const used = new Set();
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const q = pickRandomQuestion(questionsDb, DEFAULT_CATS_SET, used);
+      if (!q || used.has(q.id)) {
+        return null;
+      }
+      used.add(q.id);
+      out.push(q);
+    }
+    return out;
+  }
+
+  socket.on('howhigh:start', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+
+    const now = Date.now();
+    const lastQuiz = quizTimestamps.get(socket.id) || 0;
+    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+      return cb({ error: 'Please wait before starting another quiz.' });
+    }
+    quizTimestamps.set(socket.id, now);
+
+    if (isInActiveGame(socket.id)) {
+      return cb({ error: 'Cannot play while in an active game.' });
+    }
+
+    // Pick 12 questions (10 base + 2 GoWild extras)
+    const allQuestions = _pickHowHighPool(howhigh.GOWILD_Q_COUNT);
+    if (!allQuestions) {
+      return cb({ error: 'Not enough questions in active categories.' });
+    }
+
+    const baseQuestions = allQuestions.slice(0, howhigh.BASE_Q_COUNT);
+    const extraQuestions = allQuestions.slice(howhigh.BASE_Q_COUNT);
+    const dice = {
+      die1: Math.floor(Math.random() * 6) + 1,
+      die2: Math.floor(Math.random() * 6) + 1,
+    };
+
+    let challengeCode;
+    try {
+      challengeCode = createChallenge(
+        socket.userId,
+        baseQuestions.map((q) => q.id),
+        extraQuestions.map((q) => q.id),
+        dice,
+      );
+    } catch (err) {
+      console.error('[howhigh] createChallenge failed:', err.message);
+      return cb({ error: 'Failed to create challenge' });
+    }
+
+    const run = {
+      startedAt: now,
+      challengeCode,
+      questions: baseQuestions,
+      extraQuestions,
+      picks: new Array(howhigh.BASE_Q_COUNT).fill(undefined),
+      currentIdx: 0,
+      dice,
+      diceAccepted: null,
+      goWildAccepted: null,
+      totalQuestions: howhigh.BASE_Q_COUNT,
+      timerMs: howhigh.BASE_TIMER_MS,
+      finished: false,
+      isPlayer2: false,
+    };
+    howHighRuns.set(socket.id, run);
+
+    cb({
+      ok: true,
+      total: howhigh.BASE_Q_COUNT,
+      timerMs: howhigh.BASE_TIMER_MS,
+      dice,
+      questions: baseQuestions.map((q) => ({
+        id: q.id,
+        q: q.q,
+        opts: q.opts,
+        category: q.category,
+      })),
+    });
+  });
+
+  socket.on('howhigh:answer', ({ id, optionIdx } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (typeof optionIdx !== 'number' || optionIdx < 0 || optionIdx >= howhigh.OPTIONS_PER_Q) {
+      return cb({ error: 'Invalid option index' });
+    }
+    if (run.currentIdx >= run.totalQuestions) {
+      return cb({ error: 'Run exhausted' });
+    }
+
+    const currentQ = run.questions[run.currentIdx];
+    if (!currentQ || currentQ.id !== id) {
+      return cb({ error: 'Out of sequence' });
+    }
+
+    const correct = optionIdx === currentQ.a;
+    run.picks[run.currentIdx] = optionIdx;
+    run.currentIdx += 1;
+
+    if (socket.userId) {
+      try {
+        trackAnswer(socket.userId, currentQ.category, correct);
+      } catch (err) {
+        console.error('[howhigh] trackAnswer failed:', err.message);
+      }
+    }
+
+    // Check for phase transitions
+    let nextEvent;
+    if (run.currentIdx === howhigh.DICE_AFTER_Q && run.diceAccepted === null) {
+      nextEvent = 'dice_offer';
+    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q && run.goWildAccepted === null) {
+      nextEvent = 'gowild_offer';
+    }
+
+    cb({ ok: true, correct, nextEvent });
+  });
+
+  socket.on('howhigh:timeout', ({ id } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (run.currentIdx >= run.totalQuestions) {
+      return cb({ error: 'Run exhausted' });
+    }
+
+    const currentQ = run.questions[run.currentIdx];
+    if (!currentQ || currentQ.id !== id) {
+      return cb({ error: 'Out of sequence' });
+    }
+
+    run.picks[run.currentIdx] = null;
+    run.currentIdx += 1;
+
+    let nextEvent;
+    if (run.currentIdx === howhigh.DICE_AFTER_Q && run.diceAccepted === null) {
+      nextEvent = 'dice_offer';
+    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q && run.goWildAccepted === null) {
+      nextEvent = 'gowild_offer';
+    }
+
+    cb({ ok: true, nextEvent });
+  });
+
+  socket.on('howhigh:dice_respond', ({ accept } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (run.diceAccepted !== null) {
+      return cb({ error: 'Dice already decided' });
+    }
+    if (run.currentIdx !== howhigh.DICE_AFTER_Q) {
+      return cb({ error: 'Not at dice phase' });
+    }
+
+    run.diceAccepted = !!accept;
+    cb({ ok: true, dice: run.dice, accepted: run.diceAccepted });
+  });
+
+  socket.on('howhigh:gowild_respond', ({ accept } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (run.goWildAccepted !== null) {
+      return cb({ error: 'GoWild already decided' });
+    }
+    if (run.currentIdx !== howhigh.GOWILD_AFTER_Q) {
+      return cb({ error: 'Not at GoWild phase' });
+    }
+
+    run.goWildAccepted = !!accept;
+
+    if (run.goWildAccepted) {
+      run.totalQuestions = howhigh.GOWILD_Q_COUNT;
+      run.timerMs = howhigh.GOWILD_TIMER_MS;
+      run.questions.push(...run.extraQuestions);
+      run.picks.push(...new Array(howhigh.GOWILD_Q_COUNT - howhigh.BASE_Q_COUNT).fill(undefined));
+      cb({
+        ok: true,
+        accepted: true,
+        timerMs: howhigh.GOWILD_TIMER_MS,
+        totalQuestions: howhigh.GOWILD_Q_COUNT,
+        extraQuestions: run.extraQuestions.map((q) => ({
+          id: q.id,
+          q: q.q,
+          opts: q.opts,
+          category: q.category,
+        })),
+      });
+    } else {
+      cb({ ok: true, accepted: false });
+    }
+  });
+
+  socket.on('howhigh:finish', ({ totalMs } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run) {
+      return cb({ error: 'HowHigh not started' });
+    }
+    if (run.finished) {
+      return cb({ error: 'Run already finished' });
+    }
+
+    const picks = run.picks.map((p) => (p === undefined ? null : p));
+    const minMs = run.totalQuestions * 100;
+    const maxMs = run.totalQuestions * (howhigh.BASE_TIMER_MS + 2000);
+    const reportedMs =
+      typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
+    const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
+
+    const { score } = howhigh.scorePicks(run.questions, picks, {
+      die1: run.dice.die1,
+      die2: run.dice.die2,
+      accepted: !!run.diceAccepted,
+    });
+    run.finished = true;
+
+    try {
+      if (run.isPlayer2) {
+        const challenge = finishP2(
+          run.challengeCode,
+          score,
+          picks.map((p) =>
+            p === null
+              ? 'timeout'
+              : p === run.questions[run.picks.indexOf(p)]?.a
+                ? 'correct'
+                : 'wrong',
+          ),
+          !!run.diceAccepted,
+          !!run.goWildAccepted,
+          elapsedMs,
+        );
+        const p1Name = getUsernameById(challenge.player1_id) || 'Player 1';
+        const p2Name = getUsernameById(challenge.player2_id) || 'Player 2';
+        howHighRuns.delete(socket.id);
+        // Also save to game_history
+        try {
+          insertGameResult({
+            player1Id: challenge.player1_id,
+            player2Id: challenge.player2_id,
+            winnerId: challenge.winner_id,
+            gameMode: 'howhigh',
+            boardSize: null,
+            durationMs: elapsedMs,
+            player1Stats: {
+              score: challenge.p1_score,
+              diceAccepted: !!challenge.p1_dice_accepted,
+              goWildAccepted: !!challenge.p1_gowild_accepted,
+            },
+            player2Stats: {
+              score,
+              diceAccepted: !!run.diceAccepted,
+              goWildAccepted: !!run.goWildAccepted,
+            },
+          });
+        } catch (err) {
+          console.error('[howhigh] insertGameResult failed:', err.message);
+        }
+        cb({
+          ok: true,
+          score,
+          challengeCode: run.challengeCode,
+          result: {
+            p1Score: challenge.p1_score,
+            p2Score: score,
+            p1Name,
+            p2Name,
+            youWon: challenge.winner_id === socket.userId,
+          },
+        });
+      } else {
+        finishP1(
+          run.challengeCode,
+          score,
+          picks.map(String),
+          !!run.diceAccepted,
+          !!run.goWildAccepted,
+          elapsedMs,
+        );
+        howHighRuns.delete(socket.id);
+        cb({ ok: true, score, challengeCode: run.challengeCode });
+      }
+    } catch (err) {
+      console.error('[howhigh] finish failed:', err.message);
+      cb({ error: 'Failed to save results' });
+    }
+  });
+
+  socket.on('howhigh:join', ({ code } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    if (!code || typeof code !== 'string') {
+      return cb({ error: 'Invalid code' });
+    }
+
+    const now = Date.now();
+    const lastQuiz = quizTimestamps.get(socket.id) || 0;
+    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+      return cb({ error: 'Please wait before starting.' });
+    }
+    quizTimestamps.set(socket.id, now);
+
+    if (isInActiveGame(socket.id)) {
+      return cb({ error: 'Cannot play while in an active game.' });
+    }
+
+    let challenge;
+    try {
+      challenge = joinChallenge(code.toUpperCase().trim(), socket.userId);
+    } catch (err) {
+      return cb({ error: err.message });
+    }
+
+    const questionIds = JSON.parse(challenge.question_ids);
+    const extraQuestionIds = challenge.extra_question_ids
+      ? JSON.parse(challenge.extra_question_ids)
+      : [];
+
+    // Resolve full question objects from the DB
+    const baseQuestions = questionIds.map((qId) => questionsDb._byId?.[qId]).filter(Boolean);
+    const extraQuestions = extraQuestionIds.map((qId) => questionsDb._byId?.[qId]).filter(Boolean);
+
+    if (baseQuestions.length !== questionIds.length) {
+      return cb({ error: 'Some questions no longer available' });
+    }
+
+    const dice = { die1: challenge.dice_die1, die2: challenge.dice_die2 };
+
+    const run = {
+      startedAt: now,
+      challengeCode: code.toUpperCase().trim(),
+      questions: baseQuestions,
+      extraQuestions,
+      picks: new Array(howhigh.BASE_Q_COUNT).fill(undefined),
+      currentIdx: 0,
+      dice,
+      diceAccepted: null,
+      goWildAccepted: null,
+      totalQuestions: howhigh.BASE_Q_COUNT,
+      timerMs: howhigh.BASE_TIMER_MS,
+      finished: false,
+      isPlayer2: true,
+    };
+    howHighRuns.set(socket.id, run);
+
+    cb({
+      ok: true,
+      total: howhigh.BASE_Q_COUNT,
+      timerMs: howhigh.BASE_TIMER_MS,
+      dice,
+      questions: baseQuestions.map((q) => ({
+        id: q.id,
+        q: q.q,
+        opts: q.opts,
+        category: q.category,
+      })),
+    });
+  });
+
+  socket.on('howhigh:my_challenges', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    try {
+      const challenges = getChallengesForUser(socket.userId);
+      const mapped = challenges.map((c) => ({
+        code: c.code,
+        status: c.status,
+        p1Name: getUsernameById(c.player1_id) || 'Unknown',
+        p2Name: c.player2_id ? getUsernameById(c.player2_id) || 'Unknown' : null,
+        p1Score: c.p1_score,
+        p2Score: c.p2_score,
+        youWon: c.winner_id === socket.userId,
+        isP1: c.player1_id === socket.userId,
+        createdAt: c.created_at,
+        completedAt: c.completed_at,
+      }));
+      cb({ ok: true, challenges: mapped });
+    } catch (err) {
+      console.error('[howhigh] my_challenges failed:', err.message);
+      cb({ error: 'Failed to load challenges' });
+    }
+  });
+
+  socket.on('howhigh:challenge_result', ({ code } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    if (!code) {
+      return cb({ error: 'Missing code' });
+    }
+
+    const challenge = getChallengeByCode(code);
+    if (!challenge) {
+      return cb({ error: 'Challenge not found' });
+    }
+    if (challenge.player1_id !== socket.userId && challenge.player2_id !== socket.userId) {
+      return cb({ error: 'Not your challenge' });
+    }
+
+    cb({
+      ok: true,
+      challenge: {
+        code: challenge.code,
+        status: challenge.status,
+        p1Name: getUsernameById(challenge.player1_id) || 'Unknown',
+        p2Name: challenge.player2_id ? getUsernameById(challenge.player2_id) || 'Unknown' : null,
+        p1Score: challenge.p1_score,
+        p2Score: challenge.p2_score,
+        p1DiceAccepted: !!challenge.p1_dice_accepted,
+        p2DiceAccepted: !!challenge.p2_dice_accepted,
+        p1GoWildAccepted: !!challenge.p1_gowild_accepted,
+        p2GoWildAccepted: !!challenge.p2_gowild_accepted,
+        p1TimeMs: challenge.p1_time_ms,
+        p2TimeMs: challenge.p2_time_ms,
+        winnerId: challenge.winner_id,
+        diceSum: challenge.dice_die1 + challenge.dice_die2,
+        createdAt: challenge.created_at,
+        completedAt: challenge.completed_at,
+      },
+    });
+  });
+
   // --- Dev quickstart (non-production only) ---
 
   if (process.env.NODE_ENV !== 'production') {
@@ -1710,6 +2211,7 @@ io.on('connection', (socket) => {
     console.log(`[-] ${socket.id}`);
     quizRuns.delete(socket.id);
     _disposeSkipnotRun(socket.id);
+    howHighRuns.delete(socket.id);
     unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {

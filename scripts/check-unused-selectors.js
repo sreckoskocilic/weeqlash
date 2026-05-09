@@ -351,13 +351,16 @@ function isKnownDynamicPattern(cls) {
   // Per-player variants (p0/p1, qlas-recap-p0/p1) set via `'p' + playerIdx` or a ternary between the two names
   // 'bad'/'ok' set via `(e.correct ? 'ok' : 'bad')` inside innerHTML string concat
   const dynamicConcat = ['p0', 'p1', 'qlas-recap-p0', 'qlas-recap-p1', 'bad', 'ok'];
+  const hhDynamic = ['hh-win', 'hh-loss', 'hh-winner', 'hh-w', 'hh-l'];
   return (
     cls.startsWith('cat-') ||
     cls.startsWith('combo-') ||
+    cls.startsWith('hh-status-') ||
     cls === 'tile' ||
     cls === 'flag-tile' ||
     qlasDynamic.includes(cls) ||
-    dynamicConcat.includes(cls)
+    dynamicConcat.includes(cls) ||
+    hhDynamic.includes(cls)
   );
 }
 

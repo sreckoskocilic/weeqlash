@@ -60,4 +60,7 @@ export const state = {
   // Qlashique state (socket reconnect)
   qlasToken: null,
   qlasCode: null,
+
+  // HowHigh
+  howHighChallengeCode: null,
 };
