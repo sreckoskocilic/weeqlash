@@ -735,6 +735,10 @@ router.post(
     const cascade = db.transaction((uid: number) => {
       db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(uid);
       db.prepare('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?').run(uid, uid);
+      db.prepare('DELETE FROM howhigh_challenges WHERE player1_id = ? OR player2_id = ?').run(
+        uid,
+        uid,
+      );
       db.prepare('DELETE FROM users WHERE id = ?').run(uid);
     });
     cascade(userId);

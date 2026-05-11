@@ -1667,12 +1667,8 @@ io.on('connection', (socket) => {
         const challenge = finishP2(
           run.challengeCode,
           score,
-          picks.map((p) =>
-            p === null
-              ? 'timeout'
-              : p === run.questions[run.picks.indexOf(p)]?.a
-                ? 'correct'
-                : 'wrong',
+          picks.map((p, i) =>
+            p === null ? 'timeout' : p === run.questions[i]?.a ? 'correct' : 'wrong',
           ),
           !!run.diceAccepted,
           !!run.goWildAccepted,
