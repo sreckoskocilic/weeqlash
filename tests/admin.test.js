@@ -172,16 +172,16 @@ describe('Admin users', () => {
   });
 
   it('rejects duplicate username on update', async () => {
+    const dupeUnique = Math.random().toString(36).slice(2, 8);
+    const dupeUser = `adm_dup_${dupeUnique}`;
+    const dupeEmail = `adm_dup_${dupeUnique}@test.invalid`;
+    await createTestUser(dupeUser, dupeEmail);
+
     const a = await adminAgent();
-    const db = getDb();
-    const existing = db.prepare('SELECT username FROM users WHERE id <> ? LIMIT 1').get(userId);
-    if (!existing) {
-      return;
-    }
     const res = await a
       .post('/admin/users/update')
       .type('form')
-      .send({ id: userId, username: existing.username, email });
+      .send({ id: userId, username: dupeUser, email });
     expect(res.status).toBe(400);
     expect(res.text).toContain('already has that username');
   });
