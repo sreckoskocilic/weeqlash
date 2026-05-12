@@ -23,8 +23,7 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command:
-      'ENABLE_TEST_ROUTES=1 DB_PATH=./server/data/e2e.db REDIS_URL=redis://127.0.0.1:6379/1 node -r ts-node/register server/index.js',
+    command: `ENABLE_TEST_ROUTES=1 DB_PATH=./server/data/e2e.db REDIS_URL=${process.env.REDIS_URL || 'redis://127.0.0.1:6379'}/1 node -r ts-node/register server/index.js`,
     url: 'http://localhost:3000',
     reuseExistingServer: false,
     timeout: 15000,
