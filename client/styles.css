@@ -3017,8 +3017,9 @@ body[data-game-theme='pink'] {
 }
 /* Entrance animations */
 .mode-card,
+.mode-card-wrap--brawl,
 .mode-card-wrap--qlas,
-.mode-join-card {
+.mode-card-wrap--howhigh {
   animation: cardIn 0.4s ease-out backwards;
 }
 .mode-cards > :nth-child(1) {
@@ -3186,7 +3187,168 @@ body[data-game-theme='pink'] {
     0 12px 36px -8px rgba(224, 64, 251, 0.15),
     0 0 0 1px rgba(224, 64, 251, 0.06);
 }
-/* Join card — 5th grid item with all join inputs */
+/* --- Card-inline join rows (inside each mode-card-wrap) --- */
+.card-join-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: stretch;
+  padding: 6px 18px 10px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.card-join-input {
+  flex: 1;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+  border-radius: 5px;
+  outline: none;
+  margin: 0;
+  height: auto;
+}
+.card-join-input:focus {
+  border-color: var(--cyan);
+}
+.card-join-input::placeholder {
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  font-size: 0.72rem;
+}
+.card-join-go {
+  padding: 6px 0;
+  width: 56px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 5px;
+  height: auto;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.card-join-row--brawl .card-join-input:focus {
+  border-color: var(--green);
+}
+.card-join-row--brawl .card-join-go {
+  border-color: rgba(0, 255, 65, 0.3);
+  color: var(--green);
+  background: rgba(0, 255, 65, 0.06);
+}
+.card-join-row--brawl .card-join-go:hover {
+  background: rgba(0, 255, 65, 0.15);
+  border-color: var(--green);
+}
+.card-join-row--qlas .card-join-input:focus {
+  border-color: var(--yellow);
+}
+.card-join-row--qlas .card-join-go {
+  border-color: rgba(255, 230, 0, 0.3);
+  color: var(--yellow);
+  background: rgba(255, 230, 0, 0.06);
+}
+.card-join-row--qlas .card-join-go:hover {
+  background: rgba(255, 230, 0, 0.15);
+  border-color: var(--yellow);
+}
+.card-join-row--howhigh .card-join-input:focus {
+  border-color: #e040fb;
+}
+.card-join-row--howhigh .card-join-go {
+  border-color: rgba(224, 64, 251, 0.3);
+  color: #e040fb;
+  background: rgba(224, 64, 251, 0.06);
+}
+.card-join-row--howhigh .card-join-go:hover {
+  background: rgba(224, 64, 251, 0.15);
+  border-color: #e040fb;
+}
+/* --- mode-card-wrap shared (Brawl + HowHigh, Qlas already defined) --- */
+.mode-card-wrap--brawl,
+.mode-card-wrap--howhigh {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  overflow: hidden;
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
+  position: relative;
+}
+.mode-card-wrap--brawl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, var(--green), transparent);
+  z-index: 1;
+}
+.mode-card-wrap--brawl:hover {
+  border-color: rgba(0, 255, 65, 0.3);
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 36px -8px rgba(0, 255, 65, 0.15),
+    0 0 0 1px rgba(0, 255, 65, 0.06);
+}
+.mode-card-wrap--brawl .mode-card--brawl {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.mode-card-wrap--brawl .mode-card--brawl::before {
+  display: none;
+}
+.mode-card-wrap--brawl .mode-card--brawl:hover {
+  transform: none;
+  box-shadow: none;
+}
+.mode-card-wrap--howhigh::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, #e040fb, transparent);
+  z-index: 1;
+}
+.mode-card-wrap--howhigh:hover {
+  border-color: rgba(224, 64, 251, 0.3);
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 36px -8px rgba(224, 64, 251, 0.15),
+    0 0 0 1px rgba(224, 64, 251, 0.06);
+}
+.mode-card-wrap--howhigh .mode-card--howhigh {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.mode-card-wrap--howhigh .mode-card--howhigh::before {
+  display: none;
+}
+.mode-card-wrap--howhigh .mode-card--howhigh:hover {
+  transform: none;
+  box-shadow: none;
+}
+/* Join card — legacy, hidden — kept for potential reuse */
 .mode-join-card {
   background: var(--bg2);
   border: 1px solid var(--border);

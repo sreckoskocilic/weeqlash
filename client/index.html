@@ -124,89 +124,102 @@
           <div id="connect-error" class="error" style="display: none"></div>
 
           <div class="setup-section mode-cards" style="margin-bottom: 0.5rem">
-            <button id="btn-create" class="mode-card mode-card--brawl" type="button">
-              <span class="mode-icon" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect
-                    x="3"
-                    y="3"
-                    width="8"
-                    height="8"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect
-                    x="13"
-                    y="3"
-                    width="8"
-                    height="8"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect
-                    x="23"
-                    y="3"
-                    width="6"
-                    height="8"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect
-                    x="3"
-                    y="13"
-                    width="8"
-                    height="8"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect x="13" y="13" width="8" height="8" fill="currentColor" />
-                  <rect
-                    x="23"
-                    y="13"
-                    width="6"
-                    height="8"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect
-                    x="3"
-                    y="23"
-                    width="8"
-                    height="6"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect
-                    x="13"
-                    y="23"
-                    width="8"
-                    height="6"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                  <rect
-                    x="23"
-                    y="23"
-                    width="6"
-                    height="6"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    fill="none"
-                  />
-                </svg>
-              </span>
-              <span class="mode-text">
-                <span class="mode-name">Weeqlash Brawl</span>
-                <span class="mode-desc">Multiplayer board · pegs, combat, capture flags</span>
-              </span>
-            </button>
+            <div class="mode-card-wrap mode-card-wrap--brawl">
+              <button id="btn-create" class="mode-card mode-card--brawl" type="button">
+                <span class="mode-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect
+                      x="3"
+                      y="3"
+                      width="8"
+                      height="8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect
+                      x="13"
+                      y="3"
+                      width="8"
+                      height="8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect
+                      x="23"
+                      y="3"
+                      width="6"
+                      height="8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect
+                      x="3"
+                      y="13"
+                      width="8"
+                      height="8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect x="13" y="13" width="8" height="8" fill="currentColor" />
+                    <rect
+                      x="23"
+                      y="13"
+                      width="6"
+                      height="8"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect
+                      x="3"
+                      y="23"
+                      width="8"
+                      height="6"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect
+                      x="13"
+                      y="23"
+                      width="8"
+                      height="6"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                    <rect
+                      x="23"
+                      y="23"
+                      width="6"
+                      height="6"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+                <span class="mode-text">
+                  <span class="mode-name">Weeqlash Brawl</span>
+                  <span class="mode-desc">Multiplayer board · pegs, combat, capture flags</span>
+                </span>
+              </button>
+              <div class="card-join-row card-join-row--brawl">
+                <input
+                  id="join-code"
+                  class="card-join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                  autocomplete="one-time-code"
+                />
+                <button id="btn-join" class="card-join-go" type="button">JOIN</button>
+              </div>
+            </div>
             <div class="mode-card-wrap mode-card-wrap--qlas">
               <button id="btn-qlas-create" class="mode-card mode-card--qlas" type="button">
                 <span class="mode-icon" aria-hidden="true">
@@ -259,6 +272,17 @@
                 </span>
               </button>
               <div class="qlas-hp-selector" id="qlas-hp-selector"></div>
+              <div class="card-join-row card-join-row--qlas">
+                <input
+                  id="qlas-join-code"
+                  class="card-join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                  autocomplete="one-time-code"
+                />
+                <button id="btn-qlas-start" class="card-join-go" type="button">JOIN</button>
+              </div>
             </div>
             <button id="btn-skipnot-create" class="mode-card mode-card--skipnot" type="button">
               <span class="mode-icon" aria-hidden="true">
@@ -298,88 +322,100 @@
                 <span class="mode-desc">Solo · 20 questions, 12s each, climb DEM SLEEPLESS</span>
               </span>
             </button>
-            <button id="btn-howhigh-create" class="mode-card mode-card--howhigh" type="button">
-              <span class="mode-icon" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect
-                    x="4"
-                    y="8"
-                    width="10"
-                    height="10"
-                    rx="2"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    fill="none"
-                  />
-                  <rect
-                    x="18"
-                    y="8"
-                    width="10"
-                    height="10"
-                    rx="2"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    fill="none"
-                  />
-                  <circle cx="9" cy="13" r="1.5" fill="currentColor" />
-                  <circle cx="21" cy="11" r="1.5" fill="currentColor" />
-                  <circle cx="25" cy="11" r="1.5" fill="currentColor" />
-                  <circle cx="21" cy="15" r="1.5" fill="currentColor" />
-                  <circle cx="25" cy="15" r="1.5" fill="currentColor" />
-                  <path
-                    d="M10 22 L16 26 L22 22"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    fill="none"
-                  />
-                </svg>
-              </span>
-              <span class="mode-text">
-                <span class="mode-name">HowHigh?</span>
-                <span class="mode-desc"
-                  >Async 2P · dice bonus · GoWild card · challenge a friend</span
-                >
-              </span>
-            </button>
-            <div class="mode-join-card">
+            <div class="mode-card-wrap mode-card-wrap--howhigh">
+              <button id="btn-howhigh-create" class="mode-card mode-card--howhigh" type="button">
+                <span class="mode-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect
+                      x="4"
+                      y="8"
+                      width="10"
+                      height="10"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      fill="none"
+                    />
+                    <rect
+                      x="18"
+                      y="8"
+                      width="10"
+                      height="10"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      fill="none"
+                    />
+                    <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                    <circle cx="21" cy="11" r="1.5" fill="currentColor" />
+                    <circle cx="25" cy="11" r="1.5" fill="currentColor" />
+                    <circle cx="21" cy="15" r="1.5" fill="currentColor" />
+                    <circle cx="25" cy="15" r="1.5" fill="currentColor" />
+                    <path
+                      d="M10 22 L16 26 L22 22"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      fill="none"
+                    />
+                  </svg>
+                </span>
+                <span class="mode-text">
+                  <span class="mode-name">HowHigh?</span>
+                  <span class="mode-desc"
+                    >Async 2P · dice bonus · GoWild card · challenge a friend</span
+                  >
+                </span>
+              </button>
+              <div class="card-join-row card-join-row--howhigh">
+                <input
+                  id="howhigh-join-code"
+                  class="card-join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                  autocomplete="one-time-code"
+                />
+                <button id="btn-howhigh-join" class="card-join-go" type="button">JOIN</button>
+              </div>
+            </div>
+            <div class="mode-join-card" style="display: none" hidden>
               <div class="join-title">JOIN GAME</div>
               <div class="join-desc">Enter a 5-letter room code to join.</div>
               <div class="join-row">
-                <h3 id="label-join-code" style="display: none">Room Code</h3>
+                <h3 id="old-label-join-code" style="display: none">Room Code</h3>
                 <input
-                  id="join-code"
+                  id="old-join-code"
                   class="join-input"
                   type="text"
                   maxlength="5"
                   placeholder="CODE"
                   autocomplete="one-time-code"
-                  aria-labelledby="label-join-code"
                 />
-                <button id="btn-join" class="join-go" type="button">BRAWL</button>
+                <button id="old-btn-join" class="join-go" type="button">BRAWL</button>
               </div>
               <div class="join-row">
                 <input
-                  id="qlas-join-code"
+                  id="old-qlas-join-code"
                   class="join-input"
                   type="text"
                   maxlength="5"
                   placeholder="CODE"
                   autocomplete="one-time-code"
                 />
-                <button id="btn-qlas-start" class="join-go" type="button">DUEL</button>
+                <button id="old-btn-qlas-start" class="join-go" type="button">DUEL</button>
               </div>
               <div class="join-row">
                 <input
-                  id="howhigh-join-code"
+                  id="old-howhigh-join-code"
                   class="join-input"
                   type="text"
                   maxlength="5"
                   placeholder="CODE"
                   autocomplete="one-time-code"
                 />
-                <button id="btn-howhigh-join" class="join-go" type="button">HOWHIGH</button>
+                <button id="old-btn-howhigh-join" class="join-go" type="button">HOWHIGH</button>
               </div>
             </div>
           </div>
