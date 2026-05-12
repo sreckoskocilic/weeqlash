@@ -432,8 +432,15 @@
               class="auth-input"
               type="text"
               placeholder="Username or email"
+              autocomplete="username"
             />
-            <input id="login-password" class="auth-input" type="password" placeholder="Password" />
+            <input
+              id="login-password"
+              class="auth-input"
+              type="password"
+              placeholder="Password"
+              autocomplete="current-password"
+            />
             <div style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem; align-items: center">
               <input type="checkbox" id="keep-logged-in" style="width: auto" />
               <label
@@ -450,7 +457,13 @@
             </div>
           </div>
           <div id="auth-forgot-form" style="display: none">
-            <input id="forgot-email" class="auth-input" type="email" placeholder="Your email" />
+            <input
+              id="forgot-email"
+              class="auth-input"
+              type="email"
+              placeholder="Your email"
+              autocomplete="email"
+            />
             <button id="btn-forgot" class="auth-submit">Send reset link</button>
             <div style="text-align: center; margin-top: 0.5rem">
               <a href="#" id="link-back-login" style="color: var(--muted); font-size: 0.75rem"
@@ -464,6 +477,7 @@
               class="auth-input"
               type="password"
               placeholder="New password (min 6 chars)"
+              autocomplete="new-password"
             />
             <button id="btn-reset" class="auth-submit">Reset password</button>
           </div>
@@ -478,13 +492,21 @@
               type="text"
               placeholder="Username (3-20 chars)"
               maxlength="20"
+              autocomplete="username"
             />
-            <input id="reg-email" class="auth-input" type="email" placeholder="Email" />
+            <input
+              id="reg-email"
+              class="auth-input"
+              type="email"
+              placeholder="Email"
+              autocomplete="email"
+            />
             <input
               id="reg-password"
               class="auth-input"
               type="password"
               placeholder="Password (min 6 chars)"
+              autocomplete="new-password"
             />
             <button id="btn-register" class="auth-submit">Create account</button>
           </div>

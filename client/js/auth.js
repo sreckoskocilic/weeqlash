@@ -58,7 +58,9 @@ export async function checkAuth() {
     });
     const data = await res.json();
     if (data.user) {
-      showUserBar(data.user);
+      socket.emit('auth:setUserId', data.user.id, () => {
+        showUserBar(data.user);
+      });
     } else {
       hideUserBar();
     }
