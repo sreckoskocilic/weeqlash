@@ -4151,7 +4151,7 @@ body[data-game-theme='pink'] {
 #screen-howhigh {
   position: fixed;
   inset: 0;
-  background: #0a0014;
+  background: var(--game-bg);
   display: none;
   flex-direction: column;
   align-items: center;
@@ -4160,7 +4160,7 @@ body[data-game-theme='pink'] {
   z-index: 20;
   overflow-y: auto;
   font-family: 'IBM Plex Mono', monospace;
-  color: #e8d0ff;
+  color: var(--game-text);
 }
 #screen-howhigh .qlas-inner {
   width: 70vw;
@@ -4169,99 +4169,99 @@ body[data-game-theme='pink'] {
   gap: 10px;
 }
 #screen-howhigh .qlas-pbar {
-  background: #160028;
+  background: var(--game-bg-2);
 }
 #screen-howhigh .qlas-qpanel {
-  background: #160028;
-  border-color: #e040fb;
+  background: var(--game-bg-2);
+  border-color: var(--game-accent);
 }
 #screen-howhigh .qlas-pb-name {
-  color: #e8d0ff;
+  color: var(--game-text);
 }
 #screen-howhigh .qlas-hp-num {
-  color: #e040fb;
+  color: var(--game-accent);
 }
 #screen-howhigh .qlas-question {
-  color: #e8d0ff;
+  color: var(--game-text);
 }
 #screen-howhigh .qlas-options {
-  border-top-color: #2a0048;
+  border-top-color: var(--game-border);
 }
 #screen-howhigh .qlas-opt {
-  background: #1a0030;
-  color: #e8d0ff;
+  background: var(--game-bg-3);
+  color: var(--game-text);
 }
 #screen-howhigh .qlas-opt:hover:not(:disabled) {
-  border-color: #ce93d8;
-  background: #1a0030;
+  border-color: var(--game-accent-2);
+  background: var(--game-bg-3);
 }
 #screen-howhigh .qlas-opt.correct {
   border-color: #00ff41 !important;
   background: rgba(0, 255, 65, 0.1) !important;
 }
 #screen-howhigh .qlas-opt-key {
-  color: #ce93d8;
+  color: var(--game-accent-2);
 }
 #screen-howhigh .qlas-go-head {
-  color: #e040fb;
-  text-shadow: 0 0 18px rgba(224, 64, 251, 0.4);
+  color: var(--game-accent);
+  text-shadow: 0 0 18px rgba(var(--game-accent-rgb), 0.4);
 }
 #screen-howhigh .qlas-go-stats {
-  background: #1a0030;
-  border-color: #2a0048;
+  background: var(--game-bg-3);
+  border-color: var(--game-border);
 }
 #screen-howhigh .qlas-go-row {
-  border-bottom-color: #2a0048;
+  border-bottom-color: var(--game-border);
 }
 #screen-howhigh .qlas-go-k {
-  color: #e8d0ff;
+  color: var(--game-text);
 }
 #screen-howhigh .qlas-go-v {
-  color: #e040fb;
+  color: var(--game-accent);
 }
 #screen-howhigh .qlas-btn--primary {
-  background: #e040fb;
+  background: var(--game-accent);
   color: #000;
 }
 #screen-howhigh .qlas-btn--primary:hover {
-  background: #ea80fc;
+  opacity: 0.85;
 }
 #screen-howhigh .qlas-btn--ghost {
-  border-color: #e040fb;
-  color: #e040fb;
+  border-color: var(--game-accent);
+  color: var(--game-accent);
 }
 #screen-howhigh .qlas-btn--ghost:hover {
-  background: rgba(224, 64, 251, 0.1);
+  background: rgba(var(--game-accent-rgb), 0.1);
 }
 #screen-howhigh .qlas-timer-ring .ring-progress {
-  stroke: #e040fb;
+  stroke: var(--game-accent);
   transition: stroke 0.2s;
 }
 #screen-howhigh .qlas-timer-ring .ring-track {
-  stroke: #2a0048;
+  stroke: var(--game-border);
 }
 #screen-howhigh .skipnot-heatmap-label {
-  color: #ce93d8;
+  color: var(--game-accent-2);
 }
 
 /* Dice bonus card */
 .howhigh-bonus-card {
   max-width: 480px;
   margin: 2rem auto;
-  background: #160028;
-  border: 2px solid #e040fb;
+  background: var(--game-bg-2);
+  border: 2px solid var(--game-accent);
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
 }
 .howhigh-bonus-title {
-  color: #e040fb;
+  color: var(--game-accent);
   font-size: 1.6rem;
   margin: 0 0 0.8rem;
-  text-shadow: 0 0 18px rgba(224, 64, 251, 0.4);
+  text-shadow: 0 0 18px rgba(var(--game-accent-rgb), 0.4);
 }
 .howhigh-bonus-desc {
-  color: #e8d0ff;
+  color: var(--game-text);
   opacity: 0.85;
   margin: 0 0 1.2rem;
   font-size: 0.9rem;
@@ -4280,9 +4280,9 @@ body[data-game-theme='pink'] {
   justify-content: center;
   font-size: 2rem;
   font-weight: bold;
-  color: #e040fb;
-  background: #0a0014;
-  border: 2px solid #e040fb;
+  color: var(--game-accent);
+  background: var(--game-bg);
+  border: 2px solid var(--game-accent);
   border-radius: 10px;
 }
 .howhigh-die.rolling {
@@ -4300,7 +4300,7 @@ body[data-game-theme='pink'] {
   }
 }
 .howhigh-dice-info {
-  color: #e8d0ff;
+  color: var(--game-text);
   font-size: 0.9rem;
   min-height: 2.5em;
 }

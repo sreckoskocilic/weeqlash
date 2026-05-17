@@ -7,7 +7,7 @@ import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { QLAS_DEFAULT_HP, QLAS_HP_OPTIONS } from './constants.js';
 
-const QLAS_THEMES = {
+export const QLAS_THEMES = {
   terminal: {
     'game-bg': '#020c02',
     'game-bg-2': '#071007',

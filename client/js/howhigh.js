@@ -1,6 +1,29 @@
 import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { showView } from './nav.js';
+import { QLAS_THEMES } from './qlashique.js';
+
+const HH_THEME_KEY = 'weeqlash.hhTheme';
+
+function hhApplyTheme(name) {
+  const t = QLAS_THEMES[name];
+  if (!t) {
+    return;
+  }
+  const screen = document.getElementById('screen-howhigh');
+  for (const [k, v] of Object.entries(t)) {
+    screen.style.setProperty('--' + k, v);
+  }
+}
+
+function hhGetStoredTheme() {
+  try {
+    const v = localStorage.getItem(HH_THEME_KEY);
+    return QLAS_THEMES[v] ? v : 'synthwave';
+  } catch {
+    return 'synthwave';
+  }
+}
 
 const TIMER_RING_CIRC = 175.93;
 const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
@@ -804,6 +827,21 @@ function _goBack() {
 
 export function initHowHigh(sock) {
   socketRef = sock;
+
+  const storedTheme = hhGetStoredTheme();
+  hhApplyTheme(storedTheme);
+  const themePicker = document.getElementById('hh-theme-picker');
+  if (themePicker) {
+    themePicker.value = storedTheme;
+    themePicker.addEventListener('change', function () {
+      hhApplyTheme(this.value);
+      try {
+        localStorage.setItem(HH_THEME_KEY, this.value);
+      } catch {
+        /* ok */
+      }
+    });
+  }
 
   el('btn-howhigh-create').addEventListener('click', _startRun);
   el('btn-howhigh-join').addEventListener('click', _joinRun);
