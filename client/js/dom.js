@@ -24,9 +24,12 @@ export function showScreen(id) {
   const isQlas = id === 'screen-qlashique';
   const isSkipnot = id === 'screen-skipnot';
   const isHowHigh = id === 'screen-howhigh';
-  el('main-title').style.display = isGame || isQlas || isSkipnot || isHowHigh ? 'none' : '';
+  const isLobby = id === 'screen-lobby';
+  const hideHome = isGame || isQlas || isSkipnot || isHowHigh || isLobby;
+  el('main-title').style.display = hideHome ? 'none' : '';
+  el('board-banner').style.display = hideHome ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
-  el('announcements').style.display = isGame || isQlas || isSkipnot || isHowHigh ? 'none' : '';
+  el('announcements').style.display = hideHome ? 'none' : '';
   [
     'screen-connect',
     'screen-lobby',

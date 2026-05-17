@@ -702,9 +702,9 @@ export function initQlashique(socket) {
     }
     qEl('qlas-turn-score').textContent = '0';
 
+    qlasTimerTotal = timerSeconds;
     if (isMyTurn) {
       qEl('qlas-decision-panel').style.display = '';
-      qlasTimerTotal = timerSeconds;
     } else {
       qEl('qlas-decision-panel').style.display = 'none';
     }
@@ -735,9 +735,7 @@ export function initQlashique(socket) {
       qEl('btn-qlas-heal').style.display = 'none';
       qEl('qlas-qpanel').style.display = '';
       qEl('qlas-qpanel').style.opacity = '1.0';
-      if (isMyTurn) {
-        qlasStartTimer(qlasTimerTotal);
-      }
+      qlasStartTimer(qlasTimerTotal);
       qlasRenderQuestion(question, questionIdx);
       if (!isMyTurn) {
         document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));

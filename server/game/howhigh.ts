@@ -3,8 +3,8 @@
 // GoWild card after Q6 (extends to 12 questions at 5s).
 
 export const POINTS = { CORRECT: 2, WRONG: -2 } as const;
-export const BASE_TIMER_MS = 7000;
-export const GOWILD_TIMER_MS = 5000;
+export const BASE_TIMER_MS = 13000;
+export const GOWILD_TIMER_MS = 10000;
 export const BASE_Q_COUNT = 10;
 export const GOWILD_Q_COUNT = 12;
 export const DICE_AFTER_Q = 3;
@@ -108,8 +108,12 @@ export function processAnswer(
 ):
   | { state: HowHighState; correct: boolean; finished: boolean; nextPhase?: Phase }
   | { error: string } {
-  if (state.finished) {return { error: 'Session finished' };}
-  if (state.phase !== 'answering') {return { error: `Cannot answer in phase ${state.phase}` };}
+  if (state.finished) {
+    return { error: 'Session finished' };
+  }
+  if (state.phase !== 'answering') {
+    return { error: `Cannot answer in phase ${state.phase}` };
+  }
   const correct = optionIdx === correctIdx;
   const res = _advance(state, correct ? 'correct' : 'wrong', correct);
   return { state, correct, ...res };
@@ -118,21 +122,29 @@ export function processAnswer(
 export function processTimeout(
   state: HowHighState,
 ): { state: HowHighState; finished: boolean; nextPhase?: Phase } | { error: string } {
-  if (state.finished) {return { error: 'Session finished' };}
-  if (state.phase !== 'answering') {return { error: `Cannot timeout in phase ${state.phase}` };}
+  if (state.finished) {
+    return { error: 'Session finished' };
+  }
+  if (state.phase !== 'answering') {
+    return { error: `Cannot timeout in phase ${state.phase}` };
+  }
   const res = _advance(state, 'timeout', false);
   return { state, ...res };
 }
 
 export function acceptDice(state: HowHighState): { state: HowHighState } | { error: string } {
-  if (state.phase !== 'dice_offer') {return { error: 'Not in dice offer phase' };}
+  if (state.phase !== 'dice_offer') {
+    return { error: 'Not in dice offer phase' };
+  }
   state.dice.accepted = true;
   state.phase = 'answering';
   return { state };
 }
 
 export function declineDice(state: HowHighState): { state: HowHighState } | { error: string } {
-  if (state.phase !== 'dice_offer') {return { error: 'Not in dice offer phase' };}
+  if (state.phase !== 'dice_offer') {
+    return { error: 'Not in dice offer phase' };
+  }
   state.dice.accepted = false;
   state.phase = 'answering';
   return { state };
@@ -142,7 +154,9 @@ export function acceptGoWild(
   state: HowHighState,
   extraQuestionIds: string[],
 ): { state: HowHighState } | { error: string } {
-  if (state.phase !== 'gowild_offer') {return { error: 'Not in GoWild offer phase' };}
+  if (state.phase !== 'gowild_offer') {
+    return { error: 'Not in GoWild offer phase' };
+  }
   if (extraQuestionIds.length !== GOWILD_Q_COUNT - BASE_Q_COUNT) {
     return { error: `Need ${GOWILD_Q_COUNT - BASE_Q_COUNT} extra questions` };
   }
@@ -155,7 +169,9 @@ export function acceptGoWild(
 }
 
 export function declineGoWild(state: HowHighState): { state: HowHighState } | { error: string } {
-  if (state.phase !== 'gowild_offer') {return { error: 'Not in GoWild offer phase' };}
+  if (state.phase !== 'gowild_offer') {
+    return { error: 'Not in GoWild offer phase' };
+  }
   state.goWildAccepted = false;
   state.phase = 'answering';
   return { state };

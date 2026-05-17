@@ -25,7 +25,9 @@ const dice = (d1 = 3, d2 = 4) => ({ die1: d1, die2: d2 });
 function answerN(state, n, correctIdx, optionIdx) {
   for (let i = 0; i < n; i++) {
     const res = processAnswer(state, optionIdx ?? correctIdx, correctIdx);
-    if ('error' in res) {throw new Error(res.error);}
+    if ('error' in res) {
+      throw new Error(res.error);
+    }
     state = res.state;
   }
   return state;
@@ -35,8 +37,8 @@ describe('HowHigh: constants', () => {
   it('exports expected values', () => {
     expect(POINTS.CORRECT).toBe(2);
     expect(POINTS.WRONG).toBe(-2);
-    expect(BASE_TIMER_MS).toBe(7000);
-    expect(GOWILD_TIMER_MS).toBe(5000);
+    expect(BASE_TIMER_MS).toBe(13000);
+    expect(GOWILD_TIMER_MS).toBe(10000);
     expect(BASE_Q_COUNT).toBe(10);
     expect(GOWILD_Q_COUNT).toBe(12);
     expect(DICE_AFTER_Q).toBe(3);
@@ -83,7 +85,9 @@ describe('HowHigh: processAnswer', () => {
     const s = createSession(makeIds(), dice());
     const res = processAnswer(s, 1, 1);
     expect('error' in res).toBe(false);
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     expect(res.correct).toBe(true);
     expect(res.state.score).toBe(2);
     expect(res.state.results).toEqual(['correct']);
@@ -93,7 +97,9 @@ describe('HowHigh: processAnswer', () => {
   it('scores wrong -2', () => {
     const s = createSession(makeIds(), dice());
     const res = processAnswer(s, 0, 1);
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     expect(res.correct).toBe(false);
     expect(res.state.score).toBe(-2);
     expect(res.state.results).toEqual(['wrong']);
@@ -124,7 +130,9 @@ describe('HowHigh: processTimeout', () => {
   it('scores as wrong -2', () => {
     const s = createSession(makeIds(), dice());
     const res = processTimeout(s);
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     expect(res.state.score).toBe(-2);
     expect(res.state.results).toEqual(['timeout']);
   });
@@ -142,7 +150,9 @@ describe('HowHigh: dice offer phase', () => {
     let s = createSession(makeIds(), dice());
     for (let i = 0; i < DICE_AFTER_Q; i++) {
       const res = processAnswer(s, 1, 1);
-      if ('error' in res) {throw new Error(res.error);}
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       if (i < DICE_AFTER_Q - 1) {
         expect(res.nextPhase).toBeUndefined();
       } else {
@@ -155,7 +165,9 @@ describe('HowHigh: dice offer phase', () => {
   it('acceptDice sets accepted=true and resumes answering', () => {
     const s = reachDicePhase();
     const res = acceptDice(s);
-    if ('error' in res) {throw new Error(res.error);}
+    if ('error' in res) {
+      throw new Error(res.error);
+    }
     expect(res.state.dice.accepted).toBe(true);
     expect(res.state.phase).toBe('answering');
   });
@@ -163,7 +175,9 @@ describe('HowHigh: dice offer phase', () => {
   it('declineDice sets accepted=false and resumes answering', () => {
     const s = reachDicePhase();
     const res = declineDice(s);
-    if ('error' in res) {throw new Error(res.error);}
+    if ('error' in res) {
+      throw new Error(res.error);
+    }
     expect(res.state.dice.accepted).toBe(false);
     expect(res.state.phase).toBe('answering');
   });
@@ -183,7 +197,9 @@ describe('HowHigh: Q4 dice bonus scoring', () => {
     s = answerN(s, DICE_AFTER_Q, 1, 1); // Q1-Q3 correct, +6
     acceptDice(s);
     const res = processAnswer(s, 1, 1); // Q4 correct
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     // score was 6 (3*2), now +9 → 15
     expect(res.state.score).toBe(6 + 9);
   });
@@ -193,7 +209,9 @@ describe('HowHigh: Q4 dice bonus scoring', () => {
     s = answerN(s, DICE_AFTER_Q, 1, 1); // +6
     acceptDice(s);
     const res = processAnswer(s, 0, 1); // Q4 wrong
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     // -2 - ceil(7/2) = -2 - 4 = -6
     expect(res.state.score).toBe(6 - 6);
   });
@@ -203,7 +221,9 @@ describe('HowHigh: Q4 dice bonus scoring', () => {
     s = answerN(s, DICE_AFTER_Q, 1, 1); // +6
     acceptDice(s);
     const res = processTimeout(s); // Q4 timeout
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     expect(res.state.score).toBe(6 - 6);
   });
 
@@ -212,7 +232,9 @@ describe('HowHigh: Q4 dice bonus scoring', () => {
     s = answerN(s, DICE_AFTER_Q, 1, 1); // +6
     declineDice(s);
     const res = processAnswer(s, 1, 1); // Q4 correct, normal
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     expect(res.state.score).toBe(6 + 2);
   });
 
@@ -221,7 +243,9 @@ describe('HowHigh: Q4 dice bonus scoring', () => {
     s = answerN(s, DICE_AFTER_Q, 1, 1); // +6
     acceptDice(s);
     const res = processAnswer(s, 0, 1); // Q4 wrong
-    if ('error' in res) {return;}
+    if ('error' in res) {
+      return;
+    }
     // -2 - ceil(4/2) = -2 - 2 = -4
     expect(res.state.score).toBe(6 - 4);
   });
@@ -246,7 +270,9 @@ describe('HowHigh: GoWild offer phase', () => {
   it('acceptGoWild extends to 12 questions and 5s timer', () => {
     const s = reachGoWildPhase();
     const res = acceptGoWild(s, extraIds());
-    if ('error' in res) {throw new Error(res.error);}
+    if ('error' in res) {
+      throw new Error(res.error);
+    }
     expect(res.state.totalQuestions).toBe(GOWILD_Q_COUNT);
     expect(res.state.timerMs).toBe(GOWILD_TIMER_MS);
     expect(res.state.goWildAccepted).toBe(true);
@@ -254,10 +280,12 @@ describe('HowHigh: GoWild offer phase', () => {
     expect(res.state.phase).toBe('answering');
   });
 
-  it('declineGoWild keeps 10 questions and 7s timer', () => {
+  it('declineGoWild keeps 10 questions and 13s timer', () => {
     const s = reachGoWildPhase();
     const res = declineGoWild(s);
-    if ('error' in res) {throw new Error(res.error);}
+    if ('error' in res) {
+      throw new Error(res.error);
+    }
     expect(res.state.totalQuestions).toBe(BASE_Q_COUNT);
     expect(res.state.timerMs).toBe(BASE_TIMER_MS);
     expect(res.state.goWildAccepted).toBe(false);

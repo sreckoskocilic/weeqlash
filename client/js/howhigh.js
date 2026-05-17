@@ -508,7 +508,7 @@ function _startRun() {
     }
     questions = res.questions || [];
     total = res.total ?? questions.length;
-    timerSec = (res.timerMs ?? 7000) / 1000;
+    timerSec = (res.timerMs ?? 13000) / 1000;
     if (res.dice) {
       diceValues = res.dice;
     }
@@ -537,7 +537,7 @@ function _joinRun() {
     }
     questions = res.questions || [];
     total = res.total ?? questions.length;
-    timerSec = (res.timerMs ?? 7000) / 1000;
+    timerSec = (res.timerMs ?? 13000) / 1000;
     if (res.dice) {
       diceValues = res.dice;
     }

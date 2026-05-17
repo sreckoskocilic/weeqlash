@@ -6,6 +6,9 @@
   padding: 0;
 }
 
+html {
+  background: var(--bg);
+}
 :root {
   --bg: #0e0e1a;
   --bg2: #161625;
@@ -35,7 +38,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   padding: 1rem;
-  padding-top: calc(14rem + env(safe-area-inset-top, 0px));
+  padding-top: calc(6rem + env(safe-area-inset-top, 0px));
   padding-right: calc(1rem + env(safe-area-inset-right, 0px));
   padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   padding-left: calc(1rem + env(safe-area-inset-left, 0px));
@@ -128,9 +131,7 @@ h1 {
   margin-bottom: 0.75rem;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  background: rgba(22, 22, 37, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(22, 22, 37, 0.5);
   border-radius: 8px;
   padding: 14px 20px;
   font-size: 0.78rem;
@@ -166,7 +167,7 @@ h1 {
 
 /* ===== CARDS (connect / lobby) ===== */
 .card {
-  background: var(--bg2);
+  background: rgba(22, 22, 37, 0.5);
   border: 1px solid var(--bg3);
   border-radius: var(--radius);
   padding: 0.5rem 2rem;
@@ -180,6 +181,8 @@ h1 {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 .main-columns .card {
   max-width: 680px;
@@ -440,7 +443,7 @@ h1 {
 .nav-item {
   width: auto;
   height: auto;
-  background: rgba(14, 14, 26, 0.85);
+  background: rgba(14, 14, 26, 0.5);
   border: 1px solid transparent;
   color: var(--muted);
   padding: 8px 14px;
@@ -586,7 +589,6 @@ button:disabled {
   margin-bottom: 0;
 }
 .setup-section + .setup-section {
-  padding-top: 14px;
   border-top: 1px solid #1e2d4a;
   margin-top: 4px;
 }
@@ -2890,7 +2892,6 @@ body[data-game-theme='pink'] {
 /* Qlashique buttons in right column */
 .btn-qlashique {
   width: 100%;
-  margin-top: 0.6rem;
   background: rgba(var(--game-accent-rgb), 0.1);
   border: 1px solid rgba(var(--game-accent-rgb), 0.4);
   color: var(--game-accent);
@@ -2957,7 +2958,7 @@ body[data-game-theme='pink'] {
   min-height: 0;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--bg2);
+  background: rgba(22, 22, 37, 0.5);
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
   text-align: left;
@@ -3047,7 +3048,6 @@ body[data-game-theme='pink'] {
 
 .mode-card--brawl {
   color: var(--green);
-  background: var(--bg2);
 }
 .mode-card--brawl .mode-name {
   color: var(--green);
@@ -3063,20 +3063,18 @@ body[data-game-theme='pink'] {
 }
 .mode-card--qlas {
   color: var(--yellow);
-  background: var(--bg2);
 }
 .mode-card--qlas .mode-name {
   color: var(--yellow);
 }
 .mode-card--qlas:hover {
-  background: var(--bg2);
 }
 .mode-card-wrap--qlas {
   display: flex;
   flex-direction: column;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--bg2);
+  background: rgba(22, 22, 37, 0.5);
   overflow: hidden;
   transition:
     transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
@@ -3157,7 +3155,6 @@ body[data-game-theme='pink'] {
 }
 .mode-card--skipnot {
   color: var(--amber);
-  background: var(--bg2);
 }
 .mode-card--skipnot .mode-name {
   color: var(--amber);
@@ -3173,7 +3170,6 @@ body[data-game-theme='pink'] {
 }
 .mode-card--howhigh {
   color: #e040fb;
-  background: var(--bg2);
 }
 .mode-card--howhigh .mode-name {
   color: #e040fb;
@@ -3280,7 +3276,7 @@ body[data-game-theme='pink'] {
   flex-direction: column;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--bg2);
+  background: rgba(22, 22, 37, 0.5);
   overflow: hidden;
   transition:
     transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
