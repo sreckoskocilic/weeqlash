@@ -1435,6 +1435,36 @@
           </div>
         </div>
 
+        <!-- Double or Nothing offer phase -->
+        <div id="howhigh-phase-don" style="display: none">
+          <div class="howhigh-bonus-card">
+            <h2 class="howhigh-bonus-title">DOUBLE OR NOTHING</h2>
+            <p class="howhigh-bonus-desc">Accept to double the stakes on the next 2 questions!</p>
+            <div class="howhigh-gowild-stakes">
+              <div class="howhigh-gowild-pro">Correct: <strong>+4</strong> per question</div>
+              <div class="howhigh-gowild-con">Wrong: <strong>-4</strong> per question</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem">
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-howhigh-don-accept"
+                type="button"
+                style="flex: 1"
+              >
+                DOUBLE IT!
+              </button>
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-howhigh-don-decline"
+                type="button"
+                style="flex: 1"
+              >
+                DECLINE
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- GoWild offer phase -->
         <div id="howhigh-phase-gowild" style="display: none">
           <div class="howhigh-bonus-card">
@@ -1458,6 +1488,40 @@
               <button
                 class="qlas-btn qlas-btn--ghost"
                 id="btn-howhigh-gowild-decline"
+                type="button"
+                style="flex: 1"
+              >
+                STAY SAFE
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Crunch offer phase -->
+        <div id="howhigh-phase-timecrunch" style="display: none">
+          <div class="howhigh-bonus-card">
+            <h2 class="howhigh-bonus-title">TIME CRUNCH</h2>
+            <p class="howhigh-bonus-desc">
+              Accept to earn more on the next 2 questions, but the timer drops to 7 seconds!
+            </p>
+            <div class="howhigh-gowild-stakes">
+              <div class="howhigh-gowild-pro">Correct: <strong>+3</strong> per question</div>
+              <div class="howhigh-gowild-con">
+                Timer drops to <strong>7s</strong> for 2 questions
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem">
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-howhigh-tc-accept"
+                type="button"
+                style="flex: 1"
+              >
+                CRUNCH TIME!
+              </button>
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-howhigh-tc-decline"
                 type="button"
                 style="flex: 1"
               >

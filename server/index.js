@@ -456,6 +456,19 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, hp });
   });
 
+  app.post('/test/set-howhigh-bonus', (req, res) => {
+    const { bonusQ3, bonusQ6 } = req.body;
+    if (bonusQ3 && bonusQ3 !== 'dice' && bonusQ3 !== 'double_or_nothing') {
+      return res.status(400).json({ error: 'bonusQ3 must be dice or double_or_nothing' });
+    }
+    if (bonusQ6 && bonusQ6 !== 'gowild' && bonusQ6 !== 'time_crunch') {
+      return res.status(400).json({ error: 'bonusQ6 must be gowild or time_crunch' });
+    }
+    _testBonusQ3Override = bonusQ3 || null;
+    _testBonusQ6Override = bonusQ6 || null;
+    res.json({ ok: true, bonusQ3: _testBonusQ3Override, bonusQ6: _testBonusQ6Override });
+  });
+
   // Test-only: list first question from each category with correct answer index
   app.get('/test/questions-sample', (_req, res) => {
     const sample = Object.entries(questionsDb)
@@ -1474,6 +1487,8 @@ io.on('connection', (socket) => {
       return cb({ error: 'Failed to create challenge' });
     }
 
+    const bonusQ3 = _testBonusQ3Override || howhigh.pickBonusQ3();
+    const bonusQ6 = _testBonusQ6Override || howhigh.pickBonusQ6();
     const run = {
       startedAt: now,
       challengeCode,
@@ -1484,6 +1499,10 @@ io.on('connection', (socket) => {
       dice,
       diceAccepted: null,
       goWildAccepted: null,
+      donAccepted: null,
+      timeCrunchAccepted: null,
+      bonusQ3,
+      bonusQ6,
       totalQuestions: howhigh.BASE_Q_COUNT,
       timerMs: howhigh.BASE_TIMER_MS,
       finished: false,
@@ -1496,6 +1515,8 @@ io.on('connection', (socket) => {
       total: howhigh.BASE_Q_COUNT,
       timerMs: howhigh.BASE_TIMER_MS,
       dice,
+      bonusQ3,
+      bonusQ6,
       questions: baseQuestions.map((q) => ({
         id: q.id,
         q: q.q,
@@ -1537,15 +1558,33 @@ io.on('connection', (socket) => {
       }
     }
 
-    // Check for phase transitions
+    // Check for phase transitions and timer changes
     let nextEvent;
-    if (run.currentIdx === howhigh.DICE_AFTER_Q && run.diceAccepted === null) {
-      nextEvent = 'dice_offer';
-    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q && run.goWildAccepted === null) {
-      nextEvent = 'gowild_offer';
+    let timerMs;
+    if (run.currentIdx === howhigh.DICE_AFTER_Q) {
+      if (run.bonusQ3 === 'dice' && run.diceAccepted === null) {
+        nextEvent = 'dice_offer';
+      } else if (run.bonusQ3 === 'double_or_nothing' && run.donAccepted === null) {
+        nextEvent = 'don_offer';
+      }
+    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q) {
+      if (run.bonusQ6 === 'gowild' && run.goWildAccepted === null) {
+        nextEvent = 'gowild_offer';
+      } else if (run.bonusQ6 === 'time_crunch' && run.timeCrunchAccepted === null) {
+        nextEvent = 'time_crunch_offer';
+      }
+    }
+    if (
+      run.timeCrunchAccepted &&
+      run.currentIdx === howhigh.GOWILD_AFTER_Q + howhigh.TIME_CRUNCH_Q_COUNT
+    ) {
+      run.timerMs = howhigh.BASE_TIMER_MS;
+      timerMs = howhigh.BASE_TIMER_MS;
     }
 
-    cb({ ok: true, correct, nextEvent });
+    const resp = { ok: true, correct, nextEvent };
+    if (timerMs) {resp.timerMs = timerMs;}
+    cb(resp);
   });
 
   socket.on('howhigh:timeout', ({ id } = {}, cb) => {
@@ -1569,13 +1608,31 @@ io.on('connection', (socket) => {
     run.currentIdx += 1;
 
     let nextEvent;
-    if (run.currentIdx === howhigh.DICE_AFTER_Q && run.diceAccepted === null) {
-      nextEvent = 'dice_offer';
-    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q && run.goWildAccepted === null) {
-      nextEvent = 'gowild_offer';
+    let timerMs;
+    if (run.currentIdx === howhigh.DICE_AFTER_Q) {
+      if (run.bonusQ3 === 'dice' && run.diceAccepted === null) {
+        nextEvent = 'dice_offer';
+      } else if (run.bonusQ3 === 'double_or_nothing' && run.donAccepted === null) {
+        nextEvent = 'don_offer';
+      }
+    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q) {
+      if (run.bonusQ6 === 'gowild' && run.goWildAccepted === null) {
+        nextEvent = 'gowild_offer';
+      } else if (run.bonusQ6 === 'time_crunch' && run.timeCrunchAccepted === null) {
+        nextEvent = 'time_crunch_offer';
+      }
+    }
+    if (
+      run.timeCrunchAccepted &&
+      run.currentIdx === howhigh.GOWILD_AFTER_Q + howhigh.TIME_CRUNCH_Q_COUNT
+    ) {
+      run.timerMs = howhigh.BASE_TIMER_MS;
+      timerMs = howhigh.BASE_TIMER_MS;
     }
 
-    cb({ ok: true, nextEvent });
+    const resp = { ok: true, nextEvent };
+    if (timerMs) {resp.timerMs = timerMs;}
+    cb(resp);
   });
 
   socket.on('howhigh:dice_respond', ({ accept } = {}, cb) => {
@@ -1585,6 +1642,9 @@ io.on('connection', (socket) => {
     const run = howHighRuns.get(socket.id);
     if (!run || run.finished) {
       return cb({ error: 'HowHigh not running' });
+    }
+    if (run.bonusQ3 !== 'dice') {
+      return cb({ error: 'Dice not available this run' });
     }
     if (run.diceAccepted !== null) {
       return cb({ error: 'Dice already decided' });
@@ -1597,6 +1657,28 @@ io.on('connection', (socket) => {
     cb({ ok: true, dice: run.dice, accepted: run.diceAccepted });
   });
 
+  socket.on('howhigh:don_respond', ({ accept } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (run.bonusQ3 !== 'double_or_nothing') {
+      return cb({ error: 'Double or Nothing not available this run' });
+    }
+    if (run.donAccepted !== null) {
+      return cb({ error: 'DoN already decided' });
+    }
+    if (run.currentIdx !== howhigh.DON_AFTER_Q) {
+      return cb({ error: 'Not at DoN phase' });
+    }
+
+    run.donAccepted = !!accept;
+    cb({ ok: true, accepted: run.donAccepted });
+  });
+
   socket.on('howhigh:gowild_respond', ({ accept } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1604,6 +1686,9 @@ io.on('connection', (socket) => {
     const run = howHighRuns.get(socket.id);
     if (!run || run.finished) {
       return cb({ error: 'HowHigh not running' });
+    }
+    if (run.bonusQ6 !== 'gowild') {
+      return cb({ error: 'GoWild not available this run' });
     }
     if (run.goWildAccepted !== null) {
       return cb({ error: 'GoWild already decided' });
@@ -1636,6 +1721,34 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('howhigh:time_crunch_respond', ({ accept } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (run.bonusQ6 !== 'time_crunch') {
+      return cb({ error: 'Time Crunch not available this run' });
+    }
+    if (run.timeCrunchAccepted !== null) {
+      return cb({ error: 'Time Crunch already decided' });
+    }
+    if (run.currentIdx !== howhigh.GOWILD_AFTER_Q) {
+      return cb({ error: 'Not at Time Crunch phase' });
+    }
+
+    run.timeCrunchAccepted = !!accept;
+
+    if (run.timeCrunchAccepted) {
+      run.timerMs = howhigh.TIME_CRUNCH_TIMER_MS;
+      cb({ ok: true, accepted: true, timerMs: howhigh.TIME_CRUNCH_TIMER_MS });
+    } else {
+      cb({ ok: true, accepted: false });
+    }
+  });
+
   socket.on('howhigh:finish', ({ totalMs } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1657,9 +1770,11 @@ io.on('connection', (socket) => {
     const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
 
     const { score } = howhigh.scorePicks(run.questions, picks, {
-      die1: run.dice.die1,
-      die2: run.dice.die2,
-      accepted: !!run.diceAccepted,
+      dice: { die1: run.dice.die1, die2: run.dice.die2, accepted: !!run.diceAccepted },
+      bonusQ3: run.bonusQ3,
+      bonusQ6: run.bonusQ6,
+      donAccepted: !!run.donAccepted,
+      timeCrunchAccepted: !!run.timeCrunchAccepted,
     });
     run.finished = true;
 
@@ -1776,6 +1891,8 @@ io.on('connection', (socket) => {
     }
 
     const dice = { die1: challenge.dice_die1, die2: challenge.dice_die2 };
+    const bonusQ3 = _testBonusQ3Override || howhigh.pickBonusQ3();
+    const bonusQ6 = _testBonusQ6Override || howhigh.pickBonusQ6();
 
     const run = {
       startedAt: now,
@@ -1787,6 +1904,10 @@ io.on('connection', (socket) => {
       dice,
       diceAccepted: null,
       goWildAccepted: null,
+      donAccepted: null,
+      timeCrunchAccepted: null,
+      bonusQ3,
+      bonusQ6,
       totalQuestions: howhigh.BASE_Q_COUNT,
       timerMs: howhigh.BASE_TIMER_MS,
       finished: false,
@@ -1799,6 +1920,8 @@ io.on('connection', (socket) => {
       total: howhigh.BASE_Q_COUNT,
       timerMs: howhigh.BASE_TIMER_MS,
       dice,
+      bonusQ3,
+      bonusQ6,
       questions: baseQuestions.map((q) => ({
         id: q.id,
         q: q.q,
@@ -2373,6 +2496,8 @@ function recordGameStats(room) {
 let _testOverride = null;
 let _testStickyQuestion = null;
 let _testHPOverride = null;
+let _testBonusQ3Override = null;
+let _testBonusQ6Override = null;
 
 // Return a question id to use as the next override, or null.
 // Prefers one-shot; consumes it on hit. Falls back to sticky (not consumed).

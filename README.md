@@ -10,11 +10,11 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen shows three mode cards: **Brawl**, **Qlashique**, and **SkipNoT**.
+- Open the site. The landing screen shows four mode cards: **Brawl**, **Qlashique**, **SkipNoT**, and **HowHigh**.
 - **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
 - To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
 
-There are three modes. Pick your poison.
+There are four modes. Pick your poison.
 
 ---
 
@@ -109,6 +109,41 @@ Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Sh
 
 ---
 
+## 4. HowHigh — async challenge mode
+
+Ten questions, thirteen seconds each. Play solo, get a **5-character challenge code**, share it. Your opponent plays the same ten questions whenever they want — no need to be online at the same time.
+
+### Scoring
+
+| Outcome        | Delta  |
+| -------------- | ------ |
+| Correct answer | **+2** |
+| Wrong answer   | **−2** |
+
+### Bonuses
+
+After question 3 the server randomly offers one of:
+
+| Bonus                 | Effect                                                      |
+| --------------------- | ----------------------------------------------------------- |
+| **Dice**              | Roll two dice → Q4 is worth (die1 × die2) points if correct |
+| **Double or Nothing** | Q4 and Q5 are worth ×2 (+4 correct, −4 wrong)               |
+
+After question 6 the server randomly offers one of:
+
+| Bonus           | Effect                                                              |
+| --------------- | ------------------------------------------------------------------- |
+| **GoWild**      | Two extra questions (12 total) with a shorter 8-second timer, +2/−2 |
+| **Time Crunch** | Q7 and Q8 drop to a 7-second timer, +3/−3 points each               |
+
+Each bonus can be accepted or declined. Declining continues the run at normal rules.
+
+### Head-to-Head
+
+After both players finish, scores are compared. Tied scores break on average answer time. Results appear in the **HowHigh** tab.
+
+---
+
 ## Screenshots
 
 ![Board 5x5](screenshots/board.png)
@@ -116,3 +151,6 @@ Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Sh
 ![Wrong Answer](screenshots/answer.png)
 ![Qlashique](screenshots/qlashique.png)
 ![SkipNoT](screenshots/skipnot.png)
+![HowHighDiceBonus](screenshots/hh-dice_bonus.png)
+![HowHighTimeCrunch](screenshots/hh-time_crunch.png)
+![HowHighComplete](screenshots/hh-complete.png)

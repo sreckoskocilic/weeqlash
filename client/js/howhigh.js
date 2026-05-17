@@ -7,6 +7,9 @@ const _testSpeed = Number(new URLSearchParams(window.location.search).get('testS
 const RESULT_DISPLAY_MS = 800 / _testSpeed;
 const POINT_CORRECT = 2;
 const POINT_WRONG = -2;
+const DON_MULTIPLIER = 2;
+const TC_POINT_CORRECT = 3;
+const TC_POINT_WRONG = -3;
 
 let socketRef = null;
 let ring = null;
@@ -23,13 +26,17 @@ let outcomes = [];
 let scoreAnimRaf = null;
 let diceValues = null;
 let diceAccepted = null;
+let bonusQ3 = 'dice';
+let bonusQ6 = 'gowild';
+let donAccepted = null;
+let timeCrunchAccepted = null;
 
 function _qel(id) {
   return document.getElementById(id);
 }
 
 function _showPhase(name) {
-  for (const p of ['game', 'dice', 'gowild', 'gameover']) {
+  for (const p of ['game', 'dice', 'don', 'gowild', 'timecrunch', 'gameover']) {
     const phaseEl = _qel('howhigh-phase-' + p);
     if (phaseEl) {
       phaseEl.style.display = p === name ? '' : 'none';
@@ -42,12 +49,16 @@ function _resetRun() {
   currentIdx = 0;
   score = 0;
   total = 10;
-  timerSec = 7;
+  timerSec = 13;
   optionBtns = [];
   resolvedThisQ = false;
   outcomes = [];
   diceValues = null;
   diceAccepted = null;
+  bonusQ3 = 'dice';
+  bonusQ6 = 'gowild';
+  donAccepted = null;
+  timeCrunchAccepted = null;
   if (questionTimeout) {
     clearTimeout(questionTimeout);
     questionTimeout = null;
@@ -184,9 +195,15 @@ function _flash(outcome, delta) {
 }
 
 function _calcDelta(correct) {
-  if (currentIdx === 3 && diceAccepted) {
+  if (currentIdx === 3 && bonusQ3 === 'dice' && diceAccepted) {
     const diceSum = diceValues.die1 + diceValues.die2;
     return correct ? POINT_CORRECT + diceSum : POINT_WRONG - Math.ceil(diceSum / 2);
+  }
+  if (bonusQ3 === 'double_or_nothing' && donAccepted && currentIdx >= 3 && currentIdx < 5) {
+    return (correct ? POINT_CORRECT : POINT_WRONG) * DON_MULTIPLIER;
+  }
+  if (bonusQ6 === 'time_crunch' && timeCrunchAccepted && currentIdx >= 6 && currentIdx < 8) {
+    return correct ? TC_POINT_CORRECT : TC_POINT_WRONG;
   }
   return correct ? POINT_CORRECT : POINT_WRONG;
 }
@@ -227,7 +244,10 @@ function _advanceAfterDelay() {
   }, RESULT_DISPLAY_MS);
 }
 
-function _checkNextEvent(nextEvent) {
+function _checkNextEvent(nextEvent, res) {
+  if (res?.timerMs) {
+    timerSec = res.timerMs / 1000;
+  }
   if (nextEvent === 'dice_offer') {
     currentIdx += 1;
     ring?.stop();
@@ -238,6 +258,16 @@ function _checkNextEvent(nextEvent) {
     setTimeout(() => _showDiceOffer(), RESULT_DISPLAY_MS);
     return true;
   }
+  if (nextEvent === 'don_offer') {
+    currentIdx += 1;
+    ring?.stop();
+    if (questionTimeout) {
+      clearTimeout(questionTimeout);
+      questionTimeout = null;
+    }
+    setTimeout(() => _showDoNOffer(), RESULT_DISPLAY_MS);
+    return true;
+  }
   if (nextEvent === 'gowild_offer') {
     currentIdx += 1;
     ring?.stop();
@@ -246,6 +276,16 @@ function _checkNextEvent(nextEvent) {
       questionTimeout = null;
     }
     setTimeout(() => _showGoWildOffer(), RESULT_DISPLAY_MS);
+    return true;
+  }
+  if (nextEvent === 'time_crunch_offer') {
+    currentIdx += 1;
+    ring?.stop();
+    if (questionTimeout) {
+      clearTimeout(questionTimeout);
+      questionTimeout = null;
+    }
+    setTimeout(() => _showTimeCrunchOffer(), RESULT_DISPLAY_MS);
     return true;
   }
   return false;
@@ -292,7 +332,7 @@ function _onOptionClick(idx) {
     _updateProgressDot(currentIdx, correct ? 'ok' : 'bad');
     _flash(correct ? 'correct' : 'wrong', delta);
 
-    if (!_checkNextEvent(res.nextEvent)) {
+    if (!_checkNextEvent(res.nextEvent, res)) {
       _advanceAfterDelay();
     }
   });
@@ -319,7 +359,7 @@ function _onTimeout() {
     _updateProgressDot(currentIdx, 'bad');
     _flash('timeout', delta);
 
-    if (!_checkNextEvent(res?.nextEvent)) {
+    if (!_checkNextEvent(res?.nextEvent, res)) {
       _advanceAfterDelay();
     }
   });
@@ -391,6 +431,36 @@ function _onDiceDecline() {
   });
 }
 
+// --- Double or Nothing offer ---
+
+function _showDoNOffer() {
+  _showPhase('don');
+}
+
+function _onDoNAccept() {
+  donAccepted = true;
+  socketRef?.emit('howhigh:don_respond', { accept: true }, (res) => {
+    if (res?.error) {
+      console.warn('[howhigh] don_respond error:', res.error);
+      return;
+    }
+    _showPhase('game');
+    _renderCurrentQ();
+  });
+}
+
+function _onDoNDecline() {
+  donAccepted = false;
+  socketRef?.emit('howhigh:don_respond', { accept: false }, (res) => {
+    if (res?.error) {
+      console.warn('[howhigh] don_respond error:', res.error);
+      return;
+    }
+    _showPhase('game');
+    _renderCurrentQ();
+  });
+}
+
 // --- GoWild offer ---
 
 function _showGoWildOffer() {
@@ -419,6 +489,39 @@ function _onGoWildDecline() {
   socketRef?.emit('howhigh:gowild_respond', { accept: false }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] gowild_respond error:', res.error);
+      return;
+    }
+    _showPhase('game');
+    _renderCurrentQ();
+  });
+}
+
+// --- Time Crunch offer ---
+
+function _showTimeCrunchOffer() {
+  _showPhase('timecrunch');
+}
+
+function _onTCAccept() {
+  timeCrunchAccepted = true;
+  socketRef?.emit('howhigh:time_crunch_respond', { accept: true }, (res) => {
+    if (res?.error) {
+      console.warn('[howhigh] time_crunch_respond error:', res.error);
+      return;
+    }
+    if (res.timerMs) {
+      timerSec = res.timerMs / 1000;
+    }
+    _showPhase('game');
+    _renderCurrentQ();
+  });
+}
+
+function _onTCDecline() {
+  timeCrunchAccepted = false;
+  socketRef?.emit('howhigh:time_crunch_respond', { accept: false }, (res) => {
+    if (res?.error) {
+      console.warn('[howhigh] time_crunch_respond error:', res.error);
       return;
     }
     _showPhase('game');
@@ -509,8 +612,15 @@ function _startRun() {
     questions = res.questions || [];
     total = res.total ?? questions.length;
     timerSec = (res.timerMs ?? 13000) / 1000;
+
     if (res.dice) {
       diceValues = res.dice;
+    }
+    if (res.bonusQ3) {
+      bonusQ3 = res.bonusQ3;
+    }
+    if (res.bonusQ6) {
+      bonusQ6 = res.bonusQ6;
     }
     runStartedAt = Date.now();
     _resetProgressDots();
@@ -538,8 +648,15 @@ function _joinRun() {
     questions = res.questions || [];
     total = res.total ?? questions.length;
     timerSec = (res.timerMs ?? 13000) / 1000;
+
     if (res.dice) {
       diceValues = res.dice;
+    }
+    if (res.bonusQ3) {
+      bonusQ3 = res.bonusQ3;
+    }
+    if (res.bonusQ6) {
+      bonusQ6 = res.bonusQ6;
     }
     runStartedAt = Date.now();
     _resetProgressDots();
@@ -561,7 +678,7 @@ function _loadChallenges() {
       return;
     }
 
-    const challenges = res.challenges || [];
+    const challenges = (res.challenges || []).filter((c) => c.status === 'complete');
     if (challenges.length === 0) {
       list.innerHTML = '';
       if (empty) {
@@ -575,68 +692,26 @@ function _loadChallenges() {
 
     list.innerHTML = challenges
       .map((c) => {
-        const statusClass = 'hh-status-' + c.status;
-        const statusText =
-          c.status === 'waiting'
-            ? 'Waiting for opponent'
-            : c.status === 'complete'
-              ? 'Complete'
-              : c.status === 'active'
-                ? 'In progress'
-                : c.status === 'pending'
-                  ? 'Your turn'
-                  : c.status;
         const opponent = c.isP1 ? c.p2Name || '—' : c.p1Name;
         const yourScore = c.isP1 ? c.p1Score : c.p2Score;
         const theirScore = c.isP1 ? c.p2Score : c.p1Score;
         const date = new Date(c.createdAt).toLocaleDateString();
-
-        if (c.status === 'complete') {
-          const won = !!c.youWon;
-          return (
-            '<div class="hh-row ' +
-            (won ? 'hh-w' : 'hh-l') +
-            '">' +
-            '<span class="hh-col-left"><span class="hh-badge">' +
-            (won ? 'W' : 'L') +
-            '</span>' +
-            sanitize(opponent) +
-            '</span>' +
-            '<span class="hh-col-center">' +
-            yourScore +
-            ' <span class="hh-sep">:</span> ' +
-            theirScore +
-            '</span>' +
-            '<span class="hh-col-right">' +
-            date +
-            '</span>' +
-            '</div>'
-          );
-        }
-        if (c.status === 'waiting' && c.isP1) {
-          return (
-            '<div class="hh-row hh-row--waiting">' +
-            '<span class="hh-waiting-label">Waiting for opponent</span>' +
-            '<span class="hh-code-share">' +
-            c.code +
-            '</span>' +
-            '<span class="hh-date">' +
-            date +
-            '</span>' +
-            '</div>'
-          );
-        }
+        const won = !!c.youWon;
         return (
-          '<div class="hh-row hh-row--pending">' +
-          '<span class="hh-opponent">' +
-          sanitize(opponent || '—') +
-          '</span>' +
-          '<span class="hh-status ' +
-          statusClass +
+          '<div class="hh-row ' +
+          (won ? 'hh-w' : 'hh-l') +
           '">' +
-          statusText +
+          '<span class="hh-col-left"><span class="hh-badge">' +
+          (won ? 'W' : 'L') +
           '</span>' +
-          '<span class="hh-date">' +
+          sanitize(opponent) +
+          '</span>' +
+          '<span class="hh-col-center">' +
+          yourScore +
+          ' <span class="hh-sep">:</span> ' +
+          theirScore +
+          '</span>' +
+          '<span class="hh-col-right">' +
           date +
           '</span>' +
           '</div>'
@@ -679,8 +754,12 @@ export function initHowHigh(sock) {
   el('btn-howhigh-copy-code').addEventListener('click', _onCopyCode);
   el('btn-howhigh-dice-accept').addEventListener('click', _onDiceAccept);
   el('btn-howhigh-dice-decline').addEventListener('click', _onDiceDecline);
+  el('btn-howhigh-don-accept').addEventListener('click', _onDoNAccept);
+  el('btn-howhigh-don-decline').addEventListener('click', _onDoNDecline);
   el('btn-howhigh-gowild-accept').addEventListener('click', _onGoWildAccept);
   el('btn-howhigh-gowild-decline').addEventListener('click', _onGoWildDecline);
+  el('btn-howhigh-tc-accept').addEventListener('click', _onTCAccept);
+  el('btn-howhigh-tc-decline').addEventListener('click', _onTCDecline);
 
   // Load challenges when the Challenges tab is shown
   const nav = document.getElementById('connect-nav');

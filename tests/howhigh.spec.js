@@ -9,6 +9,12 @@ import {
 
 const BASE = 'http://localhost:3000';
 
+async function setBonus(bonusQ3, bonusQ6) {
+  const api = await playwrightRequest.newContext({ baseURL: BASE });
+  await api.post('/test/set-howhigh-bonus', { data: { bonusQ3, bonusQ6 } });
+  await api.dispose();
+}
+
 // With sticky TEST_QUESTION (correctIdx=0) and declining both dice and GoWild,
 // all 10 answers correct → 10 × +2 = 20.
 const EXPECTED_SCORE_ALL_CORRECT = '20';
@@ -47,6 +53,7 @@ test('howhigh: P1 plays 10 correct, gets challenge code', async ({ browser }) =>
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
+  await setBonus('dice', 'gowild');
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
     query: 'testSpeed=2',
@@ -68,6 +75,7 @@ test('howhigh: P1 plays 10 correct, gets challenge code', async ({ browser }) =>
   expect(code).toMatch(/^[A-Z0-9]{5}$/);
 
   await clearStickyQuestion();
+  await setBonus(null, null);
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await api.dispose();
@@ -79,6 +87,7 @@ test('howhigh: P2 joins, plays same questions, sees head-to-head result', async 
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
+  await setBonus('dice', 'gowild');
 
   // --- P1 plays ---
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_quiz_player', {
@@ -109,6 +118,7 @@ test('howhigh: P2 joins, plays same questions, sees head-to-head result', async 
   expect(winnerText === 'YOU WIN!' || winnerText === 'YOU LOSE').toBe(true);
 
   await clearStickyQuestion();
+  await setBonus(null, null);
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await api.dispose();
@@ -121,6 +131,7 @@ test('howhigh: challenges tab shows completed challenge', async ({ browser }) =>
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
+  await setBonus('dice', 'gowild');
 
   // P1 plays
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_quiz_player', {
@@ -154,6 +165,7 @@ test('howhigh: challenges tab shows completed challenge', async ({ browser }) =>
   expect(listText).toContain('20');
 
   await clearStickyQuestion();
+  await setBonus(null, null);
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await api.dispose();

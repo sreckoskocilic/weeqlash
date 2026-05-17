@@ -4376,40 +4376,6 @@ body[data-game-theme='pink'] {
 .hh-l .hh-badge {
   color: #f44336;
 }
-.hh-status {
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.hh-status-waiting {
-  background: rgba(255, 176, 0, 0.15);
-  color: #ffb000;
-}
-.hh-status-active {
-  background: rgba(33, 150, 243, 0.15);
-  color: #2196f3;
-}
-.hh-status-pending {
-  background: rgba(156, 39, 176, 0.15);
-  color: #ce93d8;
-}
-.hh-waiting-label {
-  flex: 1;
-  opacity: 0.6;
-}
-.hh-code-share {
-  color: #e040fb;
-  font-weight: 700;
-  letter-spacing: 3px;
-  font-size: 1rem;
-}
-.hh-date {
-  opacity: 0.6;
-  font-size: 0.85rem;
-  flex-shrink: 0;
-}
 .howhigh-challenges-empty {
   font-size: 0.9rem;
 }
