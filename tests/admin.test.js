@@ -11,7 +11,7 @@ function agent() {
 
 async function adminAgent() {
   const a = agent();
-  await a.get(`/admin/?admin_key=${ADMIN_SECRET}`).expect(200);
+  await a.get('/admin/').set('x-admin-key', ADMIN_SECRET).expect(200);
   return a;
 }
 
@@ -54,15 +54,14 @@ describe('Admin auth', () => {
   });
 
   it('rejects invalid admin key with 403', async () => {
-    const res = await request(app).get('/admin/?admin_key=wrong');
+    const res = await request(app).get('/admin/').set('x-admin-key', 'wrong');
     expect(res.status).toBe(403);
   });
 
-  it('grants access with valid admin key via query param', async () => {
+  it('rejects admin key via query param', async () => {
     const a = agent();
     const res = await a.get(`/admin/?admin_key=${ADMIN_SECRET}`);
-    expect(res.status).toBe(200);
-    expect(res.text).toContain('Dashboard');
+    expect(res.status).toBe(403);
   });
 
   it('grants access with valid admin key via header', async () => {
@@ -73,7 +72,7 @@ describe('Admin auth', () => {
 
   it('persists admin session after initial auth', async () => {
     const a = agent();
-    await a.get(`/admin/?admin_key=${ADMIN_SECRET}`).expect(200);
+    await a.get('/admin/').set('x-admin-key', ADMIN_SECRET).expect(200);
     const res = await a.get('/admin/users');
     expect(res.status).toBe(200);
     expect(res.text).toContain('Users');
@@ -82,9 +81,12 @@ describe('Admin auth', () => {
   it('rate-limits after repeated failures', async () => {
     const a = agent();
     for (let i = 0; i < 5; i++) {
-      await a.get('/admin/?admin_key=wrong').set('x-forwarded-for', '10.99.99.99');
+      await a.get('/admin/').set('x-admin-key', 'wrong').set('x-forwarded-for', '10.99.99.99');
     }
-    const res = await a.get('/admin/?admin_key=wrong').set('x-forwarded-for', '10.99.99.99');
+    const res = await a
+      .get('/admin/')
+      .set('x-admin-key', 'wrong')
+      .set('x-forwarded-for', '10.99.99.99');
     expect(res.status).toBe(429);
     expect(res.text).toContain('Too Many Requests');
   });

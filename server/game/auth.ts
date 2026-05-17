@@ -237,8 +237,9 @@ export async function authenticateUser(
     return { error: 'Invalid credentials' };
   }
 
-  // Bypass confirmation for test emails
-  const needsConfirm = !user.email_confirmed && !user.email.endsWith('@test.invalid');
+  const isTestBypass =
+    process.env.NODE_ENV !== 'production' && user.email.endsWith('@test.invalid');
+  const needsConfirm = !user.email_confirmed && !isTestBypass;
   if (needsConfirm) {
     return {
       error: 'Email not confirmed',

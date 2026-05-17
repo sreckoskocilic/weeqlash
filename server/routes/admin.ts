@@ -217,7 +217,7 @@ function requireAdmin(
     return next();
   }
 
-  const key = (req.headers['x-admin-key'] as string) || (req.query.admin_key as string);
+  const key = req.headers['x-admin-key'] as string;
   if (
     typeof key === 'string' &&
     ADMIN_MAGIC_KEY &&

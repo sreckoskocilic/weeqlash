@@ -1650,7 +1650,8 @@ io.on('connection', (socket) => {
 
     const picks = run.picks.map((p) => (p === undefined ? null : p));
     const minMs = run.totalQuestions * 100;
-    const maxMs = run.totalQuestions * (howhigh.BASE_TIMER_MS + 2000);
+    const timerMs = run.goWildAccepted ? howhigh.GOWILD_TIMER_MS : howhigh.BASE_TIMER_MS;
+    const maxMs = run.totalQuestions * (timerMs + 2000);
     const reportedMs =
       typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
     const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
@@ -1716,7 +1717,9 @@ io.on('connection', (socket) => {
         finishP1(
           run.challengeCode,
           score,
-          picks.map(String),
+          picks.map((p, i) =>
+            p === null ? 'timeout' : p === run.questions[i]?.a ? 'correct' : 'wrong',
+          ),
           !!run.diceAccepted,
           !!run.goWildAccepted,
           elapsedMs,
@@ -1944,6 +1947,7 @@ io.on('connection', (socket) => {
     room.qlasHP = QLAS_HP_OPTIONS.includes(hp) ? hp : QLAS_DEFAULT_HP;
     const player = joinRoom(room.code, socket.id, playerName, userId || null);
     if (player.error) {
+      rooms.delete(room.code);
       return cb(player);
     }
     socket.join(room.code);

@@ -150,7 +150,9 @@ export function finishP2(
   } else if (score < challenge.p1_score!) {
     winnerId = challenge.player1_id;
   } else {
-    winnerId = timeMs < challenge.p1_time_ms! ? challenge.player2_id : challenge.player1_id;
+    const p1Avg = challenge.p1_time_ms! / (challenge.p1_gowild_accepted ? 12 : 10);
+    const p2Avg = timeMs / (goWildAccepted ? 12 : 10);
+    winnerId = p2Avg < p1Avg ? challenge.player2_id : challenge.player1_id;
   }
 
   db.prepare(
