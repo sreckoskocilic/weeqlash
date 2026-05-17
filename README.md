@@ -134,7 +134,7 @@ After question 6, another offer:
 
 ### Head-to-head
 
-Both players finish, scores get compared. Ties broken by speed. Results show up in the HowHigh tab.
+Both players finish, scores get compared. Ties broken by speed. Results show up in the HowHigh tab. Unmatched challenges (waiting for an opponent) appear at the top with a copyable code.
 
 ---
 

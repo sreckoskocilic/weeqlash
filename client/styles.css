@@ -4376,6 +4376,25 @@ body[data-game-theme='pink'] {
 .hh-l .hh-badge {
   color: #f44336;
 }
+.hh-section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  padding: 8px 14px 4px;
+}
+.hh-row--waiting {
+  opacity: 0.7;
+}
+.hh-badge--waiting {
+  color: var(--muted);
+}
+.hh-code {
+  font-family: 'Martian Mono', 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--text);
+}
 .howhigh-challenges-empty {
   font-size: 0.9rem;
 }

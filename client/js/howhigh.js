@@ -11,6 +11,22 @@ const DON_MULTIPLIER = 2;
 const TC_POINT_CORRECT = 3;
 const TC_POINT_WRONG = -3;
 
+function _timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) {
+    return 'just now';
+  }
+  if (mins < 60) {
+    return mins + 'm ago';
+  }
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) {
+    return hrs + 'h ago';
+  }
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
 let socketRef = null;
 let ring = null;
 let questions = [];
@@ -678,8 +694,11 @@ function _loadChallenges() {
       return;
     }
 
-    const challenges = (res.challenges || []).filter((c) => c.status === 'complete');
-    if (challenges.length === 0) {
+    const all = res.challenges || [];
+    const waiting = all.filter((c) => c.status === 'waiting' && c.isP1);
+    const completed = all.filter((c) => c.status === 'complete');
+
+    if (waiting.length === 0 && completed.length === 0) {
       list.innerHTML = '';
       if (empty) {
         empty.style.display = '';
@@ -690,34 +709,72 @@ function _loadChallenges() {
       empty.style.display = 'none';
     }
 
-    list.innerHTML = challenges
-      .map((c) => {
-        const opponent = c.isP1 ? c.p2Name || '—' : c.p1Name;
-        const yourScore = c.isP1 ? c.p1Score : c.p2Score;
-        const theirScore = c.isP1 ? c.p2Score : c.p1Score;
-        const date = new Date(c.createdAt).toLocaleDateString();
-        const won = !!c.youWon;
-        return (
-          '<div class="hh-row ' +
-          (won ? 'hh-w' : 'hh-l') +
-          '">' +
-          '<span class="hh-col-left"><span class="hh-badge">' +
-          (won ? 'W' : 'L') +
-          '</span>' +
-          sanitize(opponent) +
-          '</span>' +
-          '<span class="hh-col-center">' +
-          yourScore +
-          ' <span class="hh-sep">:</span> ' +
-          theirScore +
-          '</span>' +
-          '<span class="hh-col-right">' +
-          date +
-          '</span>' +
-          '</div>'
-        );
-      })
-      .join('');
+    const waitingHtml = waiting.length
+      ? '<div class="hh-section-label">Waiting</div>' +
+        waiting
+          .map((c) => {
+            const ago = _timeAgo(c.createdAt);
+            return (
+              '<div class="hh-row hh-row--waiting">' +
+              '<span class="hh-col-left"><span class="hh-badge hh-badge--waiting">?</span>unmatched</span>' +
+              '<span class="hh-col-center"><span class="hh-code" data-code="' +
+              sanitize(c.code) +
+              '">' +
+              sanitize(c.code) +
+              '</span></span>' +
+              '<span class="hh-col-right">' +
+              ago +
+              '</span></div>'
+            );
+          })
+          .join('')
+      : '';
+
+    const completedHtml = completed.length
+      ? (waiting.length ? '<div class="hh-section-label">Completed</div>' : '') +
+        completed
+          .map((c) => {
+            const opponent = c.isP1 ? c.p2Name || '—' : c.p1Name;
+            const yourScore = c.isP1 ? c.p1Score : c.p2Score;
+            const theirScore = c.isP1 ? c.p2Score : c.p1Score;
+            const date = new Date(c.createdAt).toLocaleDateString();
+            const won = !!c.youWon;
+            return (
+              '<div class="hh-row ' +
+              (won ? 'hh-w' : 'hh-l') +
+              '">' +
+              '<span class="hh-col-left"><span class="hh-badge">' +
+              (won ? 'W' : 'L') +
+              '</span>' +
+              sanitize(opponent) +
+              '</span>' +
+              '<span class="hh-col-center">' +
+              yourScore +
+              ' <span class="hh-sep">:</span> ' +
+              theirScore +
+              '</span>' +
+              '<span class="hh-col-right">' +
+              date +
+              '</span>' +
+              '</div>'
+            );
+          })
+          .join('')
+      : '';
+
+    list.innerHTML = waitingHtml + completedHtml;
+
+    list.querySelectorAll('.hh-code').forEach((codeEl) => {
+      codeEl.style.cursor = 'pointer';
+      codeEl.title = 'Click to copy';
+      codeEl.addEventListener('click', () => {
+        navigator.clipboard.writeText(codeEl.dataset.code || '');
+        codeEl.textContent = 'copied!';
+        setTimeout(() => {
+          codeEl.textContent = codeEl.dataset.code || '';
+        }, 1200);
+      });
+    });
   });
 }
 
