@@ -24,7 +24,7 @@ Deploy your pegs across a board of knowledge tiles. Answer trivia. Crush your op
 
 ### Setup
 
-- **Board size**: 4×4, 5×5, 6×6, 7×7, 8×8 (default) or 10×10.
+- **Board size**: 4×4 (default), 5×5, 6×6, 7×7, 8×8 or 10×10.
 - **Question timer** (under `Settings`): 15 / 30 / 45 seconds per question.
 - **Categories** (under `Settings`): toggle any subset of categories on or off before creating the room.
 - Hit **Create game** → a 5-char room code appears in the lobby. Share it. Wait for humans.
@@ -48,13 +48,9 @@ Walk a peg onto an enemy-occupied tile and the gloves come off. You get up to **
 
 Each peg starts with **3 HP** and never heals. Lose all three and the peg is gone. Permanently. Pour one out.
 
-### Capture the Flags
+### Capture the Flag
 
-Four corners. Four flags. One throne.
-
-- Flags appear on boards 5×5 and larger; each player gets one corner flag to defend
-- Each corner flag needs **3 correct answers** to capture
-- Capture any flag → you win, your legacy is secured, your enemies are invited to reflect
+Each player's starting corner is their flag. On boards 5×5 and larger, reach an opponent's flag corner and answer 3 questions correctly to capture it. Capture any flag and you win.
 
 ---
 
@@ -111,36 +107,34 @@ Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Sh
 
 ## 4. HowHigh — async challenge mode
 
-Ten questions, thirteen seconds each. Play solo, get a **5-character challenge code**, share it. Your opponent plays the same ten questions whenever they want — no need to be online at the same time.
+Ten questions, thirteen seconds each. Play solo, get a 5-character challenge code, share it. Your opponent plays the same ten questions whenever they feel like it — no need to be online at the same time.
 
 ### Scoring
 
-| Outcome        | Delta  |
-| -------------- | ------ |
-| Correct answer | **+2** |
-| Wrong answer   | **−2** |
+| Outcome | Delta |
+| ------- | ----- |
+| Correct | +2    |
+| Wrong   | −2    |
 
 ### Bonuses
 
-After question 3 the server randomly offers one of:
+After question 3 the game offers one of these (accept or decline, your funeral either way):
 
-| Bonus                 | Effect                                                      |
-| --------------------- | ----------------------------------------------------------- |
-| **Dice**              | Roll two dice → Q4 is worth (die1 × die2) points if correct |
-| **Double or Nothing** | Q4 and Q5 are worth ×2 (+4 correct, −4 wrong)               |
+| Bonus             | What happens                                      |
+| ----------------- | ------------------------------------------------- |
+| Dice              | Roll two dice. Q4 is worth die1 + die2 if correct |
+| Double or Nothing | Q4 and Q5 pay double (+4 correct, −4 wrong)       |
 
-After question 6 the server randomly offers one of:
+After question 6, another offer:
 
-| Bonus           | Effect                                                              |
-| --------------- | ------------------------------------------------------------------- |
-| **GoWild**      | Two extra questions (12 total) with a shorter 8-second timer, +2/−2 |
-| **Time Crunch** | Q7 and Q8 drop to a 7-second timer, +3/−3 points each               |
+| Bonus       | What happens                                                        |
+| ----------- | ------------------------------------------------------------------- |
+| GoWild      | 2 extra questions (12 total), timer drops to 10 seconds, same +2/−2 |
+| Time Crunch | Q7 and Q8 get a 7-second timer, +3/−3 each                          |
 
-Each bonus can be accepted or declined. Declining continues the run at normal rules.
+### Head-to-head
 
-### Head-to-Head
-
-After both players finish, scores are compared. Tied scores break on average answer time. Results appear in the **HowHigh** tab.
+Both players finish, scores get compared. Ties broken by speed. Results show up in the HowHigh tab.
 
 ---
 

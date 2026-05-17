@@ -306,6 +306,7 @@ function gracefulShutdown(signal) {
   clearInterval(cleanupInterval);
   clearInterval(roomCleanupInterval);
   clearInterval(leaderboardPruneInterval);
+  clearInterval(howHighExpireInterval);
   httpServer.close(() => {
     console.log('[shutdown] HTTP server closed');
     redisClient.quit().finally(() => process.exit(0));
@@ -1583,7 +1584,9 @@ io.on('connection', (socket) => {
     }
 
     const resp = { ok: true, correct, nextEvent };
-    if (timerMs) {resp.timerMs = timerMs;}
+    if (timerMs) {
+      resp.timerMs = timerMs;
+    }
     cb(resp);
   });
 
@@ -1631,7 +1634,9 @@ io.on('connection', (socket) => {
     }
 
     const resp = { ok: true, nextEvent };
-    if (timerMs) {resp.timerMs = timerMs;}
+    if (timerMs) {
+      resp.timerMs = timerMs;
+    }
     cb(resp);
   });
 
@@ -1776,9 +1781,8 @@ io.on('connection', (socket) => {
       donAccepted: !!run.donAccepted,
       timeCrunchAccepted: !!run.timeCrunchAccepted,
     });
-    run.finished = true;
-
     try {
+      run.finished = true;
       if (run.isPlayer2) {
         const challenge = finishP2(
           run.challengeCode,
@@ -1843,6 +1847,7 @@ io.on('connection', (socket) => {
         cb({ ok: true, score, challengeCode: run.challengeCode });
       }
     } catch (err) {
+      run.finished = false;
       console.error('[howhigh] finish failed:', err.message);
       cb({ error: 'Failed to save results' });
     }
@@ -1877,10 +1882,15 @@ io.on('connection', (socket) => {
       return cb({ error: err.message });
     }
 
-    const questionIds = JSON.parse(challenge.question_ids);
-    const extraQuestionIds = challenge.extra_question_ids
-      ? JSON.parse(challenge.extra_question_ids)
-      : [];
+    let questionIds, extraQuestionIds;
+    try {
+      questionIds = JSON.parse(challenge.question_ids);
+      extraQuestionIds = challenge.extra_question_ids
+        ? JSON.parse(challenge.extra_question_ids)
+        : [];
+    } catch {
+      return cb({ error: 'Invalid challenge data' });
+    }
 
     // Resolve full question objects from the DB
     const baseQuestions = questionIds.map((qId) => questionsDb._byId?.[qId]).filter(Boolean);

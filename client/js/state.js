@@ -50,7 +50,7 @@ export const state = {
 
   // Setup screen
   setupPlayerCount: 2,
-  setupBoardSize: 8,
+  setupBoardSize: 4,
   setupTimer: 30,
   setupEnabledCats: [],
 

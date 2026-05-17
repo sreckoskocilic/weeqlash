@@ -152,10 +152,13 @@ describe('Engine: Game Creation', () => {
   });
 
   it('initializes pegs for each player', () => {
-    const state = createGame([
-      { name: 'P1', color: '#f00' },
-      { name: 'P2', color: '#00f' },
-    ]);
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 5 },
+    );
     const p1Pegs = state.players[0].pegIds;
     const p2Pegs = state.players[1].pegIds;
     expect(p1Pegs).toHaveLength(3);
@@ -567,10 +570,13 @@ describe('Engine: 3-Move Turn Pool', () => {
   });
 
   it('player can select any peg during their turn', () => {
-    const state = createGame([
-      { name: 'P1', color: '#f00' },
-      { name: 'P2', color: '#00f' },
-    ]);
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize: 5 },
+    );
     const result0 = selectPeg(state, 0, state.players[0].pegIds[0]);
     expect(result0.ok).toBe(true);
     const result1 = selectPeg(state, 0, state.players[0].pegIds[1]);

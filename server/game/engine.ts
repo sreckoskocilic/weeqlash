@@ -222,10 +222,8 @@ function generateLayoutMap(
   boardSize: number,
   enabledCats: readonly Category[],
   seed: number | null = null,
+  flagCorners?: Set<string>,
 ): (number | 'F')[][] {
-  const isCorner = (r: number, c: number) =>
-    (r === 0 || r === boardSize - 1) && (c === 0 || c === boardSize - 1);
-  const useFlagCorners = boardSize > 4;
   const map: (number | 'F')[][] = Array.from({ length: boardSize }, () =>
     Array(boardSize).fill(null),
   );
@@ -233,7 +231,7 @@ function generateLayoutMap(
   const nonCornerTiles: [number, number][] = [];
   for (let r = 0; r < boardSize; r++) {
     for (let c = 0; c < boardSize; c++) {
-      if (isCorner(r, c) && useFlagCorners) {
+      if (flagCorners?.has(`${r},${c}`)) {
         map[r][c] = 'F';
       } else {
         nonCornerTiles.push([r, c]);
@@ -847,11 +845,12 @@ export function createGame(
     boardLayout?: (number | 'F')[][];
   } = {},
 ): GameState {
-  const { boardSize = 7, enabledCats, boardLayout } = settings;
+  const { boardSize = 4, enabledCats, boardLayout } = settings;
   const activeCats = enabledCats?.length ? enabledCats : DEFAULT_CATS;
   const numPlayers = players.length;
-  const layoutMap = boardLayout || generateLayoutMap(boardSize, activeCats);
   const cornerMap = getCornerOwnerMap(numPlayers, boardSize);
+  const layoutMap =
+    boardLayout || generateLayoutMap(boardSize, activeCats, null, new Set(Object.keys(cornerMap)));
 
   const board: Tile[][] = Array.from({ length: boardSize }, (_outer, rowIdx) =>
     Array.from({ length: boardSize }, (_inner, colIdx) => {
