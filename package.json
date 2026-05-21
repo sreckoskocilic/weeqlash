@@ -17,7 +17,8 @@
     "lint": "npm run tsc:check && eslint server/ client/ tests/",
     "lint:fix": "eslint server/ client/ tests/ --fix",
     "lint:css": "node scripts/check-unused-selectors.js",
-    "lint:all": "npm run lint && npm run lint:css",
+    "lint:dead": "knip",
+    "lint:all": "npm run lint && npm run lint:css && npm run lint:dead",
     "test:e2e": "playwright test",
     "tsc:check": "tsc --noEmit"
   },
@@ -35,6 +36,7 @@
     "eslint": "^9.21.0",
     "eslint-plugin-html": "^8.1.4",
     "globals": "^17.6.0",
+    "knip": "^6.14.1",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
