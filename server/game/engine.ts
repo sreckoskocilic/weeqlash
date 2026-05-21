@@ -783,24 +783,6 @@ export function applyTurn(
 // ---------------------------------------------------------------------------
 
 /**
- * Generate answer submissions for a bot.
- * Always selects answer index 0 (the first answer) for each question.
- * Used by the bot opponent in tests.
- *
- * @param {GameState} state - Current game state
- * @param {QuestionsDb} questionsDb - Database containing question definitions.
- * @returns {{answerIdx: number}} Answer submission.
- */
-export function botAnswer(state: GameState, questionsDb: QuestionsDb): { answerIdx: number } {
-  const qId = state.pendingTurn?.questionId;
-  if (!qId) {
-    return { answerIdx: 0 };
-  }
-  const q = questionsDb._byId?.[qId];
-  return { answerIdx: q?.a ?? 0 };
-}
-
-/**
  * Reset per-turn flags and rebuild the set of pegs that can move this turn.
  * Called when a turn ends (whether by completion, elimination, or flag capture).
  *
