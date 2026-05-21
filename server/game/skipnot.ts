@@ -16,69 +16,6 @@ export const OPTIONS_PER_Q = 4;
 
 export type Outcome = 'correct' | 'wrong' | 'skip' | 'timeout';
 
-export interface SkipNotState {
-  questionIds: string[];
-  currentIdx: number;
-  score: number;
-  results: Outcome[];
-  finished: boolean;
-}
-
-export function createSession(questionIds: string[]): SkipNotState {
-  if (questionIds.length !== QUESTION_COUNT) {
-    throw new Error(`SkipNoT requires ${QUESTION_COUNT} questions, got ${questionIds.length}`);
-  }
-  return {
-    questionIds: questionIds.slice(),
-    currentIdx: 0,
-    score: 0,
-    results: [],
-    finished: false,
-  };
-}
-
-function _advance(state: SkipNotState, outcome: Outcome, delta: number): void {
-  state.score += delta;
-  state.results.push(outcome);
-  state.currentIdx += 1;
-  if (state.currentIdx >= QUESTION_COUNT) {
-    state.finished = true;
-  }
-}
-
-export function processAnswer(
-  state: SkipNotState,
-  optionIdx: number,
-  correctIdx: number,
-): { state: SkipNotState; correct: boolean; finished: boolean } | { error: string } {
-  if (state.finished) {
-    return { error: 'Session finished' };
-  }
-  const correct = optionIdx === correctIdx;
-  _advance(state, correct ? 'correct' : 'wrong', correct ? POINTS.CORRECT : POINTS.WRONG);
-  return { state, correct, finished: state.finished };
-}
-
-export function processSkip(
-  state: SkipNotState,
-): { state: SkipNotState; finished: boolean } | { error: string } {
-  if (state.finished) {
-    return { error: 'Session finished' };
-  }
-  _advance(state, 'skip', POINTS.SKIP);
-  return { state, finished: state.finished };
-}
-
-export function processTimeout(
-  state: SkipNotState,
-): { state: SkipNotState; finished: boolean } | { error: string } {
-  if (state.finished) {
-    return { error: 'Session finished' };
-  }
-  _advance(state, 'timeout', POINTS.TIMEOUT);
-  return { state, finished: state.finished };
-}
-
 // Server-side re-scoring of a finished client run. Takes the questions that
 // were issued at start (full objects with correct-index `a`) and the picks the
 // client reported (optionIdx | null per question; null = skip or timeout —

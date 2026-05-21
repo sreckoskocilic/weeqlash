@@ -12,6 +12,14 @@ function parseId(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function badRequest(res: express.Response, msg: string): void {
   res.status(400).send(renderHTML('Bad Request', `<h1>Bad Request</h1><p>${esc(msg)}</p>`));
 }
@@ -302,7 +310,12 @@ router.get('/', (_req: express.Request, res: express.Response) => {
     console.error('[admin] Dashboard error:', error);
     res
       .status(500)
-      .send(renderHTML('Error', `<p>Failed to load dashboard: ${(error as Error).message}</p>`));
+      .send(
+        renderHTML(
+          'Error',
+          `<p>Failed to load dashboard: ${escHtml((error as Error).message)}</p>`,
+        ),
+      );
   }
 });
 
@@ -387,7 +400,9 @@ router.get('/users', (_req: express.Request, res: express.Response) => {
     console.error('[admin] Users error:', error);
     res
       .status(500)
-      .send(renderHTML('Error', `<p>Failed to load users: ${(error as Error).message}</p>`));
+      .send(
+        renderHTML('Error', `<p>Failed to load users: ${escHtml((error as Error).message)}</p>`),
+      );
   }
 });
 
@@ -972,7 +987,12 @@ router.get('/stats', (_req: express.Request, res: express.Response) => {
     console.error('[admin] Stats error:', error);
     res
       .status(500)
-      .send(renderHTML('Error', `<p>Failed to load statistics: ${(error as Error).message}</p>`));
+      .send(
+        renderHTML(
+          'Error',
+          `<p>Failed to load statistics: ${escHtml((error as Error).message)}</p>`,
+        ),
+      );
   }
 });
 
@@ -1038,7 +1058,9 @@ router.get('/export', (req: express.Request, res: express.Response) => {
     console.error('[admin] Export error:', error);
     res
       .status(500)
-      .send(renderHTML('Error', `<p>Failed to export data: ${(error as Error).message}</p>`));
+      .send(
+        renderHTML('Error', `<p>Failed to export data: ${escHtml((error as Error).message)}</p>`),
+      );
   }
 });
 
