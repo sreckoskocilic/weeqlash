@@ -1,0 +1,14 @@
+{
+  "workspaces": {
+    ".": {
+      "entry": ["tests/*.test.js", "tests/*.spec.js", "tests/test-utils.js"],
+      "project": ["tests/**/*.js"],
+      "ignoreDependencies": ["dotenv", "better-sqlite3", "ts-node"]
+    },
+    "server": {
+      "entry": ["game/*.ts", "routes/*.ts"],
+      "project": ["**/*.{js,ts}"]
+    }
+  },
+  "ignoreWorkspaces": ["client"]
+}
