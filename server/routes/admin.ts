@@ -200,12 +200,7 @@ setInterval(() => {
 }, 10 * 60_000).unref();
 
 function getClientIp(req: express.Request): string {
-  return (
-    (((req.headers['x-forwarded-for'] as string) || '').split(',')[0] || '').trim() ||
-    (req.headers['x-real-ip'] as string) ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
+  return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
 function requireAdmin(

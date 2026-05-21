@@ -25,6 +25,8 @@ export interface ChallengeRow {
   winner_id: number | null;
   status: string;
   created_at: number;
+  bonus_q3: string | null;
+  bonus_q6: string | null;
   completed_at: number | null;
 }
 
@@ -51,12 +53,14 @@ export function createChallenge(
   questionIds: string[],
   extraQuestionIds: string[],
   dice: { die1: number; die2: number },
+  bonusQ3: string,
+  bonusQ6: string,
 ): string {
   const db = requireDb();
   const stmt = db.prepare(`
     INSERT INTO howhigh_challenges
-      (code, player1_id, question_ids, extra_question_ids, dice_die1, dice_die2, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+      (code, player1_id, question_ids, extra_question_ids, dice_die1, dice_die2, bonus_q3, bonus_q6, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
   `);
   let code: string;
   let attempts = 0;
@@ -70,6 +74,8 @@ export function createChallenge(
         JSON.stringify(extraQuestionIds),
         dice.die1,
         dice.die2,
+        bonusQ3,
+        bonusQ6,
         Date.now(),
       );
       break;

@@ -642,6 +642,7 @@ io.on('connection', (socket) => {
   // --- Lobby ---
 
   socket.on('room:create', ({ playerName, playerCount, boardSize, timer, enabledCats }, cb) => {
+    if (typeof cb !== 'function') {return;}
     if (!socket.userId) {
       return cb({ error: 'Login required' });
     }
@@ -676,6 +677,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('room:join', ({ code, playerName }, cb) => {
+    if (typeof cb !== 'function') {return;}
     if (!socket.userId) {
       return cb({ error: 'Login required' });
     }
@@ -716,6 +718,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('room:start', ({ code }, cb) => {
+    if (typeof cb !== 'function') {return;}
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -771,6 +774,7 @@ io.on('connection', (socket) => {
   // --- Reconnect ---
 
   socket.on('session:resume', ({ token, code }, cb) => {
+    if (typeof cb !== 'function') {return;}
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
@@ -845,6 +849,7 @@ io.on('connection', (socket) => {
   // --- Game actions ---
 
   socket.on('action:select_peg', ({ code, pegId }, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state) {
       return cb({ error: 'No active game' });
@@ -864,6 +869,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('action:select_tile', ({ code, pegId, r, c }, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state) {
       return cb({ error: 'No active game' });
@@ -966,6 +972,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('turn:submit', ({ code, submission }, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state) {
       return cb({ error: 'No active game' });
@@ -1098,6 +1105,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       ((cb = mode), (mode = 'triviandom'));
     } // backward compat
+    if (typeof cb !== 'function') {return;}
     if (!socket.userId) {
       return cb({ error: 'Login required' });
     }
@@ -1131,6 +1139,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('quiz:answer', ({ answerIdx }, cb) => {
+    if (typeof cb !== 'function') {return;}
     const run = quizRuns.get(socket.id);
     if (!run) {
       return cb({ error: 'Quiz not started' });
@@ -1174,6 +1183,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('quiz:next', (cb) => {
+    if (typeof cb !== 'function') {return;}
     const run = quizRuns.get(socket.id);
     if (!run) {
       return cb({ error: 'Quiz not started' });
@@ -1196,6 +1206,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('quiz:submit_score', ({ name }, cb) => {
+    if (typeof cb !== 'function') {return;}
     const run = quizRuns.get(socket.id);
     if (!run) {
       return cb({ error: 'No completed run' });
@@ -1221,6 +1232,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       ((cb = mode), (mode = 'triviandom'));
     } // backward compat
+    if (typeof cb !== 'function') {return;}
     cb({ ok: true, top10: getTop10ForMode(mode) });
   });
 
@@ -1475,6 +1487,9 @@ io.on('connection', (socket) => {
       die2: Math.floor(Math.random() * 6) + 1,
     };
 
+    const bonusQ3 = _testBonusQ3Override || howhigh.pickBonusQ3();
+    const bonusQ6 = _testBonusQ6Override || howhigh.pickBonusQ6();
+
     let challengeCode;
     try {
       challengeCode = createChallenge(
@@ -1482,14 +1497,13 @@ io.on('connection', (socket) => {
         baseQuestions.map((q) => q.id),
         extraQuestions.map((q) => q.id),
         dice,
+        bonusQ3,
+        bonusQ6,
       );
     } catch (err) {
       console.error('[howhigh] createChallenge failed:', err.message);
       return cb({ error: 'Failed to create challenge' });
     }
-
-    const bonusQ3 = _testBonusQ3Override || howhigh.pickBonusQ3();
-    const bonusQ6 = _testBonusQ6Override || howhigh.pickBonusQ6();
     const run = {
       startedAt: now,
       challengeCode,
@@ -1901,8 +1915,8 @@ io.on('connection', (socket) => {
     }
 
     const dice = { die1: challenge.dice_die1, die2: challenge.dice_die2 };
-    const bonusQ3 = _testBonusQ3Override || howhigh.pickBonusQ3();
-    const bonusQ6 = _testBonusQ6Override || howhigh.pickBonusQ6();
+    const bonusQ3 = _testBonusQ3Override || challenge.bonus_q3 || howhigh.pickBonusQ3();
+    const bonusQ6 = _testBonusQ6Override || challenge.bonus_q6 || howhigh.pickBonusQ6();
 
     const run = {
       startedAt: now,
@@ -2068,6 +2082,7 @@ io.on('connection', (socket) => {
   // --- Qlashique ---
 
   socket.on('qlashique:create_room', ({ playerName, hp } = {}, cb) => {
+    if (typeof cb !== 'function') {return;}
     if (!socket.userId) {
       return cb({ error: 'Login required' });
     }
@@ -2095,6 +2110,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('qlashique:start_guessing', ({ code } = {}, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });
@@ -2149,6 +2165,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('qlashique:answer', ({ code, answerIdx } = {}, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });
@@ -2243,6 +2260,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('qlashique:stop_attack', ({ code } = {}, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });
@@ -2270,6 +2288,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('qlashique:end_turn', ({ code, choice = 'attack' } = {}, cb) => {
+    if (typeof cb !== 'function') {return;}
     const room = getRoom(code);
     if (!room?.state || room.mode !== 'qlashique') {
       return cb({ error: 'No active game' });

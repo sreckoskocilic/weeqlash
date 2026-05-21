@@ -41,8 +41,8 @@ jobs:
       - name: Run tests
         env:
           QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
-          SESSION_SECRET: test-secret-for-ci
-          ADMIN_SECRET: test-admin-secret-for-ci
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET_CI || 'test-secret-for-ci' }}
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET_CI || 'test-admin-secret-for-ci' }}
           NODE_ENV: test
           REDIS_URL: redis://redis:6379
         run: npm test
@@ -53,8 +53,8 @@ jobs:
       - name: Run e2e tests
         env:
           QUESTIONS_KEY: ${{ secrets.QUESTIONS_KEY }}
-          SESSION_SECRET: test-secret-for-ci
-          ADMIN_SECRET: test-admin-secret-for-ci
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET_CI || 'test-secret-for-ci' }}
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET_CI || 'test-admin-secret-for-ci' }}
           NODE_ENV: test
           REDIS_URL: redis://redis:6379
         run: npm run test:e2e

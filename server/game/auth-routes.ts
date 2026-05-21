@@ -164,11 +164,6 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
     // kill the previous session server-side before issuing the new one.
     // Fail-closed: if Redis errors at any step, do NOT proceed — otherwise
     // the old session would linger and defeat the policy.
-    // NOTE: deliberately NOT calling req.session.regenerate() here — it would
-    // rotate the sid away from the one the socket was bound to at handshake,
-    // breaking auth:setUserId's sess.reload() (see CLAUDE.md note on session
-    // middleware). Session fixation defense is deferred until we wire up a
-    // client-side socket reconnect on login.
     try {
       const oldSid = await getActiveSid(result.user.id);
       if (oldSid && oldSid !== req.sessionID) {
@@ -178,6 +173,10 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
           `[auth] kicked prior session for userId=${result.user.id} (logged in elsewhere)`,
         );
       }
+
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err: Error | null) => (err ? reject(err) : resolve()));
+      });
 
       req.session.userId = result.user.id;
       req.session.username = result.user.username;
@@ -204,7 +203,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
         console.error('[auth] session save error:', err.message);
         return res.status(503).json({ error: 'Service temporarily unavailable' });
       }
-      res.json({ ok: true, user: result.user });
+      res.json({ ok: true, user: result.user, reconnectSocket: true });
     });
   });
 

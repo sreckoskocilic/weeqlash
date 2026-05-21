@@ -89,6 +89,10 @@ export function initLogin() {
     if (data.error) {
       return showAuthMessage(data.error, true);
     }
+    if (data.reconnectSocket) {
+      socket.disconnect();
+      socket.connect();
+    }
     socket.emit('auth:setUserId', data.user.id, () => {
       showUserBar(data.user);
     });
