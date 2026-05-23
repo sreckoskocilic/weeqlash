@@ -1435,7 +1435,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('skipnot:submit_score', ({ name } = {}, cb) => {
-    if (typeof cb !== 'function') {return;}
+    if (typeof cb !== 'function') {
+      return;
+    }
     const run = skipnotRuns.get(socket.id);
     if (!run) {
       return cb({ error: 'No completed run' });
@@ -1807,8 +1809,11 @@ io.on('connection', (socket) => {
 
     const picks = run.picks.map((p) => (p === undefined ? null : p));
     const minMs = run.totalQuestions * 100;
-    const timerMs = run.goWildAccepted ? howhigh.GOWILD_TIMER_MS : howhigh.BASE_TIMER_MS;
-    const maxMs = run.totalQuestions * (timerMs + 2000);
+    const baseTimerMs = run.goWildAccepted ? howhigh.GOWILD_TIMER_MS : howhigh.BASE_TIMER_MS;
+    const tcQs = run.timeCrunchAccepted ? howhigh.TIME_CRUNCH_Q_COUNT : 0;
+    const maxMs =
+      (run.totalQuestions - tcQs) * (baseTimerMs + 2000) +
+      tcQs * (howhigh.TIME_CRUNCH_TIMER_MS + 2000);
     const reportedMs =
       typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
     const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
@@ -2433,15 +2438,15 @@ io.on('connection', (socket) => {
           } else {
             room.state.phase = PHASE.GAME_OVER;
             room.state.winner = winner.index;
+            room.players.push(player);
+            recordGameStats(room);
+            room.players.pop();
             io.to(room.code).emit('state:update', {
               events: [{ type: 'player_disconnected', playerId: socket.id }],
               state: publicState(room.state),
               gameOver: true,
               winner: winner.index,
             });
-          }
-          if (room.mode !== 'qlashique') {
-            recordGameStats(room);
           }
           console.log(
             `[game] ${room.code} ended — ${player.name} disconnected, ${winner.name} wins`,
@@ -2516,39 +2521,44 @@ function recordGameStats(room) {
   const player1UserId = room.players.find((p) => p.index === 0)?.userId;
   const player2UserId = room.players.find((p) => p.index === 1)?.userId;
 
+  const db = getDb();
+  if (!db) {return;}
+
   try {
-    if (player1UserId && player2UserId) {
-      const player1Stats = players[0]?.stats ?? { byCategory: {} };
-      const player2Stats = players[1]?.stats ?? { byCategory: {} };
+    db.transaction(() => {
+      if (player1UserId && player2UserId) {
+        const player1Stats = players[0]?.stats ?? { byCategory: {} };
+        const player2Stats = players[1]?.stats ?? { byCategory: {} };
 
-      insertGameResult({
-        player1Id: player1UserId,
-        player2Id: player2UserId,
-        winnerId: winnerUserId,
-        gameMode: 'duel',
-        boardSize: room.settings.boardSize,
-        durationMs,
-        player1Stats,
-        player2Stats,
-      });
+        insertGameResult({
+          player1Id: player1UserId,
+          player2Id: player2UserId,
+          winnerId: winnerUserId,
+          gameMode: 'duel',
+          boardSize: room.settings.boardSize,
+          durationMs,
+          player1Stats,
+          player2Stats,
+        });
 
-      for (const [cat, stat] of Object.entries(player1Stats.byCategory ?? {})) {
-        trackAnswersBatch(player1UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
-      }
-      for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
-        trackAnswersBatch(player2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
-      }
-    }
-
-    const updateGames = _getUpdateGamesStmt();
-    if (updateGames) {
-      for (let i = 0; i < room.players.length; i++) {
-        const uid = room.players[i]?.userId;
-        if (uid) {
-          updateGames.run(winnerIdx === room.players[i]?.index ? 1 : 0, uid);
+        for (const [cat, stat] of Object.entries(player1Stats.byCategory ?? {})) {
+          trackAnswersBatch(player1UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
+        }
+        for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
+          trackAnswersBatch(player2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
         }
       }
-    }
+
+      const updateGames = _getUpdateGamesStmt();
+      if (updateGames) {
+        for (let i = 0; i < room.players.length; i++) {
+          const uid = room.players[i]?.userId;
+          if (uid) {
+            updateGames.run(winnerIdx === room.players[i]?.index ? 1 : 0, uid);
+          }
+        }
+      }
+    })();
   } catch (err) {
     console.error('[stats] Failed to record game:', err.message);
   }
@@ -2604,27 +2614,32 @@ function _saveQlasResult(room, winnerIdx) {
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
   const [s0, s1] = room.qlasStats ?? [{}, {}];
 
-  try {
-    insertGameResult({
-      player1Id: p0?.userId ?? null,
-      player2Id: p1?.userId ?? null,
-      winnerId: winnerIdx === 0 ? (p0?.userId ?? null) : (p1?.userId ?? null),
-      gameMode: 'qlashique',
-      boardSize: null,
-      durationMs,
-      player1Stats: { ...s0, finalHp: room.state.players[0].hp },
-      player2Stats: { ...s1, finalHp: room.state.players[1].hp },
-    });
+  const db = getDb();
+  if (!db) {return;}
 
-    const updateGames = _getUpdateGamesStmt();
-    if (updateGames) {
-      if (p0?.userId) {
-        updateGames.run(winnerIdx === 0 ? 1 : 0, p0.userId);
+  try {
+    db.transaction(() => {
+      insertGameResult({
+        player1Id: p0?.userId ?? null,
+        player2Id: p1?.userId ?? null,
+        winnerId: winnerIdx === 0 ? (p0?.userId ?? null) : (p1?.userId ?? null),
+        gameMode: 'qlashique',
+        boardSize: null,
+        durationMs,
+        player1Stats: { ...s0, finalHp: room.state.players[0].hp },
+        player2Stats: { ...s1, finalHp: room.state.players[1].hp },
+      });
+
+      const updateGames = _getUpdateGamesStmt();
+      if (updateGames) {
+        if (p0?.userId) {
+          updateGames.run(winnerIdx === 0 ? 1 : 0, p0.userId);
+        }
+        if (p1?.userId) {
+          updateGames.run(winnerIdx === 1 ? 1 : 0, p1.userId);
+        }
       }
-      if (p1?.userId) {
-        updateGames.run(winnerIdx === 1 ? 1 : 0, p1.userId);
-      }
-    }
+    })();
   } catch (e) {
     console.warn('[qlashique] Failed to save game result:', e.message);
   }

@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Tests
@@ -63,6 +66,9 @@ jobs:
     name: Deploy to Server
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    concurrency:
+      group: deploy
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
