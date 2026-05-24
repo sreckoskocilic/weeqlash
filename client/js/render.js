@@ -10,13 +10,65 @@ import { state as S } from './state.js';
 export const tileEls = S.tileEls;
 export const movedPegs = S.movedPegs;
 
+let _boardSize = 0;
+let _boardResizeRaf = 0;
+
+function _viewportSize() {
+  const vv = window.visualViewport;
+  return {
+    width: Math.floor(vv?.width || document.documentElement.clientWidth || window.innerWidth),
+    height: Math.floor(vv?.height || document.documentElement.clientHeight || window.innerHeight),
+  };
+}
+
+function _updateBoardVars() {
+  const { width: vw, height: vh } = _viewportSize();
+  const bs = Math.max(160, Math.min(vh - 140, vw - 24));
+  document.documentElement.style.setProperty('--bs', `${bs}px`);
+  const boardEl = document.getElementById('board');
+  const topBarEl = document.getElementById('top-bar');
+  if (topBarEl) {
+    topBarEl.style.width = `${bs}px`;
+  }
+  if (boardEl) {
+    boardEl.style.width = `${bs}px`;
+    if (_boardSize) {
+      const styles = getComputedStyle(boardEl);
+      const gap = parseFloat(styles.columnGap) || 0;
+      const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+      const borderX =
+        (parseFloat(styles.borderLeftWidth) || 0) + (parseFloat(styles.borderRightWidth) || 0);
+      const tileSize = Math.floor((bs - padX - borderX - gap * (_boardSize - 1)) / _boardSize);
+      const trackDef = `repeat(${_boardSize}, ${tileSize}px)`;
+      boardEl.style.gridTemplateColumns = trackDef;
+      boardEl.style.gridTemplateRows = trackDef;
+      boardEl.style.setProperty('--ts', `${tileSize}px`);
+    }
+  }
+}
+
+function _scheduleBoardResize() {
+  if (_boardResizeRaf) {
+    cancelAnimationFrame(_boardResizeRaf);
+  }
+  _boardResizeRaf = requestAnimationFrame(() => {
+    _boardResizeRaf = 0;
+    _updateBoardVars();
+  });
+}
+
+new ResizeObserver(_scheduleBoardResize).observe(document.documentElement);
+window.addEventListener('resize', _scheduleBoardResize, { passive: true });
+window.addEventListener('orientationchange', _scheduleBoardResize, { passive: true });
+window.visualViewport?.addEventListener('resize', _scheduleBoardResize, { passive: true });
+window.visualViewport?.addEventListener('scroll', _scheduleBoardResize, { passive: true });
+
 // Board initialization
 export function initBoard(state) {
+  _boardSize = state.boardSize;
+  _updateBoardVars();
   const boardEl = el('board');
   boardEl.innerHTML = '';
-  boardEl.style.gridTemplateColumns = `repeat(${state.boardSize}, 1fr)`;
-  const ts = `calc(var(--bs) / ${state.boardSize})`;
-  boardEl.style.setProperty('--ts', ts);
   tileEls.length = 0;
 
   for (let r = 0; r < state.boardSize; r++) {
