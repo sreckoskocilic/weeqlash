@@ -447,7 +447,7 @@ export function getUserStats(userId: number) {
     .prepare('SELECT games_played, games_won FROM users WHERE id = ?')
     .get(userId) as { games_played: number; games_won: number } | null;
 
-  const qlasRow = db
+  const howHigh = db
     .prepare(
       `
       SELECT
@@ -455,15 +455,14 @@ export function getUserStats(userId: number) {
         SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won
       FROM game_history
       WHERE (player1_id = ? OR player2_id = ?)
-        AND game_mode = 'qlashique'
-        AND json_extract(player1_stats, '$.finalHp') IS NOT NULL
+        AND game_mode = 'howhigh'
     `,
     )
     .get(userId, userId, userId) as { played: number; won: number } | null;
 
   const gameStats = {
-    gamesPlayed: (weeqlash?.games_played || 0) + (qlasRow?.played || 0),
-    gamesWon: (weeqlash?.games_won || 0) + (qlasRow?.won || 0),
+    gamesPlayed: (weeqlash?.games_played || 0) + (howHigh?.played || 0),
+    gamesWon: (weeqlash?.games_won || 0) + (howHigh?.won || 0),
   };
 
   return {

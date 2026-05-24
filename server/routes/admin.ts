@@ -506,19 +506,18 @@ router.get('/users/:id', (req: express.Request, res: express.Response) => {
   const totalCorrect = userStats.reduce((sum, s) => sum + s.correct, 0);
   const overallAccuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
 
-  const qlasRow = db
+  const howHigh = db
     .prepare(
       `
     SELECT COUNT(*) as played, SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) as won
     FROM game_history
     WHERE (player1_id = ? OR player2_id = ?)
-      AND game_mode = 'qlashique'
-      AND json_extract(player1_stats, '$.finalHp') IS NOT NULL
+      AND game_mode = 'howhigh'
   `,
     )
     .get(userId, userId, userId) as { played: number; won: number };
-  const totalGamesPlayed = (user.games_played || 0) + (qlasRow?.played || 0);
-  const totalGamesWon = (user.games_won || 0) + (qlasRow?.won || 0);
+  const totalGamesPlayed = (user.games_played || 0) + (howHigh?.played || 0);
+  const totalGamesWon = (user.games_won || 0) + (howHigh?.won || 0);
 
   const recentGames = db
     .prepare(
