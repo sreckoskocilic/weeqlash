@@ -138,6 +138,16 @@ Both players finish, scores get compared. Ties broken by speed. Results show up 
 
 ---
 
+## Stats
+
+The **Stats** button shows a logged-in player:
+
+- how many games they played
+- how many games they won
+- the correct answers percentage for each question category
+
+---
+
 ## Screenshots
 
 ![Board 5x5](screenshots/board.png)
