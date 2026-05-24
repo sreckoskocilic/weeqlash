@@ -12,6 +12,7 @@ permissions:
 jobs:
   test:
     name: Run Tests
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.60.0-noble
