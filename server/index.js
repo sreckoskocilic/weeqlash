@@ -2507,6 +2507,21 @@ function _getUpdateGamesStmt() {
   return _updateGamesStmt;
 }
 
+function _getExistingUserIdSet(ids) {
+  const cleanIds = [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))];
+  if (cleanIds.length === 0) {
+    return new Set();
+  }
+  const db = getDb();
+  if (!db) {
+    return new Set();
+  }
+  const rows = db
+    .prepare(`SELECT id FROM users WHERE id IN (${cleanIds.map(() => '?').join(',')})`)
+    .all(...cleanIds);
+  return new Set(rows.map((row) => row.id));
+}
+
 function recordGameStats(room) {
   if (!room || !room.startedAt || !room.state?.players || room.state.players.length < 2) {
     return;
@@ -2520,20 +2535,24 @@ function recordGameStats(room) {
 
   const player1UserId = room.players.find((p) => p.index === 0)?.userId;
   const player2UserId = room.players.find((p) => p.index === 1)?.userId;
+  const existingUserIds = _getExistingUserIdSet([player1UserId, player2UserId, winnerUserId]);
+  const validPlayer1UserId = existingUserIds.has(player1UserId) ? player1UserId : null;
+  const validPlayer2UserId = existingUserIds.has(player2UserId) ? player2UserId : null;
+  const validWinnerUserId = existingUserIds.has(winnerUserId) ? winnerUserId : null;
 
   const db = getDb();
   if (!db) {return;}
 
   try {
     db.transaction(() => {
-      if (player1UserId && player2UserId) {
+      if (validPlayer1UserId && validPlayer2UserId) {
         const player1Stats = players[0]?.stats ?? { byCategory: {} };
         const player2Stats = players[1]?.stats ?? { byCategory: {} };
 
         insertGameResult({
-          player1Id: player1UserId,
-          player2Id: player2UserId,
-          winnerId: winnerUserId,
+          player1Id: validPlayer1UserId,
+          player2Id: validPlayer2UserId,
+          winnerId: validWinnerUserId,
           gameMode: 'duel',
           boardSize: room.settings.boardSize,
           durationMs,
@@ -2542,10 +2561,10 @@ function recordGameStats(room) {
         });
 
         for (const [cat, stat] of Object.entries(player1Stats.byCategory ?? {})) {
-          trackAnswersBatch(player1UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
+          trackAnswersBatch(validPlayer1UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
         }
         for (const [cat, stat] of Object.entries(player2Stats.byCategory ?? {})) {
-          trackAnswersBatch(player2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
+          trackAnswersBatch(validPlayer2UserId, cat, stat.attempts ?? 0, stat.correct ?? 0);
         }
       }
 
@@ -2553,7 +2572,7 @@ function recordGameStats(room) {
       if (updateGames) {
         for (let i = 0; i < room.players.length; i++) {
           const uid = room.players[i]?.userId;
-          if (uid) {
+          if (existingUserIds.has(uid)) {
             updateGames.run(winnerIdx === room.players[i]?.index ? 1 : 0, uid);
           }
         }
@@ -2613,6 +2632,12 @@ function _saveQlasResult(room, winnerIdx) {
   }
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
   const [s0, s1] = room.qlasStats ?? [{}, {}];
+  const existingUserIds = _getExistingUserIdSet([p0?.userId, p1?.userId]);
+  const p0UserId = existingUserIds.has(p0?.userId) ? p0.userId : null;
+  const p1UserId = existingUserIds.has(p1?.userId) ? p1.userId : null;
+  if (!p0UserId || !p1UserId) {
+    return;
+  }
 
   const db = getDb();
   if (!db) {return;}
@@ -2620,9 +2645,9 @@ function _saveQlasResult(room, winnerIdx) {
   try {
     db.transaction(() => {
       insertGameResult({
-        player1Id: p0?.userId ?? null,
-        player2Id: p1?.userId ?? null,
-        winnerId: winnerIdx === 0 ? (p0?.userId ?? null) : (p1?.userId ?? null),
+        player1Id: p0UserId,
+        player2Id: p1UserId,
+        winnerId: winnerIdx === 0 ? p0UserId : p1UserId,
         gameMode: 'qlashique',
         boardSize: null,
         durationMs,
@@ -2632,12 +2657,8 @@ function _saveQlasResult(room, winnerIdx) {
 
       const updateGames = _getUpdateGamesStmt();
       if (updateGames) {
-        if (p0?.userId) {
-          updateGames.run(winnerIdx === 0 ? 1 : 0, p0.userId);
-        }
-        if (p1?.userId) {
-          updateGames.run(winnerIdx === 1 ? 1 : 0, p1.userId);
-        }
+        updateGames.run(winnerIdx === 0 ? 1 : 0, p0UserId);
+        updateGames.run(winnerIdx === 1 ? 1 : 0, p1UserId);
       }
     })();
   } catch (e) {
