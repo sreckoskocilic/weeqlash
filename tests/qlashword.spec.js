@@ -136,3 +136,53 @@ test('qlashword: a player can pass and the turn advances', async ({ browser }) =
   await ctx1.close();
   await ctx2.close();
 });
+
+// Read the logged-in player's id + game stats through their own session.
+async function getStats(page) {
+  return page.evaluate(async () => {
+    const me = await (await fetch('/auth/me', { credentials: 'include' })).json();
+    const s = await (await fetch('/auth/stats/' + me.user.id, { credentials: 'include' })).json();
+    return { gamesPlayed: s.gamesPlayed, gamesWon: s.gamesWon };
+  });
+}
+
+test('qlashword: a completed game counts toward played/won', async ({ browser }) => {
+  const api = await playwrightRequest.newContext({ baseURL: BASE });
+  await api.post('/test/clear-all', {});
+  await api.post('/test/setup-users', {});
+
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_qlas_p1');
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
+
+  await p1.locator('#btn-qlashword-create').click();
+  await expect(p1.locator('#qw-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
+  const code = (await p1.locator('#qw-code-val').textContent()).trim();
+  await p2.locator('#qlashword-join-code').fill(code);
+  await p2.locator('#btn-qlashword-join').click();
+  await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });
+  await p1.waitForTimeout(1200);
+  await p1.locator('#qw-btn-start').click();
+  await p1.locator('#qw-phase-game').waitFor({ state: 'visible', timeout: 10000 });
+
+  // End the game by passing 4 times in a row (2 each) → 0–0 tie. Each loop waits
+  // for that player's turn (the handoff) before passing.
+  for (const actor of [p1, p2, p1, p2]) {
+    await expect(actor.locator('#qw-turn-indicator')).toHaveText(/YOUR TURN/, { timeout: 8000 });
+    await actor.locator('#qw-btn-pass').click();
+  }
+
+  await p1.locator('#qw-phase-gameover').waitFor({ state: 'visible', timeout: 8000 });
+  await p2.locator('#qw-phase-gameover').waitFor({ state: 'visible', timeout: 8000 });
+
+  // Both players logged one completed game. End-game subtracts leftover rack
+  // values, so an all-pass game usually has a winner — at most one win total.
+  const s1 = await getStats(p1);
+  const s2 = await getStats(p2);
+  expect(s1.gamesPlayed).toBe(1);
+  expect(s2.gamesPlayed).toBe(1);
+  expect(s1.gamesWon + s2.gamesWon).toBeLessThanOrEqual(1);
+
+  await api.dispose();
+  await ctx1.close();
+  await ctx2.close();
+});

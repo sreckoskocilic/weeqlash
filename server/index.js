@@ -2952,6 +2952,46 @@ function _saveQlasResult(room, winnerIdx) {
   }
 }
 
+// Persist a COMPLETED Qlashword game to stats (played/won). Only called on
+// normal end (not disconnect). Both players must be logged-in accounts.
+function _saveQwResult(room, winnerIdx) {
+  const [p0, p1] = room.players;
+  const existingUserIds = _getExistingUserIdSet([p0?.userId, p1?.userId]);
+  const p0UserId = existingUserIds.has(p0?.userId) ? p0.userId : null;
+  const p1UserId = existingUserIds.has(p1?.userId) ? p1.userId : null;
+  if (!p0UserId || !p1UserId) {
+    return;
+  }
+  const db = getDb();
+  if (!db) {
+    return;
+  }
+  const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
+  const scores = room.state.scores;
+  const winnerId = winnerIdx === 0 ? p0UserId : winnerIdx === 1 ? p1UserId : null;
+  try {
+    db.transaction(() => {
+      insertGameResult({
+        player1Id: p0UserId,
+        player2Id: p1UserId,
+        winnerId,
+        gameMode: 'qlashword',
+        boardSize: null,
+        durationMs,
+        player1Stats: { score: scores[0] },
+        player2Stats: { score: scores[1] },
+      });
+      const updateGames = _getUpdateGamesStmt();
+      if (updateGames) {
+        updateGames.run(winnerIdx === 0 ? 1 : 0, p0UserId);
+        updateGames.run(winnerIdx === 1 ? 1 : 0, p1UserId);
+      }
+    })();
+  } catch (e) {
+    console.warn('[qlashword] Failed to save game result:', e.message);
+  }
+}
+
 function _initQlasRoomState(room) {
   room.started = true;
   room.startedAt = Date.now();
@@ -3289,6 +3329,7 @@ function _qwAfterTurn(ioServer, code, room) {
       unregisterActiveSocket(p.id);
     }
     const winnerIdx = finals[0] === finals[1] ? -1 : finals[0] > finals[1] ? 0 : 1;
+    _saveQwResult(room, winnerIdx); // completed games count toward played/won
     ioServer.to(code).emit('qlashword:game_over', {
       winnerIdx,
       reason: 'normal',

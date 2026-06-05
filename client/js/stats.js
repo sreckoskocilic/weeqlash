@@ -25,7 +25,7 @@ export function showStatsModal(statsData) {
         border: 1px solid #3a3a45;
         border-radius: 16px;
         padding: 32px; max-width: 520px; width: 92%;
-        max-height: 90vh; overflow-y: auto;
+        max-height: 90vh; display: flex; flex-direction: column;
         box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
         z-index: 5001;
         font-family: 'Montserrat', 'Segoe UI', sans-serif;
@@ -39,7 +39,7 @@ export function showStatsModal(statsData) {
           </div>
         </div>
 
-        <div id="stats-modal-content" style="margin-bottom: 24px;">
+        <div id="stats-modal-content" style="margin-bottom: 24px; flex: 1; overflow-y: auto; min-height: 0;">
         </div>
 
         <div style="text-align: center;">
