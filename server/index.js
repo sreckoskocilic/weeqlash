@@ -2576,6 +2576,9 @@ io.on('connection', (socket) => {
     if (turn.awaitingStart) {
       return cb({ error: 'Question not started yet' });
     }
+    if (turn.answered) {
+      return cb({ error: 'Already answered' });
+    }
     if (room.qwTimerExpired) {
       return cb({ error: 'Time expired' });
     }
@@ -2585,6 +2588,7 @@ io.on('connection', (socket) => {
     const bonus = turn.bonuses[turn.bonusIdx];
     const q = questionsDb._byId[bonus.questionId];
     const correct = !!q && answerIdx === q.a;
+    turn.answered = true;
     cb({ ok: true });
     _qwResolveBonus(io, code, room, correct, answerIdx);
   });
@@ -3195,6 +3199,7 @@ function _emitQwGameStart(ioServer, code, room) {
 function _qwSendBonusPrompt(ioServer, code, room) {
   const turn = room.qwTurn;
   turn.awaitingStart = true;
+  turn.answered = false;
   const bonus = turn.bonuses[turn.bonusIdx];
   room.qwTimerExpired = false;
   ioServer.to(code).emit('qlashword:bonus_prompt', {

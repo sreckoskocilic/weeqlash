@@ -68,7 +68,9 @@ function checkAuthRateLimit(ip: string): boolean {
 
 function applyAuthRateLimit(req: Request, res: Response): boolean {
   const ip = getClientIp(req);
-  if (!isLocalhostIp(ip) && !checkAuthRateLimit(ip)) {
+  // Localhost exemption keeps e2e from being throttled; never exempt in prod.
+  const exempt = isLocalhostIp(ip) && process.env.NODE_ENV !== 'production';
+  if (!exempt && !checkAuthRateLimit(ip)) {
     res.status(429).json({ error: 'Too many requests. Please try again later.' });
     return false;
   }

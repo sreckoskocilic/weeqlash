@@ -4729,14 +4729,33 @@ body.qw-active {
   outline: 2px solid var(--game-accent);
   outline-offset: -2px;
 }
-/* Cells the player can't legally play on this turn (recomputed live). */
+/* Cells the player can't legally play on this turn (recomputed live).
+   Darken (not fade) so premium colours read as inert/not-usable instead of
+   blending with the board into a muddy yellow. */
 .qw-cell-dim {
-  opacity: 0.28;
+  filter: brightness(0.4) saturate(0.65);
 }
 /* Legal anchor cells get a clear accent ring so plain (non-premium) ones pop. */
 .qw-cell-playable {
   outline: 2px solid rgba(var(--game-accent-rgb), 0.7);
   outline-offset: -2px;
+}
+/* Keyboard typing cursor: solid accent ring + tint, with a direction caret. */
+.qw-cell-cursor {
+  outline: 2px solid var(--game-accent);
+  outline-offset: -2px;
+  background-color: rgba(var(--game-accent-rgb), 0.18);
+  filter: none; /* override .qw-cell-dim so the cursor stays visible */
+}
+.qw-cursor-caret {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  line-height: 1;
+  font-size: clamp(7px, 2vmin, 13px);
+  font-weight: 700;
+  color: var(--game-accent);
+  pointer-events: none;
 }
 
 /* Tiles (settled + pending + rack) — physical wood/cardboard look: warm

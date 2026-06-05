@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { getDb } from '../game/leaderboard.ts';
-import { resendConfirmation } from '../game/auth.ts';
+import { resendConfirmation, getUserById } from '../game/auth.ts';
 
 const router = express.Router();
 
@@ -217,7 +217,23 @@ function requireAdmin(
   next: express.NextFunction,
 ): void {
   if ((req.session as any).isAdmin) {
-    return next();
+    const uid = (req.session as any).userId;
+    // Magic-key admin sessions have no userId and are exempt by design.
+    if (uid === undefined || uid === null) {
+      return next();
+    }
+    // Re-validate against the DB so a demoted/blocked admin loses access
+    // immediately rather than at session expiry (up to 7 days).
+    const u = getUserById(uid);
+    if (u && u.is_admin === 1 && u.is_blocked === 0) {
+      return next();
+    }
+    req.session.destroy(() => {
+      res
+        .status(403)
+        .send(renderHTML('Forbidden', '<h1>Forbidden</h1><p>Admin access has been revoked.</p>'));
+    });
+    return;
   }
 
   const key = req.headers['x-admin-key'] as string;
@@ -694,6 +710,17 @@ router.post(
     const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
     if (!username || !email) {
       return badRequest(res, 'Username and email are required.');
+    }
+    // Mirror registration constraints (auth-routes.ts) so the panel can't
+    // create a username/email the public flow would reject.
+    if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+      return badRequest(
+        res,
+        'Username must be 3-20 characters: letters, numbers, and underscores only.',
+      );
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return badRequest(res, 'Invalid email address.');
     }
     const db = getDb();
     if (!db) {

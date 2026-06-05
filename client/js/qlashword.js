@@ -92,6 +92,7 @@ let qwBagCount = 0;
 
 let qwPending = []; // [{row,col,letter,blank,rackIdx}] placed this turn, not submitted
 let qwSelectedRackIdx = null; // click-to-place selection
+let qwCursor = null; // { row, col, dir: 'H'|'V' } keyboard typing cursor
 let qwSwapMode = false;
 const qwSwapSel = new Set(); // rack indices marked for swap
 
@@ -257,12 +258,17 @@ function renderBoard() {
       const emptyCell = !settled && !pending;
       const canPlay = playable && emptyCell && playable.has(coordKey(r, c));
       const dim = playable && emptyCell && !playable.has(coordKey(r, c));
+      const isCursor = qwCursor && qwCursor.row === r && qwCursor.col === c && emptyCell;
+      if (isCursor) {
+        inner += '<span class="qw-cursor-caret">' + (qwCursor.dir === 'V' ? '▾' : '▸') + '</span>';
+      }
       html +=
         '<div class="qw-cell' +
         premClass +
         (pending ? ' qw-cell-pending' : '') +
         (canPlay ? ' qw-cell-playable' : '') +
         (dim ? ' qw-cell-dim' : '') +
+        (isCursor ? ' qw-cell-cursor' : '') +
         '" data-row="' +
         r +
         '" data-col="' +
@@ -359,24 +365,27 @@ function exitSwapMode() {
   qEl('qw-btn-swap').classList.remove('active');
 }
 
-function placeTile(rackIdx, row, col) {
+// blankLetter: when the rack tile is a blank, the assigned letter to use
+// without prompting (keyboard path passes the typed letter). Returns true on
+// success so callers (keyboard) can advance the cursor.
+function placeTile(rackIdx, row, col, blankLetter) {
   if (!isMyTurn()) {
-    return;
+    return false;
   }
   if (qwBoard[row][col] || qwPending.some((t) => t.row === row && t.col === col)) {
-    return; // occupied
+    return false; // occupied
   }
   if (qwPending.some((t) => t.rackIdx === rackIdx)) {
-    return; // already placed
+    return false; // already placed
   }
   let letter = qwRack[rackIdx];
   let blank = false;
   if (letter === '_') {
-    const chosen = (window.prompt('Blank tile — choose a letter (A–Z):') || '')
+    const chosen = (blankLetter || window.prompt('Blank tile — choose a letter (A–Z):') || '')
       .trim()
       .toUpperCase();
     if (!/^[A-Z]$/.test(chosen)) {
-      return;
+      return false;
     }
     letter = chosen;
     blank = true;
@@ -384,6 +393,7 @@ function placeTile(rackIdx, row, col) {
   qwPending.push({ row, col, letter, blank, rackIdx });
   qwSelectedRackIdx = null;
   renderAll();
+  return true;
 }
 
 function recallTile(row, col) {
@@ -445,6 +455,128 @@ function onCellClick(row, col) {
   }
   if (qwSelectedRackIdx !== null) {
     placeTile(qwSelectedRackIdx, row, col);
+    return;
+  }
+  // No rack tile selected → set/toggle the keyboard typing cursor on an
+  // empty cell. Re-clicking the same cell flips the typing direction.
+  if (!qwBoard[row][col]) {
+    setCursor(row, col);
+  }
+}
+
+// --- keyboard typing --------------------------------------------------------
+
+function setCursor(row, col) {
+  if (qwCursor && qwCursor.row === row && qwCursor.col === col) {
+    qwCursor.dir = qwCursor.dir === 'H' ? 'V' : 'H';
+  } else {
+    qwCursor = { row, col, dir: 'H' };
+  }
+  renderBoard();
+}
+
+// Cell is free to type into (no settled tile, no pending tile).
+function cellFree(row, col) {
+  return (
+    row >= 0 &&
+    row < BOARD_SIZE &&
+    col >= 0 &&
+    col < BOARD_SIZE &&
+    !qwBoard[row][col] &&
+    !qwPending.some((t) => t.row === row && t.col === col)
+  );
+}
+
+// Move the cursor to the next free cell in its direction; null if none left.
+function advanceCursor() {
+  if (!qwCursor) {
+    return;
+  }
+  const dr = qwCursor.dir === 'V' ? 1 : 0;
+  const dc = qwCursor.dir === 'H' ? 1 : 0;
+  let r = qwCursor.row + dr;
+  let c = qwCursor.col + dc;
+  while (r < BOARD_SIZE && c < BOARD_SIZE) {
+    if (cellFree(r, c)) {
+      qwCursor = { row: r, col: c, dir: qwCursor.dir };
+      return;
+    }
+    r += dr;
+    c += dc;
+  }
+  qwCursor = null; // ran off the board / line full
+}
+
+function typeLetter(ch) {
+  if (!qwCursor || !cellFree(qwCursor.row, qwCursor.col)) {
+    return;
+  }
+  const usedIdx = new Set(qwPending.map((t) => t.rackIdx));
+  // Prefer an exact rack letter; fall back to a blank assigned to this letter.
+  let idx = qwRack.findIndex((l, i) => l === ch && !usedIdx.has(i));
+  let blankLetter;
+  if (idx === -1) {
+    idx = qwRack.findIndex((l, i) => l === '_' && !usedIdx.has(i));
+    blankLetter = ch;
+  }
+  if (idx === -1) {
+    qwSetStatus(`No "${ch}" tile in rack.`);
+    return;
+  }
+  const { row, col } = qwCursor;
+  if (placeTile(idx, row, col, blankLetter)) {
+    advanceCursor();
+    renderBoard();
+  }
+}
+
+function backspaceTile() {
+  const last = qwPending[qwPending.length - 1];
+  if (!last) {
+    return;
+  }
+  qwCursor = { row: last.row, col: last.col, dir: qwCursor ? qwCursor.dir : 'H' };
+  recallTile(last.row, last.col); // re-renders
+  renderBoard();
+}
+
+function onQwKeydown(e) {
+  // Only when the qlashword board is active, it's my placing turn, and we're
+  // not mid-swap or typing into a text field.
+  if (!document.body.classList.contains('qw-active')) {
+    return;
+  }
+  if (!isMyTurn() || qwPhase !== 'place' || qwSwapMode) {
+    return;
+  }
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) {
+    return;
+  }
+  const key = e.key;
+  if (/^[a-zA-Z]$/.test(key)) {
+    e.preventDefault();
+    typeLetter(key.toUpperCase());
+  } else if (key === 'Backspace') {
+    e.preventDefault();
+    backspaceTile();
+  } else if (key === 'Enter') {
+    e.preventDefault();
+    submitTurn();
+  } else if (key === 'Escape') {
+    e.preventDefault();
+    recallAll();
+    qwCursor = null;
+    renderBoard();
+  } else if (key === ' ' || key === 'Tab') {
+    if (qwCursor) {
+      e.preventDefault();
+      qwCursor.dir = qwCursor.dir === 'H' ? 'V' : 'H';
+      renderBoard();
+    }
   }
 }
 
@@ -697,6 +829,7 @@ function resetMatch() {
   qwBagCount = 0;
   qwPending = [];
   qwSelectedRackIdx = null;
+  qwCursor = null;
   qwHistory = [];
   renderHistory();
   exitSwapMode();
@@ -779,6 +912,9 @@ export function initQlashword(socket) {
     e.dataTransfer.setData('text/plain', tile.dataset.idx);
     e.dataTransfer.effectAllowed = 'move';
   });
+
+  // Keyboard typing: click a cell to drop a cursor, then type letters.
+  document.addEventListener('keydown', onQwKeydown);
 
   // --- socket events ---
 

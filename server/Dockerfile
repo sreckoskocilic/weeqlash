@@ -1,10 +1,16 @@
 FROM node:25-alpine
-RUN apk add --no-cache python3 make g++
 WORKDIR /app
+# libstdc++ is a runtime dep of the compiled native modules (better-sqlite3,
+# bcrypt); keep it. The toolchain (python3/make/g++) is only needed to build
+# them, so install it as a virtual package and drop it after npm ci to keep
+# the runtime image lean and reduce attack surface.
+RUN apk add --no-cache libstdc++
 COPY package.json package-lock.json ./
 COPY server/package.json ./server/
 COPY client/package.json ./client/
-RUN npm ci --workspace=server --omit=dev
+RUN apk add --no-cache --virtual .build-deps python3 make g++ \
+  && npm ci --workspace=server --omit=dev \
+  && apk del .build-deps
 COPY server/ ./server/
 COPY client/ ./client/
 WORKDIR /app/server

@@ -52,6 +52,8 @@ export interface QlashwordTurnInProgress {
   bonuses: QlashwordPendingBonus[]; // one per premium square, answered in order
   bonusIdx: number; // index of the bonus question currently being answered
   bonusResults: Record<string, boolean>; // coordKey → answered correctly
+  awaitingStart?: boolean; // true between bonus_prompt and bonus_start opt-in
+  answered?: boolean; // one-shot guard: current bonus already answered
 }
 
 export interface QlashwordPendingBonus extends BonusSquare {
