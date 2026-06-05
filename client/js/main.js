@@ -13,6 +13,7 @@ import * as quiz from './quiz.js';
 import * as leaderboard from './leaderboard.js';
 import * as keyboard from './keyboard.js';
 import * as qlashique from './qlashique.js';
+import { initQlashword } from './qlashword.js';
 import { initSkipnot } from './skipnot.js';
 import { initSkipnotTheme } from './skipnot-theme.js';
 import { initHowHigh } from './howhigh.js';
@@ -46,6 +47,9 @@ async function init() {
 
   // Qlashique wiring (sits alongside board handlers)
   qlashique.initQlashique(sock);
+
+  // Qlashword (1v1 Scrabble + trivia-gated bonus squares)
+  initQlashword(sock);
 
   // SkipNoT (solo 20-Q quiz)
   initSkipnot(sock);

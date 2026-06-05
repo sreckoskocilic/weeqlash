@@ -22,10 +22,14 @@ export function showScreen(id) {
   const isGame = id === 'screen-game';
   const isConnect = id === 'screen-connect';
   const isQlas = id === 'screen-qlashique';
+  const isQw = id === 'screen-qlashword';
   const isSkipnot = id === 'screen-skipnot';
   const isHowHigh = id === 'screen-howhigh';
   const isLobby = id === 'screen-lobby';
-  const hideHome = isGame || isQlas || isSkipnot || isHowHigh || isLobby;
+  const hideHome = isGame || isQlas || isQw || isSkipnot || isHowHigh || isLobby;
+  // Qlashword fills the viewport — drop the body's big top padding (meant for
+  // the home-screen title) so the board sits near the top edge.
+  document.body.classList.toggle('qw-active', isQw);
   el('main-title').style.display = hideHome ? 'none' : '';
   el('board-banner').style.display = hideHome ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
@@ -37,13 +41,14 @@ export function showScreen(id) {
     'screen-gameover',
     'screen-leaderboard',
     'screen-qlashique',
+    'screen-qlashword',
     'screen-skipnot',
     'screen-howhigh',
   ].forEach((s) => {
     el(s).style.display = 'none';
     el(s).classList.remove('show');
   });
-  if (isGame || isQlas || isSkipnot || isHowHigh) {
+  if (isGame || isQlas || isQw || isSkipnot || isHowHigh) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
     // Clear inline display so the `.main-columns` class CSS (display: flex

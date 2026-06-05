@@ -10,11 +10,11 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen shows four mode cards: **Brawl**, **Qlashique**, **SkipNoT**, and **HowHigh**.
+- Open the site. The landing screen shows five mode cards: **Brawl**, **Qlashique**, **Qlashword**, **SkipNoT**, and **HowHigh**.
 - **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
 - To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
 
-There are four modes. Pick your poison.
+There are five modes. Pick your poison.
 
 ---
 
@@ -138,6 +138,26 @@ Both players finish, scores get compared. Ties broken by speed. Results show up 
 
 ---
 
+## 5. Qlashword — Scrabble with a knowledge tax
+
+1v1 Scrabble, except the premium squares don't give anything away for free. The double and triple letter/word tiles sit there locked. Cover one with your tiles and the game stops to ask you a trivia question. Answer it and the multiplier counts. Miss it and your word still scores, just at face value.
+
+### Before the bell
+
+- One player clicks **Qlashword** to open a room and shares the 5-char code; the other pastes it into the `Qlashword` join box. The host hits **START** once both are in.
+
+### A turn
+
+- Standard 15×15 board, 100 tiles, normal letter values. You hold 7.
+- Drag or tap tiles from your rack onto the board to build a word. The first word of the game crosses the centre; after that you build off what's already down.
+- Every word you make has to be real, and the crossing words count too. A bad word bounces the whole play back.
+- Hit **SUBMIT**. For each premium square your new tiles covered, you answer one question (random category, no Death Metal). Right, the multiplier unlocks for the turn. Wrong or timed out, you keep the base points and nothing more.
+- 90 seconds a turn or it auto-passes. **PASS** if you've got nothing, **SWAP** to dump tiles back in the bag (burns your turn), **SHUFFLE** to reorder your rack. All 7 tiles in one play is a +50 bingo.
+
+Bag empties, someone clears their rack, leftover tile values get subtracted, highest score wins.
+
+---
+
 ## Stats
 
 The **Stats** button shows a logged-in player:
@@ -158,3 +178,4 @@ The **Stats** button shows a logged-in player:
 ![HowHighDiceBonus](screenshots/hh-dice_bonus.png)
 ![HowHighTimeCrunch](screenshots/hh-time_crunch.png)
 ![HowHighComplete](screenshots/hh-complete.png)
+![Qlashword](screenshots/qlashword.png)

@@ -58,9 +58,11 @@ export async function checkAuth() {
     });
     const data = await res.json();
     if (data.user) {
-      socket.emit('auth:setUserId', data.user.id, () => {
-        showUserBar(data.user);
-      });
+      // Restore the logged-in UI immediately — don't gate it on the socket ack
+      // (after a server restart the ack can be delayed/dropped, which used to
+      // leave the login screen showing even though /auth/me confirmed the user).
+      showUserBar(data.user);
+      socket.emit('auth:setUserId', data.user.id, () => {});
     } else {
       hideUserBar();
     }

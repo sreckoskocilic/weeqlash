@@ -40,6 +40,7 @@ export interface RoomState {
   qwUsedQIds?: Set<string>;
   qwTurn?: QlashwordTurnInProgress | null;
   qwTimer?: ReturnType<typeof setTimeout> | null;
+  qwTurnTimer?: ReturnType<typeof setTimeout> | null;
   qwTimerExpired?: boolean;
 }
 
@@ -255,6 +256,10 @@ export function removePlayerFromRoom(
           clearTimeout(existingRoom.qwTimer);
           existingRoom.qwTimer = null;
         }
+        if (existingRoom.qwTurnTimer) {
+          clearTimeout(existingRoom.qwTurnTimer);
+          existingRoom.qwTurnTimer = null;
+        }
         console.log(`[room] cleaning up empty room ${codeToCheck}`);
         rooms.delete(codeToCheck);
       }
@@ -312,6 +317,10 @@ export function cleanupStaleRooms(): number {
       if (room.qwTimer) {
         clearTimeout(room.qwTimer);
         room.qwTimer = null;
+      }
+      if (room.qwTurnTimer) {
+        clearTimeout(room.qwTurnTimer);
+        room.qwTurnTimer = null;
       }
     }
     rooms.delete(code);

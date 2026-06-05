@@ -486,6 +486,28 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, bonusQ3: _testBonusQ3Override, bonusQ6: _testBonusQ6Override });
   });
 
+  // Test-only: force a Qlashword player's rack to a known set of tiles, then
+  // re-send it to that player so the client renders the override.
+  app.post('/test/qw-set-rack', (req, res) => {
+    const { code, playerIdx, rack } = req.body;
+    const room = getRoom(code);
+    if (!room?.state || room.mode !== 'qlashword') {
+      return res.status(404).json({ error: 'No active qlashword game' });
+    }
+    if (playerIdx !== 0 && playerIdx !== 1) {
+      return res.status(400).json({ error: 'playerIdx must be 0 or 1' });
+    }
+    if (!Array.isArray(rack) || rack.some((t) => typeof t !== 'string')) {
+      return res.status(400).json({ error: 'rack must be an array of letters' });
+    }
+    room.state.racks[playerIdx] = rack.slice();
+    const pid = room.players[playerIdx]?.id;
+    if (pid) {
+      io.to(pid).emit('qlashword:rack', { rack: room.state.racks[playerIdx] });
+    }
+    res.json({ ok: true, rack: room.state.racks[playerIdx] });
+  });
+
   // Test-only: list first question from each category with correct answer index
   app.get('/test/questions-sample', (_req, res) => {
     const sample = Object.entries(questionsDb)
@@ -2530,10 +2552,12 @@ io.on('connection', (socket) => {
       bonuses,
       bonusIdx: 0,
       bonusResults: {},
+      awaitingStart: true,
     };
     state.phase = QW_PHASE.BONUS_Q;
+    _qwClearTurnTimer(room); // bonus questions have their own timer
     cb({ ok: true, bonusCount: bonuses.length });
-    _qwSendBonusQuestion(io, code, room);
+    _qwSendBonusPrompt(io, code, room);
   });
 
   socket.on('qlashword:answer_bonus', ({ code, answerIdx } = {}, cb) => {
@@ -2549,6 +2573,9 @@ io.on('connection', (socket) => {
     if (!turn || turn.playerIdx !== player.index) {
       return cb({ error: 'No bonus question pending' });
     }
+    if (turn.awaitingStart) {
+      return cb({ error: 'Question not started yet' });
+    }
     if (room.qwTimerExpired) {
       return cb({ error: 'Time expired' });
     }
@@ -2559,7 +2586,30 @@ io.on('connection', (socket) => {
     const q = questionsDb._byId[bonus.questionId];
     const correct = !!q && answerIdx === q.a;
     cb({ ok: true });
-    _qwResolveBonus(io, code, room, correct);
+    _qwResolveBonus(io, code, room, correct, answerIdx);
+  });
+
+  // Active player opts in to the gated bonus question — only now do we send the
+  // question and start the answer timer (so reading the prompt doesn't burn time).
+  socket.on('qlashword:bonus_start', ({ code } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const ctx = _qwTurnGuard(socket, code, cb, QW_PHASE.BONUS_Q);
+    if (!ctx) {
+      return;
+    }
+    const { room, player } = ctx;
+    const turn = room.qwTurn;
+    if (!turn || turn.playerIdx !== player.index) {
+      return cb({ error: 'No bonus question pending' });
+    }
+    if (!turn.awaitingStart) {
+      return cb({ error: 'Question already started' });
+    }
+    turn.awaitingStart = false;
+    cb({ ok: true });
+    _qwSendBonusQuestion(io, code, room);
   });
 
   socket.on('qlashword:pass', ({ code } = {}, cb) => {
@@ -2576,7 +2626,10 @@ io.on('connection', (socket) => {
       return cb({ error: res.error });
     }
     cb({ ok: true });
-    io.to(code).emit('qlashword:passed', { playerIdx: player.index });
+    io.to(code).emit('qlashword:passed', {
+      playerIdx: player.index,
+      turn: room.state.turnNumber - 1,
+    });
     _qwAfterTurn(io, code, room);
   });
 
@@ -2597,7 +2650,11 @@ io.on('connection', (socket) => {
       return cb({ error: res.error });
     }
     cb({ ok: true });
-    io.to(code).emit('qlashword:swapped', { playerIdx: player.index });
+    io.to(code).emit('qlashword:swapped', {
+      playerIdx: player.index,
+      turn: room.state.turnNumber - 1,
+      count: indices.length,
+    });
     _qwAfterTurn(io, code, room);
   });
 
@@ -2647,6 +2704,10 @@ io.on('connection', (socket) => {
             if (room.qwTimer) {
               clearTimeout(room.qwTimer);
               room.qwTimer = null;
+            }
+            if (room.qwTurnTimer) {
+              clearTimeout(room.qwTurnTimer);
+              room.qwTurnTimer = null;
             }
             room.qwTimerExpired = true;
             room.qwTurn = null;
@@ -2924,6 +2985,9 @@ function _emitQlasTurnStart(ioServer, code, room) {
 // ---------------------------------------------------------------------------
 
 const QW_BONUS_TIMER_S = 15;
+const QW_BONUS_PROMPT_TIMEOUT_S = 30; // auto no-unlock if the player never opts in
+const QW_BONUS_RESULT_MS = 1300; // pause showing the green/red pick before advancing
+const QW_TURN_TIMER_S = 90; // placement turn clock — auto-pass so games can't stall
 // Bonus questions are pulled from every category EXCEPT death_metal.
 const QW_BONUS_CATS_SET = new Set([...CATS_SET].filter((c) => c !== 'death_metal'));
 
@@ -2991,6 +3055,15 @@ function _qwRackCovers(rack, placement) {
 }
 
 function _qwPickBonusQuestion(room) {
+  // Test-only override hook (mirrors the board/qlas question override).
+  const overrideId = _consumeQuestionOverride(questionsDb);
+  if (overrideId) {
+    const oq = questionsDb._byId[overrideId];
+    if (oq) {
+      room.qwUsedQIds.add(oq.id);
+      return oq;
+    }
+  }
   const q = pickRandomQuestion(questionsDb, QW_BONUS_CATS_SET, room.qwUsedQIds);
   if (q) {
     room.qwUsedQIds.add(q.id);
@@ -3003,6 +3076,45 @@ function _qwClearTimer(room) {
     clearTimeout(room.qwTimer);
     room.qwTimer = null;
   }
+}
+
+function _qwClearTurnTimer(room) {
+  if (room.qwTurnTimer) {
+    clearTimeout(room.qwTurnTimer);
+    room.qwTurnTimer = null;
+  }
+}
+
+// Start the placement-turn clock for the current player. On expiry the turn is
+// auto-passed so a player can't stall the game by never finishing their turn.
+function _qwStartTurnTimer(ioServer, code, room) {
+  _qwClearTurnTimer(room);
+  if (!room.state || room.state.phase !== QW_PHASE.PLACE) {
+    return;
+  }
+  const idx = room.state.currentPlayerIdx;
+  ioServer.to(code).emit('qlashword:turn_start', { playerIdx: idx, seconds: QW_TURN_TIMER_S });
+  room.qwTurnTimer = setTimeout(() => {
+    room.qwTurnTimer = null;
+    try {
+      if (!room.state || room.state.phase !== QW_PHASE.PLACE) {
+        return;
+      }
+      const cur = room.state.currentPlayerIdx;
+      const res = qwPassTurn(room.state, cur);
+      if (res.error) {
+        return;
+      }
+      ioServer.to(code).emit('qlashword:passed', {
+        playerIdx: cur,
+        turn: room.state.turnNumber - 1,
+        reason: 'timeout',
+      });
+      _qwAfterTurn(ioServer, code, room);
+    } catch (err) {
+      console.error('[qlashword] turn timer error:', err);
+    }
+  }, QW_TURN_TIMER_S * 1000);
 }
 
 // Public (shared) view of the board state. Racks are sent privately.
@@ -3035,6 +3147,35 @@ function _emitQwGameStart(ioServer, code, room) {
   for (const p of room.players) {
     ioServer.to(p.id).emit('qlashword:rack', { rack: room.state.racks[p.index] });
   }
+  _qwStartTurnTimer(ioServer, code, room);
+}
+
+// Announce the next gated bonus square WITHOUT the question — the active player
+// must opt in (qlashword:bonus_start) before the question + timer are sent.
+function _qwSendBonusPrompt(ioServer, code, room) {
+  const turn = room.qwTurn;
+  turn.awaitingStart = true;
+  const bonus = turn.bonuses[turn.bonusIdx];
+  room.qwTimerExpired = false;
+  ioServer.to(code).emit('qlashword:bonus_prompt', {
+    bonus: { row: bonus.row, col: bonus.col, bonusType: bonus.bonusType },
+    bonusIdx: turn.bonusIdx,
+    bonusTotal: turn.bonuses.length,
+    activePlayerIdx: turn.playerIdx,
+  });
+  // Safety: if the active player never opts in, auto-resolve as no-unlock.
+  _qwClearTimer(room);
+  room.qwTimer = setTimeout(() => {
+    room.qwTimer = null;
+    try {
+      if (room.state?.phase !== QW_PHASE.BONUS_Q || !room.qwTurn?.awaitingStart) {
+        return;
+      }
+      _qwResolveBonus(ioServer, code, room, false, -1);
+    } catch (err) {
+      console.error('[qlashword] bonus prompt timer error:', err);
+    }
+  }, QW_BONUS_PROMPT_TIMEOUT_S * 1000);
 }
 
 function _qwSendBonusQuestion(ioServer, code, room) {
@@ -3043,7 +3184,7 @@ function _qwSendBonusQuestion(ioServer, code, room) {
   const q = questionsDb._byId[bonus.questionId];
   if (!q) {
     // Defensive: don't wedge the turn — treat a missing question as no-unlock.
-    _qwResolveBonus(ioServer, code, room, false);
+    _qwResolveBonus(ioServer, code, room, false, -1);
     return;
   }
   room.qwTimerExpired = false;
@@ -3064,7 +3205,7 @@ function _qwSendBonusQuestion(ioServer, code, room) {
           return;
         }
         room.qwTimerExpired = true;
-        _qwResolveBonus(ioServer, code, room, false); // timeout = no-unlock
+        _qwResolveBonus(ioServer, code, room, false, -1); // timeout = no-unlock
       } catch (err) {
         console.error('[qlashword] bonus timer error:', err);
       }
@@ -3073,7 +3214,7 @@ function _qwSendBonusQuestion(ioServer, code, room) {
   );
 }
 
-function _qwResolveBonus(ioServer, code, room, correct) {
+function _qwResolveBonus(ioServer, code, room, correct, answerIdx = -1) {
   const turn = room.qwTurn;
   if (!turn) {
     return;
@@ -3084,14 +3225,26 @@ function _qwResolveBonus(ioServer, code, room, correct) {
   ioServer.to(code).emit('qlashword:bonus_result', {
     bonus: { row: bonus.row, col: bonus.col, bonusType: bonus.bonusType },
     correct,
+    answerIdx,
     bonusIdx: turn.bonusIdx,
   });
-  turn.bonusIdx++;
-  if (turn.bonusIdx < turn.bonuses.length) {
-    _qwSendBonusQuestion(ioServer, code, room);
-  } else {
-    _qwFinalizeTurn(ioServer, code, room);
-  }
+  // Brief pause so both players see the green/red pick before moving on.
+  room.qwTimer = setTimeout(() => {
+    room.qwTimer = null;
+    try {
+      if (!room.qwTurn) {
+        return;
+      }
+      room.qwTurn.bonusIdx++;
+      if (room.qwTurn.bonusIdx < room.qwTurn.bonuses.length) {
+        _qwSendBonusPrompt(ioServer, code, room);
+      } else {
+        _qwFinalizeTurn(ioServer, code, room);
+      }
+    } catch (err) {
+      console.error('[qlashword] bonus advance error:', err);
+    }
+  }, QW_BONUS_RESULT_MS);
 }
 
 function _qwFinalizeTurn(ioServer, code, room) {
@@ -3117,6 +3270,7 @@ function _qwFinalizeTurn(ioServer, code, room) {
 function _qwEmitTurnResult(ioServer, code, room, playerIdx, breakdown) {
   ioServer.to(code).emit('qlashword:turn_result', {
     playerIdx,
+    turn: room.state.turnNumber - 1,
     breakdown,
     scores: room.state.scores,
   });
@@ -3130,6 +3284,7 @@ function _qwAfterTurn(ioServer, code, room) {
     room.state.scores = finals;
     room.state.phase = QW_PHASE.GAME_OVER;
     _qwClearTimer(room);
+    _qwClearTurnTimer(room);
     for (const p of room.players) {
       unregisterActiveSocket(p.id);
     }
@@ -3139,7 +3294,9 @@ function _qwAfterTurn(ioServer, code, room) {
       reason: 'normal',
       scores: finals,
     });
+    return;
   }
+  _qwStartTurnTimer(ioServer, code, room);
 }
 
 // Wait for Redis to be ready before accepting traffic — any request before

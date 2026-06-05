@@ -76,9 +76,9 @@
       <div class="ann-header">Latest</div>
       <ul>
         <li>
-          <strong>HowHigh — 2 new bonuses.</strong> Double or Nothing after Q3: questions 4 & 5 pay
-          double (+4/−4). Time Crunch after Q6: questions 7 & 8 drop to a 7-second timer, +3/−3
-          each. Both optional. Decline if you value your safety.
+          <strong>Qlashword — new mode.</strong> 1v1 Scrabble with a catch: the double and triple
+          squares start locked. Land tiles on one and you answer a trivia question to switch the
+          multiplier on for that turn. Miss it and you still score, just at face value.
         </li>
       </ul>
     </section>
@@ -281,6 +281,47 @@
                   autocomplete="one-time-code"
                 />
                 <button id="btn-qlas-start" class="card-join-go" type="button">JOIN</button>
+              </div>
+            </div>
+            <div class="mode-card-wrap mode-card-wrap--qlashword">
+              <button
+                id="btn-qlashword-create"
+                class="mode-card mode-card--qlashword"
+                type="button"
+              >
+                <span class="mode-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect
+                      x="4"
+                      y="4"
+                      width="24"
+                      height="24"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <path d="M 12 4 L 12 28" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M 20 4 L 20 28" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M 4 12 L 28 12" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M 4 20 L 28 20" stroke="currentColor" stroke-width="1.5" />
+                    <rect x="13" y="13" width="6" height="6" rx="1" fill="currentColor" />
+                  </svg>
+                </span>
+                <span class="mode-text">
+                  <span class="mode-name">Qlashword</span>
+                  <span class="mode-desc">1v1 Scrabble · unlock 2×/3× squares with trivia</span>
+                </span>
+              </button>
+              <div class="card-join-row card-join-row--qlashword">
+                <input
+                  id="qlashword-join-code"
+                  class="card-join-input"
+                  type="text"
+                  maxlength="5"
+                  placeholder="CODE"
+                  autocomplete="one-time-code"
+                />
+                <button id="btn-qlashword-join" class="card-join-go" type="button">JOIN</button>
               </div>
             </div>
             <button id="btn-skipnot-create" class="mode-card mode-card--skipnot" type="button">
@@ -832,6 +873,26 @@
           When finished you get a 5-letter code. Share it with a friend — they play the same
           questions with the same dice roll. Highest score wins; ties broken by speed.
         </p>
+        <h2>HOW TO PLAY — QLASHWORD</h2>
+        <p>
+          1v1 Scrabble with a trivia catch. One player makes a room and shares the 5-letter code;
+          the other joins and the host starts. Normal 15×15 board, 100 tiles, standard letter
+          values.
+        </p>
+        <p>
+          Drag or tap tiles from your rack to spell a word. Your first word has to cross the centre.
+          Everything has to be a real word, crossing words included. Hit SUBMIT when you're done.
+        </p>
+        <p>
+          The catch: the 2×/3× letter and word squares are locked. For every one your new tiles
+          cover, you get a trivia question. Answer right and the multiplier counts this turn. Miss
+          it or run out of time and you keep the base points — no bonus.
+        </p>
+        <p>
+          You get 90 seconds a turn. Stuck? PASS, or SWAP tiles back into the bag (you lose the
+          turn). SHUFFLE just reorders your rack. Play all 7 tiles at once for a +50 bingo. When the
+          bag's empty and someone empties their rack, highest score wins.
+        </p>
         <h2>STATS</h2>
         <p>
           The Stats button shows your played games, wins, and the correct answers percentage for
@@ -1190,6 +1251,127 @@
     </div>
 
     <!-- SkipNoT (solo 20-Q quiz; reuses qlas-* styling) -->
+    <div id="screen-qlashword" style="display: none">
+      <div class="qw-inner">
+        <!-- Waiting / lobby -->
+        <div id="qw-phase-waiting" class="qw-phase">
+          <h2 class="qw-title">QLASHWORD</h2>
+          <p class="qw-subtitle">1v1 Scrabble — unlock bonus squares by answering trivia</p>
+          <div id="qw-waiting-label" class="qw-waiting-msg">Waiting for opponent…</div>
+          <div id="qw-code-row" style="display: none">
+            <div class="qw-waiting-msg" style="margin-top: 8px">Share this code</div>
+            <div class="qw-code-line">
+              <div class="qw-code-display" id="qw-code-val">—</div>
+              <button id="qw-btn-copy-code" class="qw-btn-small" type="button">COPY</button>
+            </div>
+          </div>
+          <button id="qw-btn-start" class="qw-btn-primary" type="button" style="display: none">
+            START GAME
+          </button>
+        </div>
+
+        <!-- Game -->
+        <div id="qw-phase-game" class="qw-phase" style="display: none">
+          <div class="qw-mid">
+            <div class="qw-board-wrap">
+              <div id="qw-board" class="qw-board"></div>
+            </div>
+            <!-- Sidebar is as tall as the BOARD (not the rack), so the history
+                 button can sit on the board's bottom edge. -->
+            <div class="qw-sidebar">
+              <!-- 1) timer cell -->
+              <div class="qw-turn-top">
+                <div class="qw-turn-indicator" id="qw-turn-indicator">…</div>
+                <div class="qw-turn-clock" id="qw-turn-clock"></div>
+              </div>
+              <div class="qw-status" id="qw-status"></div>
+              <!-- 2) actions -->
+              <div class="qw-actions">
+                <button id="qw-btn-submit" class="qw-btn-primary" type="button">SUBMIT</button>
+                <button id="qw-btn-recall" class="qw-btn-secondary" type="button">RECALL</button>
+                <button id="qw-btn-pass" class="qw-btn-secondary" type="button">PASS</button>
+                <button id="qw-btn-swap" class="qw-btn-secondary" type="button">SWAP</button>
+              </div>
+              <!-- 3) result — one cell split into two halves (name + score) -->
+              <div class="qw-scorebox">
+                <div class="qw-score-half" id="qw-score0">
+                  <span class="qw-pname" id="qw-p0name">P1</span>
+                  <span class="qw-pscore" id="qw-p0score">0</span>
+                </div>
+                <div class="qw-score-half" id="qw-score1">
+                  <span class="qw-pname" id="qw-p1name">P2</span>
+                  <span class="qw-pscore" id="qw-p1score">0</span>
+                </div>
+              </div>
+              <!-- 4) history button on the board's bottom edge -->
+              <button id="qw-btn-history" class="qw-btn-secondary qw-history-btn" type="button">
+                HISTORY
+              </button>
+            </div>
+            <div class="qw-rack-row">
+              <div id="qw-rack" class="qw-rack"></div>
+              <button
+                id="qw-btn-shuffle"
+                class="qw-shuffle-btn"
+                type="button"
+                title="Shuffle your tiles"
+              >
+                ⇄
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Turn history overlay (opened by the HISTORY button; click anywhere closes) -->
+        <div id="qw-history-modal" class="qw-modal">
+          <div class="qw-modal-card qw-history-card">
+            <div class="qw-history-title">TURN HISTORY</div>
+            <div class="qw-history" id="qw-history"></div>
+          </div>
+        </div>
+
+        <!-- Bonus question modal (reuses qlas-* question styling) -->
+        <div id="qw-bonus-modal" class="qw-modal">
+          <div class="qw-modal-card">
+            <div class="qw-bonus-head">
+              <span id="qw-bonus-badge" class="qw-bonus-badge">BONUS</span>
+              <span id="qw-bonus-progress" class="qw-bonus-progress">1/1</span>
+              <span id="qw-bonus-timer" class="qw-bonus-timer">15s</span>
+            </div>
+            <!-- Step 1: opt-in prompt (active player clicks ANSWER to reveal) -->
+            <div id="qw-bonus-prompt" class="qw-bonus-prompt-step">
+              <div id="qw-bonus-prompt-text" class="qw-bonus-prompt-text">
+                Answer a question to unlock this bonus square.
+              </div>
+              <button id="qw-bonus-start-btn" class="qw-btn-primary" type="button">
+                ANSWER QUESTION
+              </button>
+            </div>
+            <!-- Step 2: the question -->
+            <div id="qw-bonus-question-step" style="display: none">
+              <div id="qw-question" class="qlas-question"></div>
+              <div id="qw-options" class="qlas-options"></div>
+              <div id="qw-flash" class="qlas-flash"></div>
+            </div>
+            <div id="qw-bonus-spectate" class="qw-bonus-spectate" style="display: none">
+              Opponent is answering…
+            </div>
+          </div>
+        </div>
+
+        <!-- Game over -->
+        <div id="qw-phase-gameover" class="qw-phase" style="display: none">
+          <h2 id="qw-winner-text" class="qw-title">—</h2>
+          <div id="qw-go-reason" class="qw-subtitle">—</div>
+          <div class="qw-final-scores">
+            <div><span id="qw-go-p0name">P1</span>: <span id="qw-go-p0score">0</span></div>
+            <div><span id="qw-go-p1name">P2</span>: <span id="qw-go-p1score">0</span></div>
+          </div>
+          <button id="qw-btn-playagain" class="qw-btn-primary" type="button">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+
     <div id="screen-skipnot" style="display: none">
       <div class="game-theme-picker" role="group" aria-label="Color theme">
         <button

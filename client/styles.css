@@ -4403,3 +4403,608 @@ body[data-game-theme='pink'] {
 .howhigh-challenges-empty {
   font-size: 0.9rem;
 }
+
+/* ============================================================
+   QLASHWORD (1v1 Scrabble + trivia-gated bonus squares)
+   ============================================================ */
+
+/* Home mode card */
+.mode-card--qlashword {
+  color: #5efbef;
+}
+.mode-card--qlashword .mode-name {
+  color: #5efbef;
+}
+
+/* Screen — provides the --game-* vars the reused .qlas-* question styles need */
+/* Qlashword fills the viewport — drop the home-screen title's big top padding. */
+body.qw-active {
+  padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+}
+#screen-qlashword {
+  --game-bg: #07120f;
+  --game-bg-2: #0c1a16;
+  --game-bg-3: #10231d;
+  --game-border: #16463a;
+  --game-border-2: #1f6650;
+  --game-text: #aef0dc;
+  --game-accent: #2fe0a8;
+  --game-accent-2: #5efbef;
+  --game-accent-rgb: 47, 224, 168;
+  --game-key: #ffe600;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: var(--game-bg);
+  color: var(--game-text);
+  min-height: 100vh;
+  padding: 0 16px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.qw-inner {
+  width: 100%;
+  max-width: min(96vw, 1080px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.qw-phase {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.qw-title {
+  color: var(--game-accent);
+  letter-spacing: 0.12em;
+  margin: 8px 0 0;
+}
+.qw-subtitle {
+  color: var(--game-text);
+  opacity: 0.7;
+  font-size: 0.82rem;
+  text-align: center;
+  margin: 0;
+}
+.qw-waiting-msg {
+  color: var(--game-text);
+  font-size: 0.9rem;
+}
+.qw-code-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.qw-code-display {
+  font-size: 1.6rem;
+  letter-spacing: 0.25em;
+  color: var(--game-accent);
+  border: 1px dashed var(--game-border-2);
+  padding: 6px 14px;
+  border-radius: 3px;
+}
+.qw-btn-small {
+  background: var(--game-bg-3);
+  border: 1px solid var(--game-accent);
+  color: var(--game-accent);
+  font-family: inherit;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.qw-btn-primary,
+.qw-btn-secondary {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 10px 18px;
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+}
+.qw-btn-primary {
+  background: var(--game-accent);
+  color: #042018;
+  border: none;
+  font-weight: 600;
+}
+.qw-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.qw-btn-secondary {
+  background: var(--game-bg-3);
+  color: var(--game-text);
+  border: 1px solid var(--game-border-2);
+}
+.qw-btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.qw-btn-secondary.active {
+  border-color: var(--game-accent);
+  color: var(--game-accent);
+}
+
+/* Scores block (lives in the sidebar, stacked vertically) */
+/* Sidebar top block: turn indicator + clock */
+/* Timer cell: indicator + big clock inside one bordered box. */
+.qw-turn-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid var(--game-border-2);
+  border-radius: 6px;
+  padding: 8px 6px;
+}
+.qw-turn-indicator {
+  font-size: 0.78rem;
+  text-align: center;
+  opacity: 0.85;
+}
+.qw-turn-indicator.mine {
+  color: var(--game-accent);
+  font-weight: 600;
+}
+.qw-turn-clock {
+  text-align: center;
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--game-accent);
+  min-height: 1.9rem;
+}
+.qw-turn-clock.danger {
+  color: #ff5555;
+}
+.qw-turn-top:has(.qw-turn-clock.danger) {
+  border-color: #ff5555;
+}
+/* Final 10 seconds: calm hide/unhide blink of the whole timer cell (+ border). */
+.qw-turn-top:has(.qw-turn-clock.urgent) {
+  animation: qw-clock-blink 1s step-end infinite;
+}
+@keyframes qw-clock-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Result: one cell — player names on top, "42 : 56" below. */
+/* Result: one box split into two centered halves (name + score). */
+.qw-scorebox {
+  display: flex;
+  border: 1px solid var(--game-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.qw-score-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+}
+.qw-score-half + .qw-score-half {
+  border-left: 1px solid var(--game-border);
+}
+.qw-score-half.active {
+  background: rgba(var(--game-accent-rgb), 0.12);
+}
+.qw-pname {
+  font-size: 0.82rem;
+  opacity: 0.8;
+}
+.qw-score-half.active .qw-pname {
+  color: var(--game-accent);
+  opacity: 1;
+  font-weight: 700;
+}
+.qw-pscore {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--game-text);
+}
+.qw-score-half.active .qw-pscore {
+  color: var(--game-accent);
+}
+
+/* Mid layout: board column (board + rack) beside the sidebar (status/actions) */
+/* Grid so the sidebar is exactly the BOARD's height (row 1); the rack sits in
+   row 2 under the board. This lets the history button align to the board's
+   bottom edge rather than the rack's. */
+.qw-mid {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  row-gap: 10px;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+}
+.qw-board-wrap {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  justify-content: center;
+}
+.qw-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 42px;
+  min-width: 160px;
+  max-width: 210px;
+}
+.qw-rack-row {
+  grid-column: 1;
+  grid-row: 2;
+  justify-content: center;
+}
+/* History button on the board's bottom edge (sidebar == board height). */
+.qw-history-btn {
+  margin-top: auto;
+}
+.qw-board {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  /* Fixed equal rows + NO gap. The old 1px gap didn't divide evenly into the
+     fluid width → uneven (distorted-looking) gridlines. Gridlines now come from
+     each cell's own border (border-box), which stays crisp at any size. */
+  grid-template-rows: repeat(15, 1fr);
+  /* Largest square that fits both the viewport height (minus the rack below)
+     and the width (minus the sidebar), so it fills the space without a
+     scrollbar. Hard cap keeps it sane on huge monitors. */
+  width: min(1000px, calc(100vh - 130px), calc(100vw - 280px));
+  aspect-ratio: 1 / 1;
+  /* Vintage tan board */
+  background: #b9a268;
+  /* Tan/wood frame */
+  border: 7px solid #ab9457;
+  border-radius: 4px;
+  box-shadow:
+    0 6px 22px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.qw-cell {
+  box-sizing: border-box;
+  /* Thin lighter gridline + a subtle bevel so cells read as raised, not like
+     flat graph-paper. */
+  border: 1px solid rgba(255, 252, 240, 0.32);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.28),
+    inset -1px -1px 1px rgba(90, 70, 30, 0.3);
+  /* Board surface + paper grain. */
+  background-color: #356c47;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  font-size: clamp(6px, 2vmin, 13px);
+  user-select: none;
+}
+/* Classic vintage Scrabble premium colours with dark labels. */
+.qw-prem-label {
+  font-size: clamp(6px, 1.7vmin, 12px);
+  font-weight: 700;
+  color: #23314a;
+  opacity: 0.92;
+  letter-spacing: 0.02em;
+}
+.qw-prem-tw {
+  background-color: #d65241;
+}
+.qw-prem-tw .qw-prem-label {
+  color: #3a1410;
+}
+.qw-prem-dw {
+  background-color: #e7a7ae;
+}
+.qw-prem-tl {
+  background-color: #e0c64a;
+}
+.qw-prem-dl {
+  background-color: #aed6ea;
+}
+/* Use outline (not box-shadow) for state rings so the cell bevel is preserved. */
+.qw-cell-pending {
+  outline: 2px solid var(--game-accent);
+  outline-offset: -2px;
+}
+/* Cells the player can't legally play on this turn (recomputed live). */
+.qw-cell-dim {
+  opacity: 0.28;
+}
+/* Legal anchor cells get a clear accent ring so plain (non-premium) ones pop. */
+.qw-cell-playable {
+  outline: 2px solid rgba(var(--game-accent-rgb), 0.7);
+  outline-offset: -2px;
+}
+
+/* Tiles (settled + pending + rack) — physical wood/cardboard look: warm
+   gradient, paper grain, and a bevel so they read as raised pieces. */
+.qw-tile,
+.qw-rack-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #a9844c;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.14'/%3E%3C/svg%3E"),
+    linear-gradient(155deg, #c2a064 0%, #a8844c 55%, #8d6c37 100%);
+  color: #2a1e08;
+  border-radius: 3px;
+  font-weight: 700;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px -1px 2px rgba(120, 90, 30, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.qw-tile-pending {
+  background: #bfe6c4;
+}
+.qw-tile-blank .qw-tile-letter {
+  font-style: italic;
+}
+.qw-tile-letter {
+  font-size: clamp(12px, 3.7vmin, 30px);
+  font-weight: 800;
+  line-height: 1;
+}
+.qw-tile-val {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: clamp(6px, 1.7vmin, 13px);
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+/* Rack */
+.qw-rack-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qw-shuffle-btn {
+  flex-shrink: 0;
+  background: var(--game-bg-3);
+  color: var(--game-accent);
+  border: 1px solid var(--game-border-2);
+  border-radius: 4px;
+  font-size: 1.5rem;
+  width: 48px;
+  height: 56px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.qw-shuffle-btn:hover {
+  border-color: var(--game-accent);
+}
+.qw-rack {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: 6px;
+  background: var(--game-bg-2);
+  border: 1px solid var(--game-border);
+  border-radius: 4px;
+}
+.qw-rack-tile {
+  width: 48px;
+  height: 56px;
+  border: 1px solid #b8a76a;
+  cursor: pointer;
+  font-family: inherit;
+}
+.qw-rack-tile .qw-tile-letter {
+  font-size: 1.6rem;
+}
+.qw-rack-tile .qw-tile-val {
+  font-size: 0.8rem;
+}
+.qw-rack-tile.used {
+  opacity: 0.25;
+  cursor: default;
+}
+.qw-rack-tile.selected {
+  box-shadow: 0 0 0 2px var(--game-accent);
+  transform: translateY(-3px);
+}
+.qw-rack-tile.swap-sel {
+  box-shadow: 0 0 0 2px #ff5555;
+}
+
+/* Actions / status */
+.qw-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qw-sidebar .qw-btn-primary,
+.qw-sidebar .qw-btn-secondary {
+  width: 100%;
+}
+.qw-status {
+  font-size: 0.8rem;
+  color: #ffb454;
+  text-align: center;
+}
+.qw-status:empty {
+  display: none;
+}
+
+/* Turn history log (opens as an overlay via the HISTORY button) */
+.qw-history-card {
+  max-width: 420px;
+}
+.qw-history-title {
+  color: var(--game-accent);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.qw-history {
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.qw-history:empty::after {
+  content: 'No turns played yet.';
+  opacity: 0.6;
+  font-size: 0.8rem;
+}
+.qw-hist-turn {
+  color: var(--game-accent);
+  font-weight: 700;
+  margin-top: 6px;
+  opacity: 0.9;
+}
+.qw-hist-turn:first-child {
+  margin-top: 0;
+}
+.qw-hist-entry {
+  color: var(--game-text);
+  opacity: 0.88;
+  padding-left: 6px;
+}
+
+/* Narrow screens: stack the sidebar below the board, actions back to a row. */
+@media (max-width: 760px) {
+  /* Stack: board, then rack, then sidebar. */
+  .qw-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .qw-board-wrap {
+    order: 0;
+  }
+  .qw-rack-row {
+    order: 1;
+  }
+  .qw-sidebar {
+    order: 2;
+    max-width: none;
+    width: 100%;
+  }
+  .qw-board {
+    width: min(94vw, 560px);
+  }
+  .qw-history-btn {
+    margin-top: 0;
+  }
+  .qw-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .qw-sidebar .qw-btn-primary,
+  .qw-sidebar .qw-btn-secondary {
+    width: auto;
+  }
+}
+
+/* Bonus question modal */
+.qw-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.qw-modal.show {
+  display: flex;
+}
+.qw-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--game-bg-2);
+  border: 2px solid var(--game-border-2);
+  border-radius: 6px;
+  padding: 18px;
+}
+.qw-bonus-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.qw-bonus-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  background: var(--game-bg-3);
+  color: var(--game-accent);
+}
+.qw-bonus-progress {
+  font-size: 0.74rem;
+  opacity: 0.7;
+}
+.qw-bonus-timer {
+  font-size: 0.9rem;
+  color: var(--game-accent);
+}
+.qw-bonus-timer.danger {
+  color: #ff5555;
+}
+.qw-bonus-spectate {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.qw-bonus-prompt-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 6px 8px;
+}
+.qw-bonus-prompt-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--game-text);
+}
+
+/* Game over */
+.qw-final-scores {
+  display: flex;
+  gap: 24px;
+  font-size: 1rem;
+}
+.qw-final-scores span {
+  color: var(--game-accent);
+}
