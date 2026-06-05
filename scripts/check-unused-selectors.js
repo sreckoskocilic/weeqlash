@@ -352,15 +352,23 @@ function isKnownDynamicPattern(cls) {
   // 'bad'/'ok' set via `(e.correct ? 'ok' : 'bad')` inside innerHTML string concat
   const dynamicConcat = ['p0', 'p1', 'qlas-recap-p0', 'qlas-recap-p1', 'bad', 'ok'];
   const hhDynamic = ['hh-win', 'hh-loss', 'hh-winner', 'hh-w', 'hh-l'];
+  // Qlashword: board/tile/premium state classes are built by concatenating into
+  // innerHTML strings in qlashword.js (renderBoard/tileMarkup/renderRack), which
+  // the classList/className scanners don't see.
+  const qwDynamic = ['swap-sel'];
   return (
     cls.startsWith('cat-') ||
     cls.startsWith('combo-') ||
     cls.startsWith('hh-status-') ||
+    cls.startsWith('qw-prem-') ||
+    cls.startsWith('qw-cell-') ||
+    cls.startsWith('qw-tile-') ||
     cls === 'tile' ||
     cls === 'flag-tile' ||
     qlasDynamic.includes(cls) ||
     dynamicConcat.includes(cls) ||
-    hhDynamic.includes(cls)
+    hhDynamic.includes(cls) ||
+    qwDynamic.includes(cls)
   );
 }
 

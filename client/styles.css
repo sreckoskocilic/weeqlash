@@ -4416,7 +4416,7 @@ body[data-game-theme='pink'] {
   color: #5efbef;
 }
 
-/* Screen — provides the --game-* vars the reused .qlas-* question styles need */
+/* Screen — provides the --game-* vars the reused qlas question styles need */
 /* Qlashword fills the viewport — drop the home-screen title's big top padding. */
 body.qw-active {
   padding-top: calc(1rem + env(safe-area-inset-top, 0px));
