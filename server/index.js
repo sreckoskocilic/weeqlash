@@ -28,6 +28,7 @@ const redisClient = initRedis();
 import {
   createRoom,
   createQlasRoom,
+  createQlashwordRoom,
   joinRoom,
   getRoom,
   removePlayerFromRoom,
@@ -75,6 +76,21 @@ import {
   QLAS_HP_OPTIONS,
   PHASE as QLAS_PHASE,
 } from './game/qlashique.ts';
+import {
+  createGame as createQlashwordGame,
+  validatePlacement as qwValidatePlacement,
+  collectWords as qwCollectWords,
+  allWordsValid as qwAllWordsValid,
+  planBonusQuestions as qwPlanBonusQuestions,
+  applyTurn as qwApplyTurn,
+  passTurn as qwPassTurn,
+  swapTiles as qwSwapTiles,
+  checkGameOver as qwCheckGameOver,
+  finalScores as qwFinalScores,
+  coordKey as qwCoordKey,
+  PHASE as QW_PHASE,
+} from './game/qlashword.ts';
+import { getDictionary } from './game/qlashword-dict.ts';
 import {
   initDb,
   getDb,
@@ -744,6 +760,28 @@ io.on('connection', (socket) => {
     }
     if (room.mode === 'qlashique') {
       return cb({ error: 'Qlashique rooms start via class selection' });
+    }
+    if (room.mode === 'qlashword') {
+      if (room.players.length !== 2) {
+        return cb({ error: 'Qlashword needs exactly 2 players' });
+      }
+      try {
+        room.state = createQlashwordGame();
+      } catch (err) {
+        console.error(`[qlashword] ${code} failed to create game:`, err.message);
+        return cb({ error: 'Failed to start game' });
+      }
+      room.started = true;
+      room.startedAt = Date.now();
+      room.qwTurn = null;
+      room.qwUsedQIds = new Set();
+      for (const player of room.players) {
+        registerActiveSocket(player.id);
+        quizRuns.delete(player.id);
+      }
+      console.log(`[qlashword] ${code} started (2p)`);
+      _emitQwGameStart(io, code, room);
+      return cb({ ok: true });
     }
 
     // Create game state first — only mark room as started if it succeeds
@@ -2397,6 +2435,172 @@ io.on('connection', (socket) => {
     cb({ ok: true });
   });
 
+  // --- Qlashword ---
+
+  socket.on('qlashword:create_room', ({ playerName } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    if (checkLobbyRateLimit(socket.id, cb)) {
+      return;
+    }
+    quizRuns.delete(socket.id);
+    const userId = socket.userId || socket.pendingUserId;
+    const room = createQlashwordRoom();
+    const player = joinRoom(room.code, socket.id, playerName, userId || null);
+    if (player.error) {
+      rooms.delete(room.code);
+      return cb(player);
+    }
+    socket.join(room.code);
+    const token = getPlayerBySocket(room, socket.id)?.token;
+    cb({
+      ok: true,
+      code: room.code,
+      playerId: socket.id,
+      players: room.players.map(publicPlayer),
+      token,
+    });
+  });
+
+  socket.on('qlashword:submit_turn', ({ code, placement } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const ctx = _qwTurnGuard(socket, code, cb, QW_PHASE.PLACE);
+    if (!ctx) {
+      return;
+    }
+    const { room, player } = ctx;
+
+    const clean = _qwSanitizePlacement(placement);
+    if (!clean) {
+      return cb({ error: 'Invalid placement' });
+    }
+
+    const state = room.state;
+    const geo = qwValidatePlacement(state.board, clean);
+    if (!geo.ok) {
+      return cb({ error: geo.error });
+    }
+
+    const words = qwCollectWords(state.board, clean, geo.orientation);
+    if (words.length === 0) {
+      return cb({ error: 'No word formed' });
+    }
+
+    const dict = getDictionary();
+    if (!qwAllWordsValid(words, dict)) {
+      const bad = words.find((w) => !dict.has(w.word.toUpperCase()));
+      return cb({ error: `Not a word: ${bad ? bad.word : '?'}` });
+    }
+
+    // Rack coverage pre-check — bonus questions resolve before we mutate, so
+    // verify the play is legal up front rather than failing after the quiz.
+    if (!_qwRackCovers(state.racks[player.index], clean)) {
+      return cb({ error: 'Placement uses tiles not on your rack' });
+    }
+
+    // One gated question per premium square the new tiles cover.
+    const bonuses = qwPlanBonusQuestions(clean)
+      .map((b) => {
+        const q = _qwPickBonusQuestion(room);
+        return q ? { ...b, questionId: q.id } : null;
+      })
+      .filter(Boolean);
+
+    if (bonuses.length === 0) {
+      const res = qwApplyTurn(state, player.index, clean, words, {});
+      if (res.error) {
+        return cb({ error: res.error });
+      }
+      cb({ ok: true, bonusCount: 0 });
+      _qwEmitTurnResult(io, code, room, player.index, res.breakdown);
+      _qwAfterTurn(io, code, room);
+      return;
+    }
+
+    room.qwTurn = {
+      playerIdx: player.index,
+      placement: clean,
+      words,
+      bonuses,
+      bonusIdx: 0,
+      bonusResults: {},
+    };
+    state.phase = QW_PHASE.BONUS_Q;
+    cb({ ok: true, bonusCount: bonuses.length });
+    _qwSendBonusQuestion(io, code, room);
+  });
+
+  socket.on('qlashword:answer_bonus', ({ code, answerIdx } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const ctx = _qwTurnGuard(socket, code, cb, QW_PHASE.BONUS_Q);
+    if (!ctx) {
+      return;
+    }
+    const { room, player } = ctx;
+    const turn = room.qwTurn;
+    if (!turn || turn.playerIdx !== player.index) {
+      return cb({ error: 'No bonus question pending' });
+    }
+    if (room.qwTimerExpired) {
+      return cb({ error: 'Time expired' });
+    }
+    if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
+      return cb({ error: 'Invalid answer' });
+    }
+    const bonus = turn.bonuses[turn.bonusIdx];
+    const q = questionsDb._byId[bonus.questionId];
+    const correct = !!q && answerIdx === q.a;
+    cb({ ok: true });
+    _qwResolveBonus(io, code, room, correct);
+  });
+
+  socket.on('qlashword:pass', ({ code } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const ctx = _qwTurnGuard(socket, code, cb, QW_PHASE.PLACE);
+    if (!ctx) {
+      return;
+    }
+    const { room, player } = ctx;
+    const res = qwPassTurn(room.state, player.index);
+    if (res.error) {
+      return cb({ error: res.error });
+    }
+    cb({ ok: true });
+    io.to(code).emit('qlashword:passed', { playerIdx: player.index });
+    _qwAfterTurn(io, code, room);
+  });
+
+  socket.on('qlashword:swap', ({ code, indices } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const ctx = _qwTurnGuard(socket, code, cb, QW_PHASE.PLACE);
+    if (!ctx) {
+      return;
+    }
+    const { room, player } = ctx;
+    if (!Array.isArray(indices) || indices.some((i) => !Number.isInteger(i))) {
+      return cb({ error: 'Invalid swap selection' });
+    }
+    const res = qwSwapTiles(room.state, player.index, indices);
+    if (res.error) {
+      return cb({ error: res.error });
+    }
+    cb({ ok: true });
+    io.to(code).emit('qlashword:swapped', { playerIdx: player.index });
+    _qwAfterTurn(io, code, room);
+  });
+
   // --- Disconnect ---
 
   socket.on('disconnect', () => {
@@ -2409,10 +2613,14 @@ io.on('connection', (socket) => {
     if (room && player) {
       // If game was in progress, notify remaining players and end the game
       if (room.started && room.state) {
-        const alreadyOver =
-          room.mode === 'qlashique'
-            ? room.state.phase === QLAS_PHASE.GAME_OVER
-            : room.state.phase === PHASE.GAME_OVER;
+        let alreadyOver;
+        if (room.mode === 'qlashique') {
+          alreadyOver = room.state.phase === QLAS_PHASE.GAME_OVER;
+        } else if (room.mode === 'qlashword') {
+          alreadyOver = room.state.phase === QW_PHASE.GAME_OVER;
+        } else {
+          alreadyOver = room.state.phase === PHASE.GAME_OVER;
+        }
         if (alreadyOver) {
           return;
         }
@@ -2434,6 +2642,19 @@ io.on('connection', (socket) => {
               reason: 'disconnect',
               history: room.qlasHistory ?? [],
               stats: room.qlasStats ?? null,
+            });
+          } else if (room.mode === 'qlashword') {
+            if (room.qwTimer) {
+              clearTimeout(room.qwTimer);
+              room.qwTimer = null;
+            }
+            room.qwTimerExpired = true;
+            room.qwTurn = null;
+            room.state.phase = QW_PHASE.GAME_OVER;
+            io.to(room.code).emit('qlashword:game_over', {
+              winnerIdx: winner.index,
+              reason: 'disconnect',
+              scores: room.state.scores,
             });
           } else {
             room.state.phase = PHASE.GAME_OVER;
@@ -2541,7 +2762,9 @@ function recordGameStats(room) {
   const validWinnerUserId = existingUserIds.has(winnerUserId) ? winnerUserId : null;
 
   const db = getDb();
-  if (!db) {return;}
+  if (!db) {
+    return;
+  }
 
   try {
     db.transaction(() => {
@@ -2640,7 +2863,9 @@ function _saveQlasResult(room, winnerIdx) {
   }
 
   const db = getDb();
-  if (!db) {return;}
+  if (!db) {
+    return;
+  }
 
   try {
     db.transaction(() => {
@@ -2692,6 +2917,229 @@ function _emitQlasTurnStart(ioServer, code, room) {
     timerSeconds,
     maxHp: room.state.maxHp,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Qlashword helpers
+// ---------------------------------------------------------------------------
+
+const QW_BONUS_TIMER_S = 15;
+// Bonus questions are pulled from every category EXCEPT death_metal.
+const QW_BONUS_CATS_SET = new Set([...CATS_SET].filter((c) => c !== 'death_metal'));
+
+// Shared guard for in-game qlashword handlers. Returns {room, player} or null
+// (after invoking cb with the appropriate error).
+function _qwTurnGuard(socket, code, cb, requiredPhase) {
+  const room = getRoom(code);
+  if (!room?.state || room.mode !== 'qlashword') {
+    cb({ error: 'No active game' });
+    return null;
+  }
+  const player = getPlayerBySocket(room, socket.id);
+  if (!player) {
+    cb({ error: 'Not in this room' });
+    return null;
+  }
+  if (room.state.currentPlayerIdx !== player.index) {
+    cb({ error: 'Not your turn' });
+    return null;
+  }
+  if (room.state.phase !== requiredPhase) {
+    cb({ error: 'Wrong phase' });
+    return null;
+  }
+  return { room, player };
+}
+
+// Validate + normalize a client placement into trusted PlacedTile objects.
+function _qwSanitizePlacement(placement) {
+  if (!Array.isArray(placement) || placement.length === 0 || placement.length > 7) {
+    return null;
+  }
+  const clean = [];
+  for (const t of placement) {
+    if (!t || typeof t !== 'object') {
+      return null;
+    }
+    const { row, col } = t;
+    if (!Number.isInteger(row) || !Number.isInteger(col)) {
+      return null;
+    }
+    if (row < 0 || row > 14 || col < 0 || col > 14) {
+      return null;
+    }
+    if (typeof t.letter !== 'string' || !/^[A-Z]$/.test(t.letter)) {
+      return null;
+    }
+    clean.push({ row, col, letter: t.letter, blank: !!t.blank });
+  }
+  return clean;
+}
+
+// True iff the rack holds every tile a placement consumes (blanks use '_').
+function _qwRackCovers(rack, placement) {
+  const copy = rack.slice();
+  for (const t of placement) {
+    const needed = t.blank ? '_' : t.letter;
+    const idx = copy.indexOf(needed);
+    if (idx === -1) {
+      return false;
+    }
+    copy.splice(idx, 1);
+  }
+  return true;
+}
+
+function _qwPickBonusQuestion(room) {
+  const q = pickRandomQuestion(questionsDb, QW_BONUS_CATS_SET, room.qwUsedQIds);
+  if (q) {
+    room.qwUsedQIds.add(q.id);
+  }
+  return q;
+}
+
+function _qwClearTimer(room) {
+  if (room.qwTimer) {
+    clearTimeout(room.qwTimer);
+    room.qwTimer = null;
+  }
+}
+
+// Public (shared) view of the board state. Racks are sent privately.
+function _qwPublicState(room) {
+  const s = room.state;
+  return {
+    board: s.board,
+    scores: s.scores,
+    currentPlayerIdx: s.currentPlayerIdx,
+    turnNumber: s.turnNumber,
+    phase: s.phase,
+    bagCount: s.bag.length,
+    rackCounts: [s.racks[0].length, s.racks[1].length],
+  };
+}
+
+// Broadcast shared state to the room and each player's private rack to them.
+function _qwEmitState(ioServer, code, room) {
+  ioServer.to(code).emit('qlashword:state', _qwPublicState(room));
+  for (const p of room.players) {
+    ioServer.to(p.id).emit('qlashword:rack', { rack: room.state.racks[p.index] });
+  }
+}
+
+function _emitQwGameStart(ioServer, code, room) {
+  ioServer.to(code).emit('qlashword:start', {
+    players: room.players.map(publicPlayer),
+    state: _qwPublicState(room),
+  });
+  for (const p of room.players) {
+    ioServer.to(p.id).emit('qlashword:rack', { rack: room.state.racks[p.index] });
+  }
+}
+
+function _qwSendBonusQuestion(ioServer, code, room) {
+  const turn = room.qwTurn;
+  const bonus = turn.bonuses[turn.bonusIdx];
+  const q = questionsDb._byId[bonus.questionId];
+  if (!q) {
+    // Defensive: don't wedge the turn — treat a missing question as no-unlock.
+    _qwResolveBonus(ioServer, code, room, false);
+    return;
+  }
+  room.qwTimerExpired = false;
+  ioServer.to(code).emit('qlashword:bonus_question', {
+    question: { id: q.id, q: q.q, opts: q.opts, category: q.category },
+    bonus: { row: bonus.row, col: bonus.col, bonusType: bonus.bonusType },
+    bonusIdx: turn.bonusIdx,
+    bonusTotal: turn.bonuses.length,
+    activePlayerIdx: turn.playerIdx,
+    timerSeconds: QW_BONUS_TIMER_S,
+  });
+  _qwClearTimer(room);
+  room.qwTimer = setTimeout(
+    () => {
+      room.qwTimer = null;
+      try {
+        if (room.state?.phase !== QW_PHASE.BONUS_Q) {
+          return;
+        }
+        room.qwTimerExpired = true;
+        _qwResolveBonus(ioServer, code, room, false); // timeout = no-unlock
+      } catch (err) {
+        console.error('[qlashword] bonus timer error:', err);
+      }
+    },
+    (QW_BONUS_TIMER_S + 3) * 1000,
+  );
+}
+
+function _qwResolveBonus(ioServer, code, room, correct) {
+  const turn = room.qwTurn;
+  if (!turn) {
+    return;
+  }
+  _qwClearTimer(room);
+  const bonus = turn.bonuses[turn.bonusIdx];
+  turn.bonusResults[qwCoordKey(bonus.row, bonus.col)] = correct;
+  ioServer.to(code).emit('qlashword:bonus_result', {
+    bonus: { row: bonus.row, col: bonus.col, bonusType: bonus.bonusType },
+    correct,
+    bonusIdx: turn.bonusIdx,
+  });
+  turn.bonusIdx++;
+  if (turn.bonusIdx < turn.bonuses.length) {
+    _qwSendBonusQuestion(ioServer, code, room);
+  } else {
+    _qwFinalizeTurn(ioServer, code, room);
+  }
+}
+
+function _qwFinalizeTurn(ioServer, code, room) {
+  const turn = room.qwTurn;
+  room.qwTurn = null;
+  room.state.phase = QW_PHASE.PLACE;
+  const res = qwApplyTurn(
+    room.state,
+    turn.playerIdx,
+    turn.placement,
+    turn.words,
+    turn.bonusResults,
+  );
+  if ('error' in res) {
+    console.error('[qlashword] finalize failed:', res.error);
+    _qwEmitState(ioServer, code, room);
+    return;
+  }
+  _qwEmitTurnResult(ioServer, code, room, turn.playerIdx, res.breakdown);
+  _qwAfterTurn(ioServer, code, room);
+}
+
+function _qwEmitTurnResult(ioServer, code, room, playerIdx, breakdown) {
+  ioServer.to(code).emit('qlashword:turn_result', {
+    playerIdx,
+    breakdown,
+    scores: room.state.scores,
+  });
+}
+
+// Broadcast post-turn state, then end the game if the end condition is met.
+function _qwAfterTurn(ioServer, code, room) {
+  _qwEmitState(ioServer, code, room);
+  if (qwCheckGameOver(room.state)) {
+    const finals = qwFinalScores(room.state);
+    room.state.scores = finals;
+    room.state.phase = QW_PHASE.GAME_OVER;
+    _qwClearTimer(room);
+    for (const p of room.players) {
+      unregisterActiveSocket(p.id);
+    }
+    const winnerIdx = finals[0] === finals[1] ? -1 : finals[0] > finals[1] ? 0 : 1;
+    ioServer.to(code).emit('qlashword:game_over', {
+      winnerIdx,
+      reason: 'normal',
+      scores: finals,
+    });
+  }
 }
 
 // Wait for Redis to be ready before accepting traffic — any request before

@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { CATS } from './engine.ts';
 import type { Category, GameState, Question } from './engine.ts';
 import type { QlashiqueState } from './qlashique.ts';
+import type { QlashwordState, BonusSquare, FormedWord, PlacedTile } from './qlashword.ts';
 
 // In-memory room store. Each room holds settings, player list, and game state.
 export const rooms = new Map<string, RoomState>(); // code -> room
@@ -16,7 +17,7 @@ export interface RoomState {
   playersBySocket: Map<string, PlayerInRoom>; // O(1) socketId -> player lookup
   started: boolean;
   startedAt: number | null;
-  state: GameState | QlashiqueState | null;
+  state: GameState | QlashiqueState | QlashwordState | null;
 
   // Board-game runtime
   lastQuestionStart?: number; // ms timestamp, used for min/max answer delay checks
@@ -32,6 +33,28 @@ export interface RoomState {
   qlasGuessingStartedAt?: number;
   qlasHistory?: QlashiqueHistoryEntry[];
   qlasStats?: { answered: number; correct: number }[];
+
+  // Qlashword-specific fields. A turn runs: submit_turn (place + validate) →
+  // a queue of gated bonus questions (one per premium square) → score + commit.
+  // The in-progress turn is parked on the room between those socket round-trips.
+  qwUsedQIds?: Set<string>;
+  qwTurn?: QlashwordTurnInProgress | null;
+  qwTimer?: ReturnType<typeof setTimeout> | null;
+  qwTimerExpired?: boolean;
+}
+
+// A validated placement waiting on its gated bonus questions to resolve.
+export interface QlashwordTurnInProgress {
+  playerIdx: 0 | 1;
+  placement: PlacedTile[];
+  words: FormedWord[];
+  bonuses: QlashwordPendingBonus[]; // one per premium square, answered in order
+  bonusIdx: number; // index of the bonus question currently being answered
+  bonusResults: Record<string, boolean>; // coordKey → answered correctly
+}
+
+export interface QlashwordPendingBonus extends BonusSquare {
+  questionId: string;
 }
 
 export interface QlashiqueHistoryEntry {
@@ -228,6 +251,10 @@ export function removePlayerFromRoom(
           clearTimeout(existingRoom.qlasTimer);
           existingRoom.qlasTimer = null;
         }
+        if (existingRoom.qwTimer) {
+          clearTimeout(existingRoom.qwTimer);
+          existingRoom.qwTimer = null;
+        }
         console.log(`[room] cleaning up empty room ${codeToCheck}`);
         rooms.delete(codeToCheck);
       }
@@ -282,6 +309,10 @@ export function cleanupStaleRooms(): number {
         clearTimeout(room.qlasTimer);
         room.qlasTimer = null;
       }
+      if (room.qwTimer) {
+        clearTimeout(room.qwTimer);
+        room.qwTimer = null;
+      }
     }
     rooms.delete(code);
     removed++;
@@ -313,6 +344,33 @@ export function createQlasRoom(): RoomState {
     usedQIds: new Set(),
     currentQuestion: null,
     questionIdx: 0,
+  };
+  rooms.set(code, room);
+  return room;
+}
+
+export function createQlashwordRoom(): RoomState {
+  let code: string;
+  do {
+    code = generateCode();
+  } while (rooms.has(code));
+
+  const room: RoomState = {
+    code,
+    mode: 'qlashword',
+    settings: {
+      playerCount: 2,
+      boardSize: 15,
+      timer: 30,
+      enabledCats: undefined as Category[] | undefined,
+    },
+    players: [],
+    playersBySocket: new Map(),
+    started: false,
+    startedAt: null,
+    state: null,
+    qwUsedQIds: new Set(),
+    qwTurn: null,
   };
   rooms.set(code, room);
   return room;
