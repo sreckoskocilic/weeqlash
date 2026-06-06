@@ -10,11 +10,11 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen shows five mode cards: **Brawl**, **Qlashique**, **Qlashword**, **SkipNoT**, and **HowHigh**.
+- Open the site. The landing screen shows the mode cards: **Brawl**, **Qlashique**, **Qlashword**, **SkipNoT**, **HowHigh**, **CentoGrapher**, and **MathQ**.
 - **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
 - To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
 
-There are five modes. Pick your poison.
+Pick your poison.
 
 ---
 
@@ -158,6 +158,33 @@ Bag empties, someone clears their rack, leftover tile values get subtracted, hig
 
 ---
 
+## 6. CentoGrapher — one map, sixty traps
+
+Solo geography. We show you the outline of a country, just the shape with no name on it, and a grid of 60 things: cities, rivers, mountains, clubs, famous people, border claims, a few bare numbers, the occasional cartoon character that wandered in. Some belong to that country. Most don't. Tick every one that fits.
+
+You don't get told how many are right. Could be eight, could be twenty-five, and it shifts every run and per category, so there's no pattern to lean on, no "the cities are always correct" shortcut. The wrong answers aren't filler either. Next to Germany you'll find Austrian and Swiss towns, Polish football clubs, false borders, numbers that look about right. Stuff you actually have to know to wave off.
+
+### Scoring
+
+| Outcome      | Delta  |
+| ------------ | ------ |
+| Correct pick | **+5** |
+| Wrong pick   | **−8** |
+
+Capped at +100. No floor, so a trigger-happy run drops below zero and sits there. Sixty seconds on the clock, and it submits itself when the time's up. At the end only the choices you ticked light up green or red. The ones you left alone stay dark, so the game never just shows you the full answer.
+
+---
+
+## 7. MathQ — solo numbers, no options to hide behind
+
+Ten problems, forty-five seconds each, and you type the answer instead of picking from a list. Calculus, geometry, trig, limits, the odd graph to read off. None of it comes from a question bank: every problem is generated fresh for the run, so memorising won't save you.
+
+You don't have to nail it exactly. Land inside the tolerance and you get full marks; drift further out and the points fall off bit by bit; miss by a mile and it's zero. A few of the problems hand out a small bonus when you get really close, which helps on the estimate-this-square-root kind. Each question is worth 10 to start.
+
+The answer never shows up, not mid-round and not on the review screen at the end. All you get back is whether each one was right, partial, or wrong, and what it earned you.
+
+---
+
 ## Stats
 
 The **Stats** button shows a logged-in player:
@@ -179,3 +206,6 @@ The **Stats** button shows a logged-in player:
 ![HowHighTimeCrunch](screenshots/hh-time_crunch.png)
 ![HowHighComplete](screenshots/hh-complete.png)
 ![Qlashword](screenshots/qlashword.png)
+![Centographer](screenshots/centographer.png)
+![MathQ1](screenshots/mathq1.png)
+![MathQ2](screenshots/mathq2.png)

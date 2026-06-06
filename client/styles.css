@@ -5197,16 +5197,16 @@ body.qw-active {
    ============================================================ */
 
 #screen-centographer {
-  --game-accent: #4fd1c5;
-  --game-accent-rgb: 79, 209, 197;
-  --game-accent-2: #f6c453;
-  --game-text: #cfeee9;
-  --game-border: #1c3a40;
-  --game-border-2: #2c5a60;
+  --game-accent: #34d399;
+  --game-accent-rgb: 52, 211, 153;
+  --game-accent-2: #fbbf24;
+  --game-text: #9fd4ba;
+  --game-border: #143226;
+  --game-border-2: #1f4d3a;
 }
 
 .mode-card--cento {
-  color: #6fb1ff;
+  color: #34d399;
 }
 
 .cento-head {
@@ -5219,8 +5219,8 @@ body.qw-active {
   position: relative;
   flex: 1;
   height: 22px;
-  background: #0d1326;
-  border: 1px solid var(--game-border-2, #2c5a60);
+  background: #0a1a12;
+  border: 1px solid var(--game-border-2, #1f4d3a);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -5287,8 +5287,8 @@ body.qw-active {
 .cento-map {
   text-align: center;
   margin: 0 0 10px;
-  background: #111c33;
-  border: 1px solid #33486a;
+  background: #0c1f17;
+  border: 1px solid #1f4d3a;
   border-radius: 10px;
   padding: 10px;
 }
@@ -5303,7 +5303,7 @@ body.qw-active {
   text-align: center;
   font-family: 'Chakra Petch', 'IBM Plex Mono', monospace;
   font-size: 1rem;
-  color: #e2eef5;
+  color: #9fd4ba;
   margin-bottom: 12px;
 }
 .cento-submit {
@@ -5344,10 +5344,10 @@ body.qw-active {
   min-height: 46px;
   text-align: left;
   padding: 8px 10px;
-  background: #1a2742;
-  border: 1px solid #3a5578;
+  background: #122a20;
+  border: 1px solid #1f4d3a;
   border-radius: 6px;
-  color: #eaf2f8;
+  color: #9fd4ba;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.9rem;
   font-weight: 500;
@@ -5356,8 +5356,8 @@ body.qw-active {
   transition: all 0.1s;
 }
 .cento-choice:hover:not(:disabled) {
-  border-color: var(--game-accent, #4fd1c5);
-  background: #213052;
+  border-color: var(--game-accent, #34d399);
+  background: #16382a;
 }
 .cento-check {
   flex: 0 0 auto;
@@ -5412,26 +5412,26 @@ body.qw-active {
 
 .leaderboard-panel.lb-cento {
   background: transparent;
-  border-color: #2c5a60;
+  border-color: #1f4d3a;
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
 .leaderboard-panel.lb-cento .lb-heading {
-  color: #cfeee9;
-  text-shadow: 0 0 18px rgba(79, 209, 197, 0.35);
+  color: #9fd4ba;
+  text-shadow: 0 0 18px rgba(52, 211, 153, 0.35);
 }
 .leaderboard-panel.lb-cento .lb-heading span {
-  color: #6fb1ff;
+  color: #fbbf24;
 }
 .leaderboard-panel.lb-cento .lb-divider {
-  background: linear-gradient(90deg, #6fb1ff, #1c3a40, transparent);
+  background: linear-gradient(90deg, #34d399, #143226, transparent);
 }
 .leaderboard-panel.lb-cento .lb-thead {
-  color: #2c5a60;
-  border-bottom-color: #1c3a40;
+  color: #1f4d3a;
+  border-bottom-color: #143226;
 }
 .leaderboard-panel.lb-cento .lb-row {
-  border-bottom-color: rgba(44, 90, 96, 0.4);
+  border-bottom-color: rgba(31, 77, 58, 0.4);
 }

@@ -1,16 +1,29 @@
-// Pure CentoGrapher logic — no I/O. One mega-question IS the whole quiz: a
-// country outline is shown and the player selects every answer related to that
-// country from a grid. The number of correct answers is hidden and varies per
-// run. Score: +5 per correct pick, -8 per wrong pick, capped at +100, NO lower
-// floor (the total can go negative). 60s timer (client-run).
+// CentoGrapher logic. One mega-question IS the whole quiz: a country outline is
+// shown and the player selects every answer related to that country from a grid
+// of CHOICE_COUNT choices. The number of correct answers is hidden and varies
+// per run AND per category (sometimes 0 cities are correct, sometimes 4) so
+// players can't learn a fixed pattern. Score: +5 per correct pick, -8 per wrong
+// pick, capped at +MAX_SCORE, NO lower floor (the total can go negative). 60s
+// timer (client-run).
 //
-// DATA RULE: only `correct` items must be factually true. Distractors can be
-// ANYTHING that is NOT true for the shown country.
-// DIVERSITY RULE: every item is tagged with a category; a built choice set has
-// at most MAX_PER_CAT items from any one category (combining correct +
-// distractors), so the grid is varied, not (e.g.) 15 cities.
+// DATA: per-country structural pools (cities/rivers/mountains/islands/seas/
+// nature/language/currency/continent/numbers) are generated from a Wikidata dump
+// into cento-data.json (see scripts/gen-cento-data.js) — NO hand-listing per
+// country. Cultural categories (border/person/club/food/sport/…) come from the
+// opt-in hand/LLM overlay in centographer-culture.ts and are merged here.
+//
+// DISTRACTORS are NOT hand-written: for a given country they are drawn from the
+// real items of OTHER countries that share a language or continent (so they are
+// notable and plausible — Salzburg/Zürich/Paris for Germany, never some obscure
+// village), plus a small absurd set (fiction/myth). Anything is fair game as a
+// distractor as long as it is not true for the shown country.
 
-export const CHOICE_COUNT = 36;
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { CULTURE } from './centographer-culture.ts';
+
+export const CHOICE_COUNT = 60;
 export const TIMER_MS = 60000;
 export const POINTS_CORRECT = 5;
 export const POINTS_WRONG = -8;
@@ -24,13 +37,27 @@ export type Cat =
   | 'river'
   | 'region'
   | 'nature'
+  | 'mountain'
+  | 'lake'
+  | 'island'
   | 'person'
+  | 'leader'
   | 'club'
   | 'brand'
+  | 'company'
   | 'food'
+  | 'drink'
   | 'landmark'
   | 'fact'
+  | 'history'
+  | 'language'
+  | 'currency'
+  | 'university'
+  | 'invention'
+  | 'music'
+  | 'film'
   | 'sport'
+  | 'animal'
   | 'fiction'
   | 'myth'
   | 'number';
@@ -44,6 +71,9 @@ export interface Country {
   name: string;
   slug: string; // matches /assets/countries/<slug>.svg
   correct: Item[];
+  continent: string;
+  langs: string[];
+  neighbors: string[]; // slugs of bordering countries (from P47); may be empty
 }
 
 export interface Choice {
@@ -52,127 +82,78 @@ export interface Choice {
   correct: boolean;
 }
 
-// tag a batch of labels with one category
 function g(cat: Cat, labels: string[]): Item[] {
   return labels.map((label) => ({ label, cat }));
 }
 
-// Big pool of items that are NOT true for Germany. Anything goes as long as it's
-// wrong (foreign proper nouns, mythology, fiction, sound-alike traps, false
-// claims, wrong numbers). Tagged so the diversity cap applies here too.
-const DISTRACTORS: Item[] = [
-  ...g('city', [
-    'Paris',
-    'Madrid',
-    'Rome',
-    'Lisbon',
-    'Barcelona',
-    'Naples',
-    'Lyon',
-    'Marseille',
-    'Warsaw',
-    'Kraków',
-    'Seville',
-    'Valencia',
-    'Porto',
-    'Athens',
-    'Dublin',
-    'Oslo',
-    'Stockholm',
-    'Moscow',
-    'Tokyo',
-    'Kyoto',
-    'Cairo',
-    'Rio de Janeiro',
-    'São Paulo',
-    'Sydney',
-    'Toronto',
-    'Istanbul',
-    'Lima',
-    'Bangkok',
-    // German-SOUNDING but NOT German (sound-alike traps)
-    'Salzburg',
-    'Zürich',
-    'Vienna',
-    'Strasbourg',
-    'Bern',
-    'Geneva',
-    'Graz',
-  ]),
-  ...g('river', [
-    'Seine',
-    'Loire',
-    'Tagus',
-    'Ebro',
-    'Tiber',
-    'Po',
-    'Thames',
-    'Volga',
-    'Nile',
-    'Amazon',
-    'Ganges',
-    'Mississippi',
-    'Yangtze',
-  ]),
-  ...g('region', [
-    'Tuscany',
-    'Catalonia',
-    'Andalusia',
-    'Provence',
-    'Normandy',
-    'Sicily',
-    'Scotland',
-    'Galicia',
-    'Liechtenstein',
-  ]),
-  ...g('person', [
-    'Napoleon',
-    'Leonardo da Vinci',
-    'Picasso',
-    'Cervantes',
-    'Dante',
-    'Monet',
-    'Galileo',
-    'Churchill',
-    'Isaac Newton',
-    'Shakespeare',
-    'Salvador Dalí',
-    'Michelangelo',
-    'Tolstoy',
-    'Julius Caesar',
-  ]),
-  ...g('club', [
-    'Real Madrid',
-    'FC Barcelona',
-    'Juventus',
-    'AC Milan',
-    'Paris Saint-Germain',
-    'Liverpool',
-    'Ajax',
-    'Benfica',
-    'Manchester United',
-  ]),
-  ...g('landmark', [
-    'Eiffel Tower',
-    'Colosseum',
-    'Sagrada Família',
-    'Big Ben',
-    'Louvre',
-    'Acropolis',
-    'Leaning Tower of Pisa',
-    'Statue of Liberty',
-    'Taj Mahal',
-    'Great Wall of China',
-  ]),
-  ...g('nature', [
-    'Mount Everest',
-    'Sahara Desert',
-    'Mount Fuji',
-    'Niagara Falls',
-    'Grand Canyon',
-    'Kilimanjaro',
-  ]),
-  ...g('brand', ['Ferrari', 'Toyota', 'Renault', 'Fiat', 'Peugeot', 'Nokia']),
+// --- load generated structural data + merge cultural overlay ---
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+interface RawCountry {
+  slug: string;
+  name: string;
+  continent: string;
+  langs: string[];
+  correct: Item[];
+  neighbors?: string[];
+}
+const RAW = JSON.parse(fs.readFileSync(path.join(__dirname, 'cento-data.json'), 'utf8')) as {
+  version: number;
+  countries: RawCountry[];
+};
+
+function mergeCorrect(structural: Item[], cult: Item[]): Item[] {
+  const seen = new Set<string>();
+  const out: Item[] = [];
+  for (const it of [...structural, ...cult]) {
+    if (seen.has(it.label)) {
+      continue;
+    }
+    seen.add(it.label);
+    out.push(it);
+  }
+  return out;
+}
+
+export const COUNTRIES: Country[] = RAW.countries.map((c) => ({
+  slug: c.slug,
+  name: c.name,
+  continent: c.continent,
+  langs: c.langs,
+  neighbors: c.neighbors || [],
+  correct: mergeCorrect(c.correct, CULTURE[c.slug] || []),
+}));
+
+export const COUNTRIES_BY_SLUG: Record<string, Country> = Object.fromEntries(
+  COUNTRIES.map((c) => [c.slug, c]),
+);
+
+// --- distractor indices (same-language / same-continent → plausible traps) ---
+
+const byLang = new Map<string, Set<string>>();
+const byContinent = new Map<string, string[]>();
+const ITEMS_BY_SLUG = new Map<string, Item[]>();
+for (const c of COUNTRIES) {
+  ITEMS_BY_SLUG.set(c.slug, c.correct);
+  for (const l of c.langs) {
+    let s = byLang.get(l);
+    if (!s) {
+      byLang.set(l, (s = new Set()));
+    }
+    s.add(c.slug);
+  }
+  const arr = byContinent.get(c.continent);
+  if (arr) {
+    arr.push(c.slug);
+  } else {
+    byContinent.set(c.continent, [c.slug]);
+  }
+}
+
+// Universally-false items: obvious give-aways, so capped HARD at ABSURD_MAX per
+// grid — a couple at most, just enough to make someone second-guess for a beat.
+const ABSURD_MAX = 2;
+export const ABSURD: Item[] = [
   ...g('fiction', [
     'Mickey Mouse',
     'Superman',
@@ -182,141 +163,77 @@ const DISTRACTORS: Item[] = [
     'Darth Vader',
     'Sherlock Holmes',
     'Super Mario',
-    'Sonic',
+    'Sonic the Hedgehog',
     'Godzilla',
   ]),
-  ...g('myth', ['Zeus', 'Poseidon', 'Hercules', 'Ramesses II']),
-  ...g('fact', [
-    'Landlocked',
-    'Borders Brazil',
-    'Borders China',
-    'Borders Spain',
-    'Borders Russia',
-    'Located in Africa',
-    'On the Pacific Ocean',
-    'In South America',
-    'An island nation',
-    'French is the official language',
-    'Birthplace of pizza',
-    'Birthplace of the tango',
-    'Home of the pharaohs',
-  ]),
-  ...g('sport', ['Won the Cricket World Cup', 'Won the Rugby World Cup', 'Has an NFL franchise']),
-  ...g('number', [
-    '505,990',
-    '301,340',
-    '9,834,000',
-    '47 million',
-    '60 million',
-    '125 million',
-    '20',
-    '17',
-    '9',
-  ]),
+  ...g('myth', ['Zeus', 'Poseidon', 'Hercules', 'Thor', 'Anubis']),
 ];
 
-export const COUNTRIES: Country[] = [
-  {
-    name: 'Germany',
-    slug: 'germany',
-    correct: [
-      ...g('border', [
-        'Borders France',
-        'Borders Poland',
-        'Borders Austria',
-        'Borders Switzerland',
-        'Borders the Czech Republic',
-        'Borders the Netherlands',
-        'Borders Belgium',
-        'Borders Denmark',
-        'Borders Luxembourg',
-      ]),
-      ...g('sea', ['Has a Baltic Sea coastline', 'Has a North Sea coastline']),
-      ...g('city', [
-        'Berlin',
-        'Munich',
-        'Hamburg',
-        'Cologne',
-        'Frankfurt',
-        'Stuttgart',
-        'Düsseldorf',
-        'Dresden',
-        'Leipzig',
-        'Nuremberg',
-        'Bremen',
-        'Hannover',
-        'Dortmund',
-        'Essen',
-      ]),
-      ...g('river', ['Rhine', 'Elbe', 'Danube', 'Main', 'Moselle', 'Spree', 'Oder', 'Weser']),
-      ...g('region', [
-        'Bavaria',
-        'Saxony',
-        'Hesse',
-        'Thuringia',
-        'Brandenburg',
-        'North Rhine-Westphalia',
-        'Baden-Württemberg',
-        'Lower Saxony',
-      ]),
-      ...g('nature', ['Zugspitze', 'Black Forest', 'Harz', 'Bavarian Alps', 'Lake Constance']),
-      ...g('person', [
-        'Goethe',
-        'Beethoven',
-        'Bach',
-        'Einstein',
-        'Nietzsche',
-        'Kant',
-        'Schiller',
-        'Brahms',
-        'Gutenberg',
-        'Karl Marx',
-        'Max Planck',
-      ]),
-      ...g('club', [
-        'Bayern Munich',
-        'Borussia Dortmund',
-        'Schalke 04',
-        'RB Leipzig',
-        'Bayer Leverkusen',
-      ]),
-      ...g('brand', ['Volkswagen', 'BMW', 'Mercedes-Benz', 'Audi', 'Porsche', 'Adidas', 'Siemens']),
-      ...g('food', ['Bratwurst', 'Pretzel', 'Sauerkraut', 'Currywurst']),
-      ...g('landmark', [
-        'Brandenburg Gate',
-        'Reichstag',
-        'Neuschwanstein',
-        'Cologne Cathedral',
-        'Berlin Wall',
-      ]),
-      ...g('fact', [
-        'In Central Europe',
-        'Uses the Euro',
-        'Member of the EU',
-        'Member of NATO',
-        'German is the official language',
-        'Birthplace of the printing press',
-        'Home of the Brothers Grimm',
-        'Oktoberfest',
-        'Autobahn',
-      ]),
-      ...g('sport', [
-        'Won the FIFA World Cup',
-        'Hosted the FIFA World Cup',
-        'Hosted the Summer Olympics',
-        'Produced an NBA MVP',
-        'Has a UEFA Champions League winner',
-        'Has a Formula 1 World Champion',
-        'Has won Eurovision',
-      ]),
-      ...g('number', ['357,022', '83 million', '16']),
-    ],
-  },
-];
+// Distractors must be PROPER-NOUN traps (cities, rivers, mountains, clubs,
+// people…) you can't easily reason away — plus false border/coastline claims.
+// Abstract/relational/numeric categories make weak or nonsensical distractors
+// ("Luxembourgish is spoken here", "Uses the Serbian dinar", "In Asia", a random
+// area number), so they are CORRECT-only — never distractors.
+export const NO_DISTRACT = new Set<Cat>(['language', 'currency', 'fact', 'sea']);
 
-export const COUNTRIES_BY_SLUG: Record<string, Country> = Object.fromEntries(
-  COUNTRIES.map((c) => [c.slug, c]),
-);
+function collectItems(slugs: Iterable<string>, own: Set<string>, seen: Set<string>): Item[] {
+  const out: Item[] = [];
+  for (const s of slugs) {
+    for (const it of ITEMS_BY_SLUG.get(s) || []) {
+      if (NO_DISTRACT.has(it.cat) || own.has(it.label) || seen.has(it.label)) {
+        continue;
+      }
+      seen.add(it.label);
+      out.push(it);
+    }
+  }
+  return out;
+}
+
+// Build a plausible distractor pool for one country, TIERED by closeness so the
+// grid is hard, not trivially discardable (a Serbian item next to Germany is
+// easy; an Austrian/Swiss/neighbor one is not). Tier 1: bordering countries
+// (P47) + same-language countries. Tier 2: same continent. Returned tier-first
+// (shuffled within tiers) so buildChoices consumes the closest items first;
+// far-continent and absurd items only surface if a tier runs dry.
+function distractorPoolFor(country: Country): Item[] {
+  const own = new Set(country.correct.map((i) => i.label));
+  const seen = new Set<string>();
+
+  const tier1 = new Set<string>();
+  for (const s of country.neighbors) {
+    if (COUNTRIES_BY_SLUG[s]) {
+      tier1.add(s);
+    }
+  }
+  for (const l of country.langs) {
+    for (const s of byLang.get(l) || []) {
+      tier1.add(s);
+    }
+  }
+  tier1.delete(country.slug);
+
+  const tier2 = new Set<string>();
+  for (const s of byContinent.get(country.continent) || []) {
+    if (s !== country.slug && !tier1.has(s)) {
+      tier2.add(s);
+    }
+  }
+
+  const pool = [
+    ...shuffle(collectItems(tier1, own, seen)),
+    ...shuffle(collectItems(tier2, own, seen)),
+  ];
+
+  // Fallback for isolated countries: top up from everyone else.
+  if (pool.length < CHOICE_COUNT * 2) {
+    const rest = COUNTRIES.map((c) => c.slug).filter((s) => s !== country.slug);
+    pool.push(...shuffle(collectItems(rest, own, seen)));
+  }
+  // Absurd items are NOT part of this pool — buildChoices adds a tiny capped
+  // quota separately so the grid never fills up with Mickey Mouse / Zeus.
+  return pool;
+}
 
 // --- helpers ---
 
@@ -346,55 +263,105 @@ function groupByCat(items: Item[]): Map<Cat, Item[]> {
   return m;
 }
 
-// Round-robin draw up to `n` items from category buckets, respecting MAX_PER_CAT
-// via the shared `catCount` map (so correct + distractors combined stay capped).
-function drawCapped(pool: Map<Cat, Item[]>, n: number, catCount: Map<Cat, number>): Item[] {
-  const out: Item[] = [];
-  let progress = true;
-  while (out.length < n && progress) {
-    progress = false;
-    for (const cat of shuffle([...pool.keys()])) {
-      if (out.length >= n) {
-        break;
-      }
-      if ((catCount.get(cat) ?? 0) >= MAX_PER_CAT) {
-        continue;
-      }
-      const arr = pool.get(cat);
-      if (!arr || !arr.length) {
-        continue;
-      }
-      out.push(arr.pop()!);
-      catCount.set(cat, (catCount.get(cat) ?? 0) + 1);
-      progress = true;
-    }
-  }
-  return out;
-}
-
-// Build one question's choice set: a hidden, variable number of correct answers
-// + distractors to CHOICE_COUNT, with at most MAX_PER_CAT per category overall.
+// Build one question's choice set. Correct side: a random number of correct
+// items per category (0..MAX_PER_CAT) so the count is unpredictable. Distractor
+// side: fill to CHOICE_COUNT from the plausible pool, capped per category for
+// grid variety. #correct is hidden and varies per run and per category.
 export function buildChoices(country: Country): Choice[] {
+  const correctByCat = groupByCat(country.correct);
+  // Tier-ordered (closest distractors first) — do NOT re-shuffle the whole pool.
+  const distract = distractorPoolFor(country);
+
+  const picked: { label: string; correct: boolean }[] = [];
+  const usedLabels = new Set<string>();
   const catCount = new Map<Cat, number>();
 
-  const nCorrect = randInt(8, 24);
-  const chosenCorrect = drawCapped(groupByCat(country.correct), nCorrect, catCount);
-
-  const correctLabels = new Set(country.correct.map((i) => i.label));
-  const distractPool = groupByCat(DISTRACTORS.filter((d) => !correctLabels.has(d.label)));
-  let chosenDistract = drawCapped(distractPool, CHOICE_COUNT - chosenCorrect.length, catCount);
-
-  // Fallback: if the per-cat cap left us short, top up from leftover distractors.
-  const shortfall = CHOICE_COUNT - chosenCorrect.length - chosenDistract.length;
-  if (shortfall > 0) {
-    const leftover = shuffle([...distractPool.values()].flat());
-    chosenDistract = chosenDistract.concat(leftover.slice(0, shortfall));
+  // Hidden target for #correct this run — varies run to run so there's always a
+  // healthy block of distractors and the count is never predictable. Spread it
+  // across a random subset of categories (max MAX_PER_CAT each); some categories
+  // contribute 0, so e.g. "cities" may have 4 correct one run and none the next.
+  const nCorrectTarget = randInt(8, 28);
+  for (const cat of shuffle([...correctByCat.keys()])) {
+    const remaining = nCorrectTarget - picked.length;
+    if (remaining <= 0) {
+      break;
+    }
+    const pool = correctByCat.get(cat)!;
+    const room = Math.min(MAX_PER_CAT, pool.length, remaining);
+    const take = randInt(0, room);
+    for (let i = 0; i < take; i++) {
+      const it = pool.pop();
+      if (!it || usedLabels.has(it.label)) {
+        continue;
+      }
+      usedLabels.add(it.label);
+      picked.push({ label: it.label, correct: true });
+      catCount.set(cat, (catCount.get(cat) ?? 0) + 1);
+    }
   }
 
-  return shuffle([
-    ...chosenCorrect.map((it) => ({ label: it.label, correct: true })),
-    ...chosenDistract.map((it) => ({ label: it.label, correct: false })),
-  ]).map((c, i) => ({ id: 'c' + i, label: c.label, correct: c.correct }));
+  // Guarantee at least one correct answer.
+  if (!picked.some((p) => p.correct)) {
+    for (const cat of shuffle([...correctByCat.keys()])) {
+      const it = correctByCat.get(cat)!.pop();
+      if (it) {
+        usedLabels.add(it.label);
+        picked.push({ label: it.label, correct: true });
+        catCount.set(cat, (catCount.get(cat) ?? 0) + 1);
+        break;
+      }
+    }
+  }
+
+  // At most ABSURD_MAX absurd items per grid — enough to make someone pause for a
+  // couple of seconds, never enough to waste real distractor slots. Reserve their
+  // slots so the proper-noun fill below doesn't claim the whole grid first.
+  const absurdQuota = randInt(0, ABSURD_MAX);
+  const properTarget = CHOICE_COUNT - absurdQuota;
+
+  // Distractors: real proper-noun traps, capped per category for variety.
+  for (const it of distract) {
+    if (picked.length >= properTarget) {
+      break;
+    }
+    if (usedLabels.has(it.label) || (catCount.get(it.cat) ?? 0) >= MAX_PER_CAT) {
+      continue;
+    }
+    usedLabels.add(it.label);
+    picked.push({ label: it.label, correct: false });
+    catCount.set(it.cat, (catCount.get(it.cat) ?? 0) + 1);
+  }
+
+  // The capped quota of absurd items.
+  let absurdLeft = absurdQuota;
+  for (const it of shuffle(ABSURD)) {
+    if (picked.length >= CHOICE_COUNT || absurdLeft <= 0) {
+      break;
+    }
+    if (usedLabels.has(it.label)) {
+      continue;
+    }
+    usedLabels.add(it.label);
+    picked.push({ label: it.label, correct: false });
+    absurdLeft--;
+  }
+
+  // Top-up with more proper nouns (ignoring the per-cat cap) if still short —
+  // happens only before the cultural categories are fetched, when few cats exist.
+  if (picked.length < CHOICE_COUNT) {
+    for (const it of distract) {
+      if (picked.length >= CHOICE_COUNT) {
+        break;
+      }
+      if (usedLabels.has(it.label)) {
+        continue;
+      }
+      usedLabels.add(it.label);
+      picked.push({ label: it.label, correct: false });
+    }
+  }
+
+  return shuffle(picked).map((c, i) => ({ id: 'c' + i, label: c.label, correct: c.correct }));
 }
 
 // Score selected ids against the choice set. Capped at MAX_SCORE; no lower floor.
