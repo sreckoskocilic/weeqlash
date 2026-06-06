@@ -97,10 +97,19 @@ interface RawCountry {
   correct: Item[];
   neighbors?: string[];
 }
-const RAW = JSON.parse(fs.readFileSync(path.join(__dirname, 'cento-data.json'), 'utf8')) as {
-  version: number;
-  countries: RawCountry[];
-};
+function loadRaw(): { version: number; countries: RawCountry[] } {
+  const file = path.join(__dirname, 'cento-data.json');
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    throw new Error(
+      `centographer: cannot load ${file} — run \`node scripts/gen-cento-data.js\` to build it. (${
+        (e as Error).message
+      })`,
+    );
+  }
+}
+const RAW = loadRaw();
 
 function mergeCorrect(structural: Item[], cult: Item[]): Item[] {
   const seen = new Set<string>();

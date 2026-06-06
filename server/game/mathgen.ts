@@ -103,11 +103,18 @@ function coef(n: number): string {
   return n === 1 ? '' : n === -1 ? '-' : String(n);
 }
 
+// A signed non-leading term with the implicit-1 coefficient dropped:
+// fmtTerm(1,'x') = " + x", fmtTerm(-3,'x^2') = " - 3x^2". Assumes n !== 0.
+function fmtTerm(n: number, suffix: string): string {
+  const mag = Math.abs(n);
+  return ` ${n >= 0 ? '+' : '-'} ${mag === 1 ? '' : mag}${suffix}`;
+}
+
 // a x^2 + b x + c as KaTeX, dropping zero terms.
 function fmtQuadratic(a: number, b: number, c: number): string {
   let s = `${coef(a)}x^2`;
   if (b !== 0) {
-    s += ` ${fmtSigned(b)}x`;
+    s += fmtTerm(b, 'x');
   }
   if (c !== 0) {
     s += ` ${fmtSigned(c)}`;
@@ -119,10 +126,10 @@ function fmtQuadratic(a: number, b: number, c: number): string {
 function fmtCubic(a: number, b: number, c: number, d: number): string {
   let s = `${coef(a)}x^3`;
   if (b !== 0) {
-    s += ` ${fmtSigned(b)}x^2`;
+    s += fmtTerm(b, 'x^2');
   }
   if (c !== 0) {
-    s += ` ${fmtSigned(c)}x`;
+    s += fmtTerm(c, 'x');
   }
   if (d !== 0) {
     s += ` ${fmtSigned(d)}`;

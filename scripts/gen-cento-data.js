@@ -19,7 +19,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DUMP_DIR = '/Users/skocho/apps/repos/srazique-fixtures/data/geo';
+// Wikidata geo dump dir. Override with CENTO_DUMP_DIR env or argv[2]; the default
+// is the local srazique-fixtures checkout.
+const DUMP_DIR =
+  process.env.CENTO_DUMP_DIR ||
+  process.argv[2] ||
+  '/Users/skocho/apps/repos/srazique-fixtures/data/geo';
 const SVG_DIR = path.join(__dirname, '../client/assets/countries');
 const OUT = path.join(__dirname, '../server/game/cento-data.json');
 
