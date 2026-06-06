@@ -18,6 +18,7 @@ import { initSkipnot } from './skipnot.js';
 import { initSkipnotTheme } from './skipnot-theme.js';
 import { initHowHigh } from './howhigh.js';
 import { initMathquiz } from './mathquiz.js';
+import { initCentographer } from './centographer.js';
 import { initNav } from './nav.js';
 import { initHomeBg } from './home-bg.js';
 
@@ -59,6 +60,9 @@ async function init() {
 
   // MathQuiz (solo numeric math/calculus quiz)
   initMathquiz(sock);
+
+  // CentoGrapher (single-question geography select-all)
+  initCentographer(sock);
 
   // HowHigh? (async 2P challenge)
   initHowHigh(sock);

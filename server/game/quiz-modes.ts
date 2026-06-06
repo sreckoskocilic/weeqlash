@@ -25,6 +25,8 @@ const _MODES: QuizModeInput[] = [
   { id: 'howhigh', label: 'HowHigh?', categories: null },
   // Procedurally generated math/calculus quiz — no question-bank categories.
   { id: 'mathquiz', label: 'MathQ', categories: [] },
+  // CentoGrapher — single-question geography "select all related to the country".
+  { id: 'centographer', label: 'CentoGrapher', categories: [] },
 ];
 
 export const QUIZ_MODES: QuizMode[] = _MODES.map((m) => ({

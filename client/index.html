@@ -385,6 +385,26 @@
                 <span class="mode-desc">Solo · numeric math &amp; calculus, type the answer</span>
               </span>
             </button>
+            <button id="btn-cento-create" class="mode-card mode-card--cento" type="button">
+              <span class="mode-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="2" />
+                  <ellipse cx="16" cy="16" rx="5" ry="12" stroke="currentColor" stroke-width="2" />
+                  <path
+                    d="M 4 16 L 28 16 M 5.5 10 L 26.5 10 M 5.5 22 L 26.5 22"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+              <span class="mode-text">
+                <span class="mode-name">CentoGrapher</span>
+                <span class="mode-desc"
+                  >Solo · one map, 36 answers — pick all that fit, up to 100 pts</span
+                >
+              </span>
+            </button>
             <div class="mode-card-wrap mode-card-wrap--howhigh">
               <button id="btn-howhigh-create" class="mode-card mode-card--howhigh" type="button">
                 <span class="mode-icon" aria-hidden="true">
@@ -540,6 +560,29 @@
                 <div style="text-align: right">TIME</div>
               </div>
               <div id="mathquiz-lb-rows" class="lb-rows"></div>
+            </div>
+            <button
+              id="btn-show-cento-lb"
+              class="btn-qlashique"
+              type="button"
+              style="margin-top: 0.8rem"
+            >
+              Show CentoGrapher Leaderboard
+            </button>
+            <div
+              id="cento-lb-panel"
+              class="leaderboard-panel lb-cento"
+              style="display: none; margin-top: 1.2rem"
+            >
+              <div class="lb-heading">CARTO <span>MASTERS</span></div>
+              <div class="lb-divider"></div>
+              <div class="lb-thead">
+                <div>#</div>
+                <div>NAME</div>
+                <div style="text-align: center">SCORE</div>
+                <div style="text-align: right">TIME</div>
+              </div>
+              <div id="cento-lb-rows" class="lb-rows"></div>
             </div>
           </div>
         </div>
@@ -1754,6 +1797,108 @@
                 <div style="text-align: right">TIME</div>
               </div>
               <div id="mathquiz-go-lb-rows" class="lb-rows"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CentoGrapher Screen -->
+    <div id="screen-centographer" style="display: none">
+      <div class="qlas-inner">
+        <!-- Game phase -->
+        <div id="cento-phase-game" style="display: none">
+          <div class="cento-head">
+            <div class="cento-timer">
+              <div id="cento-timer-fill" class="cento-timer-fill safe"></div>
+              <span id="cento-timer-text" class="cento-timer-text">60s</span>
+            </div>
+            <div class="cento-selcount">selected <span id="cento-count">0</span></div>
+          </div>
+
+          <div class="cento-body">
+            <div class="cento-left">
+              <div class="cento-map">
+                <img id="cento-img" alt="Country outline" />
+              </div>
+              <div class="cento-prompt">Select everything related to this country</div>
+              <button
+                class="qlas-btn qlas-btn--primary cento-submit"
+                id="btn-cento-submit"
+                type="button"
+              >
+                [ SUBMIT ]
+              </button>
+            </div>
+            <div id="cento-choices" class="cento-choices"></div>
+          </div>
+        </div>
+
+        <!-- Game over -->
+        <div id="cento-phase-gameover" style="display: none">
+          <div class="qlas-gameover">
+            <h1 class="qlas-go-head">&gt; CENTOGRAPHER</h1>
+            <div class="qlas-go-stats">
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">SCORE</span>
+                <span class="qlas-go-v" id="cento-go-score">—</span>
+              </div>
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">MISSED</span>
+                <span class="qlas-go-v" id="cento-go-correct">—</span>
+              </div>
+              <div class="qlas-go-row">
+                <span class="qlas-go-k">WRONG PICKS</span>
+                <span class="qlas-go-v" id="cento-go-wrong">—</span>
+              </div>
+            </div>
+            <div
+              id="cento-qualifies-row"
+              style="display: none; margin: 1rem auto 0; max-width: 480px"
+            >
+              <input
+                id="cento-name-input"
+                placeholder="your name"
+                maxlength="16"
+                style="
+                  width: 100%;
+                  box-sizing: border-box;
+                  background: #0d1326;
+                  border: 1px solid #4fd1c5;
+                  color: #4fd1c5;
+                  font-family: 'IBM Plex Mono', monospace;
+                  padding: 8px 12px;
+                "
+              />
+            </div>
+            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+              <button
+                class="qlas-btn qlas-btn--primary"
+                id="btn-cento-submit-score"
+                type="button"
+                style="display: none; flex: 1 1 0"
+              >
+                [ SUBMIT ]
+              </button>
+              <button
+                class="qlas-btn qlas-btn--ghost"
+                id="btn-cento-back"
+                type="button"
+                style="flex: 1 1 0"
+              >
+                [ BACK ]
+              </button>
+            </div>
+            <div class="leaderboard-panel lb-cento" style="margin-top: 1.2rem">
+              <div class="lb-heading">CARTO <span>MASTERS</span></div>
+              <div class="lb-divider"></div>
+              <div class="lb-thead">
+                <div>#</div>
+                <div>NAME</div>
+                <div style="text-align: center">SCORE</div>
+                <div style="text-align: right">TIME</div>
+              </div>
+              <div id="cento-go-lb-rows" class="lb-rows"></div>
             </div>
           </div>
         </div>

@@ -56,6 +56,7 @@ import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
 import * as skipnot from './game/skipnot.ts';
 import * as mathquiz from './game/mathquiz.ts';
 import { generateSet as mathGenerateSet, toPublic as mathToPublic } from './game/mathgen.ts';
+import * as centographer from './game/centographer.ts';
 import * as howhigh from './game/howhigh.ts';
 import {
   createChallenge,
@@ -261,6 +262,7 @@ const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 
 const skipnotRuns = new Map();
 const howHighRuns = new Map();
 const mathquizRuns = new Map();
+const centographerRuns = new Map();
 
 // Periodic cleanup of stale rate limit entries (every 30s)
 const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
@@ -291,6 +293,11 @@ const cleanupInterval = setInterval(() => {
   for (const [socketId, run] of mathquizRuns) {
     if (now - run.startedAt > 10 * 60_000) {
       mathquizRuns.delete(socketId);
+    }
+  }
+  for (const [socketId, run] of centographerRuns) {
+    if (now - run.startedAt > 10 * 60_000) {
+      centographerRuns.delete(socketId);
     }
   }
 }, 30_000);
@@ -1681,6 +1688,106 @@ io.on('connection', (socket) => {
     cb({ ok: true, top10 });
   });
 
+  // --- CentoGrapher (single-question geography "select all related") ---
+  // One mega-question = whole quiz. Server builds the choice set (correct flags
+  // secret), client selects, server scores. The true correct set is NEVER sent;
+  // only the player's own picks get a verdict.
+  socket.on('centographer:start', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    const now = Date.now();
+    const lastQuiz = quizTimestamps.get(socket.id) || 0;
+    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+      return cb({ error: 'Please wait before starting another quiz.' });
+    }
+    quizTimestamps.set(socket.id, now);
+    if (isInActiveGame(socket.id)) {
+      return cb({ error: 'Cannot play quiz during an active game.' });
+    }
+
+    const country =
+      centographer.COUNTRIES[Math.floor(Math.random() * centographer.COUNTRIES.length)];
+    const choices = centographer.buildChoices(country);
+    centographerRuns.set(socket.id, {
+      startedAt: now,
+      country,
+      choices, // with secret correct flags
+      finished: false,
+      finalScore: 0,
+      finalTimeMs: 0,
+    });
+    cb({
+      ok: true,
+      slug: country.slug,
+      name: country.name,
+      timerMs: centographer.TIMER_MS,
+      total: centographer.CHOICE_COUNT,
+      choices: choices.map((c) => ({ id: c.id, label: c.label })), // no `correct`
+    });
+  });
+
+  socket.on('centographer:submit', ({ selected } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = centographerRuns.get(socket.id);
+    if (!run) {
+      return cb({ error: 'CentoGrapher not started' });
+    }
+    if (run.finished) {
+      return cb({ error: 'Already submitted' });
+    }
+    const ids = Array.isArray(selected)
+      ? selected.filter((s) => typeof s === 'string').slice(0, centographer.CHOICE_COUNT)
+      : [];
+    const { score, correctPicked, wrongPicked } = centographer.scoreCento(run.choices, ids);
+    const totalCorrect = run.choices.filter((c) => c.correct).length;
+    const missingCorrect = totalCorrect - correctPicked;
+    run.finished = true;
+    run.finalScore = score;
+    run.finalTimeMs = Math.min(
+      Math.max(Date.now() - run.startedAt, 0),
+      centographer.TIMER_MS + 2000,
+    );
+
+    // verdict only for the player's own picks — true correct set stays hidden
+    const sel = new Set(ids);
+    const verdict = {};
+    for (const c of run.choices) {
+      if (sel.has(c.id)) {
+        verdict[c.id] = c.correct;
+      }
+    }
+    const qualifies = checkQualifiesTop10ForMode('centographer', score, run.finalTimeMs);
+    cb({ ok: true, score, correctPicked, wrongPicked, missingCorrect, verdict, qualifies });
+  });
+
+  socket.on('centographer:submit_score', ({ name } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = centographerRuns.get(socket.id);
+    if (!run || !run.finished) {
+      return cb({ error: 'No completed run' });
+    }
+    const sanitizedName = name?.trim();
+    if (!sanitizedName || sanitizedName.length > 16) {
+      return cb({ error: 'Name must be 1-16 characters' });
+    }
+    const top10 = insertScoreForMode(
+      'centographer',
+      sanitizedName,
+      run.finalScore,
+      run.finalTimeMs,
+    );
+    centographerRuns.delete(socket.id);
+    cb({ ok: true, top10 });
+  });
+
   // --- HowHigh? (async 2P challenge) ---
 
   function _pickHowHighPool(count) {
@@ -2830,6 +2937,7 @@ io.on('connection', (socket) => {
     _disposeSkipnotRun(socket.id);
     howHighRuns.delete(socket.id);
     mathquizRuns.delete(socket.id);
+    centographerRuns.delete(socket.id);
     unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {

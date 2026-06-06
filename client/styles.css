@@ -5191,3 +5191,247 @@ body.qw-active {
 .leaderboard-panel.lb-mathquiz .lb-row {
   border-bottom-color: rgba(44, 90, 96, 0.4);
 }
+
+/* ============================================================
+   CentoGrapher (single-question geography select-all)
+   ============================================================ */
+
+#screen-centographer {
+  --game-accent: #4fd1c5;
+  --game-accent-rgb: 79, 209, 197;
+  --game-accent-2: #f6c453;
+  --game-text: #cfeee9;
+  --game-border: #1c3a40;
+  --game-border-2: #2c5a60;
+}
+
+.mode-card--cento {
+  color: #6fb1ff;
+}
+
+.cento-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.cento-timer {
+  position: relative;
+  flex: 1;
+  height: 22px;
+  background: #0d1326;
+  border: 1px solid var(--game-border-2, #2c5a60);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cento-timer-fill {
+  height: 100%;
+  width: 100%;
+  transition: width 0.1s linear;
+}
+.cento-timer-fill.safe {
+  background: #3ad07a;
+}
+.cento-timer-fill.warn {
+  background: #f6c453;
+}
+.cento-timer-fill.danger {
+  background: #ff5a5a;
+}
+.cento-timer-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  line-height: 22px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #06121a;
+}
+.cento-selcount {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.95rem;
+  color: var(--game-text, #cfeee9);
+  white-space: nowrap;
+}
+.cento-selcount span {
+  color: var(--game-accent, #4fd1c5);
+  font-weight: 700;
+}
+
+/* Two-column game layout: map (+prompt+submit) on the left, choice grid right,
+   both starting from the top so vertical space is used and scrolling is minimal. */
+.cento-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.cento-left {
+  flex: 0 0 280px;
+  position: sticky;
+  top: 8px;
+}
+@media (max-width: 760px) {
+  .cento-body {
+    flex-direction: column;
+  }
+  .cento-left {
+    flex: none;
+    width: 100%;
+    position: static;
+  }
+}
+
+.cento-map {
+  text-align: center;
+  margin: 0 0 10px;
+  background: #111c33;
+  border: 1px solid #33486a;
+  border-radius: 10px;
+  padding: 10px;
+}
+.cento-map img {
+  width: auto;
+  max-width: 100%;
+  max-height: 240px;
+  display: inline-block;
+}
+
+.cento-prompt {
+  text-align: center;
+  font-family: 'Chakra Petch', 'IBM Plex Mono', monospace;
+  font-size: 1rem;
+  color: #e2eef5;
+  margin-bottom: 12px;
+}
+.cento-submit {
+  width: 100%;
+  height: auto;
+  padding: 12px;
+}
+
+.cento-choices {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+@media (max-width: 1000px) {
+  .cento-choices {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .cento-choices {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .cento-choices {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.cento-choice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 100%;
+  min-height: 46px;
+  text-align: left;
+  padding: 8px 10px;
+  background: #1a2742;
+  border: 1px solid #3a5578;
+  border-radius: 6px;
+  color: #eaf2f8;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cento-choice:hover:not(:disabled) {
+  border-color: var(--game-accent, #4fd1c5);
+  background: #213052;
+}
+.cento-check {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--game-border-2, #2c5a60);
+  border-radius: 4px;
+  position: relative;
+}
+.cento-choice.checked .cento-check {
+  background: var(--game-accent, #4fd1c5);
+  border-color: var(--game-accent, #4fd1c5);
+}
+.cento-choice.checked .cento-check::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #06121a;
+  font-size: 13px;
+  font-weight: 800;
+}
+.cento-choice.checked {
+  border-color: var(--game-accent, #4fd1c5);
+  background: rgba(79, 209, 197, 0.1);
+}
+.cento-label {
+  flex: 1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.cento-choice.correct {
+  border-color: #3ad07a;
+  background: rgba(58, 208, 122, 0.15);
+  color: #8ef0b6;
+}
+.cento-choice.correct .cento-check {
+  background: #3ad07a;
+  border-color: #3ad07a;
+}
+.cento-choice.wrong {
+  border-color: #ff5a5a;
+  background: rgba(255, 90, 90, 0.15);
+  color: #ffb0b0;
+}
+.cento-choice.wrong .cento-check {
+  background: #ff5a5a;
+  border-color: #ff5a5a;
+}
+
+.leaderboard-panel.lb-cento {
+  background: transparent;
+  border-color: #2c5a60;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.leaderboard-panel.lb-cento .lb-heading {
+  color: #cfeee9;
+  text-shadow: 0 0 18px rgba(79, 209, 197, 0.35);
+}
+.leaderboard-panel.lb-cento .lb-heading span {
+  color: #6fb1ff;
+}
+.leaderboard-panel.lb-cento .lb-divider {
+  background: linear-gradient(90deg, #6fb1ff, #1c3a40, transparent);
+}
+.leaderboard-panel.lb-cento .lb-thead {
+  color: #2c5a60;
+  border-bottom-color: #1c3a40;
+}
+.leaderboard-panel.lb-cento .lb-row {
+  border-bottom-color: rgba(44, 90, 96, 0.4);
+}
