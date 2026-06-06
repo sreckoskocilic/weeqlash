@@ -1,6 +1,86 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <rect width="1200" height="630" fill="#1a1a2e"/>
-  <g transform="translate(456, 110) scale(4)">
+  <defs>
+    <!-- Background: matches homepage --bg / --bg2 dark navy -->
+    <radialgradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#161625"/>
+      <stop offset="100%" stop-color="#0e0e1a"/>
+    </radialgradient>
+    <!-- Vignette so the board fades into the bg at the edges (homepage .bb-vignette) -->
+    <radialgradient id="vig" cx="50%" cy="34%" r="58%">
+      <stop offset="20%" stop-color="#0e0e1a" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0e0e1a" stop-opacity="0.9"/>
+    </radialgradient>
+    <!-- Bottom band for text legibility -->
+    <lineargradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e0e1a" stop-opacity="0"/>
+      <stop offset="55%" stop-color="#0e0e1a" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#0e0e1a" stop-opacity="1"/>
+    </lineargradient>
+    <filter id="glowQ" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><femergenode in="b"/><femergenode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowDot" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- ambient color wash (homepage .bb-ambient: red + cyan radials) -->
+  <ellipse cx="430" cy="250" rx="260" ry="180" fill="#e53935" opacity="0.06"/>
+  <ellipse cx="770" cy="320" rx="260" ry="180" fill="#00f0ff" opacity="0.05"/>
+
+  <!-- ===== Isometric board (rotateX 58deg / rotateZ 45deg projection) =====
+       outer: place + scale; inner matrix: the iso projection of a flat grid.
+       step 39 (36px tile + 3px gap). -->
+  <g transform="translate(600,68) scale(2.55)">
+    <g transform="matrix(0.7071,0.3747,-0.7071,0.3747,0,0)">
+      <!-- row 0 -->
+      <rect x="0"   y="0"   width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="39"  y="0"   width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <rect x="78"  y="0"   width="36" height="36" rx="4" fill="#1a1a36" stroke="#252548" stroke-width="1"/>
+      <rect x="117" y="0"   width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <rect x="156" y="0"   width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <!-- row 1 -->
+      <rect x="0"   y="39"  width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <rect x="39"  y="39"  width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="78"  y="39"  width="36" height="36" rx="4" fill="#e53935" fill-opacity="0.22" stroke="#e53935" stroke-opacity="0.45" stroke-width="1.5"/>
+      <rect x="117" y="39"  width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="156" y="39"  width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <!-- row 2 -->
+      <rect x="0"   y="78"  width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="39"  y="78"  width="36" height="36" rx="4" fill="#00f0ff" fill-opacity="0.15" stroke="#00f0ff" stroke-opacity="0.38" stroke-width="1.5"/>
+      <rect x="78"  y="78"  width="36" height="36" rx="4" fill="#ffb000" fill-opacity="0.28" stroke="#ffb000" stroke-opacity="0.55" stroke-width="2" filter="url(#glowQ)"/>
+      <rect x="117" y="78"  width="36" height="36" rx="4" fill="#00ff41" fill-opacity="0.14" stroke="#00ff41" stroke-opacity="0.34" stroke-width="1.5"/>
+      <rect x="156" y="78"  width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <!-- row 3 -->
+      <rect x="0"   y="117" width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <rect x="39"  y="117" width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="78"  y="117" width="36" height="36" rx="4" fill="#ffb000" fill-opacity="0.14" stroke="#ffb000" stroke-opacity="0.32" stroke-width="1.5"/>
+      <rect x="117" y="117" width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="156" y="117" width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <!-- row 4 -->
+      <rect x="0"   y="156" width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+      <rect x="39"  y="156" width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <rect x="78"  y="156" width="36" height="36" rx="4" fill="#1a1a36" stroke="#252548" stroke-width="1"/>
+      <rect x="117" y="156" width="36" height="36" rx="4" fill="#161630" stroke="#1e1e3c" stroke-width="1"/>
+      <rect x="156" y="156" width="36" height="36" rx="4" fill="#222240" stroke="#2e2e52" stroke-width="1"/>
+
+      <!-- peg dots (red top, cyan bottom) -->
+      <circle cx="96" cy="18"  r="7" fill="#e53935" filter="url(#glowDot)"/>
+      <circle cx="96" cy="18"  r="6" fill="#e53935"/>
+      <circle cx="96" cy="174" r="7" fill="#00f0ff" filter="url(#glowDot)"/>
+      <circle cx="96" cy="174" r="6" fill="#00f0ff"/>
+    </g>
+  </g>
+
+  <rect width="1200" height="630" fill="url(#vig)"/>
+  <rect x="0" y="370" width="1200" height="260" fill="url(#band)"/>
+
+  <!-- ===== Branding ===== -->
+  <!-- node-arrow logo mark (homepage announcement glyph) -->
+  <g transform="translate(552, 398) scale(1.45)">
     <circle cx="32" cy="32" r="14" stroke="#00ff41" stroke-width="2.5" fill="none"/>
     <line x1="4" y1="32" x2="18" y2="32" stroke="#00ff41" stroke-width="2.5"/>
     <circle cx="4" cy="32" r="2" fill="#00ff41"/>
@@ -9,6 +89,7 @@
     <path d="M 42 42 L 52 52 L 62 52" stroke="#ffe600" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     <circle cx="62" cy="52" r="2.5" fill="#ffe600"/>
   </g>
-  <text x="600" y="480" text-anchor="middle" font-family="'Courier New', 'Consolas', monospace" font-size="112" font-weight="700" fill="#00ff41" letter-spacing="6">wQ$x</text>
-  <text x="600" y="552" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="22" font-weight="500" fill="#ffe600" letter-spacing="14">MULTIPLAYER &#183; TRIVIA &#183; BRAWLS</text>
+
+  <text x="600" y="578" text-anchor="middle" font-family="'IBM Plex Mono','Courier New',monospace" font-size="100" font-weight="700" fill="#00ff41" letter-spacing="6">wQ$x</text>
+  <text x="600" y="616" text-anchor="middle" font-family="'Chakra Petch','Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="600" fill="#f5a623" letter-spacing="13">MULTIPLAYER &#183; TRIVIA &#183; BRAWLS</text>
 </svg>
