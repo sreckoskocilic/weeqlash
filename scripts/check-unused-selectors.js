@@ -280,6 +280,7 @@ function extractLinkedStylesheets(htmlText, htmlPath) {
     if (!hrefMatch) continue;
     const href = hrefMatch[1];
     if (/^https?:|^\/\//i.test(href)) continue;
+    if (href.includes('vendor/')) continue; // third-party CSS (e.g. KaTeX)
     const cssPath = href.startsWith('/')
       ? join(projectRoot, 'client', href.replace(/^\/+/, ''))
       : join(htmlDir, href);

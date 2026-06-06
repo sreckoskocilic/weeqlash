@@ -28,6 +28,8 @@ export default [
       'server/.adminjs/',
       'server/.adminjs/**',
       'server/game/admin.js',
+      'client/vendor/',
+      'client/vendor/**',
     ],
   },
 

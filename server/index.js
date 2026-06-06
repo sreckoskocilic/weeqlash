@@ -54,6 +54,8 @@ import {
 import { loadQuestions, pickRandomQuestion } from './game/questions.ts';
 import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
 import * as skipnot from './game/skipnot.ts';
+import * as mathquiz from './game/mathquiz.ts';
+import { generateSet as mathGenerateSet, toPublic as mathToPublic } from './game/mathgen.ts';
 import * as howhigh from './game/howhigh.ts';
 import {
   createChallenge,
@@ -258,6 +260,7 @@ const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 
 // }
 const skipnotRuns = new Map();
 const howHighRuns = new Map();
+const mathquizRuns = new Map();
 
 // Periodic cleanup of stale rate limit entries (every 30s)
 const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
@@ -283,6 +286,11 @@ const cleanupInterval = setInterval(() => {
   for (const [socketId, run] of howHighRuns) {
     if (now - run.startedAt > 10 * 60_000) {
       howHighRuns.delete(socketId);
+    }
+  }
+  for (const [socketId, run] of mathquizRuns) {
+    if (now - run.startedAt > 10 * 60_000) {
+      mathquizRuns.delete(socketId);
     }
   }
 }, 30_000);
@@ -1521,6 +1529,158 @@ io.on('connection', (socket) => {
     cb({ ok: true, top10: getTop10ForMode('skipnot') });
   });
 
+  // --- MathQuiz (solo numeric-input math/calculus quiz) ---
+  //
+  // Procedurally generated: no question bank. Server builds the problems with
+  // their truth (answer/tol/range) kept server-side, hands the client only the
+  // public fields (prompt/tex/graph/points). Client runs locally with its own
+  // timer; on each answer the server scores via mathquiz.scorePick and returns
+  // the OUTCOME (correct/partial/wrong) — never the true value mid-round. The
+  // real answers are revealed only at finish for the review screen.
+  socket.on('mathquiz:start', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    const now = Date.now();
+    const lastQuiz = quizTimestamps.get(socket.id) || 0;
+    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+      return cb({ error: 'Please wait before starting another quiz.' });
+    }
+    quizTimestamps.set(socket.id, now);
+    if (isInActiveGame(socket.id)) {
+      return cb({ error: 'Cannot play quiz during an active game.' });
+    }
+
+    const problems = mathGenerateSet(mathquiz.QUESTION_COUNT);
+    const run = {
+      startedAt: now,
+      problems, // server-side copy with answer/tol/range
+      guesses: new Array(mathquiz.QUESTION_COUNT).fill(undefined),
+      currentIdx: 0,
+      finished: false,
+      finalScore: 0,
+      finalTimeMs: 0,
+    };
+    mathquizRuns.set(socket.id, run);
+
+    cb({
+      ok: true,
+      total: mathquiz.QUESTION_COUNT,
+      timerMs: mathquiz.TIMER_MS,
+      problems: problems.map((p, i) => ({ index: i, ...mathToPublic(p) })),
+    });
+  });
+
+  // Submit one numeric guess. value is a finite number; anything else scores 0.
+  socket.on('mathquiz:answer', ({ index, value } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = mathquizRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'Math quiz not running' });
+    }
+    if (run.currentIdx >= run.problems.length) {
+      return cb({ error: 'Run exhausted' });
+    }
+    if (index !== run.currentIdx) {
+      return cb({ error: 'Out of sequence' });
+    }
+    const guess = typeof value === 'number' && Number.isFinite(value) ? value : null;
+    const { earned, fraction, outcome, bonus } = mathquiz.scorePick(
+      run.problems[run.currentIdx],
+      guess,
+    );
+    run.guesses[run.currentIdx] = guess;
+    run.currentIdx += 1;
+    // outcome + points earned are feedback; the true answer is withheld until finish.
+    cb({ ok: true, outcome, earned, fraction, bonus });
+  });
+
+  // Skip / timeout — record null, advance cursor, no score.
+  socket.on('mathquiz:skip', ({ index } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = mathquizRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'Math quiz not running' });
+    }
+    if (run.currentIdx >= run.problems.length) {
+      return cb({ error: 'Run exhausted' });
+    }
+    if (index !== run.currentIdx) {
+      return cb({ error: 'Out of sequence' });
+    }
+    run.guesses[run.currentIdx] = null;
+    run.currentIdx += 1;
+    cb({ ok: true });
+  });
+
+  socket.on('mathquiz:finish', ({ totalMs } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = mathquizRuns.get(socket.id);
+    if (!run) {
+      return cb({ error: 'Math quiz not started' });
+    }
+    if (run.finished) {
+      return cb({ error: 'Run already finished' });
+    }
+    const guesses = run.guesses.map((g) => (g === undefined ? null : g));
+    const minMs = run.problems.length * 100;
+    const maxMs = run.problems.length * (mathquiz.TIMER_MS + 2000);
+    const reportedMs =
+      typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
+    const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
+
+    const { score, results, earned } = mathquiz.scorePicks(run.problems, guesses);
+    run.finished = true;
+    run.finalScore = score;
+    run.finalTimeMs = elapsedMs;
+
+    const qualifies = checkQualifiesTop10ForMode('mathquiz', score, elapsedMs);
+    cb({
+      ok: true,
+      score,
+      timeMs: elapsedMs,
+      qualifies,
+      // Review screen: per-question outcome + points only. The true answer is
+      // NEVER sent — not mid-round, not post-round (user rule). Only the
+      // player's own guess is echoed back.
+      review: run.problems.map((p, i) => ({
+        guess: guesses[i],
+        earned: earned[i],
+        outcome: results[i],
+        points: p.points,
+      })),
+    });
+  });
+
+  socket.on('mathquiz:submit_score', ({ name } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = mathquizRuns.get(socket.id);
+    if (!run) {
+      return cb({ error: 'No completed run' });
+    }
+    if (!run.finished) {
+      return cb({ error: 'Run not finished' });
+    }
+    const sanitizedName = name?.trim();
+    if (!sanitizedName || sanitizedName.length > 16) {
+      return cb({ error: 'Name must be 1-16 characters' });
+    }
+    const top10 = insertScoreForMode('mathquiz', sanitizedName, run.finalScore, run.finalTimeMs);
+    mathquizRuns.delete(socket.id);
+    cb({ ok: true, top10 });
+  });
+
   // --- HowHigh? (async 2P challenge) ---
 
   function _pickHowHighPool(count) {
@@ -2669,6 +2829,7 @@ io.on('connection', (socket) => {
     quizRuns.delete(socket.id);
     _disposeSkipnotRun(socket.id);
     howHighRuns.delete(socket.id);
+    mathquizRuns.delete(socket.id);
     unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room && player) {

@@ -38,7 +38,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   padding: 1rem;
-  padding-top: calc(6rem + env(safe-area-inset-top, 0px));
+  padding-top: calc(3rem + env(safe-area-inset-top, 0px));
   padding-right: calc(1rem + env(safe-area-inset-right, 0px));
   padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   padding-left: calc(1rem + env(safe-area-inset-left, 0px));
@@ -5026,4 +5026,168 @@ body.qw-active {
 }
 .qw-final-scores span {
   color: var(--game-accent);
+}
+
+/* ============================================================
+   MathQuiz (solo numeric math/calculus quiz)
+   ============================================================ */
+
+/* Scoped teal theme so qlas-* / timer-ring inside the screen pick up MathQ
+   colors regardless of the body's active SkipNoT game theme. */
+#screen-mathquiz {
+  --game-accent: #4fd1c5;
+  --game-accent-rgb: 79, 209, 197;
+  --game-accent-2: #f6c453;
+  --game-text: #cfeee9;
+  --game-border: #1c3a40;
+  --game-border-2: #2c5a60;
+}
+
+.mode-card--mathquiz {
+  color: #4fd1c5;
+}
+
+.mathquiz-prompt {
+  font-family: 'Chakra Petch', 'IBM Plex Mono', monospace;
+  font-size: 1.05rem;
+  color: var(--game-text, #cfeee9);
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.mathquiz-tex {
+  margin: 0.6rem 0 0.9rem;
+  text-align: center;
+  color: rgb(234, 253, 251);
+  font-size: 1.35rem;
+  overflow-x: auto;
+}
+
+.mathquiz-canvas {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  aspect-ratio: 520 / 300;
+  margin: 0.4rem auto 0.9rem;
+  border: 1px solid var(--game-border-2, #2c5a60);
+  border-radius: 8px;
+  background: #0d1326;
+}
+
+.mathquiz-form {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+/* Same field type as the room-code input (.card-join-input): var(--bg)/--border/
+   --fg palette, centered mono — just a bit larger for the answer entry. */
+.mathquiz-input {
+  flex: 1 1 auto;
+  width: auto; /* override global input { width: 100% } so flex can size it */
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  height: auto;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  border-radius: 5px;
+  outline: none;
+  caret-color: var(--game-accent, #4fd1c5);
+}
+.mathquiz-input::placeholder {
+  color: var(--muted, #7a8a99);
+  font-weight: 400;
+  letter-spacing: normal;
+}
+.mathquiz-input:focus {
+  border-color: var(--game-accent, #4fd1c5);
+  box-shadow: 0 0 0 2px rgba(var(--game-accent-rgb, 79, 209, 197), 0.3);
+}
+
+/* Submit button: narrower, doesn't stretch with the input.
+   Overrides global button { width: 100% } so it sizes to its label. */
+.mathquiz-form #btn-mathquiz-submit {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  padding: 0 1.4rem;
+  white-space: nowrap;
+}
+.mathquiz-input--correct {
+  border-color: #3ad07a;
+  color: #3ad07a;
+  box-shadow: 0 0 0 2px rgba(58, 208, 122, 0.35);
+}
+.mathquiz-input--partial {
+  border-color: #f6c453;
+  color: #f6c453;
+  box-shadow: 0 0 0 2px rgba(246, 196, 83, 0.35);
+}
+.mathquiz-input--wrong {
+  border-color: #ff5a5a;
+  color: #ff5a5a;
+  box-shadow: 0 0 0 2px rgba(255, 90, 90, 0.35);
+}
+.mathquiz-input--shake {
+  animation: mathquiz-shake 0.3s ease;
+}
+@keyframes mathquiz-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+/* Progress-dot + heatmap "partial" state (amber), beside skipnot ok/bad/skip. */
+.pdot.part {
+  background: #f6c453;
+  box-shadow: 0 0 6px rgba(246, 196, 83, 0.6);
+}
+.hcell.part {
+  background: rgba(246, 196, 83, 0.18);
+  color: #f6c453;
+  border-color: #f6c453;
+}
+
+/* MathQ leaderboard panel (teal), mirrors lb-skipnot. */
+.leaderboard-panel.lb-mathquiz {
+  background: transparent;
+  border-color: #2c5a60;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.leaderboard-panel.lb-mathquiz .lb-heading {
+  color: #cfeee9;
+  text-shadow: 0 0 18px rgba(79, 209, 197, 0.35);
+}
+.leaderboard-panel.lb-mathquiz .lb-heading span {
+  color: #4fd1c5;
+}
+.leaderboard-panel.lb-mathquiz .lb-divider {
+  background: linear-gradient(90deg, #4fd1c5, #1c3a40, transparent);
+}
+.leaderboard-panel.lb-mathquiz .lb-thead {
+  color: #2c5a60;
+  border-bottom-color: #1c3a40;
+}
+.leaderboard-panel.lb-mathquiz .lb-row {
+  border-bottom-color: rgba(44, 90, 96, 0.4);
 }

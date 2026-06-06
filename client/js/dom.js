@@ -25,8 +25,9 @@ export function showScreen(id) {
   const isQw = id === 'screen-qlashword';
   const isSkipnot = id === 'screen-skipnot';
   const isHowHigh = id === 'screen-howhigh';
+  const isMath = id === 'screen-mathquiz';
   const isLobby = id === 'screen-lobby';
-  const hideHome = isGame || isQlas || isQw || isSkipnot || isHowHigh || isLobby;
+  const hideHome = isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath || isLobby;
   // Qlashword fills the viewport — drop the body's big top padding (meant for
   // the home-screen title) so the board sits near the top edge.
   document.body.classList.toggle('qw-active', isQw);
@@ -44,11 +45,12 @@ export function showScreen(id) {
     'screen-qlashword',
     'screen-skipnot',
     'screen-howhigh',
+    'screen-mathquiz',
   ].forEach((s) => {
     el(s).style.display = 'none';
     el(s).classList.remove('show');
   });
-  if (isGame || isQlas || isQw || isSkipnot || isHowHigh) {
+  if (isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
     // Clear inline display so the `.main-columns` class CSS (display: flex

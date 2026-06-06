@@ -23,6 +23,8 @@ const _MODES: QuizModeInput[] = [
   { id: 'triviandom', label: 'Triviandom', categories: null },
   { id: 'skipnot', label: 'SkipNoT', categories: null },
   { id: 'howhigh', label: 'HowHigh?', categories: null },
+  // Procedurally generated math/calculus quiz — no question-bank categories.
+  { id: 'mathquiz', label: 'MathQ', categories: [] },
 ];
 
 export const QUIZ_MODES: QuizMode[] = _MODES.map((m) => ({

@@ -17,6 +17,7 @@ import { initQlashword } from './qlashword.js';
 import { initSkipnot } from './skipnot.js';
 import { initSkipnotTheme } from './skipnot-theme.js';
 import { initHowHigh } from './howhigh.js';
+import { initMathquiz } from './mathquiz.js';
 import { initNav } from './nav.js';
 import { initHomeBg } from './home-bg.js';
 
@@ -55,6 +56,9 @@ async function init() {
   initSkipnot(sock);
   // SkipNoT theme switcher (amber/green/cyan/pink, persisted)
   initSkipnotTheme();
+
+  // MathQuiz (solo numeric math/calculus quiz)
+  initMathquiz(sock);
 
   // HowHigh? (async 2P challenge)
   initHowHigh(sock);
