@@ -115,6 +115,21 @@ function fmtQuadratic(a: number, b: number, c: number): string {
   return s;
 }
 
+// a x^3 + b x^2 + c x + d as KaTeX, dropping zero terms.
+function fmtCubic(a: number, b: number, c: number, d: number): string {
+  let s = `${coef(a)}x^3`;
+  if (b !== 0) {
+    s += ` ${fmtSigned(b)}x^2`;
+  }
+  if (c !== 0) {
+    s += ` ${fmtSigned(c)}x`;
+  }
+  if (d !== 0) {
+    s += ` ${fmtSigned(d)}`;
+  }
+  return s;
+}
+
 // Sample f over [xa, xb] into a polyline plus a fitted y-range.
 function sample(
   f: (x: number) => number,
@@ -599,6 +614,202 @@ function genPolygonInteriorAngle(): NumericProblem {
   };
 }
 
+// --- More calculus ---
+
+// Critical point of a parabola: the x where f'(x)=0, i.e. -b/(2a).
+function genCriticalPoint(): NumericProblem {
+  const a = nonZero(-5, 5);
+  const b = nonZero(-9, 9);
+  const c = randInt(-9, 9);
+  return {
+    topic: 'critical-point',
+    prompt: "Find the x where f'(x) = 0 (round to 2 decimals):",
+    tex: `f(x) = ${fmtQuadratic(a, b, c)}`,
+    points: BASE_POINTS,
+    answer: -b / (2 * a),
+    scoring: 'proximity',
+    tol: 0.02,
+    range: 1,
+  };
+}
+
+// Second derivative of a cubic at a point: f''(x) = 6a x + 2b → integer.
+function genSecondDeriv(): NumericProblem {
+  const a = nonZero(-4, 4);
+  const b = randInt(-6, 6);
+  const c = randInt(-6, 6);
+  const d = randInt(-6, 6);
+  const x0 = randInt(-4, 4);
+  return {
+    topic: 'second-deriv',
+    prompt: 'Compute the second derivative at the given point:',
+    tex: `f(x) = ${fmtCubic(a, b, c, d)}, \\quad f''(${x0}) = \\;?`,
+    points: BASE_POINTS,
+    answer: 6 * a * x0 + 2 * b,
+    scoring: 'exact',
+    tol: 1e-6,
+    range: 1e-6,
+  };
+}
+
+// Slope of the tangent to a cubic at a point: f'(x) = 3a x^2 + 2b x + c → integer.
+function genTangentSlope(): NumericProblem {
+  const a = nonZero(-3, 3);
+  const b = randInt(-5, 5);
+  const c = randInt(-9, 9);
+  const d = randInt(-9, 9);
+  const x0 = randInt(-3, 3);
+  return {
+    topic: 'tangent-slope',
+    prompt: 'Slope of the tangent line at the given point:',
+    tex: `f(x) = ${fmtCubic(a, b, c, d)}, \\quad f'(${x0}) = \\;?`,
+    points: BASE_POINTS,
+    answer: 3 * a * x0 * x0 + 2 * b * x0 + c,
+    scoring: 'exact',
+    tol: 1e-6,
+    range: 1e-6,
+  };
+}
+
+// Derivative of ln(x) at x=c → 1/c.
+function genDerivLn(): NumericProblem {
+  const c = randInt(2, 9);
+  return {
+    topic: 'deriv-ln',
+    prompt: 'Derivative of the natural log at the point (round to 3 decimals):',
+    tex: `\\frac{d}{dx}\\ln(x)\\,\\Big|_{x=${c}} = \\;?`,
+    points: BASE_POINTS,
+    answer: 1 / c,
+    scoring: 'proximity',
+    tol: 0.005,
+    range: 0.2,
+  };
+}
+
+// Maximum value of a downward parabola (a < 0): c - b^2/(4a).
+function genOptimization(): NumericProblem {
+  const a = -nonZero(1, 5); // negative → opens downward → has a maximum
+  const b = randInt(-9, 9);
+  const c = randInt(-9, 9);
+  return {
+    topic: 'optimization',
+    prompt: 'Find the maximum value of the function (round to 2 decimals):',
+    tex: `f(x) = ${fmtQuadratic(a, b, c)}`,
+    points: BASE_POINTS,
+    answer: c - (b * b) / (4 * a),
+    scoring: 'proximity',
+    tol: 0.05,
+    range: 3,
+  };
+}
+
+// Average value of a quadratic over [lo,hi]: (1/(hi-lo))∫.
+function genAvgValue(): NumericProblem {
+  const a = nonZero(-3, 3);
+  const b = randInt(-5, 5);
+  const c = randInt(-5, 5);
+  const lo = randInt(-3, 1);
+  const hi = randInt(lo + 1, 4);
+  const F = (x: number) => (a / 3) * x ** 3 + (b / 2) * x ** 2 + c * x;
+  return {
+    topic: 'avg-value',
+    prompt: 'Average value of the function over the interval (round to 2 decimals):',
+    tex: `\\frac{1}{${hi} - (${lo})}\\int_{${lo}}^{${hi}} \\left(${fmtQuadratic(a, b, c)}\\right)\\,dx`,
+    points: BASE_POINTS,
+    answer: (F(hi) - F(lo)) / (hi - lo),
+    scoring: 'proximity',
+    tol: 0.03,
+    range: 1.5,
+  };
+}
+
+// Average rate of change of a quadratic over [x1,x2]: (f(x2)-f(x1))/(x2-x1).
+function genSecantSlope(): NumericProblem {
+  const a = nonZero(-3, 3);
+  const b = randInt(-6, 6);
+  const c = randInt(-6, 6);
+  const x1 = randInt(-5, 1);
+  const x2 = randInt(x1 + 1, 5);
+  const f = (x: number) => a * x * x + b * x + c;
+  return {
+    topic: 'secant-slope',
+    prompt: 'Average rate of change over the interval (round to 2 decimals):',
+    tex: `f(x) = ${fmtQuadratic(a, b, c)}, \\quad [${x1},\\, ${x2}]`,
+    points: BASE_POINTS,
+    answer: (f(x2) - f(x1)) / (x2 - x1),
+    scoring: 'proximity',
+    tol: 0.02,
+    range: 1.5,
+  };
+}
+
+// lim x→0 sin(ax)/(bx) = a/b.
+function genLimitTrig(): NumericProblem {
+  const a = nonZero(-6, 6);
+  const b = nonZero(-6, 6);
+  return {
+    topic: 'limit-trig',
+    prompt: 'Evaluate the limit (round to 3 decimals):',
+    tex: `\\lim_{x \\to 0} \\frac{\\sin(${coef(a)}x)}{${coef(b)}x}`,
+    points: BASE_POINTS,
+    answer: a / b,
+    scoring: 'proximity',
+    tol: 0.005,
+    range: 0.3,
+  };
+}
+
+// lim x→0 (e^{ax} - 1)/x = a (standard / L'Hôpital limit) → integer.
+function genLimitExp(): NumericProblem {
+  const a = nonZero(-5, 5);
+  return {
+    topic: 'limit-exp',
+    prompt: 'Evaluate the limit:',
+    tex: `\\lim_{x \\to 0} \\frac{e^{${coef(a)}x} - 1}{x}`,
+    points: BASE_POINTS,
+    answer: a,
+    scoring: 'exact',
+    tol: 1e-6,
+    range: 1e-6,
+  };
+}
+
+// Definite integral of sin/cos over [lo,hi] in radians.
+function genIntegralTrig(): NumericProblem {
+  const fn = pick(['sin', 'cos'] as const);
+  const lo = randInt(-3, 1);
+  const hi = randInt(lo + 1, 4);
+  const answer = fn === 'cos' ? Math.sin(hi) - Math.sin(lo) : -(Math.cos(hi) - Math.cos(lo));
+  return {
+    topic: 'integral-trig',
+    prompt: 'Evaluate the definite integral (radians, round to 2 decimals):',
+    tex: `\\int_{${lo}}^{${hi}} \\${fn}(x)\\,dx`,
+    points: BASE_POINTS,
+    answer,
+    scoring: 'proximity',
+    tol: 0.03,
+    range: 1.5,
+  };
+}
+
+// Instantaneous velocity: position s(t)=a t^2+b t+c, v(t)=s'(t)=2a t+b at t0.
+function genInstantVelocity(): NumericProblem {
+  const a = nonZero(-4, 4);
+  const b = randInt(-9, 9);
+  const c = randInt(-9, 9);
+  const t0 = randInt(0, 5);
+  return {
+    topic: 'instant-velocity',
+    prompt: 'A particle has position s(t). Find its velocity at the given time:',
+    tex: `s(t) = ${fmtQuadratic(a, b, c).replace(/x/g, 't')}, \\quad v(${t0}) = \\;?`,
+    points: BASE_POINTS,
+    answer: 2 * a * t0 + b,
+    scoring: 'exact',
+    tol: 1e-6,
+    range: 1e-6,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
@@ -621,6 +832,17 @@ export const TOPICS = {
   'distance-2pts': genDistance2Pts,
   'law-of-sines-side': genLawOfSinesSide,
   'polygon-interior-angle': genPolygonInteriorAngle,
+  'critical-point': genCriticalPoint,
+  'second-deriv': genSecondDeriv,
+  'tangent-slope': genTangentSlope,
+  'deriv-ln': genDerivLn,
+  optimization: genOptimization,
+  'avg-value': genAvgValue,
+  'secant-slope': genSecantSlope,
+  'limit-trig': genLimitTrig,
+  'limit-exp': genLimitExp,
+  'integral-trig': genIntegralTrig,
+  'instant-velocity': genInstantVelocity,
 } as const;
 
 export type TopicId = keyof typeof TOPICS;
