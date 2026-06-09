@@ -239,18 +239,22 @@ function generateLayoutMap(
     }
   }
 
+  // Shuffle tile positions too, so the guaranteed-unique categories aren't
+  // always pinned to the same (top-left) tiles every game.
+  const slots = shuffle(nonCornerTiles);
+
   // Ensure each enabled category appears at least once
   const cats = [...enabledCats];
   const shuffledCats = shuffle(cats);
-  // Fill first N tiles with unique categories (using indices)
-  for (let i = 0; i < Math.min(nonCornerTiles.length, enabledCats.length); i++) {
-    const [r, c] = nonCornerTiles[i];
+  // Fill first N (random) tiles with unique categories (using indices)
+  for (let i = 0; i < Math.min(slots.length, enabledCats.length); i++) {
+    const [r, c] = slots[i];
     const catName = shuffledCats[i];
     map[r][c] = enabledCats.indexOf(catName);
   }
   // Fill remaining tiles with random categories (deterministic in tests)
-  for (let i = enabledCats.length; i < nonCornerTiles.length; i++) {
-    const [r, c] = nonCornerTiles[i];
+  for (let i = enabledCats.length; i < slots.length; i++) {
+    const [r, c] = slots[i];
     const catName = randomCat(enabledCats, seed !== null ? seed + i : null);
     map[r][c] = enabledCats.indexOf(catName);
   }

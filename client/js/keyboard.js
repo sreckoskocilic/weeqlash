@@ -6,6 +6,8 @@ import { el } from './dom.js';
 import { PHASE } from './constants.js';
 import { state } from './state.js';
 import { getGameModalOptionBtns, continueAfterQuestion } from './question.js';
+import { renderAll } from './render.js';
+import { onPegClick, onTileClick } from './game.js';
 
 // KEY_MAP for answer shortcuts
 const KEY_MAP = { a: 0, b: 1, c: 2, d: 3 };
@@ -83,12 +85,22 @@ function handleKey(e) {
     const newRow = Math.max(0, Math.min(gameState.boardSize - 1, cursor.row + dr));
     const newCol = Math.max(0, Math.min(gameState.boardSize - 1, cursor.col + dc));
     state.navCursor = { row: newRow, col: newCol };
-    // Trigger re-render (handled by caller)
+    renderAll(gameState); // move the visible nav-highlight
     return;
   }
 
   if (e.key === 'Enter') {
     e.preventDefault();
-    // Will be handled by onTileClick/onPegClick in game.js
+    const { row, col } = state.navCursor;
+    if (phase === PHASE.SELECT_PEG) {
+      // Select the peg sitting on the highlighted tile (if any)
+      const pegId = gameState.board[row]?.[col]?.pegId;
+      if (pegId) {
+        onPegClick(pegId);
+      }
+    } else {
+      // SELECT_TILE: activate the highlighted destination tile
+      onTileClick(row, col);
+    }
   }
 }

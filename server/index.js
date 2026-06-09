@@ -359,6 +359,17 @@ function checkLobbyRateLimit(socketId, cb) {
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
+// Last-resort net: a malformed socket payload (e.g. a null arg where a handler
+// destructures an object) throws inside socket.io's process.nextTick dispatch,
+// which would otherwise terminate the whole process and kill every live game.
+// Log and stay up instead of crashing.
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
 // Load questions once at startup
 const questionsDb = loadQuestions();
 initDb();
@@ -621,6 +632,19 @@ app.get('/', (_req, res) => {
 
 io.on('connection', (socket) => {
   console.log(`[+] ${socket.id}`);
+
+  // Coerce null/undefined payload args to {} before they reach a handler's
+  // destructure (only null/undefined throw on destructuring; primitives don't).
+  // Defense-in-depth alongside the global uncaughtException net so a malformed
+  // emit fails via each handler's own validation instead of crashing.
+  socket.use((packet, next) => {
+    for (let i = 1; i < packet.length; i++) {
+      if (packet[i] === null || packet[i] === undefined) {
+        packet[i] = {};
+      }
+    }
+    next();
+  });
 
   // Associate socket with authenticated user if available
   const socketSession = socket.request.session;
@@ -2267,7 +2291,10 @@ io.on('connection', (socket) => {
     const baseQuestions = questionIds.map((qId) => questionsDb._byId?.[qId]).filter(Boolean);
     const extraQuestions = extraQuestionIds.map((qId) => questionsDb._byId?.[qId]).filter(Boolean);
 
-    if (baseQuestions.length !== questionIds.length) {
+    if (
+      baseQuestions.length !== questionIds.length ||
+      extraQuestions.length !== extraQuestionIds.length
+    ) {
       return cb({ error: 'Some questions no longer available' });
     }
 
@@ -2519,6 +2546,9 @@ io.on('connection', (socket) => {
         }
         room.qlasTimerExpired = true;
         io.to(code).emit('qlashique:timer_expired');
+        // Force-end the turn so an AFK active player can't freeze the duel.
+        // (The +3s grace is already baked into _gracedMs above.)
+        _endQlasTurn(io, code, room, 'attack');
       } catch (err) {
         console.error('[qlashique] timer callback error:', err);
       }
@@ -2672,55 +2702,10 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not in guessing phase' });
     }
 
-    if (room.qlasTimer) {
-      clearTimeout(room.qlasTimer);
-      room.qlasTimer = null;
+    const result = _endQlasTurn(io, code, room, choice);
+    if (result.error) {
+      return cb(result);
     }
-
-    const scoreBeforeEnd = room.state.currentScore;
-    const { outcome, error, actingPlayerIdx } = endTurn(room.state);
-    if (error) {
-      return cb({ error });
-    }
-
-    let finalOutcome = outcome;
-    let finalActingIdx = actingPlayerIdx;
-    if (outcome === 'choose') {
-      const safeChoice = choice === 'heal' ? 'heal' : 'attack';
-      const result = applyOutcome(room.state, safeChoice);
-      if (result.error) {
-        return cb(result);
-      }
-      finalOutcome = safeChoice;
-      finalActingIdx = result.actingPlayerIdx;
-    }
-
-    io.to(code).emit('qlashique:turn_end', {
-      score: scoreBeforeEnd,
-      outcome: finalOutcome,
-    });
-    io.to(code).emit('qlashique:hp_update', {
-      p0hp: room.state.players[0].hp,
-      p1hp: room.state.players[1].hp,
-    });
-
-    const winnerIdx = checkGameOver(room.state, finalActingIdx);
-    if (winnerIdx >= 0 && winnerIdx < 2) {
-      room.state.phase = QLAS_PHASE.GAME_OVER;
-      for (const p of room.players) {
-        unregisterActiveSocket(p.id);
-      }
-      _saveQlasResult(room, winnerIdx);
-      io.to(code).emit('qlashique:game_over', {
-        winnerIdx,
-        reason: 'hp',
-        history: room.qlasHistory ?? [],
-        stats: room.qlasStats ?? null,
-      });
-      return cb({ ok: true });
-    }
-
-    _emitQlasTurnStart(io, code, room);
     cb({ ok: true });
   });
 
@@ -3291,6 +3276,63 @@ function _emitQlasTurnStart(ioServer, code, room) {
     timerSeconds,
     maxHp: room.state.maxHp,
   });
+}
+
+// Resolve the active player's turn: score it, apply outcome, broadcast HP and
+// either game-over or the next turn. Shared by the qlashique:end_turn handler
+// and the authoritative timer (so an AFK active player can't freeze the duel).
+// Caller must have already validated room/phase. Returns {ok} or {error}.
+function _endQlasTurn(ioServer, code, room, choice = 'attack') {
+  if (room.qlasTimer) {
+    clearTimeout(room.qlasTimer);
+    room.qlasTimer = null;
+  }
+
+  const scoreBeforeEnd = room.state.currentScore;
+  const { outcome, error, actingPlayerIdx } = endTurn(room.state);
+  if (error) {
+    return { error };
+  }
+
+  let finalOutcome = outcome;
+  let finalActingIdx = actingPlayerIdx;
+  if (outcome === 'choose') {
+    const safeChoice = choice === 'heal' ? 'heal' : 'attack';
+    const result = applyOutcome(room.state, safeChoice);
+    if (result.error) {
+      return result;
+    }
+    finalOutcome = safeChoice;
+    finalActingIdx = result.actingPlayerIdx;
+  }
+
+  ioServer.to(code).emit('qlashique:turn_end', {
+    score: scoreBeforeEnd,
+    outcome: finalOutcome,
+  });
+  ioServer.to(code).emit('qlashique:hp_update', {
+    p0hp: room.state.players[0].hp,
+    p1hp: room.state.players[1].hp,
+  });
+
+  const winnerIdx = checkGameOver(room.state, finalActingIdx);
+  if (winnerIdx >= 0 && winnerIdx < 2) {
+    room.state.phase = QLAS_PHASE.GAME_OVER;
+    for (const p of room.players) {
+      unregisterActiveSocket(p.id);
+    }
+    _saveQlasResult(room, winnerIdx);
+    ioServer.to(code).emit('qlashique:game_over', {
+      winnerIdx,
+      reason: 'hp',
+      history: room.qlasHistory ?? [],
+      stats: room.qlasStats ?? null,
+    });
+    return { ok: true };
+  }
+
+  _emitQlasTurnStart(ioServer, code, room);
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

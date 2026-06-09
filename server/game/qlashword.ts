@@ -631,7 +631,8 @@ export function swapTiles(
   const kept = rack.filter((_, i) => !uniq.includes(i));
   const drawn = drawTiles(state.bag, uniq.length);
   state.racks[playerIdx] = [...kept, ...drawn];
-  state.bag.push(...returned); // returned tiles go back into the bag (reshuffle on next draw is fine)
+  state.bag.push(...returned);
+  shuffleBag(state.bag); // reshuffle so swapped-away tiles aren't handed straight to the next drawer
   state.passStreak = 0;
   advanceTurn(state);
   return { ok: true };
