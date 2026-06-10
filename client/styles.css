@@ -72,7 +72,7 @@ h1 {
 /* ===== BRAND HEADER (wQ$x emblem) ===== */
 /* H1 carries the page heading for SEO/screen readers but is kept out of the
    visual layout (the on-screen brand is the board-banner graphic). Hidden via
-   clip, NOT display:none, so dom.js can still toggle display when leaving home. */
+   clip, NOT display:none, so the dom module can still toggle display on leave. */
 #main-title.brand {
   position: absolute;
   width: 1px;
