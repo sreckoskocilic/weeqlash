@@ -12,7 +12,7 @@ brawl.weeqlash.icu {
 
 	# robots.txt
 	handle /robots.txt {
-		respond * "User-agent: *\nAllow: /"
+		respond * "User-agent: *\nAllow: /\nSitemap: https://brawl.weeqlash.icu/sitemap.xml"
 	}
 
 	handle /socket.io/* {

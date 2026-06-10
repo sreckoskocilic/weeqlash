@@ -70,12 +70,19 @@ h1 {
   margin-bottom: 0.5rem;
 }
 /* ===== BRAND HEADER (wQ$x emblem) ===== */
+/* H1 carries the page heading for SEO/screen readers but is kept out of the
+   visual layout (the on-screen brand is the board-banner graphic). Hidden via
+   clip, NOT display:none, so dom.js can still toggle display when leaving home. */
 #main-title.brand {
-  margin: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
   padding: 0;
-}
-#main-title.brand:empty {
-  display: none;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ===== BRAND ECHOES (qlashique / waiting) ===== */
