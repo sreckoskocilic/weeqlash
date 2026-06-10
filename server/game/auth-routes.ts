@@ -71,6 +71,7 @@ function applyAuthRateLimit(req: Request, res: Response): boolean {
   // Localhost exemption keeps e2e from being throttled; never exempt in prod.
   const exempt = isLocalhostIp(ip) && process.env.NODE_ENV !== 'production';
   if (!exempt && !checkAuthRateLimit(ip)) {
+    console.warn(`[auth] rate limit hit ip=${ip} path=${req.path}`);
     res.status(429).json({ error: 'Too many requests. Please try again later.' });
     return false;
   }
@@ -159,6 +160,9 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
 
     const result = await authenticateUser(username, password);
     if ('error' in result) {
+      console.warn(
+        `[auth] login failed ip=${getClientIp(req)} user=${username} reason=${result.error}`,
+      );
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
 

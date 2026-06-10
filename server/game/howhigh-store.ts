@@ -1,4 +1,5 @@
 import { getDb } from './leaderboard.ts';
+import { BASE_Q_COUNT, GOWILD_Q_COUNT } from './howhigh.ts';
 import type Database from 'better-sqlite3';
 
 export interface ChallengeRow {
@@ -156,27 +157,36 @@ export function finishP2(
   } else if (score < challenge.p1_score!) {
     winnerId = challenge.player1_id;
   } else {
-    const p1Avg = challenge.p1_time_ms! / (challenge.p1_gowild_accepted ? 12 : 10);
-    const p2Avg = timeMs / (goWildAccepted ? 12 : 10);
+    const p1Avg =
+      challenge.p1_time_ms! / (challenge.p1_gowild_accepted ? GOWILD_Q_COUNT : BASE_Q_COUNT);
+    const p2Avg = timeMs / (goWildAccepted ? GOWILD_Q_COUNT : BASE_Q_COUNT);
     winnerId = p2Avg < p1Avg ? challenge.player2_id : challenge.player1_id;
   }
 
-  db.prepare(
-    `UPDATE howhigh_challenges
-     SET p2_score = ?, p2_results = ?, p2_dice_accepted = ?, p2_gowild_accepted = ?,
-         p2_time_ms = ?, p2_finished_at = ?, winner_id = ?, status = 'complete', completed_at = ?
-     WHERE code = ?`,
-  ).run(
-    score,
-    JSON.stringify(results),
-    diceAccepted ? 1 : 0,
-    goWildAccepted ? 1 : 0,
-    timeMs,
-    Date.now(),
-    winnerId,
-    Date.now(),
-    code,
-  );
+  // Guard status in the UPDATE itself, not just the SELECT above: changes===0
+  // means the row left 'active' between the read and the write. Inert today
+  // (single synchronous process), but the correct write under any concurrency.
+  const info = db
+    .prepare(
+      `UPDATE howhigh_challenges
+       SET p2_score = ?, p2_results = ?, p2_dice_accepted = ?, p2_gowild_accepted = ?,
+           p2_time_ms = ?, p2_finished_at = ?, winner_id = ?, status = 'complete', completed_at = ?
+       WHERE code = ? AND status = 'active'`,
+    )
+    .run(
+      score,
+      JSON.stringify(results),
+      diceAccepted ? 1 : 0,
+      goWildAccepted ? 1 : 0,
+      timeMs,
+      Date.now(),
+      winnerId,
+      Date.now(),
+      code,
+    );
+  if (info.changes === 0) {
+    throw new Error('Challenge not found or not active');
+  }
 
   return db.prepare('SELECT * FROM howhigh_challenges WHERE code = ?').get(code) as ChallengeRow;
 }
@@ -205,6 +215,25 @@ export function getUsernameById(userId: number): string | null {
     | { username: string }
     | undefined;
   return row?.username ?? null;
+}
+
+// Batch form of getUsernameById: one IN (...) query instead of one per id.
+// Used by howhigh:my_challenges to avoid an N+1 over up to 50 challenges.
+export function getUsernamesByIds(ids: (number | null | undefined)[]): Map<number, string> {
+  const out = new Map<number, string>();
+  const unique = [...new Set(ids.filter((id): id is number => id !== null && id !== undefined))];
+  if (unique.length === 0) {
+    return out;
+  }
+  const db = requireDb();
+  const placeholders = unique.map(() => '?').join(',');
+  const rows = db
+    .prepare(`SELECT id, username FROM users WHERE id IN (${placeholders})`)
+    .all(...unique) as { id: number; username: string }[];
+  for (const row of rows) {
+    out.set(row.id, row.username);
+  }
+  return out;
 }
 
 export function expireStale(maxAgeMs: number): number {

@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
-import { readFileSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,6 +15,15 @@ const envPath = existsSync(path.join(__dirname, '.env'))
 if (envPath) {
   dotenv.config({ path: envPath, override: true });
 }
+
+// Report all missing secrets at once at boot, before any lazy per-module throw.
+function assertEnv(keys) {
+  const missing = keys.filter((k) => !process.env[k]);
+  if (missing.length) {
+    throw new Error(`Missing required env var(s): ${missing.join(', ')}`);
+  }
+}
+assertEnv(['SESSION_SECRET', 'QUESTIONS_KEY', 'REDIS_URL']);
 
 import session from 'express-session';
 import { RedisStore } from 'connect-redis';
@@ -65,6 +74,7 @@ import {
   finishP2,
   getChallengesForUser,
   getUsernameById,
+  getUsernamesByIds,
   expireStale as expireHowHighStale,
 } from './game/howhigh-store.ts';
 import {
@@ -178,11 +188,7 @@ app.use((req, res, next) => {
 function createSessionMiddleware() {
   return session({
     store: new RedisStore({ client: redisClient, prefix: SESSION_PREFIX + 'session:' }),
-    secret:
-      process.env.SESSION_SECRET ||
-      (() => {
-        throw new Error('SESSION_SECRET env var is required');
-      })(),
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -247,6 +253,63 @@ const PREVIEW_RATE_LIMIT_MS = 200;
 // Rate limiting: throttle quiz starts per socket
 const quizTimestamps = new Map(); // socketId -> lastQuizStartTime
 const QUIZ_RATE_LIMIT_MS = 2000;
+// Slack on a run's max allowed time before the anti-tamper clamp rejects it —
+// absorbs network lag and clock skew.
+const ANSWER_GRACE_MS = 2000;
+// Default qlashique turn timer, plus the grace before the server force-ends a
+// turn the client never answered.
+const QLAS_DEFAULT_TIMER_S = 5;
+const TURN_GRACE_S = 3;
+
+// Clamp a client-reported run duration into [minMs, maxMs] so a tampered client
+// can't post a 1ms or a 1-day run. Falls back to server time if totalMs is bad.
+function clampRunMs(totalMs, startedAt, minMs, maxMs) {
+  const reportedMs = typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - startedAt;
+  return Math.min(Math.max(reportedMs, minMs), maxMs);
+}
+
+// Finish-and-submit for solo runs with { finished, finalScore, finalTimeMs }.
+// quiz/triviandom differs (gameOver flag, run.answers) — its handler stays.
+function submitModeScore(runMap, mode, socket, name, cb) {
+  const run = runMap.get(socket.id);
+  if (!run) {
+    return cb({ error: 'No completed run' });
+  }
+  if (!run.finished) {
+    return cb({ error: 'Run not finished' });
+  }
+  const sanitizedName = name?.trim();
+  if (!sanitizedName || sanitizedName.length > 16) {
+    return cb({ error: 'Name must be 1-16 characters' });
+  }
+  const top10 = insertScoreForMode(mode, sanitizedName, run.finalScore, run.finalTimeMs);
+  runMap.delete(socket.id);
+  cb({ ok: true, top10 });
+}
+
+// Rate-limit + active-game gate for start handlers. Returns true if rejected
+// (caller should return). Pass `now` so it matches the run's startedAt.
+function quizStartGuard(
+  socket,
+  cb,
+  now,
+  {
+    waitMsg = 'Please wait before starting another quiz.',
+    busyMsg = 'Cannot play quiz during an active game.',
+  } = {},
+) {
+  const lastQuiz = quizTimestamps.get(socket.id) || 0;
+  if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
+    cb({ error: waitMsg });
+    return true;
+  }
+  quizTimestamps.set(socket.id, now);
+  if (isInActiveGame(socket.id)) {
+    cb({ error: busyMsg });
+    return true;
+  }
+  return false;
+}
 
 // Quiz session tracking
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
@@ -650,11 +713,6 @@ app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok', redis, db: dbReady });
 });
 
-// Serve client HTML for dev testing
-app.get('/', (_req, res) => {
-  res.type('text/html').send(readFileSync(path.join(__dirname, '../client/index.html'), 'utf8'));
-});
-
 // ---------------------------------------------------------------------------
 // Connection
 // ---------------------------------------------------------------------------
@@ -951,7 +1009,7 @@ io.on('connection', (socket) => {
         currentPlayerIdx: qstate.currentPlayerIdx,
         turnNumber: qstate.turnNumber,
         currentScore: qstate.currentScore,
-        timerSeconds: room.qlasTimerSeconds || 5,
+        timerSeconds: room.qlasTimerSeconds || QLAS_DEFAULT_TIMER_S,
         timerElapsed,
       };
       if (
@@ -1162,6 +1220,7 @@ io.on('connection', (socket) => {
 
     const result = applyTurn(room.state, player.index, submission, questionsDb);
     if (result.error) {
+      console.warn(`[game] ${code} applyTurn rejected p${player.index}: ${result.error}`);
       return cb(result);
     }
 
@@ -1255,14 +1314,8 @@ io.on('connection', (socket) => {
     }
 
     const now = Date.now();
-    const lastQuiz = quizTimestamps.get(socket.id) || 0;
-    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: 'Please wait before starting another quiz.' });
-    }
-    quizTimestamps.set(socket.id, now);
-
-    if (isInActiveGame(socket.id)) {
-      return cb({ error: 'Cannot play quiz during an active game.' });
+    if (quizStartGuard(socket, cb, now)) {
+      return;
     }
 
     let randomQ = pickRandomQuestion(questionsDb, getModeCats(mode));
@@ -1390,17 +1443,19 @@ io.on('connection', (socket) => {
     skipnotRuns.delete(socketId);
   }
 
-  function _pickSkipnotPool() {
+  // `count` distinct random questions from active categories, null if the pool
+  // runs dry. Shared by skipnot and howhigh.
+  function _pickQuestionPool(count) {
     // Test override (sticky/one-shot): fill the whole run with the locked
     // question so e2e specs can deterministically assert score totals.
     const overrideId = _consumeQuestionOverride(questionsDb);
     if (overrideId && questionsDb._byId?.[overrideId]) {
       const q = questionsDb._byId[overrideId];
-      return Array.from({ length: skipnot.QUESTION_COUNT }, () => q);
+      return Array.from({ length: count }, () => q);
     }
     const used = new Set();
     const out = [];
-    for (let i = 0; i < skipnot.QUESTION_COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       const q = pickRandomQuestion(questionsDb, DEFAULT_CATS_SET, used);
       if (!q || used.has(q.id)) {
         return null;
@@ -1425,17 +1480,11 @@ io.on('connection', (socket) => {
     }
 
     const now = Date.now();
-    const lastQuiz = quizTimestamps.get(socket.id) || 0;
-    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: 'Please wait before starting another quiz.' });
-    }
-    quizTimestamps.set(socket.id, now);
-
-    if (isInActiveGame(socket.id)) {
-      return cb({ error: 'Cannot play quiz during an active game.' });
+    if (quizStartGuard(socket, cb, now)) {
+      return;
     }
 
-    const questions = _pickSkipnotPool();
+    const questions = _pickQuestionPool(skipnot.QUESTION_COUNT);
     if (!questions) {
       return cb({ error: 'Not enough questions in active categories.' });
     }
@@ -1541,13 +1590,12 @@ io.on('connection', (socket) => {
     // resend them — server already recorded each one in run.picks at position
     // `currentIdx`). Missing slot = timeout/unanswered, scores like skip.
     const picks = run.picks.map((p) => (p === undefined ? null : p));
-    // Sanity bound on totalMs: clamp into the plausible window so a tampered
-    // client can't post a 1ms run or a 1-day run.
-    const minMs = run.questions.length * 100;
-    const maxMs = run.questions.length * (skipnot.TIMER_MS + 2000);
-    const reportedMs =
-      typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
-    const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
+    const elapsedMs = clampRunMs(
+      totalMs,
+      run.startedAt,
+      run.questions.length * 100,
+      run.questions.length * (skipnot.TIMER_MS + ANSWER_GRACE_MS),
+    );
 
     const { score } = skipnot.scorePicks(run.questions, picks);
     run.finished = true;
@@ -1562,20 +1610,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       return;
     }
-    const run = skipnotRuns.get(socket.id);
-    if (!run) {
-      return cb({ error: 'No completed run' });
-    }
-    if (!run.finished) {
-      return cb({ error: 'Run not finished' });
-    }
-    const sanitizedName = name?.trim();
-    if (!sanitizedName || sanitizedName.length > 16) {
-      return cb({ error: 'Name must be 1-16 characters' });
-    }
-    const top10 = insertScoreForMode('skipnot', sanitizedName, run.finalScore, run.finalTimeMs);
-    _disposeSkipnotRun(socket.id);
-    cb({ ok: true, top10 });
+    submitModeScore(skipnotRuns, 'skipnot', socket, name, cb);
   });
 
   // --- MathQuiz (solo numeric-input math/calculus quiz) ---
@@ -1594,13 +1629,8 @@ io.on('connection', (socket) => {
       return cb({ error: 'Login required' });
     }
     const now = Date.now();
-    const lastQuiz = quizTimestamps.get(socket.id) || 0;
-    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: 'Please wait before starting another quiz.' });
-    }
-    quizTimestamps.set(socket.id, now);
-    if (isInActiveGame(socket.id)) {
-      return cb({ error: 'Cannot play quiz during an active game.' });
+    if (quizStartGuard(socket, cb, now)) {
+      return;
     }
 
     const problems = mathGenerateSet(mathquiz.QUESTION_COUNT);
@@ -1681,11 +1711,12 @@ io.on('connection', (socket) => {
       return cb({ error: 'Run already finished' });
     }
     const guesses = run.guesses.map((g) => (g === undefined ? null : g));
-    const minMs = run.problems.length * 100;
-    const maxMs = run.problems.length * (mathquiz.TIMER_MS + 2000);
-    const reportedMs =
-      typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
-    const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
+    const elapsedMs = clampRunMs(
+      totalMs,
+      run.startedAt,
+      run.problems.length * 100,
+      run.problems.length * (mathquiz.TIMER_MS + ANSWER_GRACE_MS),
+    );
 
     const { score, results, earned } = mathquiz.scorePicks(run.problems, guesses);
     run.finished = true;
@@ -1714,20 +1745,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       return;
     }
-    const run = mathquizRuns.get(socket.id);
-    if (!run) {
-      return cb({ error: 'No completed run' });
-    }
-    if (!run.finished) {
-      return cb({ error: 'Run not finished' });
-    }
-    const sanitizedName = name?.trim();
-    if (!sanitizedName || sanitizedName.length > 16) {
-      return cb({ error: 'Name must be 1-16 characters' });
-    }
-    const top10 = insertScoreForMode('mathquiz', sanitizedName, run.finalScore, run.finalTimeMs);
-    mathquizRuns.delete(socket.id);
-    cb({ ok: true, top10 });
+    submitModeScore(mathquizRuns, 'mathquiz', socket, name, cb);
   });
 
   // --- CentoGrapher (single-question geography "select all related") ---
@@ -1742,13 +1760,8 @@ io.on('connection', (socket) => {
       return cb({ error: 'Login required' });
     }
     const now = Date.now();
-    const lastQuiz = quizTimestamps.get(socket.id) || 0;
-    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: 'Please wait before starting another quiz.' });
-    }
-    quizTimestamps.set(socket.id, now);
-    if (isInActiveGame(socket.id)) {
-      return cb({ error: 'Cannot play quiz during an active game.' });
+    if (quizStartGuard(socket, cb, now)) {
+      return;
     }
 
     const country =
@@ -1793,7 +1806,7 @@ io.on('connection', (socket) => {
     run.finalScore = score;
     run.finalTimeMs = Math.min(
       Math.max(Date.now() - run.startedAt, 0),
-      centographer.TIMER_MS + 2000,
+      centographer.TIMER_MS + ANSWER_GRACE_MS,
     );
 
     // verdict only for the player's own picks — true correct set stays hidden
@@ -1812,44 +1825,10 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') {
       return;
     }
-    const run = centographerRuns.get(socket.id);
-    if (!run || !run.finished) {
-      return cb({ error: 'No completed run' });
-    }
-    const sanitizedName = name?.trim();
-    if (!sanitizedName || sanitizedName.length > 16) {
-      return cb({ error: 'Name must be 1-16 characters' });
-    }
-    const top10 = insertScoreForMode(
-      'centographer',
-      sanitizedName,
-      run.finalScore,
-      run.finalTimeMs,
-    );
-    centographerRuns.delete(socket.id);
-    cb({ ok: true, top10 });
+    submitModeScore(centographerRuns, 'centographer', socket, name, cb);
   });
 
   // --- HowHigh? (async 2P challenge) ---
-
-  function _pickHowHighPool(count) {
-    const overrideId = _consumeQuestionOverride(questionsDb);
-    if (overrideId && questionsDb._byId?.[overrideId]) {
-      const q = questionsDb._byId[overrideId];
-      return Array.from({ length: count }, () => q);
-    }
-    const used = new Set();
-    const out = [];
-    for (let i = 0; i < count; i++) {
-      const q = pickRandomQuestion(questionsDb, DEFAULT_CATS_SET, used);
-      if (!q || used.has(q.id)) {
-        return null;
-      }
-      used.add(q.id);
-      out.push(q);
-    }
-    return out;
-  }
 
   socket.on('howhigh:start', (cb) => {
     if (typeof cb !== 'function') {
@@ -1860,18 +1839,12 @@ io.on('connection', (socket) => {
     }
 
     const now = Date.now();
-    const lastQuiz = quizTimestamps.get(socket.id) || 0;
-    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: 'Please wait before starting another quiz.' });
-    }
-    quizTimestamps.set(socket.id, now);
-
-    if (isInActiveGame(socket.id)) {
-      return cb({ error: 'Cannot play while in an active game.' });
+    if (quizStartGuard(socket, cb, now, { busyMsg: 'Cannot play while in an active game.' })) {
+      return;
     }
 
     // Pick 12 questions (10 base + 2 GoWild extras)
-    const allQuestions = _pickHowHighPool(howhigh.GOWILD_Q_COUNT);
+    const allQuestions = _pickQuestionPool(howhigh.GOWILD_Q_COUNT);
     if (!allQuestions) {
       return cb({ error: 'Not enough questions in active categories.' });
     }
@@ -2177,15 +2150,15 @@ io.on('connection', (socket) => {
     }
 
     const picks = run.picks.map((p) => (p === undefined ? null : p));
-    const minMs = run.totalQuestions * 100;
     const baseTimerMs = run.goWildAccepted ? howhigh.GOWILD_TIMER_MS : howhigh.BASE_TIMER_MS;
     const tcQs = run.timeCrunchAccepted ? howhigh.TIME_CRUNCH_Q_COUNT : 0;
-    const maxMs =
-      (run.totalQuestions - tcQs) * (baseTimerMs + 2000) +
-      tcQs * (howhigh.TIME_CRUNCH_TIMER_MS + 2000);
-    const reportedMs =
-      typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - run.startedAt;
-    const elapsedMs = Math.min(Math.max(reportedMs, minMs), maxMs);
+    const elapsedMs = clampRunMs(
+      totalMs,
+      run.startedAt,
+      run.totalQuestions * 100,
+      (run.totalQuestions - tcQs) * (baseTimerMs + ANSWER_GRACE_MS) +
+        tcQs * (howhigh.TIME_CRUNCH_TIMER_MS + ANSWER_GRACE_MS),
+    );
 
     const { score } = howhigh.scorePicks(run.questions, picks, {
       dice: { die1: run.dice.die1, die2: run.dice.die2, accepted: !!run.diceAccepted },
@@ -2197,32 +2170,32 @@ io.on('connection', (socket) => {
     try {
       run.finished = true;
       if (run.isPlayer2) {
-        const challenge = finishP2(
-          run.challengeCode,
-          score,
-          picks.map((p, i) =>
-            p === null ? 'timeout' : p === run.questions[i]?.a ? 'correct' : 'wrong',
-          ),
-          !!run.diceAccepted,
-          !!run.goWildAccepted,
-          elapsedMs,
-        );
-        const p1Name = getUsernameById(challenge.player1_id) || 'Player 1';
-        const p2Name = getUsernameById(challenge.player2_id) || 'Player 2';
-        howHighRuns.delete(socket.id);
-        // Also save to game_history
-        try {
+        // One atomic unit: the finishP2 UPDATE and the game_history insert
+        // commit together. If the insert throws, finishP2 rolls back too, so a
+        // challenge can't end up 'complete' with no game_history row. The outer
+        // catch resets run.finished, leaving the run intact to retry.
+        const challenge = getDb().transaction(() => {
+          const ch = finishP2(
+            run.challengeCode,
+            score,
+            picks.map((p, i) =>
+              p === null ? 'timeout' : p === run.questions[i]?.a ? 'correct' : 'wrong',
+            ),
+            !!run.diceAccepted,
+            !!run.goWildAccepted,
+            elapsedMs,
+          );
           insertGameResult({
-            player1Id: challenge.player1_id,
-            player2Id: challenge.player2_id,
-            winnerId: challenge.winner_id,
+            player1Id: ch.player1_id,
+            player2Id: ch.player2_id,
+            winnerId: ch.winner_id,
             gameMode: 'howhigh',
             boardSize: null,
             durationMs: elapsedMs,
             player1Stats: {
-              score: challenge.p1_score,
-              diceAccepted: !!challenge.p1_dice_accepted,
-              goWildAccepted: !!challenge.p1_gowild_accepted,
+              score: ch.p1_score,
+              diceAccepted: !!ch.p1_dice_accepted,
+              goWildAccepted: !!ch.p1_gowild_accepted,
             },
             player2Stats: {
               score,
@@ -2230,9 +2203,12 @@ io.on('connection', (socket) => {
               goWildAccepted: !!run.goWildAccepted,
             },
           });
-        } catch (err) {
-          console.error('[howhigh] insertGameResult failed:', err.message);
-        }
+          return ch;
+        })();
+
+        howHighRuns.delete(socket.id);
+        const p1Name = getUsernameById(challenge.player1_id) || 'Player 1';
+        const p2Name = getUsernameById(challenge.player2_id) || 'Player 2';
         cb({
           ok: true,
           score,
@@ -2278,14 +2254,13 @@ io.on('connection', (socket) => {
     }
 
     const now = Date.now();
-    const lastQuiz = quizTimestamps.get(socket.id) || 0;
-    if (now - lastQuiz < QUIZ_RATE_LIMIT_MS) {
-      return cb({ error: 'Please wait before starting.' });
-    }
-    quizTimestamps.set(socket.id, now);
-
-    if (isInActiveGame(socket.id)) {
-      return cb({ error: 'Cannot play while in an active game.' });
+    if (
+      quizStartGuard(socket, cb, now, {
+        waitMsg: 'Please wait before starting.',
+        busyMsg: 'Cannot play while in an active game.',
+      })
+    ) {
+      return;
     }
 
     let challenge;
@@ -2366,11 +2341,12 @@ io.on('connection', (socket) => {
     }
     try {
       const challenges = getChallengesForUser(socket.userId);
+      const names = getUsernamesByIds(challenges.flatMap((c) => [c.player1_id, c.player2_id]));
       const mapped = challenges.map((c) => ({
         code: c.code,
         status: c.status,
-        p1Name: getUsernameById(c.player1_id) || 'Unknown',
-        p2Name: c.player2_id ? getUsernameById(c.player2_id) || 'Unknown' : null,
+        p1Name: names.get(c.player1_id) || 'Unknown',
+        p2Name: c.player2_id ? names.get(c.player2_id) || 'Unknown' : null,
         p1Score: c.p1_score,
         p2Score: c.p2_score,
         youWon: c.winner_id === socket.userId,
@@ -2512,7 +2488,7 @@ io.on('connection', (socket) => {
     if (room.qlasTimer) {
       clearTimeout(room.qlasTimer);
     }
-    const _gracedMs = ((room.qlasTimerSeconds || 5) + 3) * 1000;
+    const _gracedMs = ((room.qlasTimerSeconds || QLAS_DEFAULT_TIMER_S) + TURN_GRACE_S) * 1000;
     room.qlasTimerExpired = false;
     room.qlasTimer = setTimeout(() => {
       room.qlasTimer = null;
@@ -3143,52 +3119,10 @@ function _pickQlasQuestion(room, db) {
   return q;
 }
 
-function _saveQlasResult(room, winnerIdx) {
-  const [p0, p1] = room.players;
-  if (!p0?.userId && !p1?.userId) {
-    return;
-  }
-  const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
-  const [s0, s1] = room.qlasStats ?? [{}, {}];
-  const existingUserIds = _getExistingUserIdSet([p0?.userId, p1?.userId]);
-  const p0UserId = existingUserIds.has(p0?.userId) ? p0.userId : null;
-  const p1UserId = existingUserIds.has(p1?.userId) ? p1.userId : null;
-  if (!p0UserId || !p1UserId) {
-    return;
-  }
-
-  const db = getDb();
-  if (!db) {
-    return;
-  }
-
-  try {
-    db.transaction(() => {
-      insertGameResult({
-        player1Id: p0UserId,
-        player2Id: p1UserId,
-        winnerId: winnerIdx === 0 ? p0UserId : p1UserId,
-        gameMode: 'qlashique',
-        boardSize: null,
-        durationMs,
-        player1Stats: { ...s0, finalHp: room.state.players[0].hp },
-        player2Stats: { ...s1, finalHp: room.state.players[1].hp },
-      });
-
-      const updateGames = _getUpdateGamesStmt();
-      if (updateGames) {
-        updateGames.run(winnerIdx === 0 ? 1 : 0, p0UserId);
-        updateGames.run(winnerIdx === 1 ? 1 : 0, p1UserId);
-      }
-    })();
-  } catch (e) {
-    console.warn('[qlashique] Failed to save game result:', e.message);
-  }
-}
-
-// Persist a COMPLETED Qlashword game to stats (played/won). Only called on
-// normal end (not disconnect). Both players must be logged-in accounts.
-function _saveQwResult(room, winnerIdx) {
+// Persist a completed 1v1 game (qlashique/qlashword) to game_history + played/won
+// counters in one transaction. Both players must be logged-in. winnerIdx -1 =
+// draw, honored only when allowDraw (qlashique has no draw — other player wins).
+function _saveDuelResult(room, winnerIdx, { gameMode, allowDraw, player1Stats, player2Stats }) {
   const [p0, p1] = room.players;
   const existingUserIds = _getExistingUserIdSet([p0?.userId, p1?.userId]);
   const p0UserId = existingUserIds.has(p0?.userId) ? p0.userId : null;
@@ -3201,19 +3135,19 @@ function _saveQwResult(room, winnerIdx) {
     return;
   }
   const durationMs = room.startedAt ? Date.now() - room.startedAt : null;
-  const scores = room.state.scores;
-  const winnerId = winnerIdx === 0 ? p0UserId : winnerIdx === 1 ? p1UserId : null;
+  const winnerId =
+    winnerIdx === 0 ? p0UserId : winnerIdx === 1 ? p1UserId : allowDraw ? null : p1UserId;
   try {
     db.transaction(() => {
       insertGameResult({
         player1Id: p0UserId,
         player2Id: p1UserId,
         winnerId,
-        gameMode: 'qlashword',
+        gameMode,
         boardSize: null,
         durationMs,
-        player1Stats: { score: scores[0] },
-        player2Stats: { score: scores[1] },
+        player1Stats,
+        player2Stats,
       });
       const updateGames = _getUpdateGamesStmt();
       if (updateGames) {
@@ -3222,7 +3156,7 @@ function _saveQwResult(room, winnerIdx) {
       }
     })();
   } catch (e) {
-    console.warn('[qlashword] Failed to save game result:', e.message);
+    console.warn(`[${gameMode}] Failed to save game result:`, e.message);
   }
 }
 
@@ -3297,7 +3231,13 @@ function _endQlasTurn(ioServer, code, room, choice = 'attack') {
     for (const p of room.players) {
       unregisterActiveSocket(p.id);
     }
-    _saveQlasResult(room, winnerIdx);
+    const [qs0, qs1] = room.qlasStats ?? [{}, {}];
+    _saveDuelResult(room, winnerIdx, {
+      gameMode: 'qlashique',
+      allowDraw: false,
+      player1Stats: { ...qs0, finalHp: room.state.players[0].hp },
+      player2Stats: { ...qs1, finalHp: room.state.players[1].hp },
+    });
     ioServer.to(code).emit('qlashique:game_over', {
       winnerIdx,
       reason: 'hp',
@@ -3542,7 +3482,7 @@ function _qwSendBonusQuestion(ioServer, code, room) {
         console.error('[qlashword] bonus timer error:', err);
       }
     },
-    (QW_BONUS_TIMER_S + 3) * 1000,
+    (QW_BONUS_TIMER_S + TURN_GRACE_S) * 1000,
   );
 }
 
@@ -3621,7 +3561,13 @@ function _qwAfterTurn(ioServer, code, room) {
       unregisterActiveSocket(p.id);
     }
     const winnerIdx = finals[0] === finals[1] ? -1 : finals[0] > finals[1] ? 0 : 1;
-    _saveQwResult(room, winnerIdx); // completed games count toward played/won
+    // completed games count toward played/won
+    _saveDuelResult(room, winnerIdx, {
+      gameMode: 'qlashword',
+      allowDraw: true,
+      player1Stats: { score: room.state.scores[0] },
+      player2Stats: { score: room.state.scores[1] },
+    });
     ioServer.to(code).emit('qlashword:game_over', {
       winnerIdx,
       reason: 'normal',
@@ -3641,7 +3587,17 @@ if (process.env.VITEST) {
 } else {
   waitForRedisReady(10_000)
     .then(() => {
-      httpServer.listen(PORT, () => console.log(`Weeqlash server :${PORT}`));
+      httpServer.listen(PORT, () => {
+        console.log(`Weeqlash server :${PORT}`);
+        // Grep after a deploy: right DB? did test routes leak into prod?
+        console.log(
+          `[startup] env=${process.env.NODE_ENV || 'development'} prefix=${SESSION_PREFIX} ` +
+            `db=${process.env.DB_PATH || './server/data/leaderboard.db'} ` +
+            `smtp=${process.env.SMTP_HOST ? 'on' : 'off'} ` +
+            `testRoutes=${process.env.ENABLE_TEST_ROUTES === '1' ? 'on' : 'off'} ` +
+            `cors=${process.env.CORS_ORIGIN || '(default)'}`,
+        );
+      });
     })
     .catch((err) => {
       console.error('[startup] Redis not ready:', err.message);
