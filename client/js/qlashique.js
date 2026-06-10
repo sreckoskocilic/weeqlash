@@ -106,7 +106,6 @@ function qlasGetStoredTheme() {
 // State
 let qlasCode = null;
 let qlasMyIdx = null;
-let qlasIsHost = false;
 let qlasPlayers = [{ name: '' }, { name: '' }];
 let qlasMaxHp = QLAS_DEFAULT_HP;
 let qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
@@ -966,7 +965,6 @@ export function initQlashique(socket) {
   }
 
   el('btn-qlas-create').addEventListener('click', () => {
-    qlasIsHost = true;
     qlasCode = null;
     const hpSel = document.querySelector('.qlas-hp-opt.selected');
     qlasMaxHp = hpSel ? Number(hpSel.dataset.hp) : QLAS_DEFAULT_HP;
@@ -999,7 +997,6 @@ export function initQlashique(socket) {
       return;
     }
 
-    qlasIsHost = false;
     qlasCode = codeInput;
     qlasResetForNewMatch();
 
@@ -1026,15 +1023,4 @@ export function initQlashique(socket) {
         : 'Waiting for game to start…';
     });
   });
-}
-
-// Export state getters for other modules
-export function getQlasMyIdx() {
-  return qlasMyIdx;
-}
-export function getQlasCode() {
-  return qlasCode;
-}
-export function getQlasIsHost() {
-  return qlasIsHost;
 }

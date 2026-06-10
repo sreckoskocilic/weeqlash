@@ -9,8 +9,6 @@
 // minus death_metal). A correct answer UNLOCKS that multiplier for this turn; a
 // wrong answer leaves it at ×1 (no-unlock — the base score is never lost).
 
-import type { Category } from './engine.ts';
-
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -31,10 +29,6 @@ export type Phase = (typeof PHASE)[keyof typeof PHASE];
 
 export type BonusType = 'DL' | 'TL' | 'DW' | 'TW';
 export type Orientation = 'H' | 'V';
-
-// Bonus questions are pulled from every category EXCEPT death_metal.
-// (Consumers build the enabled-cats Set; this is the canonical exclusion.)
-export const BONUS_Q_EXCLUDED_CATS: readonly Category[] = ['death_metal'];
 
 // Standard English Scrabble tile values.
 export const LETTER_VALUES: Record<string, number> = {

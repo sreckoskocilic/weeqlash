@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: server/Dockerfile
     restart: unless-stopped
+    # Room for graceful shutdown to flush SQLite (forceExit timer fires at 5s).
+    stop_grace_period: 15s
     ports:
       - '127.0.0.1:3000:3000'
     env_file:
@@ -12,7 +14,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - CORS_ORIGIN=https://brawl.weeqlash.icu
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD required}@redis:6379
     depends_on:
       redis:
         condition: service_healthy
@@ -27,7 +29,7 @@ services:
       --appendonly yes
       --appendfsync everysec
       --save ""
-      --requirepass ${REDIS_PASSWORD}
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD required}
       --maxmemory 128mb
       --maxmemory-policy volatile-lru
     volumes:

@@ -63,7 +63,6 @@ import {
   finishP1,
   joinChallenge,
   finishP2,
-  getChallengeByCode,
   getChallengesForUser,
   getUsernameById,
   expireStale as expireHowHighStale,
@@ -102,6 +101,7 @@ import {
   checkQualifiesTop10ForMode,
   pruneAllModes,
   clearTestEntries,
+  closeDb,
 } from './game/leaderboard.ts';
 import {
   initAuthDb,
@@ -338,9 +338,27 @@ function gracefulShutdown(signal) {
   clearInterval(roomCleanupInterval);
   clearInterval(leaderboardPruneInterval);
   clearInterval(howHighExpireInterval);
-  httpServer.close(() => {
-    console.log('[shutdown] HTTP server closed');
-    redisClient.quit().finally(() => process.exit(0));
+
+  // If a hung socket keeps the clean close from finishing, bail out before
+  // Docker's SIGKILL so we still get to flush SQLite.
+  const forceExit = setTimeout(() => {
+    console.error('[shutdown] forced exit (clean close timed out)');
+    process.exit(1);
+  }, 5000);
+  forceExit.unref();
+
+  // io.close() also closes the underlying httpServer, so don't call
+  // httpServer.close() separately (the second close would error).
+  io.close((err) => {
+    if (err) {
+      console.error('[shutdown] io.close error:', err.message);
+    }
+    console.log('[shutdown] server closed');
+    closeDb(); // flush + close SQLite
+    redisClient.quit().finally(() => {
+      clearTimeout(forceExit);
+      process.exit(0);
+    });
   });
 }
 
@@ -620,6 +638,17 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ email, gamesPlayed: count.cnt });
   });
 }
+
+// Readiness probe: 503 when Redis or the DB is down. '/' can't be used for this
+// since it serves static HTML and stays 200 even when the backend is broken.
+app.get('/healthz', (_req, res) => {
+  const redis = isRedisReady();
+  const dbReady = getDb() !== null;
+  if (!redis || !dbReady) {
+    return res.status(503).json({ status: 'unavailable', redis, db: dbReady });
+  }
+  res.json({ status: 'ok', redis, db: dbReady });
+});
 
 // Serve client HTML for dev testing
 app.get('/', (_req, res) => {
@@ -904,10 +933,6 @@ io.on('connection', (socket) => {
     registerActiveSocket(socket.id);
     socket.join(code);
     console.log(`[reconnect] ${player.name} re-joined ${code}`);
-    // Notify other players that someone reconnected
-    socket.to(code).emit('room:player_reconnected', {
-      players: room.players.map(publicPlayer),
-    });
     if (room.mode === 'qlashique') {
       const qstate = room.state;
       const timerElapsed = room.qlasGuessingStartedAt
@@ -1551,13 +1576,6 @@ io.on('connection', (socket) => {
     const top10 = insertScoreForMode('skipnot', sanitizedName, run.finalScore, run.finalTimeMs);
     _disposeSkipnotRun(socket.id);
     cb({ ok: true, top10 });
-  });
-
-  socket.on('skipnot:leaderboard', (cb) => {
-    if (typeof cb !== 'function') {
-      return;
-    }
-    cb({ ok: true, top10: getTop10ForMode('skipnot') });
   });
 
   // --- MathQuiz (solo numeric-input math/calculus quiz) ---
@@ -2365,48 +2383,6 @@ io.on('connection', (socket) => {
       console.error('[howhigh] my_challenges failed:', err.message);
       cb({ error: 'Failed to load challenges' });
     }
-  });
-
-  socket.on('howhigh:challenge_result', ({ code } = {}, cb) => {
-    if (typeof cb !== 'function') {
-      return;
-    }
-    if (!socket.userId) {
-      return cb({ error: 'Login required' });
-    }
-    if (!code) {
-      return cb({ error: 'Missing code' });
-    }
-
-    const challenge = getChallengeByCode(code);
-    if (!challenge) {
-      return cb({ error: 'Challenge not found' });
-    }
-    if (challenge.player1_id !== socket.userId && challenge.player2_id !== socket.userId) {
-      return cb({ error: 'Not your challenge' });
-    }
-
-    cb({
-      ok: true,
-      challenge: {
-        code: challenge.code,
-        status: challenge.status,
-        p1Name: getUsernameById(challenge.player1_id) || 'Unknown',
-        p2Name: challenge.player2_id ? getUsernameById(challenge.player2_id) || 'Unknown' : null,
-        p1Score: challenge.p1_score,
-        p2Score: challenge.p2_score,
-        p1DiceAccepted: !!challenge.p1_dice_accepted,
-        p2DiceAccepted: !!challenge.p2_dice_accepted,
-        p1GoWildAccepted: !!challenge.p1_gowild_accepted,
-        p2GoWildAccepted: !!challenge.p2_gowild_accepted,
-        p1TimeMs: challenge.p1_time_ms,
-        p2TimeMs: challenge.p2_time_ms,
-        winnerId: challenge.winner_id,
-        diceSum: challenge.dice_die1 + challenge.dice_die2,
-        createdAt: challenge.created_at,
-        completedAt: challenge.completed_at,
-      },
-    });
   });
 
   // --- Dev quickstart (non-production only) ---

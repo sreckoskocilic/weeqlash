@@ -165,10 +165,6 @@ export function initForgotPassword() {
 // Reset password handler
 let resetToken = null;
 
-export function setResetToken(token) {
-  resetToken = token;
-}
-
 export function initResetPassword() {
   $('btn-reset').addEventListener('click', async () => {
     const password = $('reset-password').value;

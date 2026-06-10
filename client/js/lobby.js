@@ -25,7 +25,3 @@ export function renderPlayers(players, totalSlots) {
     ul.appendChild(li);
   }
 }
-
-export function initLobby() {
-  // Lobby initialization if needed
-}

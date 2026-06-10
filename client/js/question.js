@@ -14,28 +14,14 @@ export function getGameModalOptionBtns() {
   return gameModalOptionBtns;
 }
 
-export function getPendingQuestions() {
-  return state.pendingQuestions;
-}
-
-export function getCurrentQIdx() {
-  return state.currentQIdx;
-}
-
-export function setCurrentQIdx(idx) {
-  state.currentQIdx = idx;
-}
-
-export function getTimerInterval() {
-  return timerInterval;
-}
-
 let timerInterval = null;
 
 // Show question
 export function showQuestion(idx) {
   const q = state.pendingQuestions[idx];
-  if (!q) {return;}
+  if (!q) {
+    return;
+  }
 
   const activeIdx = state.spectatingQuestion ? state.spectatingPlayerIdx : state.myPlayerIndex;
   const gameState = state.gameState;
@@ -188,7 +174,9 @@ export function continueAfterQuestion() {
 
   import('./render.js')
     .then(({ renderAll }) => {
-      if (state.gameState) {renderAll(state.gameState);}
+      if (state.gameState) {
+        renderAll(state.gameState);
+      }
     })
     .then(() => {
       import('./game.js').then(({ submitTurn }) => submitTurn());

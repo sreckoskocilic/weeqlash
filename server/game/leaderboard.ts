@@ -214,3 +214,19 @@ export function pruneAllModes(): void {
     pruneMode(mode.id);
   }
 }
+
+// Close the SQLite handle on shutdown, checkpointing first so SIGTERM can't
+// strand the last writes in the -wal. auth.ts shares this handle via getDb().
+export function closeDb(): void {
+  if (!db) {
+    return;
+  }
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    db.close();
+  } catch (err) {
+    console.error('[leaderboard] closeDb() failed:', (err as Error).message);
+  } finally {
+    db = null;
+  }
+}
