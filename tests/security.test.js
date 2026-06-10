@@ -73,8 +73,10 @@ describe('Resend confirmation email error handling', () => {
   });
 
   it('returns 200 when sendEmail succeeds', async () => {
+    const spy = vi.spyOn(emailModule, 'sendEmail').mockResolvedValueOnce(undefined);
     const res = await request(app).post('/auth/resend-confirmation').set('Cookie', cookies);
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
+    spy.mockRestore();
   });
 });

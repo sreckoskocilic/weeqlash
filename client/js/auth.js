@@ -14,7 +14,6 @@ export function initAuth(svrUrl, sock) {
   // Server kicks us when the same account logs in elsewhere; clear local state and tell the user why.
   socket.on('auth:kicked', ({ reason }) => {
     hideUserBar();
-    state.qlasToken = null;
     const msg =
       reason === 'logged_in_elsewhere'
         ? 'Prijavljeni ste s drugog uređaja. Ova sesija je zatvorena.'

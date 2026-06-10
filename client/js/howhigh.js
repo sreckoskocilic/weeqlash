@@ -69,12 +69,17 @@ let bonusQ3 = 'dice';
 let bonusQ6 = 'gowild';
 let donAccepted = null;
 let timeCrunchAccepted = null;
+let offerResponded = false;
+let runGen = 0;
 
 function _qel(id) {
   return document.getElementById(id);
 }
 
 function _showPhase(name) {
+  if (name === 'dice' || name === 'don' || name === 'gowild' || name === 'timecrunch') {
+    offerResponded = false;
+  }
   for (const p of ['game', 'dice', 'don', 'gowild', 'timecrunch', 'gameover']) {
     const phaseEl = _qel('howhigh-phase-' + p);
     if (phaseEl) {
@@ -84,6 +89,8 @@ function _showPhase(name) {
 }
 
 function _resetRun() {
+  runGen++;
+  offerResponded = false;
   questions = [];
   currentIdx = 0;
   score = 0;
@@ -348,7 +355,11 @@ function _onOptionClick(idx) {
   }
   _disableAllOptions();
   const q = questions[currentIdx];
+  const gen = runGen;
   socketRef?.emit('howhigh:answer', { id: q.id, optionIdx: idx }, (res) => {
+    if (gen !== runGen) {
+      return;
+    }
     if (res?.error) {
       console.warn('[howhigh] answer rejected:', res.error);
       resolvedThisQ = false;
@@ -386,7 +397,11 @@ function _onTimeout() {
   questionTimeout = null;
   _disableAllOptions();
   const q = questions[currentIdx];
+  const gen = runGen;
   socketRef?.emit('howhigh:timeout', { id: q.id }, (res) => {
+    if (gen !== runGen) {
+      return;
+    }
     if (res?.error) {
       console.warn('[howhigh] timeout rejected:', res.error);
     }
@@ -444,6 +459,10 @@ function _showDiceOffer() {
 }
 
 function _onDiceAccept() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   diceAccepted = true;
   socketRef?.emit('howhigh:dice_respond', { accept: true }, (res) => {
     if (res?.error) {
@@ -459,6 +478,10 @@ function _onDiceAccept() {
 }
 
 function _onDiceDecline() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   diceAccepted = false;
   socketRef?.emit('howhigh:dice_respond', { accept: false }, (res) => {
     if (res?.error) {
@@ -477,6 +500,10 @@ function _showDoNOffer() {
 }
 
 function _onDoNAccept() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   donAccepted = true;
   socketRef?.emit('howhigh:don_respond', { accept: true }, (res) => {
     if (res?.error) {
@@ -489,6 +516,10 @@ function _onDoNAccept() {
 }
 
 function _onDoNDecline() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   donAccepted = false;
   socketRef?.emit('howhigh:don_respond', { accept: false }, (res) => {
     if (res?.error) {
@@ -507,6 +538,10 @@ function _showGoWildOffer() {
 }
 
 function _onGoWildAccept() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   socketRef?.emit('howhigh:gowild_respond', { accept: true }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] gowild_respond error:', res.error);
@@ -525,6 +560,10 @@ function _onGoWildAccept() {
 }
 
 function _onGoWildDecline() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   socketRef?.emit('howhigh:gowild_respond', { accept: false }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] gowild_respond error:', res.error);
@@ -542,6 +581,10 @@ function _showTimeCrunchOffer() {
 }
 
 function _onTCAccept() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   timeCrunchAccepted = true;
   socketRef?.emit('howhigh:time_crunch_respond', { accept: true }, (res) => {
     if (res?.error) {
@@ -557,6 +600,10 @@ function _onTCAccept() {
 }
 
 function _onTCDecline() {
+  if (offerResponded) {
+    return;
+  }
+  offerResponded = true;
   timeCrunchAccepted = false;
   socketRef?.emit('howhigh:time_crunch_respond', { accept: false }, (res) => {
     if (res?.error) {
@@ -818,6 +865,8 @@ function _onCopyCode() {
 }
 
 function _goBack() {
+  ring?.stop();
+  _resetRun();
   showScreen('screen-connect');
   showView('play');
   import('./auth.js').then(({ checkAuth }) => checkAuth());

@@ -133,9 +133,6 @@ export async function onAnswer(chosenIdx, qIdx) {
 
   // Highlight outcome
   gameModalOptionBtns.forEach((btn, i) => {
-    if (i === q.correctIdx && state.spectatingQuestion) {
-      btn.classList.add('answer-correct');
-    }
     if (i === chosenIdx) {
       btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
     }

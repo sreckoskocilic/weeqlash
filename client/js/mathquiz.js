@@ -457,6 +457,8 @@ export function initMathquiz(sock) {
   el('btn-mathquiz-skip').addEventListener('click', _onSkipClick);
   el('btn-mathquiz-submit-score').addEventListener('click', _onSubmitScore);
   el('btn-mathquiz-back').addEventListener('click', () => {
+    ring?.stop();
+    _resetRun();
     showScreen('screen-connect');
     showView('play');
     import('./auth.js').then(({ checkAuth }) => checkAuth());

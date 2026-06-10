@@ -52,10 +52,6 @@ export const state = {
   // Current user (from auth)
   currentUser: null,
 
-  // Qlashique state (socket reconnect)
-  qlasToken: null,
-  qlasCode: null,
-
   // HowHigh
   howHighChallengeCode: null,
 };

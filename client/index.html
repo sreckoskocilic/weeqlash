@@ -223,6 +223,7 @@
               <div class="card-join-row card-join-row--brawl">
                 <input
                   id="join-code"
+                  aria-label="Brawl room code"
                   class="card-join-input"
                   type="text"
                   maxlength="5"
@@ -287,6 +288,7 @@
               <div class="card-join-row card-join-row--qlas">
                 <input
                   id="qlas-join-code"
+                  aria-label="Qlashique room code"
                   class="card-join-input"
                   type="text"
                   maxlength="5"
@@ -328,6 +330,7 @@
               <div class="card-join-row card-join-row--qlashword">
                 <input
                   id="qlashword-join-code"
+                  aria-label="Qlashword room code"
                   class="card-join-input"
                   type="text"
                   maxlength="5"
@@ -464,6 +467,7 @@
               <div class="card-join-row card-join-row--howhigh">
                 <input
                   id="howhigh-join-code"
+                  aria-label="HowHigh room code"
                   class="card-join-input"
                   type="text"
                   maxlength="5"
@@ -471,44 +475,6 @@
                   autocomplete="one-time-code"
                 />
                 <button id="btn-howhigh-join" class="card-join-go" type="button">JOIN</button>
-              </div>
-            </div>
-            <div class="mode-join-card" style="display: none" hidden>
-              <div class="join-title">JOIN GAME</div>
-              <div class="join-desc">Enter a 5-letter room code to join.</div>
-              <div class="join-row">
-                <h3 id="old-label-join-code" style="display: none">Room Code</h3>
-                <input
-                  id="old-join-code"
-                  class="join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="old-btn-join" class="join-go" type="button">BRAWL</button>
-              </div>
-              <div class="join-row">
-                <input
-                  id="old-qlas-join-code"
-                  class="join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="old-btn-qlas-start" class="join-go" type="button">DUEL</button>
-              </div>
-              <div class="join-row">
-                <input
-                  id="old-howhigh-join-code"
-                  class="join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="old-btn-howhigh-join" class="join-go" type="button">HOWHIGH</button>
               </div>
             </div>
           </div>
@@ -604,6 +570,7 @@
           <div id="auth-login-form">
             <input
               id="login-username"
+              aria-label="Username"
               class="auth-input"
               type="text"
               placeholder="Username or email"
@@ -611,6 +578,7 @@
             />
             <input
               id="login-password"
+              aria-label="Password"
               class="auth-input"
               type="password"
               placeholder="Password"
@@ -634,6 +602,7 @@
           <div id="auth-forgot-form" style="display: none">
             <input
               id="forgot-email"
+              aria-label="Email"
               class="auth-input"
               type="email"
               placeholder="Your email"
@@ -649,6 +618,7 @@
           <div id="auth-reset-form" style="display: none">
             <input
               id="reset-password"
+              aria-label="New password"
               class="auth-input"
               type="password"
               placeholder="New password (min 6 chars)"
@@ -663,6 +633,7 @@
           <div id="auth-register-form">
             <input
               id="reg-username"
+              aria-label="Username"
               class="auth-input"
               type="text"
               placeholder="Username (3-20 chars)"
@@ -671,6 +642,7 @@
             />
             <input
               id="reg-email"
+              aria-label="Email"
               class="auth-input"
               type="email"
               placeholder="Email"
@@ -678,6 +650,7 @@
             />
             <input
               id="reg-password"
+              aria-label="Password"
               class="auth-input"
               type="password"
               placeholder="Password (min 6 chars)"
@@ -1051,6 +1024,7 @@
         <div class="room-code" id="lobby-code" style="margin-bottom: 0"></div>
         <button
           id="btn-copy-code"
+          aria-label="Copy room code"
           title="Copy Code"
           style="
             padding: 0.5rem;
@@ -1127,7 +1101,7 @@
 
     <!-- Game over -->
     <div id="screen-gameover">
-      <h1>GAME OVER</h1>
+      <h2>GAME OVER</h2>
       <div id="winner-text"></div>
       <button id="btn-gameover-newgame">NEW GAME</button>
     </div>
@@ -1207,6 +1181,7 @@
                   <div class="qlas-code-display" id="qlas-code-val">—</div>
                   <button
                     id="qlas-btn-copy-code"
+                    aria-label="Copy room code"
                     style="
                       background: #0d2e0d;
                       border: 1px solid #00ff41;
@@ -1349,7 +1324,7 @@
         <!-- Game over — mission report -->
         <div id="qlas-phase-gameover" style="display: none">
           <div class="qlas-gameover">
-            <h1 class="qlas-go-head">&gt; GAME OVER</h1>
+            <h2 class="qlas-go-head">&gt; GAME OVER</h2>
             <div class="qlas-go-stats">
               <div class="qlas-go-row">
                 <span class="qlas-go-k">WINNER</span>
@@ -1608,7 +1583,7 @@
         <!-- Game over -->
         <div id="skipnot-phase-gameover" style="display: none">
           <div class="qlas-gameover">
-            <h1 class="qlas-go-head">&gt; SKIPNOT COMPLETE</h1>
+            <h2 class="qlas-go-head">&gt; SKIPNOT COMPLETE</h2>
             <div class="qlas-go-stats">
               <div class="qlas-go-row">
                 <span class="qlas-go-k">SCORE</span>
@@ -1642,6 +1617,7 @@
             >
               <input
                 id="skipnot-name-input"
+                aria-label="Your name"
                 placeholder="your name"
                 maxlength="16"
                 style="
@@ -1771,7 +1747,7 @@
         <!-- Game over -->
         <div id="mathquiz-phase-gameover" style="display: none">
           <div class="qlas-gameover">
-            <h1 class="qlas-go-head">&gt; MATHQ COMPLETE</h1>
+            <h2 class="qlas-go-head">&gt; MATHQ COMPLETE</h2>
             <div class="qlas-go-stats">
               <div class="qlas-go-row">
                 <span class="qlas-go-k">SCORE</span>
@@ -1800,6 +1776,7 @@
             >
               <input
                 id="mathquiz-name-input"
+                aria-label="Your name"
                 placeholder="your name"
                 maxlength="16"
                 style="
@@ -1881,7 +1858,7 @@
         <!-- Game over -->
         <div id="cento-phase-gameover" style="display: none">
           <div class="qlas-gameover">
-            <h1 class="qlas-go-head">&gt; CENTOGRAPHER</h1>
+            <h2 class="qlas-go-head">&gt; CENTOGRAPHER</h2>
             <div class="qlas-go-stats">
               <div class="qlas-go-row">
                 <span class="qlas-go-k">SCORE</span>
@@ -1902,6 +1879,7 @@
             >
               <input
                 id="cento-name-input"
+                aria-label="Your name"
                 placeholder="your name"
                 maxlength="16"
                 style="
@@ -2146,7 +2124,7 @@
         <!-- Game over phase -->
         <div id="howhigh-phase-gameover" style="display: none">
           <div class="qlas-gameover">
-            <h1 class="qlas-go-head" id="howhigh-go-heading">&gt; HOWHIGH COMPLETE</h1>
+            <h2 class="qlas-go-head" id="howhigh-go-heading">&gt; HOWHIGH COMPLETE</h2>
             <div class="qlas-go-stats">
               <div class="qlas-go-row">
                 <span class="qlas-go-k">YOUR SCORE</span>

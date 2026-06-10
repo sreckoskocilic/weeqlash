@@ -267,6 +267,7 @@ export function qlasRenderQuestion(q, idx) {
     qlasMatchStart = Date.now();
   }
   qlasCurrentQ = q;
+  qlasLastAnswerIdx = -1;
   renderQuestion(
     {
       questionEl: qEl('qlas-question'),
@@ -346,66 +347,6 @@ function qlasSetScoreOther(playerIdx, score) {
     return;
   }
   scoreEl2.textContent = score > 0 ? '+' + score : '' + score;
-}
-
-// --- Reconnect restore ---
-
-export function qlasRestoreFromReconnect(res) {
-  qlasMyIdx = res.myIdx;
-  qlasCode = res.code;
-  qlasHp = res.hp;
-  qlasScore = res.currentScore || 0;
-  qlasPlayers = res.players.map((p) => ({ name: p.name || '' }));
-
-  showScreen('screen-qlashique');
-
-  const QLAS_PHASE_GAMEOVER = 'game_over';
-  const QLAS_PHASE_OUTCOME = 'outcome';
-  const QLAS_PHASE_GUESSING = 'guessing';
-
-  if (res.phase === QLAS_PHASE_GAMEOVER) {
-    qlasShowPhase('gameover');
-    return;
-  }
-
-  qlasShowPhase('combat');
-  qlasRenderPlayerInfo();
-  qlasSetHP(0, res.hp[0]);
-  qlasSetHP(1, res.hp[1]);
-
-  const isMyTurn = res.currentPlayerIdx === qlasMyIdx;
-
-  if (res.phase === QLAS_PHASE_OUTCOME) {
-    if (isMyTurn) {
-      qEl('btn-qlas-end').style.display = '';
-      qEl('btn-qlas-end').disabled = false;
-      qEl('qlas-action-row').style.display = '';
-      if (qlasScore >= 2) {
-        qEl('btn-qlas-heal').style.display = '';
-        qEl('btn-qlas-heal').disabled = false;
-      }
-    }
-    return;
-  }
-
-  if (res.phase === QLAS_PHASE_GUESSING && isMyTurn && res.currentQuestion) {
-    qlasGuessingActive = true;
-    qlasTimerTotal = res.timerSeconds;
-    const remaining = Math.max(1, res.timerSeconds - res.timerElapsed);
-    qEl('qlas-decision-panel').style.display = 'none';
-    qEl('qlas-qpanel').style.display = '';
-    qEl('qlas-action-row').style.display = '';
-    qEl('btn-qlas-end').disabled = false;
-    qlasRenderQuestion(res.currentQuestion, 0);
-    qlasStartTimer(remaining);
-    return;
-  }
-
-  if (isMyTurn) {
-    qEl('qlas-decision-panel').style.display = '';
-  } else {
-    qEl('qlas-decision-panel').style.display = 'none';
-  }
 }
 
 // --- Guessing phase ---

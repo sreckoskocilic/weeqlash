@@ -455,6 +455,8 @@ export function initSkipnot(sock) {
   el('btn-skipnot-skip').addEventListener('click', _onSkipClick);
   el('btn-skipnot-submit-score').addEventListener('click', _onSubmitScore);
   el('btn-skipnot-back').addEventListener('click', () => {
+    ring?.stop();
+    _resetRun();
     showScreen('screen-connect');
     showView('play');
     // Re-fetch /auth/me so auth-aware nav reflects the server session (may have drifted during the run).

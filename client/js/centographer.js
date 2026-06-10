@@ -164,6 +164,7 @@ export function initCentographer(sock) {
   el('btn-cento-submit').addEventListener('click', _submit);
   el('btn-cento-submit-score').addEventListener('click', _onSubmitScore);
   el('btn-cento-back').addEventListener('click', () => {
+    _stopTimer();
     showScreen('screen-connect');
     showView('play');
     import('./auth.js').then(({ checkAuth }) => checkAuth());

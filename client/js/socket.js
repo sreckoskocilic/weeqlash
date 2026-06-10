@@ -27,18 +27,7 @@ export function initSocketEvents() {
   socket.io.on('reconnect', () => {
     console.warn('Reconnected');
     showError('');
-    if (state.qlasToken && state.qlasCode) {
-      socket.emit('session:resume', { token: state.qlasToken, code: state.qlasCode }, (res) => {
-        if (res.error || res.mode !== 'qlashique') {
-          console.warn('Qlashique session resume failed:', res.error);
-          return;
-        }
-        // Import dynamically to avoid circular dependency
-        import('./qlashique.js').then(({ qlasRestoreFromReconnect }) => {
-          qlasRestoreFromReconnect(res);
-        });
-      });
-    } else if (state.myToken && state.myRoom?.code) {
+    if (state.myToken && state.myRoom?.code) {
       socket.emit('session:resume', { token: state.myToken, code: state.myRoom.code }, (res) => {
         if (res.error) {
           console.warn('Session resume failed:', res.error);

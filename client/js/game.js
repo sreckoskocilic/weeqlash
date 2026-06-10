@@ -433,6 +433,9 @@ export function setupBoardSocketHandlers(sock) {
   );
 
   sock.on('game:next_question', ({ question: q, questionIdx }) => {
+    if (!state.spectatingQuestion && state.localPhase !== 'answering') {
+      return;
+    }
     state.currentQIdx = questionIdx;
     state.pendingQuestions[questionIdx] = q;
     showQuestion(questionIdx);
