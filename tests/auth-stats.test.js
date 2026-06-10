@@ -1,4 +1,5 @@
 import { describe, it, expect, afterAll } from 'vitest';
+import './helpers/isolate-db.js';
 import '../server/index.js';
 import { getDb } from '../server/game/leaderboard.ts';
 import { getUserStats } from '../server/game/auth.ts';
@@ -46,7 +47,14 @@ describe('auth stats', () => {
         (player1_id, player2_id, winner_id, game_mode, board_size, duration_ms, player1_stats, player2_stats, created_at)
       VALUES (?, ?, ?, 'qlashique', NULL, 1000, ?, ?, ?)
     `,
-    ).run(p1Id, p2Id, p1Id, JSON.stringify({ finalHp: 1 }), JSON.stringify({ finalHp: 0 }), Date.now());
+    ).run(
+      p1Id,
+      p2Id,
+      p1Id,
+      JSON.stringify({ finalHp: 1 }),
+      JSON.stringify({ finalHp: 0 }),
+      Date.now(),
+    );
 
     db.prepare(
       `
@@ -54,7 +62,14 @@ describe('auth stats', () => {
         (player1_id, player2_id, winner_id, game_mode, board_size, duration_ms, player1_stats, player2_stats, created_at)
       VALUES (?, ?, ?, 'howhigh', NULL, 1000, ?, ?, ?)
     `,
-    ).run(p1Id, p2Id, p1Id, JSON.stringify({ score: 20 }), JSON.stringify({ score: 10 }), Date.now());
+    ).run(
+      p1Id,
+      p2Id,
+      p1Id,
+      JSON.stringify({ score: 20 }),
+      JSON.stringify({ score: 10 }),
+      Date.now(),
+    );
 
     expect(getUserStats(p1Id)).toMatchObject({ gamesPlayed: 2, gamesWon: 2 });
     expect(getUserStats(p2Id)).toMatchObject({ gamesPlayed: 2, gamesWon: 0 });

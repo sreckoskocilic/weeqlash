@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import './helpers/isolate-db.js';
 import request from 'supertest';
 import { app } from '../server/index.js';
 import { getDb } from '../server/game/leaderboard.ts';
@@ -80,13 +81,12 @@ describe('Admin auth', () => {
 
   it('rate-limits after repeated failures', async () => {
     const a = agent();
+    // Fresh IP per run — limiter is process-global.
+    const ip = `10.99.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
     for (let i = 0; i < 5; i++) {
-      await a.get('/admin/').set('x-admin-key', 'wrong').set('x-forwarded-for', '10.99.99.99');
+      await a.get('/admin/').set('x-admin-key', 'wrong').set('x-forwarded-for', ip);
     }
-    const res = await a
-      .get('/admin/')
-      .set('x-admin-key', 'wrong')
-      .set('x-forwarded-for', '10.99.99.99');
+    const res = await a.get('/admin/').set('x-admin-key', 'wrong').set('x-forwarded-for', ip);
     expect(res.status).toBe(429);
     expect(res.text).toContain('Too Many Requests');
   });

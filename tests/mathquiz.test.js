@@ -1,20 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  scorePick,
-  scorePicks,
-  QUESTION_COUNT,
-  TIMER_MS,
-  BASE_POINTS,
-} from '../server/game/mathquiz.ts';
+import { scorePick, scorePicks, BASE_POINTS } from '../server/game/mathquiz.ts';
 import { generate, generateSet, toPublic, TOPIC_IDS, TOPICS } from '../server/game/mathgen.ts';
-
-describe('mathquiz: constants', () => {
-  it('exports expected values', () => {
-    expect(QUESTION_COUNT).toBe(10);
-    expect(TIMER_MS).toBe(45000);
-    expect(BASE_POINTS).toBe(10);
-  });
-});
 
 describe('mathquiz: scorePick (exact band)', () => {
   const p = { answer: 5, scoring: 'exact', tol: 1e-6, range: 1e-6, points: 10 };

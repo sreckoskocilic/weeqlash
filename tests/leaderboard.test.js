@@ -1,200 +1,120 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
-import fs from 'fs';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import './helpers/isolate-db.js';
+import {
+  initDb,
+  getDb,
+  insertScoreForMode,
+  getTop10ForMode,
+  checkQualifiesTop10ForMode,
+  pruneMode,
+} from '../server/game/leaderboard.ts';
 
-// Mode-shape tests live in tests/quiz-modes.test.js. This file covers the
-// unified leaderboard schema (game_modes + leaderboard with mode_id FK).
-//
-// Integration-style: real file-based DB per test (leaderboard module is a
-// singleton, so we exercise raw SQL against the canonical shape).
-describe('Leaderboard: Integration Tests', () => {
-  let testDbs = [];
+const MODE = 'triviandom';
+const OTHER = 'skipnot';
 
-  function createTestDb() {
-    const dbPath = `/tmp/test-lb-${Date.now()}-${Math.random()}.db`;
-    testDbs.push(dbPath);
-    return dbPath;
-  }
+function rowCount(slug) {
+  const db = getDb();
+  const m = db.prepare('SELECT id FROM game_modes WHERE slug = ?').get(slug);
+  return db.prepare('SELECT COUNT(*) AS c FROM leaderboard WHERE mode_id = ?').get(m.id).c;
+}
 
-  afterEach(() => {
-    for (const dbPath of testDbs) {
-      for (const suffix of ['', '-wal', '-shm']) {
-        try {
-          fs.unlinkSync(dbPath + suffix);
-        } catch {
-          // file may not exist; ignore
-        }
-      }
+function clearMode(slug) {
+  const db = getDb();
+  const m = db.prepare('SELECT id FROM game_modes WHERE slug = ?').get(slug);
+  db.prepare('DELETE FROM leaderboard WHERE mode_id = ?').run(m.id);
+}
+
+beforeAll(() => {
+  initDb();
+});
+
+beforeEach(() => {
+  clearMode(MODE);
+  clearMode(OTHER);
+});
+
+describe('leaderboard: insert + retrieve', () => {
+  it('insertScoreForMode persists and getTop10ForMode returns it', () => {
+    insertScoreForMode(MODE, 'Alice', 10, 5000);
+    const top = getTop10ForMode(MODE);
+    expect(top).toHaveLength(1);
+    expect(top[0]).toMatchObject({ name: 'Alice', answers: 10, time_ms: 5000 });
+  });
+
+  it('orders by answers DESC, then time_ms ASC', () => {
+    insertScoreForMode(MODE, 'P1', 5, 5000);
+    insertScoreForMode(MODE, 'P2', 10, 3000);
+    insertScoreForMode(MODE, 'P3', 10, 5000);
+    expect(getTop10ForMode(MODE).map((r) => r.name)).toEqual(['P2', 'P3', 'P1']);
+  });
+
+  it('caps the returned board at 10', () => {
+    for (let i = 0; i < 12; i++) {
+      insertScoreForMode(MODE, `P${i}`, i, 1000);
     }
-    testDbs = [];
+    expect(getTop10ForMode(MODE)).toHaveLength(10);
   });
 
-  function createSchema(db) {
-    db.exec(`
-      CREATE TABLE game_modes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        slug TEXT UNIQUE NOT NULL,
-        label TEXT NOT NULL,
-        active INTEGER NOT NULL DEFAULT 1,
-        created_at INTEGER NOT NULL
-      );
-      CREATE TABLE leaderboard (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        answers INTEGER NOT NULL,
-        time_ms INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
-        mode_id INTEGER NOT NULL REFERENCES game_modes(id)
-      );
-      INSERT INTO game_modes (slug, label, created_at) VALUES ('triviandom', 'Triviandom', ${Date.now()});
-    `);
-  }
+  it('isolates entries across modes', () => {
+    insertScoreForMode(MODE, 'TriviaP', 8, 4000);
+    insertScoreForMode(OTHER, 'SkipP', 200, 60000);
+    expect(getTop10ForMode(MODE).map((r) => r.name)).toEqual(['TriviaP']);
+    expect(getTop10ForMode(OTHER).map((r) => r.name)).toEqual(['SkipP']);
+  });
+});
 
-  it('creates expected tables', () => {
-    const dbPath = createTestDb();
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    createSchema(db);
+describe('leaderboard: input + mode guards', () => {
+  it('rejects an over-long name (no row written)', () => {
+    const out = insertScoreForMode(MODE, 'x'.repeat(17), 5, 1000);
+    expect(out).toEqual([]);
+    expect(rowCount(MODE)).toBe(0);
+  });
 
-    for (const tableName of ['game_modes', 'leaderboard']) {
-      const result = db
-        .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='${tableName}'`)
-        .get();
-      expect(result).toBeDefined();
+  it('rejects non-numeric answers/time (no row written)', () => {
+    expect(insertScoreForMode(MODE, 'Bad', '5', 1000)).toEqual([]);
+    expect(insertScoreForMode(MODE, 'Bad', 5, '1000')).toEqual([]);
+    expect(rowCount(MODE)).toBe(0);
+  });
+
+  it('unknown mode is inert', () => {
+    expect(insertScoreForMode('no_such_mode', 'Ghost', 5, 1000)).toEqual([]);
+    expect(getTop10ForMode('no_such_mode')).toEqual([]);
+    expect(checkQualifiesTop10ForMode('no_such_mode', 999, 1)).toBe(false);
+  });
+});
+
+describe('leaderboard: checkQualifiesTop10ForMode (cnt < 10 cap)', () => {
+  it('qualifies while fewer than 10 strictly-better entries exist', () => {
+    for (let i = 0; i < 9; i++) {
+      insertScoreForMode(MODE, `Better${i}`, 100, 1000);
     }
-    db.close();
+    expect(checkQualifiesTop10ForMode(MODE, 50, 1000)).toBe(true);
   });
 
-  it('inserts and retrieves scores filtered by mode_id', () => {
-    const dbPath = createTestDb();
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    createSchema(db);
-
-    const triviaModeId = db.prepare('SELECT id FROM game_modes WHERE slug=\'triviandom\'').get().id;
-
-    db.prepare(
-      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-    ).run('TestPlayer', 10, 5000, Date.now(), triviaModeId);
-
-    const result = db
-      .prepare(
-        'SELECT * FROM leaderboard WHERE mode_id = ? ORDER BY answers DESC, time_ms ASC LIMIT 10',
-      )
-      .all(triviaModeId);
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('TestPlayer');
-    expect(result[0].answers).toBe(10);
-    db.close();
-  });
-
-  it('orders by answers DESC, time_ms ASC within mode', () => {
-    const dbPath = createTestDb();
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    createSchema(db);
-
-    const triviaModeId = db.prepare('SELECT id FROM game_modes WHERE slug=\'triviandom\'').get().id;
-
-    db.prepare(
-      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-    ).run('P1', 5, 5000, Date.now(), triviaModeId);
-    db.prepare(
-      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-    ).run('P2', 10, 3000, Date.now(), triviaModeId);
-    db.prepare(
-      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-    ).run('P3', 10, 5000, Date.now(), triviaModeId);
-
-    const result = db
-      .prepare(
-        'SELECT * FROM leaderboard WHERE mode_id = ? ORDER BY answers DESC, time_ms ASC LIMIT 10',
-      )
-      .all(triviaModeId);
-    expect(result[0].name).toBe('P2'); // 10 answers, less time
-    expect(result[1].name).toBe('P3'); // 10 answers, more time
-    expect(result[2].name).toBe('P1'); // 5 answers
-    db.close();
-  });
-
-  it('isolates leaderboards across modes', () => {
-    const dbPath = createTestDb();
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    createSchema(db);
-
-    db.prepare(
-      'INSERT INTO game_modes (slug, label, created_at) VALUES (\'skipnot\', \'SkipNoT\', ?)',
-    ).run(Date.now());
-    const triviaId = db.prepare('SELECT id FROM game_modes WHERE slug=\'triviandom\'').get().id;
-    const skipId = db.prepare('SELECT id FROM game_modes WHERE slug=\'skipnot\'').get().id;
-
-    db.prepare(
-      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-    ).run('TriviaP', 8, 4000, Date.now(), triviaId);
-    db.prepare(
-      'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-    ).run('SkipP', 200, 60000, Date.now(), skipId);
-
-    const triviaTop = db
-      .prepare('SELECT name, answers FROM leaderboard WHERE mode_id = ?')
-      .all(triviaId);
-    const skipTop = db
-      .prepare('SELECT name, answers FROM leaderboard WHERE mode_id = ?')
-      .all(skipId);
-
-    expect(triviaTop).toHaveLength(1);
-    expect(triviaTop[0].name).toBe('TriviaP');
-    expect(skipTop).toHaveLength(1);
-    expect(skipTop[0].name).toBe('SkipP');
-    db.close();
-  });
-
-  it('FK constraint rejects scores for nonexistent mode_id when foreign_keys=ON', () => {
-    const dbPath = createTestDb();
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    createSchema(db);
-
-    expect(() =>
-      db
-        .prepare(
-          'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-        )
-        .run('GhostMode', 5, 1000, Date.now(), 9999),
-    ).toThrow();
-    db.close();
-  });
-
-  it('checks qualification with correct logic per mode', () => {
-    const dbPath = createTestDb();
-    const db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    createSchema(db);
-
-    const triviaId = db.prepare('SELECT id FROM game_modes WHERE slug=\'triviandom\'').get().id;
-
-    // 10 entries with answers 9..0
+  it('does not qualify once 10 strictly-better entries exist', () => {
     for (let i = 0; i < 10; i++) {
-      db.prepare(
-        'INSERT INTO leaderboard (name, answers, time_ms, created_at, mode_id) VALUES (?, ?, ?, ?, ?)',
-      ).run(`P${i}`, 9 - i, 1000 + i * 100, Date.now(), triviaId);
+      insertScoreForMode(MODE, `Better${i}`, 100, 1000);
     }
+    expect(checkQualifiesTop10ForMode(MODE, 50, 1000)).toBe(false);
+  });
 
-    // answers > 8 → P0(9). answers = 8 AND time_ms < 1500 → P1(8 @ 1100). Total 2.
-    const result = db
-      .prepare(
-        'SELECT COUNT(*) as cnt FROM leaderboard WHERE mode_id = ? AND (answers > ? OR (answers = ? AND time_ms < ?))',
-      )
-      .get(triviaId, 8, 8, 1500);
-    expect(result.cnt).toBe(2);
+  it('counts an equal-score-but-faster entry as better', () => {
+    for (let i = 0; i < 9; i++) {
+      insertScoreForMode(MODE, `Hi${i}`, 100, 1000);
+    }
+    insertScoreForMode(MODE, 'SameScoreFaster', 50, 500);
+    expect(checkQualifiesTop10ForMode(MODE, 50, 1000)).toBe(false);
+  });
+});
 
-    db.close();
+describe('leaderboard: pruneMode', () => {
+  it('keeps the top 100 and drops the rest', () => {
+    for (let i = 0; i < 105; i++) {
+      insertScoreForMode(MODE, `P${i}`, i, 1000);
+    }
+    pruneMode(MODE);
+    expect(rowCount(MODE)).toBe(100);
+    const top = getTop10ForMode(MODE);
+    expect(top[0].answers).toBe(104);
   });
 });

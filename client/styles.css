@@ -2910,7 +2910,7 @@ body[data-game-theme='pink'] {
   border-radius: var(--radius);
   cursor: pointer;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 .btn-qlashique:hover {
   background: rgba(var(--game-accent-rgb), 0.2);
@@ -2924,8 +2924,7 @@ body[data-game-theme='pink'] {
   border-radius: 8px;
   color: var(--amber);
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 1rem;
 }
 #btn-show-skipnot-lb.btn-qlashique:hover {
   background: rgba(255, 176, 0, 0.12);

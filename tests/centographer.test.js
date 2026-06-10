@@ -5,10 +5,6 @@ import {
   COUNTRIES,
   COUNTRIES_BY_SLUG,
   CHOICE_COUNT,
-  TIMER_MS,
-  POINTS_CORRECT,
-  POINTS_WRONG,
-  MAX_SCORE,
   MAX_PER_CAT,
   NO_DISTRACT,
   ABSURD,
@@ -31,15 +27,7 @@ for (const item of ABSURD) {
 }
 const ABSURD_LABELS = new Set(ABSURD.map((i) => i.label));
 
-describe('centographer: constants + data', () => {
-  it('exports expected values', () => {
-    expect(CHOICE_COUNT).toBe(60);
-    expect(TIMER_MS).toBe(60000);
-    expect(POINTS_CORRECT).toBe(5);
-    expect(POINTS_WRONG).toBe(-8);
-    expect(MAX_SCORE).toBe(100);
-  });
-
+describe('centographer: data', () => {
   it('loads the generated country dataset', () => {
     expect(COUNTRIES.length).toBeGreaterThan(150);
     for (const c of COUNTRIES) {

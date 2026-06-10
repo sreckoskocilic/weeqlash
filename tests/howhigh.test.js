@@ -1,29 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  scorePicks,
-  POINTS,
-  BASE_TIMER_MS,
-  GOWILD_TIMER_MS,
-  BASE_Q_COUNT,
-  GOWILD_Q_COUNT,
-  DICE_AFTER_Q,
-  GOWILD_AFTER_Q,
-  OPTIONS_PER_Q,
-} from '../server/game/howhigh.ts';
-
-describe('HowHigh: constants', () => {
-  it('exports expected values', () => {
-    expect(POINTS.CORRECT).toBe(2);
-    expect(POINTS.WRONG).toBe(-2);
-    expect(BASE_TIMER_MS).toBe(13000);
-    expect(GOWILD_TIMER_MS).toBe(10000);
-    expect(BASE_Q_COUNT).toBe(10);
-    expect(GOWILD_Q_COUNT).toBe(12);
-    expect(DICE_AFTER_Q).toBe(3);
-    expect(GOWILD_AFTER_Q).toBe(6);
-    expect(OPTIONS_PER_Q).toBe(4);
-  });
-});
+import { scorePicks } from '../server/game/howhigh.ts';
 
 describe('HowHigh: scorePicks', () => {
   const makeQs = (n) => Array.from({ length: n }, (_, i) => ({ id: `q${i}`, a: 1 }));

@@ -53,7 +53,7 @@ describe('auth-routes.js helpers', () => {
       expect(result).toBe(true);
     });
 
-it('blocks after 5 requests from same IP', () => {
+    it('blocks after 5 requests from same IP', () => {
       // Use a unique IP for this test to avoid state pollution from other tests
       const uniqueIp = '192.168.99.' + Math.floor(Math.random() * 255);
       const results = [];
@@ -65,40 +65,15 @@ it('blocks after 5 requests from same IP', () => {
       expect(results.filter((r) => r === false)).toHaveLength(1);
     });
 
-    it('blocks after rate limit exceeded', () => {
-      const ip = '192.168.1.102';
-      // Use up the limit
-      for (let i = 0; i < 5; i++) {
-        checkAuthRateLimit(ip);
-      }
-      // 6th request should be blocked
-      expect(checkAuthRateLimit(ip)).toBe(false);
-    });
-
     it('different IPs are tracked independently', () => {
-      // Test that different IPs don't affect each other's limits
       const ip1 = '172.16.' + Math.floor(Math.random() * 255) + '.1';
       const ip2 = '172.16.' + Math.floor(Math.random() * 255) + '.2';
 
-      // Exhaust ip1
       for (let i = 0; i < 5; i++) {
         checkAuthRateLimit(ip1);
       }
       expect(checkAuthRateLimit(ip1)).toBe(false);
-      // ip2 should still be allowed
-      expect(checkAuthRateLimit(ip2)).toBe(true);
-    });
-
-    it('tracks different IPs independently', () => {
-      const ip1 = '192.168.1.200';
-      const ip2 = '192.168.1.201';
-
-      // Use up ip1
-      for (let i = 0; i < 5; i++) {
-        checkAuthRateLimit(ip1);
-      }
-      expect(checkAuthRateLimit(ip1)).toBe(false);
-      // ip2 should still be allowed
+      // ip2 untouched by ip1's exhaustion
       expect(checkAuthRateLimit(ip2)).toBe(true);
     });
   });
@@ -144,7 +119,9 @@ it('blocks after 5 requests from same IP', () => {
       const result = applyAuthRateLimit(req, res);
       expect(result).toBe(false);
       expect(res.status).toHaveBeenCalledWith(429);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Too many requests. Please try again later.' });
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Too many requests. Please try again later.',
+      });
     });
   });
 });

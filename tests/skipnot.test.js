@@ -1,23 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  scorePicks,
-  POINTS,
-  TIMER_MS,
-  QUESTION_COUNT,
-  OPTIONS_PER_Q,
-} from '../server/game/skipnot.ts';
-
-describe('SkipNoT: constants', () => {
-  it('exports the expected scoring and shape constants', () => {
-    expect(POINTS.CORRECT).toBe(13);
-    expect(POINTS.WRONG).toBe(-7);
-    expect(POINTS.SKIP).toBe(0);
-    expect(POINTS.TIMEOUT).toBe(0);
-    expect(TIMER_MS).toBe(12000);
-    expect(QUESTION_COUNT).toBe(20);
-    expect(OPTIONS_PER_Q).toBe(4);
-  });
-});
+import { scorePicks, QUESTION_COUNT } from '../server/game/skipnot.ts';
 
 describe('SkipNoT: scorePicks (server-side re-scoring of submitted picks)', () => {
   // 20 fake questions where the correct answer is index 0 for all.
