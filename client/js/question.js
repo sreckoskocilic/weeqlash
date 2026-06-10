@@ -1,7 +1,3 @@
-// ============================================================
-// QUESTION MODAL
-// ============================================================
-
 import { el } from './dom.js';
 import { sanitize } from './dom.js';
 import { CAT_NAMES, CAT_COLORS, TIMING, OPTION_KEYS } from './constants.js';

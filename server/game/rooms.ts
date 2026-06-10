@@ -34,9 +34,7 @@ export interface RoomState {
   qlasHistory?: QlashiqueHistoryEntry[];
   qlasStats?: { answered: number; correct: number }[];
 
-  // Qlashword-specific fields. A turn runs: submit_turn (place + validate) →
-  // a queue of gated bonus questions (one per premium square) → score + commit.
-  // The in-progress turn is parked on the room between those socket round-trips.
+  // Qlashword fields; the in-progress turn is parked here between socket round-trips (place → gated bonus questions → score + commit).
   qwUsedQIds?: Set<string>;
   qwTurn?: QlashwordTurnInProgress | null;
   qwTimer?: ReturnType<typeof setTimeout> | null;
@@ -243,8 +241,7 @@ export function removePlayerFromRoom(
   room.players = room.players.filter((p) => p.id !== socketId);
   socketToRoom.delete(socketId);
 
-  // Clean up empty rooms after a delay to survive brief reconnects
-  // Use captured values to avoid race condition: check room exists AND is empty at execution time
+  // Delete empty rooms after a delay (survives brief reconnects); re-check emptiness at execution time to avoid a race.
   if (room.players.length === 0) {
     const codeToCheck = code;
     setTimeout(() => {
@@ -286,8 +283,7 @@ export function reattachSocket(oldSocketId: string, newSocketId: string, code: s
   }
 }
 
-// Periodic cleanup of orphaned rooms (empty lobby rooms, abandoned games).
-// Returns the number of rooms removed.
+// Periodic cleanup of orphaned rooms (empty lobbies, abandoned games); returns count removed.
 export function cleanupStaleRooms(): number {
   let removed = 0;
   const toDelete: string[] = [];
@@ -387,8 +383,7 @@ export function createQlashwordRoom(): RoomState {
   return room;
 }
 
-// Check if a socket ID belongs to a player in an active (started) game.
-// Uses O(1) Set lookup instead of iterating all rooms.
+// True if a socket belongs to a player in an active (started) game; O(1) Set lookup.
 export function isInActiveGame(socketId: string): boolean {
   return socketsInActiveGames.has(socketId);
 }

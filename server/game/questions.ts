@@ -4,14 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import type { Category } from './engine.ts';
 
-// Local type definitions matching those in engine.ts to avoid ts-node import issues
+// Local types mirroring engine.ts to avoid ts-node import issues.
 interface Question {
   id: string;
   a: number; // correct answer index
   category: string;
   points: number;
   penalty: number;
-  // other fields like question, options, etc. are ignored by engine
 }
 
 interface QuestionsDb {
@@ -80,14 +79,7 @@ export function loadQuestions(encPath?: string): QuestionsDb {
   return data;
 }
 
-// Lazy flat array for quiz mode — computed once per db object on first access, not at startup.
-// Avoids the OOM crash that eager _all[] caused with 8642 questions.
-// WeakMap keyed on db object so tests that call loadQuestions() per-test get a fresh cache.
-//
-// Each item is given its `category` field from the bucket key — items as stored
-// in `db[cat]` arrays don't carry category themselves (only `db._byId` did).
-// Callers MUST be able to read `q.category` (qlas pool uses it to filter disabled
-// categories; quiz UI uses it to render the category badge).
+// Lazy flat array, WeakMap-cached per db (avoids the OOM an eager _all[] caused). Each item gets its `category` from the bucket key since db[cat] arrays don't carry it.
 const _allCacheByDb = new WeakMap<QuestionsDb, Question[]>();
 export function getAllQuestions(db: QuestionsDb): Question[] {
   if (!_allCacheByDb.has(db)) {
@@ -127,13 +119,7 @@ export function getQuestionsForCategories(db: QuestionsDb, categories: Category[
   return dbCache.get(key)!;
 }
 
-// Single fetch primitive shared by quiz / qlashique / skipnot. Returns one
-// random question from the active-categories pool. `excludeIds` skips already-
-// used questions; if the exclude leaves zero candidates, falls back to the
-// full enabled pool. Returns null only when the enabled pool itself is empty.
-//
-// The enabled pool is cached in a WeakMap keyed by the enabledCats Set ref,
-// so callers no longer need their own filtered-pool cache (e.g. room.qlasPool).
+// Shared fetch primitive: one random question from the enabled pool, skipping excludeIds (falls back to full pool if exclude empties it). Enabled pool is WeakMap-cached by the enabledCats Set ref.
 const _enabledPoolByDb = new WeakMap<QuestionsDb, WeakMap<Set<string>, Question[]>>();
 function _getEnabledPool(db: QuestionsDb, enabledCats: Set<string>): Question[] {
   let perDb = _enabledPoolByDb.get(db);

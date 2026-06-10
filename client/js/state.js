@@ -1,8 +1,4 @@
-// ============================================================
-// STATE
-// ============================================================
-// Single mutable namespace. Import as `import { state } from './state.js'`
-// and mutate properties directly (e.g. `state.myId = id`).
+// Single mutable namespace; import and mutate properties directly (e.g. `state.myId = id`).
 
 export const state = {
   // Identity / room
@@ -31,8 +27,7 @@ export const state = {
   pendingQuestionsTotal: 1,
   pendingAnswers: [],
   currentQIdx: 0,
-  // spectateGen is incremented on each new combat sequence to invalidate
-  // stale setTimeout callbacks.
+  // Bumped per combat sequence to invalidate stale setTimeout callbacks.
   spectateGen: 0,
   timerInterval: null,
   quizModalOptionBtns: [],

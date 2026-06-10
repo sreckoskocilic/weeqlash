@@ -1,7 +1,3 @@
-// ============================================================
-// SOCKET
-// ============================================================
-
 import { showError, el } from './dom.js';
 import { renderAll } from './render.js';
 import { stopTimer } from './question.js';

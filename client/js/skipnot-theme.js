@@ -1,7 +1,4 @@
-// Game theme switcher — toggles a data-game-theme attribute on <body>,
-// persists choice to localStorage. Affects all in-game screens (SkipNoT,
-// Qlashique, Brawl) since theme tokens live on <body>. Available themes:
-// amber (default), green, cyan, pink — defined in styles.css.
+// Game theme switcher: data-game-theme on <body>, persisted. Themes amber (default), green, cyan, pink.
 
 const STORAGE_KEY = 'weeqlash.theme';
 const KNOWN = new Set(['amber', 'green', 'cyan', 'pink']);
@@ -32,19 +29,16 @@ function _applyTheme(theme) {
   } else {
     document.body.setAttribute('data-game-theme', theme);
   }
-  // Sync any visible picker UI (each game screen may have its own picker
-  // pointing at the same shared state).
+  // Sync any visible picker UI (each game screen may have its own picker).
   document.querySelectorAll('.game-theme-picker .skp').forEach((b) => {
     b.classList.toggle('active', b.dataset.theme === theme);
   });
 }
 
 export function initSkipnotTheme() {
-  // Apply persisted theme on init (called once globally).
   _applyTheme(_getStored());
 
-  // Wire all pickers (one per game screen at most). Event delegation per
-  // picker so dynamically added pickers also work.
+  // Wire all pickers via per-picker delegation so dynamically added pickers also work.
   document.querySelectorAll('.game-theme-picker').forEach((picker) => {
     picker.addEventListener('click', (e) => {
       const btn = e.target.closest('.skp');

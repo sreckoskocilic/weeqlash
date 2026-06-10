@@ -1,6 +1,4 @@
-// ============================================================
-// QLASHIQUE MODULE (1v1 trivia duel)
-// ============================================================
+// Qlashique: 1v1 trivia duel.
 
 import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';

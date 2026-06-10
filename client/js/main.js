@@ -1,7 +1,3 @@
-// ============================================================
-// MAIN ENTRY POINT
-// ============================================================
-
 import * as constants from './constants.js';
 import { state } from './state.js';
 import * as dom from './dom.js';
@@ -96,8 +92,7 @@ async function init() {
 function initUI() {
   state.setupEnabledCats = [...constants.DEFAULT_CATS];
 
-  // Populate category toggle buttons — only `defaultOn` cats start as active
-  // so the visual state matches state.setupEnabledCats.
+  // Populate category toggles; active set matches state.setupEnabledCats.
   const defaultSet = new Set(state.setupEnabledCats);
   dom.el('cat-toggle-btns').innerHTML = constants.CATS.map((cat) => {
     const active = defaultSet.has(cat) ? ' active' : '';

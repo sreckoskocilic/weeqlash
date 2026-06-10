@@ -70,9 +70,7 @@ h1 {
   margin-bottom: 0.5rem;
 }
 /* ===== BRAND HEADER (wQ$x emblem) ===== */
-/* H1 carries the page heading for SEO/screen readers but is kept out of the
-   visual layout (the on-screen brand is the board-banner graphic). Hidden via
-   clip, NOT display:none, so the dom module can still toggle display on leave. */
+/* H1 is SEO/SR-only — clipped (not display:none) so dom module can still toggle display */
 #main-title.brand {
   position: absolute;
   width: 1px;
@@ -180,9 +178,7 @@ h1 {
   padding: 0.5rem 2rem;
 }
 
-/* ===== CONNECT LAYOUT =====
-   Vertical stack: horizontal nav on top, content card below. Class name kept
-   from the old 2-col layout for low-churn migration. */
+/* ===== CONNECT LAYOUT ===== vertical stack: nav on top, card below (.main-columns name kept from old 2-col) */
 .main-columns {
   display: flex;
   flex-direction: column;
@@ -203,10 +199,7 @@ h1 {
   padding: 0;
 }
 
-/* Home-page scattered shape background (populated by home-bg module).
-   z-index:-1 places it behind static body content (h1, announcements, screen-connect).
-   Overlay screens (#screen-skipnot, etc.) are position:fixed inset:0 and naturally
-   cover this since they have higher z-index. */
+/* Home-page scattered shape background (home-bg module); z-index:-1 sits behind body content, fixed overlays cover it */
 #home-bg {
   display: none;
 }
@@ -432,10 +425,7 @@ h1 {
 .btn-triviandom:hover {
   opacity: 0.85;
 }
-/* ===== HORIZONTAL CONNECT NAV =====
-   Items with [data-view] swap content via showView (see client js nav module).
-   Items without are one-shot actions (Help / Stats modal triggers, HC toggle,
-   Sign out, Admin). */
+/* ===== HORIZONTAL CONNECT NAV ===== [data-view] items swap content via showView; others are one-shot actions */
 .connect-nav {
   display: flex;
   flex-wrap: wrap;
@@ -1463,12 +1453,8 @@ body.high-contrast {
   font-family: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
 }
 
-/* SkipNoT/Qlashique variant — same structural panel, transparent bg + blue
-   border, slightly wider, centered text. Use this class instead of inline
-   style overrides so every place that shows a SkipNoT leaderboard looks
-   identical. */
-/* Landing-page lb-skipnot — stays amber regardless of game theme.
-   Game-over copy (inside #screen-skipnot) is themed via the override below. */
+/* SkipNoT/Qlashique variant — transparent bg, blue border, wider, centered; use the class not inline overrides */
+/* Landing-page lb-skipnot stays amber regardless of game theme; game-over copy is themed via the override below */
 .leaderboard-panel.lb-skipnot {
   background: transparent;
   border-color: #5a3300;
@@ -1577,8 +1563,7 @@ body.high-contrast {
   opacity: 0.35;
 }
 
-/* SkipNoT score delta — flashes +13 / -7 next to the score on each answer.
-   Cleared after RESULT_DISPLAY_MS by the SkipNoT client module. */
+/* SkipNoT score delta — flashes +13 / -7 next to score, cleared after RESULT_DISPLAY_MS by the client module */
 .skipnot-score-delta {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 2rem;
@@ -1855,10 +1840,7 @@ body.high-contrast {
   flex-direction: column;
   gap: 10px;
 }
-/* Shared game theme tokens — apply to all in-game screens (SkipNoT, Qlashique,
-   Brawl). Default = amber. Switch by setting data-game-theme="green|cyan|pink"
-   on <body>. Persisted in localStorage by the game-theme module. Tokens are
-   only consumed inside game-screen selectors, so the landing page is unaffected. */
+/* Shared in-game theme tokens (default amber); switch via data-game-theme on <body>, consumed only in game-screen selectors */
 body {
   --game-bg: #1a0d02;
   --game-bg-2: #2a1605;
@@ -1929,8 +1911,7 @@ body[data-game-theme='pink'] {
   gap: 10px;
 }
 
-/* SkipNoT theme overrides — reskin shared qlas components via CSS vars.
-   Qlashique (#screen-qlashique) zadržava zelenu phosphor paletu nepromijenjenu. */
+/* SkipNoT theme overrides — reskin shared qlas components via CSS vars; Qlashique keeps its green phosphor palette */
 #screen-skipnot .qlas-pbar {
   background: var(--game-bg-2);
 }
@@ -2274,9 +2255,7 @@ body[data-game-theme='pink'] {
     animation: none;
   }
 }
-/* Unified qlashique-style button. One base + two color variants
-   (primary = filled, ghost = outline). Layout (width/flex/margin) is the
-   caller's responsibility — keep it in markup or wrapper, not in here. */
+/* Unified qlashique-style button — one base + primary (filled) / ghost (outline); layout is the caller's responsibility */
 .qlas-btn {
   border-radius: 2px;
   font-family: 'IBM Plex Mono', monospace;
@@ -2916,8 +2895,7 @@ body[data-game-theme='pink'] {
   background: rgba(var(--game-accent-rgb), 0.2);
   border-color: var(--game-accent);
 }
-/* SkipNoT amber variant — leaderboard toggle on landing.
-   (Start button is now a .mode-card with its own styling below.) */
+/* SkipNoT amber variant — landing leaderboard toggle (start button is a .mode-card below) */
 #btn-show-skipnot-lb.btn-qlashique {
   background: rgba(255, 176, 0, 0.06);
   border: 1px solid rgba(255, 176, 0, 0.3);
@@ -2931,8 +2909,7 @@ body[data-game-theme='pink'] {
   border-color: var(--amber);
 }
 
-/* Join buttons — color-match the mode cards above
-   (Brawl=green, Qlashique=yellow) */
+/* Join buttons — color-match the mode cards above (Brawl=green, Qlashique=yellow) */
 #btn-join {
   background: rgba(var(--game-accent-rgb), 0.12);
   border: 1px solid rgba(var(--game-accent-rgb), 0.5);
@@ -3496,8 +3473,7 @@ body[data-game-theme='pink'] {
     padding: 1.25rem;
   }
 
-  /* Board top bar — without this, #turn-panel renders ~498px wide in a 390px viewport
-     and the username, "TURN" label, and player stats clip off the right edge. */
+  /* Board top bar — without this #turn-panel overflows a 390px viewport and clips off the right edge */
   #turn-panel {
     font-size: 13px;
     min-height: 48px;
@@ -4156,9 +4132,7 @@ body[data-game-theme='pink'] {
   }
 }
 
-/* ==========================================================================
-   HowHigh? game screen
-   ========================================================================== */
+/* ===== HowHigh? game screen ===== */
 #screen-howhigh {
   position: fixed;
   inset: 0;
@@ -4410,9 +4384,7 @@ body[data-game-theme='pink'] {
   font-size: 0.9rem;
 }
 
-/* ============================================================
-   QLASHWORD (1v1 Scrabble + trivia-gated bonus squares)
-   ============================================================ */
+/* ===== QLASHWORD (1v1 Scrabble + trivia-gated bonus squares) ===== */
 
 /* Home mode card */
 .mode-card--qlashword {
@@ -4627,9 +4599,7 @@ body.qw-active {
 }
 
 /* Mid layout: board column (board + rack) beside the sidebar (status/actions) */
-/* Grid so the sidebar is exactly the BOARD's height (row 1); the rack sits in
-   row 2 under the board. This lets the history button align to the board's
-   bottom edge rather than the rack's. */
+/* Grid: sidebar matches the board's height (row 1), rack sits in row 2, so history aligns to the board's bottom edge */
 .qw-mid {
   display: grid;
   grid-template-columns: auto auto;
@@ -4667,13 +4637,9 @@ body.qw-active {
 .qw-board {
   display: grid;
   grid-template-columns: repeat(15, 1fr);
-  /* Fixed equal rows + NO gap. The old 1px gap didn't divide evenly into the
-     fluid width → uneven (distorted-looking) gridlines. Gridlines now come from
-     each cell's own border (border-box), which stays crisp at any size. */
+  /* Fixed equal rows, NO gap — gridlines come from each cell's own border so they stay crisp at any size */
   grid-template-rows: repeat(15, 1fr);
-  /* Largest square that fits both the viewport height (minus the rack below)
-     and the width (minus the sidebar), so it fills the space without a
-     scrollbar. Hard cap keeps it sane on huge monitors. */
+  /* Largest square fitting viewport height (minus rack) and width (minus sidebar); hard cap for huge monitors */
   width: min(1000px, calc(100vh - 130px), calc(100vw - 280px));
   aspect-ratio: 1 / 1;
   /* Vintage tan board */
@@ -4688,8 +4654,7 @@ body.qw-active {
 }
 .qw-cell {
   box-sizing: border-box;
-  /* Thin lighter gridline + a subtle bevel so cells read as raised, not like
-     flat graph-paper. */
+  /* Thin lighter gridline + subtle bevel so cells read as raised, not flat graph-paper */
   border: 1px solid rgba(255, 252, 240, 0.32);
   box-shadow:
     inset 1px 1px 0 rgba(255, 255, 255, 0.28),
@@ -4735,9 +4700,7 @@ body.qw-active {
   outline: 2px solid var(--game-accent);
   outline-offset: -2px;
 }
-/* Cells the player can't legally play on this turn (recomputed live).
-   Darken (not fade) so premium colours read as inert/not-usable instead of
-   blending with the board into a muddy yellow. */
+/* Cells illegal this turn (recomputed live) — darken (not fade) so premium colours read as inert */
 .qw-cell-dim {
   filter: brightness(0.4) saturate(0.65);
 }
@@ -4764,8 +4727,7 @@ body.qw-active {
   pointer-events: none;
 }
 
-/* Tiles (settled + pending + rack) — physical wood/cardboard look: warm
-   gradient, paper grain, and a bevel so they read as raised pieces. */
+/* Tiles (settled + pending + rack) — wood/cardboard look: warm gradient, paper grain, bevel for raised pieces */
 .qw-tile,
 .qw-rack-tile {
   display: flex;
@@ -5034,12 +4996,9 @@ body.qw-active {
   color: var(--game-accent);
 }
 
-/* ============================================================
-   MathQuiz (solo numeric math/calculus quiz)
-   ============================================================ */
+/* ===== MathQuiz (solo numeric math/calculus quiz) ===== */
 
-/* Scoped teal theme so qlas-* / timer-ring inside the screen pick up MathQ
-   colors regardless of the body's active SkipNoT game theme. */
+/* Scoped teal theme so qlas-* / timer-ring inside the screen use MathQ colors regardless of the body theme */
 #screen-mathquiz {
   --game-accent: #4fd1c5;
   --game-accent-rgb: 79, 209, 197;
@@ -5087,8 +5046,7 @@ body.qw-active {
   align-items: stretch;
 }
 
-/* Same field type as the room-code input (.card-join-input): var(--bg)/--border/
-   --fg palette, centered mono — just a bit larger for the answer entry. */
+/* Same field as .card-join-input (--bg/--border/--fg, centered mono), just larger for answer entry */
 .mathquiz-input {
   flex: 1 1 auto;
   width: auto; /* override global input { width: 100% } so flex can size it */
@@ -5119,8 +5077,7 @@ body.qw-active {
   box-shadow: 0 0 0 2px rgba(var(--game-accent-rgb, 79, 209, 197), 0.3);
 }
 
-/* Submit button: narrower, doesn't stretch with the input.
-   Overrides global button { width: 100% } so it sizes to its label. */
+/* Submit button: narrower, overrides global button { width: 100% } so it sizes to its label */
 .mathquiz-form #btn-mathquiz-submit {
   flex: 0 0 auto;
   width: auto;
@@ -5198,9 +5155,7 @@ body.qw-active {
   border-bottom-color: rgba(44, 90, 96, 0.4);
 }
 
-/* ============================================================
-   CentoGrapher (single-question geography select-all)
-   ============================================================ */
+/* ===== CentoGrapher (single-question geography select-all) ===== */
 
 #screen-centographer {
   --game-accent: #34d399;
@@ -5267,8 +5222,7 @@ body.qw-active {
   font-weight: 700;
 }
 
-/* Two-column game layout: map (+prompt+submit) on the left, choice grid right,
-   both starting from the top so vertical space is used and scrolling is minimal. */
+/* Two-column layout: map (+prompt+submit) left, choice grid right, both top-aligned to minimize scrolling */
 .cento-body {
   display: flex;
   align-items: flex-start;

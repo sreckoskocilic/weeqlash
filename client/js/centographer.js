@@ -1,8 +1,4 @@
-// CentoGrapher client — single-question geography "select all related to the
-// shown country". Server sends a country outline (SVG) + a grid of choices
-// (correct flags hidden); player checks all that apply, submits once. Server
-// scores (+5 correct / -8 wrong, cap +100, no floor) and returns a verdict for
-// the player's OWN picks only — the true correct set is never revealed.
+// CentoGrapher: single-question geography select-all. Verdict covers the player's OWN picks only; the true correct set is never revealed.
 
 import { el, showScreen, sanitize } from './dom.js';
 import { loadPanelLeaderboard } from './leaderboard.js';

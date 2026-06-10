@@ -212,10 +212,7 @@ describe('Qlashword: collectWords', () => {
   });
 
   it('reads a cross-word formed against an existing tile', () => {
-    // existing "AT" vertical at col 7 rows 8-9; new "CAT" would extend... use simpler:
-    // existing C-A-T horizontal row 7; play "S" below the final T to form "TS"? not in dict.
-    // Build: existing vertical "AT" at (7,7),(8,7). Play "C" at (6,7) → "CAT" vertical,
-    // and a horizontal cross is just "C" (length 1, ignored).
+    // Existing vertical "AT" at (7,7),(8,7); play "C" at (6,7) → "CAT" (the 1-letter cross is ignored)
     const board = withCells(emptyBoard(), [
       [7, 7, 'A'],
       [8, 7, 'T'],
@@ -226,8 +223,7 @@ describe('Qlashword: collectWords', () => {
   });
 
   it('captures both the main word and a perpendicular cross-word', () => {
-    // Existing "S" at (8,8). Play "CAT" horizontal at row 7 cols 7-9. The new
-    // "A" at (7,8) sits directly above the existing S → forms vertical "AS" too.
+    // Existing "S" at (8,8); play "CAT" at row 7 → the "A" above S also forms vertical "AS"
     const board = withCells(emptyBoard(), [[8, 8, 'S']]);
     const placement = [
       { row: 7, col: 7, letter: 'C', blank: false },

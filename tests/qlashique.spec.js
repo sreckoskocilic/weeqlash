@@ -2,16 +2,14 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { registerAndLogin as loginPlayer, BASE } from './e2e-helpers.js';
 
-// Play one turn: set the predefined question, click ATTACK, answer, stop, end turn.
-// answerIdx is the option to click (pass correctIdx to win, a wrong idx to self-damage).
+// Play one turn — answerIdx picks the option (correctIdx to win, a wrong idx to self-damage)
 async function playTurn(page, api, qId, answerIdx) {
   // Force the known question so we control the outcome
   await api.post('/test/set-question', { data: { qId } });
   await page.locator('#btn-qlas-attack').click();
   await page.locator('#qlas-qpanel').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('.qlas-opt').nth(answerIdx).click();
-  // END ATTACK stops the timer; END TURN submits the score.
-  // btn-qlas-stop.click() auto-waits for actionability, so no manual sleep needed.
+  // END ATTACK stops the timer, END TURN submits the score (clicks auto-wait, no manual sleep)
   await page.locator('#btn-qlas-stop').click();
   await page.locator('#btn-qlas-end').waitFor({ state: 'visible', timeout: 3000 });
   await page.locator('#btn-qlas-end').click();
@@ -20,8 +18,7 @@ async function playTurn(page, api, qId, answerIdx) {
 test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
 
-  // Get a known question: we'll use correctIdx for P0 (attack) and a wrong idx for P1 (self-damage).
-  // Game plan: T1 P0 attacks → P1 hp 3→2, T2 P1 self-damages → P1 hp 2→1, T3 P0 attacks → P1 hp 1→0. P0 wins.
+  // Plan: P0 attacks correct, P1 self-damages wrong → P1 3→0 over 3 turns, P0 wins
   const sampleRes = await api.get('/test/questions-sample');
   const sample = await sampleRes.json();
   expect(sample.length).toBeGreaterThan(0);
@@ -46,8 +43,7 @@ test('qlashique: full game plays to a winner with 3 HP', async ({ browser }) => 
   // Wait for P1's decision panel (P0 goes first)
   await p1.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 10000 });
 
-  // Play turns: P0 answers correctly (attack), P1 answers wrong (self-damage).
-  // With 3 HP the game resolves in at most 3 turns.
+  // P0 attacks correct, P1 answers wrong — with 3 HP it resolves in at most 3 turns
   const MAX_TURNS = 10;
   for (let i = 0; i < MAX_TURNS; i++) {
     const gameOver = await p1.locator('#qlas-phase-gameover').isVisible();
@@ -192,12 +188,7 @@ test('qlashique: live recap populates after a few turns', async ({ browser }) =>
   await ctx2.close();
 });
 
-// Regression: the other two specs force a known question every turn via
-// /test/set-question, which short-circuits `_pickQlasQuestion` before its
-// real-pool branch ever runs. This spec engages WITHOUT an override so the
-// server is forced to pull from the actual question pool — if the pool is
-// empty (e.g. a category-filter regression like CATS_SET vs missing
-// `q.category`), `start_guessing` errors out and `.qlas-opt` never appears.
+// Regression: engages WITHOUT a set-question override so the real pool runs — an empty pool errors start_guessing and .qlas-opt never appears
 test('qlashique: real pool serves a question (no override)', async ({ browser }) => {
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');

@@ -1,9 +1,4 @@
-// Tiny view router for the connect-screen horizontal nav.
-//
-// Views are `<div class="view" data-view-name="...">`. Nav items are
-// `<button class="nav-item" data-view="...">`. Auth-aware items use
-// `data-auth="in" | "out"` and toggle their `hidden` attribute via
-// applyAuthState() — no role-conditional CSS.
+// View router for the connect-screen nav; auth-aware items toggle `hidden` via applyAuthState() (no role-conditional CSS).
 
 export function showView(name) {
   document.querySelectorAll('.view').forEach((v) => {

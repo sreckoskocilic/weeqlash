@@ -1,15 +1,6 @@
 import type Database from 'better-sqlite3';
 
-// Append-only schema migrations.
-//
-// Rules:
-//   - NEVER edit or reorder a migration that has shipped. Each migration runs at
-//     most once per DB (tracked in `schema_migrations`).
-//   - To make a new schema change, append a new entry with a fresh id.
-//   - Migrations run inside a transaction; throw to roll back.
-//   - Schema *creation* still lives in `leaderboard.ts initDb()` and
-//     `auth.ts initAuthDb()` — migrations cover edits/drops that those
-//     idempotent creators can't express.
+// Append-only migrations: NEVER edit/reorder a shipped entry; append with a fresh id. Each runs once per DB inside a transaction (throw to roll back).
 interface Migration {
   id: string;
   up: (db: Database.Database) => void;
@@ -25,16 +16,13 @@ const MIGRATIONS: Migration[] = [
   {
     id: '002_normalize_leaderboard_with_game_modes',
     up: (db) => {
-      // Idempotency: skip on fresh DBs where leaderboard was already created
-      // with mode_id by initDb() (see leaderboard.ts).
+      // Idempotency: skip on fresh DBs where initDb() already created leaderboard with mode_id.
       const cols = db.prepare('PRAGMA table_info(leaderboard)').all() as { name: string }[];
       if (cols.some((c) => c.name === 'mode_id')) {
         return;
       }
 
-      // game_modes was created by initDb before this runs, with triviandom seeded.
-      // Recreate leaderboard with mode_id NOT NULL FK using SQLite's canonical
-      // table-rebuild pattern (https://sqlite.org/lang_altertable.html).
+      // Rebuild leaderboard with mode_id NOT NULL FK via SQLite's canonical table-rebuild pattern.
       db.exec(`
         CREATE TABLE leaderboard_new (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,8 +111,7 @@ const MIGRATIONS: Migration[] = [
   {
     id: '003_add_confirmation_token_expires',
     up: (db) => {
-      // On fresh DBs, users table doesn't exist yet (created by initAuthDb after
-      // migrations). The CREATE TABLE in auth.ts already includes the column.
+      // Fresh DBs: users doesn't exist yet (initAuthDb runs after migrations and already includes the column).
       const tables = db
         .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         .all();

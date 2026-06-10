@@ -1,13 +1,11 @@
 // @ts-check
-// Shared Playwright helpers for weeqlash e2e specs.
-// Requires the server to run with ENABLE_TEST_ROUTES=1 (see playwright.config.js).
+// Shared Playwright e2e helpers — require the server running with ENABLE_TEST_ROUTES=1
 
 import { request as playwrightRequest } from '@playwright/test';
 
 export const BASE = 'http://localhost:3000';
 
-// Synthetic test question injected by the server when ENABLE_TEST_ROUTES=1.
-// Must match the TEST_QUESTION block in server/index.js.
+// Synthetic test question (ENABLE_TEST_ROUTES=1) — must match the TEST_QUESTION block in server/index.js
 export const TEST_QUESTION = {
   id: 'TEST_Q_CORRECT_A',
   q: 'I am test question',
@@ -30,10 +28,7 @@ export async function registerAndLogin(browser, username, { query = '' } = {}) {
   return { ctx, page };
 }
 
-// Lock the next board-mode question picked by the server to the given qId.
-// Defaults to the synthetic TEST_QUESTION so tests can assert correct-answer UI.
-// Pass { sticky: true } to persist across picks; pair with clearStickyQuestion()
-// in test.afterEach to avoid bleeding into later specs.
+// Lock the next picked question to qId (default TEST_QUESTION); { sticky: true } persists across picks — clear it in afterEach
 export async function setNextQuestion(qId = TEST_QUESTION.id, { sticky = false } = {}) {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
   const res = await api.post('/test/set-question', { data: { qId, sticky } });

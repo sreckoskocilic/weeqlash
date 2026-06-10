@@ -5,19 +5,10 @@ import { app } from '../server/index.js';
 import * as emailModule from '../server/game/email.ts';
 import { getDb } from '../server/game/leaderboard.ts';
 
-/**
- * Security Tests Suite
- *
- * This test suite verifies that all critical security fixes from SECURITY_FIXES.md
- * have been properly implemented:
- * 1. Session Security (HTTP-only cookies, session secret, rate limiting)
- * 2. Database Security (parameterized queries, SQL injection prevention, table validation)
- * 3. Client Security (CSP headers, XSS protection, input sanitization)
- */
+// Security suite: session, DB (parameterized queries/table validation), and client (CSP/XSS) fixes
 
 describe('Duel Stats Recording', () => {
-  // Test that the stats API endpoints work correctly
-  // Full duel game stats are recorded via recordGameStats (similar to qlashique)
+  // Duel stats are recorded via recordGameStats (similar to qlashique)
 
   it('✓ game_history endpoint works (404 for non-existent user)', async () => {
     const res = await request(app).get('/test/game-history/nonexistent@test.invalid');

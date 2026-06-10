@@ -55,11 +55,7 @@ export function calcTimer(turnNumber: number): number {
   return Math.min(5 + (round - 1) * 3, 25);
 }
 
-// ---------------------------------------------------------------------------
-// Public: process a single answer during guessing phase
-// correctIdx is the correct answer index for the current question
-// ---------------------------------------------------------------------------
-
+// Process a single answer during the guessing phase.
 export function processAnswer(
   state: QlashiqueState,
   answerIdx: number,
@@ -81,14 +77,7 @@ export function processAnswer(
   return { state, correct };
 }
 
-// ---------------------------------------------------------------------------
-// Public: end the current turn, compute outcome
-// Returns { state, outcome } where outcome is one of:
-//   'self_damage' | 'nothing' | 'attack' | 'choose'
-// HP is immediately updated for self_damage, attack, nothing.
-// For 'choose', caller must follow up with applyOutcome().
-// ---------------------------------------------------------------------------
-
+// End the turn and compute outcome; HP updates immediately except 'choose' (caller follows up with applyOutcome).
 export function endTurn(state: QlashiqueState):
   | {
       state: QlashiqueState;
@@ -129,11 +118,7 @@ export function endTurn(state: QlashiqueState):
   return { state, outcome, actingPlayerIdx };
 }
 
-// ---------------------------------------------------------------------------
-// Public: apply the player's attack/heal choice after a score >= 2 turn
-// choice: 'attack' | 'heal'
-// ---------------------------------------------------------------------------
-
+// Apply the player's attack/heal choice after a score >= 2 turn.
 export function applyOutcome(
   state: QlashiqueState,
   choice: 'attack' | 'heal',
@@ -168,11 +153,7 @@ export function applyOutcome(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Public: check if the game is over (any player at or below 0 HP)
-// Returns winnerIdx (0 or 1) or -1 if game continues
-// ---------------------------------------------------------------------------
-
+// Game over if any player <= 0 HP; returns winnerIdx (0/1) or -1 to continue.
 export function checkGameOver(state: QlashiqueState, actingPlayerIdx: number): number {
   const [p0, p1] = state.players;
   if (p0.hp <= 0 && p1.hp <= 0) {

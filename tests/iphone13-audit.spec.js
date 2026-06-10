@@ -1,8 +1,6 @@
 // @ts-check
-// Manual viewport audit: screenshots board game + qlashique at iPhone 13 size,
-// reports horizontal overflow and small tap targets. Run via:
+// Manual iPhone 13 viewport audit → screenshots to ./screenshots/iphone13/, flags overflow + small tap targets
 //   ENABLE_TEST_ROUTES=1 DB_PATH=./server/data/e2e.db npx playwright test tests/iphone13-audit.spec.js
-// Outputs to ./screenshots/iphone13/
 
 import { test, devices, request as playwrightRequest } from '@playwright/test';
 import fs from 'fs';

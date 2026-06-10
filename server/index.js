@@ -30,8 +30,7 @@ import { RedisStore } from 'connect-redis';
 import compression from 'compression';
 import { initRedis, waitForRedisReady, isRedisReady, SESSION_PREFIX } from './game/redis.ts';
 
-// Initialize Redis client after dotenv has loaded REDIS_URL. This must happen
-// before createSessionMiddleware() runs (RedisStore captures the client instance).
+// Init Redis before createSessionMiddleware() — RedisStore captures the client instance.
 const redisClient = initRedis();
 
 import {
@@ -130,10 +129,6 @@ const app = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
-// =============================================================================
-// SECURITY MIDDLEWARE
-// =============================================================================
-
 // CSP Headers - strict for game client, relaxed for AdminJS
 const cspOrigin = process.env.CLIENT_URL || 'http://localhost:3000';
 const CSP_BASE =
@@ -174,17 +169,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Session store - Redis-backed. Fail-closed: if Redis is unreachable at
-// startup, the server exits; if it dies at runtime, /auth and socket connects
-// return 503 (see isRedisReady() gates below).
-// DO NOT flip saveUninitialized to false without also reworking socket auth.
-// The socket handshake captures socket.request.session at connection time —
-// which for this client happens on page load, BEFORE login. If the initial GET
-// creates no session/cookie, the socket binds to an ephemeral session whose ID
-// never matches the one POST /auth/login later creates, and auth:setUserId's
-// sess.reload() finds nothing. Net result: player.userId stays null, game
-// stats (recordGameStats / _saveQlasResult) skip the DB writes, and e2e tests
-// that assert games_played/games_won/trackAnswer coverage fail silently.
+// Do not flip saveUninitialized:false — socket handshake binds session before login; breaks auth/stats.
 function createSessionMiddleware() {
   return session({
     store: new RedisStore({ client: redisClient, prefix: SESSION_PREFIX + 'session:' }),
@@ -204,10 +189,7 @@ function createSessionMiddleware() {
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
 
-// Force a session write on first request so the Set-Cookie lands before the
-// Socket.IO handshake. Paired with saveUninitialized:true above — together
-// they guarantee the socket and subsequent HTTP requests share one session ID.
-// Do not remove this middleware; see note on createSessionMiddleware.
+// Force a session write on first request so Set-Cookie lands before the socket handshake; don't remove.
 app.use((req, res, next) => {
   if (req.session && !req.session.visited) {
     req.session.visited = Date.now();
@@ -253,23 +235,19 @@ const PREVIEW_RATE_LIMIT_MS = 200;
 // Rate limiting: throttle quiz starts per socket
 const quizTimestamps = new Map(); // socketId -> lastQuizStartTime
 const QUIZ_RATE_LIMIT_MS = 2000;
-// Slack on a run's max allowed time before the anti-tamper clamp rejects it —
-// absorbs network lag and clock skew.
+// Slack on a run's max allowed time before the anti-tamper clamp rejects it (lag + clock skew).
 const ANSWER_GRACE_MS = 2000;
-// Default qlashique turn timer, plus the grace before the server force-ends a
-// turn the client never answered.
+// Default qlashique turn timer, plus grace before the server force-ends an unanswered turn.
 const QLAS_DEFAULT_TIMER_S = 5;
 const TURN_GRACE_S = 3;
 
-// Clamp a client-reported run duration into [minMs, maxMs] so a tampered client
-// can't post a 1ms or a 1-day run. Falls back to server time if totalMs is bad.
+// Clamp a client-reported run duration into [minMs, maxMs] so a tampered client can't fake it; falls back to server time.
 function clampRunMs(totalMs, startedAt, minMs, maxMs) {
   const reportedMs = typeof totalMs === 'number' && totalMs >= 0 ? totalMs : Date.now() - startedAt;
   return Math.min(Math.max(reportedMs, minMs), maxMs);
 }
 
-// Finish-and-submit for solo runs with { finished, finalScore, finalTimeMs }.
-// quiz/triviandom differs (gameOver flag, run.answers) — its handler stays.
+// Finish-and-submit for solo runs with { finished, finalScore, finalTimeMs } (quiz/triviandom has its own handler).
 function submitModeScore(runMap, mode, socket, name, cb) {
   const run = runMap.get(socket.id);
   if (!run) {
@@ -287,8 +265,7 @@ function submitModeScore(runMap, mode, socket, name, cb) {
   cb({ ok: true, top10 });
 }
 
-// Rate-limit + active-game gate for start handlers. Returns true if rejected
-// (caller should return). Pass `now` so it matches the run's startedAt.
+// Rate-limit + active-game gate for start handlers; returns true if rejected. Pass `now` to match run.startedAt.
 function quizStartGuard(
   socket,
   cb,
@@ -314,14 +291,7 @@ function quizStartGuard(
 // Quiz session tracking
 const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
 
-// SkipNoT session tracking (singleplayer 20-Q quiz). One run per socket.
-// run = {
-//   startedAt: number,                          // ms; for leaderboard time_ms
-//   questions: Question[],                      // pre-picked pool with correct-index `a`
-//   picks: Record<questionId, optionIdx|null>,  // server-side answer log
-//   finished: boolean,
-//   finalScore, finalTimeMs                     // populated on skipnot:finish
-// }
+// SkipNoT session tracking (solo 20-Q quiz). One run per socket.
 const skipnotRuns = new Map();
 const howHighRuns = new Map();
 const mathquizRuns = new Map();
@@ -402,16 +372,14 @@ function gracefulShutdown(signal) {
   clearInterval(leaderboardPruneInterval);
   clearInterval(howHighExpireInterval);
 
-  // If a hung socket keeps the clean close from finishing, bail out before
-  // Docker's SIGKILL so we still get to flush SQLite.
+  // Bail before Docker's SIGKILL if a hung socket blocks the clean close, so SQLite still flushes.
   const forceExit = setTimeout(() => {
     console.error('[shutdown] forced exit (clean close timed out)');
     process.exit(1);
   }, 5000);
   forceExit.unref();
 
-  // io.close() also closes the underlying httpServer, so don't call
-  // httpServer.close() separately (the second close would error).
+  // io.close() also closes the underlying httpServer; don't close httpServer separately.
   io.close((err) => {
     if (err) {
       console.error('[shutdown] io.close error:', err.message);
@@ -440,10 +408,7 @@ function checkLobbyRateLimit(socketId, cb) {
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
-// Last-resort net: a malformed socket payload (e.g. a null arg where a handler
-// destructures an object) throws inside socket.io's process.nextTick dispatch,
-// which would otherwise terminate the whole process and kill every live game.
-// Log and stay up instead of crashing.
+// Last-resort net: a malformed socket payload can throw in socket.io's dispatch and kill every live game — log and stay up.
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err);
 });
@@ -459,9 +424,7 @@ initAuthDb();
 // Parse JSON bodies
 app.use(express.json({ limit: '1mb' }));
 
-// Fail-closed gate: if Redis is not ready, auth/admin cannot read/write sessions.
-// Applied before auth and admin routes so 503 lands on the HTTP boundary,
-// not deep inside route handlers that would otherwise proceed with a broken session.
+// Fail-closed: if Redis is down, 503 at the HTTP boundary before auth/admin handlers run on a broken session.
 app.use(['/auth', '/admin'], (req, res, next) => {
   if (!isRedisReady()) {
     return res.status(503).json({ error: 'Service temporarily unavailable' });
@@ -475,8 +438,7 @@ app.use('/admin', adminRoutes);
 // Share session with Socket.IO
 io.engine.use(sessionMiddleware);
 
-// Fail-closed gate for socket connects. Same reasoning as the HTTP gate above:
-// session middleware would otherwise silently hand out empty sessions.
+// Fail-closed for socket connects — else session middleware silently hands out empty sessions.
 io.use((socket, next) => {
   if (!isRedisReady()) {
     return next(new Error('Service temporarily unavailable'));
@@ -484,11 +446,9 @@ io.use((socket, next) => {
   next();
 });
 
-// Test-only: teleport a peg to an adjacent position for E2E testing
-// NEVER expose test endpoints in production - requires ENABLE_TEST_ROUTES=1
+// Test-only endpoints, never in prod — requires ENABLE_TEST_ROUTES=1.
 if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === '1') {
-  // Inject a synthetic question with a known correct answer so tests can
-  // assert answer-correct / answer-wrong UI behavior deterministically.
+  // Synthetic question with a known correct answer so tests can assert answer-correct/wrong UI deterministically.
   const TEST_QUESTION = {
     id: 'TEST_Q_CORRECT_A',
     a: 0,
@@ -496,8 +456,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     opts: ['Correct', 'Wrong', 'Wrong', 'Wrong'],
     category: 'history',
   };
-  // Keep it out of the category pool so planTurnQuestions never picks it
-  // randomly; it's only reachable via /test/set-question.
+  // Keep out of the category pool so planTurnQuestions never picks it; only reachable via /test/set-question.
   questionsDb._byId[TEST_QUESTION.id] = TEST_QUESTION;
 
   // Clean up test entries from leaderboard (all modes; e2e_% name prefix)
@@ -549,8 +508,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, users: users.length });
   });
 
-  // Test-only: lock next question to a specific qId so tests always know the correct answer.
-  // Pass { sticky: true } to persist across picks; must be cleared via /test/clear-sticky-question.
+  // Test-only: lock next question to a qId. { sticky: true } persists until /test/clear-sticky-question.
   app.post('/test/set-question', (req, res) => {
     const { qId, sticky } = req.body;
     if (!qId) {
@@ -593,8 +551,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, bonusQ3: _testBonusQ3Override, bonusQ6: _testBonusQ6Override });
   });
 
-  // Test-only: force a Qlashword player's rack to a known set of tiles, then
-  // re-send it to that player so the client renders the override.
+  // Test-only: force a Qlashword player's rack to known tiles, then re-send it so the client renders the override.
   app.post('/test/qw-set-rack', (req, res) => {
     const { code, playerIdx, rack } = req.body;
     const room = getRoom(code);
@@ -702,8 +659,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
   });
 }
 
-// Readiness probe: 503 when Redis or the DB is down. '/' can't be used for this
-// since it serves static HTML and stays 200 even when the backend is broken.
+// Readiness probe: 503 when Redis or DB is down ('/' stays 200 since it serves static HTML).
 app.get('/healthz', (_req, res) => {
   const redis = isRedisReady();
   const dbReady = getDb() !== null;
@@ -713,17 +669,10 @@ app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok', redis, db: dbReady });
 });
 
-// ---------------------------------------------------------------------------
-// Connection
-// ---------------------------------------------------------------------------
-
 io.on('connection', (socket) => {
   console.log(`[+] ${socket.id}`);
 
-  // Coerce null/undefined payload args to {} before they reach a handler's
-  // destructure (only null/undefined throw on destructuring; primitives don't).
-  // Defense-in-depth alongside the global uncaughtException net so a malformed
-  // emit fails via each handler's own validation instead of crashing.
+  // Coerce null/undefined payload args to {} so a malformed emit fails handler validation instead of throwing on destructure.
   socket.use((packet, next) => {
     for (let i = 1; i < packet.length; i++) {
       if (packet[i] === null || packet[i] === undefined) {
@@ -748,9 +697,7 @@ io.on('connection', (socket) => {
     }
   }
 
-  // Client hint after login; authoritative userId always comes from the session.
-  // The socket was usually established before login, so the snapshot on
-  // socket.request.session is stale — reload from the store first.
+  // Client hint after login; authoritative userId comes from the session, so reload from the store first (snapshot is stale).
   socket.on('auth:setUserId', (_clientUserId, cb) => {
     const ack = typeof cb === 'function' ? cb : () => {};
     const sess = socket.request.session;
@@ -1443,11 +1390,9 @@ io.on('connection', (socket) => {
     skipnotRuns.delete(socketId);
   }
 
-  // `count` distinct random questions from active categories, null if the pool
-  // runs dry. Shared by skipnot and howhigh.
+  // `count` distinct random questions from active categories, null if the pool runs dry. Shared by skipnot and howhigh.
   function _pickQuestionPool(count) {
-    // Test override (sticky/one-shot): fill the whole run with the locked
-    // question so e2e specs can deterministically assert score totals.
+    // Test override: fill the whole run with the locked question so e2e specs can assert score totals.
     const overrideId = _consumeQuestionOverride(questionsDb);
     if (overrideId && questionsDb._byId?.[overrideId]) {
       const q = questionsDb._byId[overrideId];
@@ -1466,11 +1411,7 @@ io.on('connection', (socket) => {
     return out;
   }
 
-  // Client-authoritative game flow (matches the board pattern). Server hands
-  // out 20 questions WITH `correctIdx` at start, client runs the quiz locally
-  // (own timer, own scoring per click), then submits all picks at finish.
-  // Server stores its copy of the questions so it can re-score authoritatively
-  // on submit and credit user_stats per category.
+  // Client-authoritative flow: client runs the quiz locally and submits picks at finish; server keeps a copy to re-score authoritatively.
   socket.on('skipnot:start', (cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1492,9 +1433,7 @@ io.on('connection', (socket) => {
     const run = {
       startedAt: now,
       questions, // server-side copy with correctIdx (`a`)
-      // `picks` is an array aligned to `questions` (one slot per Q in order).
-      // We can't key by questionId — sticky test overrides reuse the same id
-      // across all 20 slots, which would collapse to a single pick.
+      // `picks` aligns to `questions` by position, not questionId (sticky overrides reuse one id across all slots).
       picks: new Array(skipnot.QUESTION_COUNT).fill(undefined),
       currentIdx: 0,
       finished: false,
@@ -1503,8 +1442,7 @@ io.on('connection', (socket) => {
     };
     skipnotRuns.set(socket.id, run);
 
-    // Server keeps correctIdx (`a`) hidden — client gets only public fields.
-    // Per-question YES/NO feedback comes via `skipnot:answer` cb (boolean).
+    // Never send correctIdx — client gets only public fields; per-Q feedback comes via the skipnot:answer cb boolean.
     cb({
       ok: true,
       total: skipnot.QUESTION_COUNT,
@@ -1518,9 +1456,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Per-question answer check. Client emits with the question id and chosen
-  // optionIdx; server matches it against the current run cursor, returns ONLY
-  // a boolean correct. correctIdx never leaves the server.
+  // Per-question check against the run cursor; returns ONLY a boolean. Never send the true answer.
   socket.on('skipnot:answer', ({ id, optionIdx } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1552,9 +1488,7 @@ io.on('connection', (socket) => {
     cb({ ok: true, correct });
   });
 
-  // Skip / timeout / abandon — same server effect: advance cursor, no score.
-  // Client emits this on both the user's [SKIP] click and on the local timer
-  // expiry, so the server cursor stays in lockstep with the client's.
+  // Skip / timeout / abandon — advance cursor, no score; client emits on both [SKIP] and local timer expiry to stay in lockstep.
   socket.on('skipnot:skip', ({ id } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1586,9 +1520,7 @@ io.on('connection', (socket) => {
     if (run.finished) {
       return cb({ error: 'Run already finished' });
     }
-    // Build picks array from server-stored decisions (don't trust client to
-    // resend them — server already recorded each one in run.picks at position
-    // `currentIdx`). Missing slot = timeout/unanswered, scores like skip.
+    // Score from server-stored picks, not the client; a missing slot = timeout/unanswered, scores like skip.
     const picks = run.picks.map((p) => (p === undefined ? null : p));
     const elapsedMs = clampRunMs(
       totalMs,
@@ -1614,13 +1546,7 @@ io.on('connection', (socket) => {
   });
 
   // --- MathQuiz (solo numeric-input math/calculus quiz) ---
-  //
-  // Procedurally generated: no question bank. Server builds the problems with
-  // their truth (answer/tol/range) kept server-side, hands the client only the
-  // public fields (prompt/tex/graph/points). Client runs locally with its own
-  // timer; on each answer the server scores via mathquiz.scorePick and returns
-  // the OUTCOME (correct/partial/wrong) — never the true value mid-round. The
-  // real answers are revealed only at finish for the review screen.
+  // Procedurally generated; answers kept server-side. Each answer returns only the outcome — never send the true value.
   socket.on('mathquiz:start', (cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -1729,9 +1655,7 @@ io.on('connection', (socket) => {
       score,
       timeMs: elapsedMs,
       qualifies,
-      // Review screen: per-question outcome + points only. The true answer is
-      // NEVER sent — not mid-round, not post-round (user rule). Only the
-      // player's own guess is echoed back.
+      // Review screen: outcome + points + the player's own guess only. Never send the true answer, even post-round.
       review: run.problems.map((p, i) => ({
         guess: guesses[i],
         earned: earned[i],
@@ -1749,9 +1673,7 @@ io.on('connection', (socket) => {
   });
 
   // --- CentoGrapher (single-question geography "select all related") ---
-  // One mega-question = whole quiz. Server builds the choice set (correct flags
-  // secret), client selects, server scores. The true correct set is NEVER sent;
-  // only the player's own picks get a verdict.
+  // One mega-question = whole quiz; correct flags stay secret. Never send the true correct set — only the player's picks get a verdict.
   socket.on('centographer:start', (cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -2170,10 +2092,7 @@ io.on('connection', (socket) => {
     try {
       run.finished = true;
       if (run.isPlayer2) {
-        // One atomic unit: the finishP2 UPDATE and the game_history insert
-        // commit together. If the insert throws, finishP2 rolls back too, so a
-        // challenge can't end up 'complete' with no game_history row. The outer
-        // catch resets run.finished, leaving the run intact to retry.
+        // Atomic: finishP2 UPDATE + game_history insert commit together, so a challenge can't be 'complete' with no history row.
         const challenge = getDb().transaction(() => {
           const ch = finishP2(
             run.challengeCode,
@@ -2498,8 +2417,7 @@ io.on('connection', (socket) => {
         }
         room.qlasTimerExpired = true;
         io.to(code).emit('qlashique:timer_expired');
-        // Force-end the turn so an AFK active player can't freeze the duel.
-        // (The +3s grace is already baked into _gracedMs above.)
+        // Force-end the turn so an AFK active player can't freeze the duel (grace already baked into _gracedMs).
         _endQlasTurn(io, code, room, 'attack');
       } catch (err) {
         console.error('[qlashique] timer callback error:', err);
@@ -2724,8 +2642,7 @@ io.on('connection', (socket) => {
       return cb({ error: `Not a word: ${bad ? bad.word : '?'}` });
     }
 
-    // Rack coverage pre-check — bonus questions resolve before we mutate, so
-    // verify the play is legal up front rather than failing after the quiz.
+    // Rack coverage pre-check up front, since bonus questions resolve before we mutate (don't fail after the quiz).
     if (!_qwRackCovers(state.racks[player.index], clean)) {
       return cb({ error: 'Placement uses tiles not on your rack' });
     }
@@ -2797,8 +2714,7 @@ io.on('connection', (socket) => {
     _qwResolveBonus(io, code, room, correct, answerIdx);
   });
 
-  // Active player opts in to the gated bonus question — only now do we send the
-  // question and start the answer timer (so reading the prompt doesn't burn time).
+  // Send the question + start the timer only when the active player opts in, so reading the prompt doesn't burn time.
   socket.on('qlashword:bonus_start', ({ code } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
@@ -2956,10 +2872,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 // Strip server-only fields (token, socket id) before broadcasting player list
 function publicPlayer({ id: _id, token: _token, ...rest }) {
   return rest;
@@ -3077,17 +2989,14 @@ function recordGameStats(room) {
   }
 }
 
-// Test override: set via POST /test/set-question
-// _testOverride is one-shot (consumed on next question pick);
-// _testStickyQuestion persists until /test/clear-sticky-question is called.
+// Test overrides via POST /test/set-question: _testOverride is one-shot, _testStickyQuestion persists until cleared.
 let _testOverride = null;
 let _testStickyQuestion = null;
 let _testHPOverride = null;
 let _testBonusQ3Override = null;
 let _testBonusQ6Override = null;
 
-// Return a question id to use as the next override, or null.
-// Prefers one-shot; consumes it on hit. Falls back to sticky (not consumed).
+// Next override question id or null; prefers one-shot (consumed on hit), falls back to sticky (not consumed).
 function _consumeQuestionOverride(db) {
   if (_testOverride && db._byId?.[_testOverride]) {
     const id = _testOverride;
@@ -3119,9 +3028,7 @@ function _pickQlasQuestion(room, db) {
   return q;
 }
 
-// Persist a completed 1v1 game (qlashique/qlashword) to game_history + played/won
-// counters in one transaction. Both players must be logged-in. winnerIdx -1 =
-// draw, honored only when allowDraw (qlashique has no draw — other player wins).
+// Persist a completed 1v1 game to game_history + played/won in one tx; both players must be logged in. winnerIdx -1 = draw, only when allowDraw.
 function _saveDuelResult(room, winnerIdx, { gameMode, allowDraw, player1Stats, player2Stats }) {
   const [p0, p1] = room.players;
   const existingUserIds = _getExistingUserIdSet([p0?.userId, p1?.userId]);
@@ -3188,10 +3095,7 @@ function _emitQlasTurnStart(ioServer, code, room) {
   });
 }
 
-// Resolve the active player's turn: score it, apply outcome, broadcast HP and
-// either game-over or the next turn. Shared by the qlashique:end_turn handler
-// and the authoritative timer (so an AFK active player can't freeze the duel).
-// Caller must have already validated room/phase. Returns {ok} or {error}.
+// Resolve the active player's turn (score, apply outcome, broadcast HP + game-over or next turn); caller must have validated room/phase. Returns {ok}|{error}.
 function _endQlasTurn(ioServer, code, room, choice = 'attack') {
   if (room.qlasTimer) {
     clearTimeout(room.qlasTimer);
@@ -3251,10 +3155,7 @@ function _endQlasTurn(ioServer, code, room, choice = 'attack') {
   return { ok: true };
 }
 
-// ---------------------------------------------------------------------------
 // Qlashword helpers
-// ---------------------------------------------------------------------------
-
 const QW_BONUS_TIMER_S = 15;
 const QW_BONUS_PROMPT_TIMEOUT_S = 30; // auto no-unlock if the player never opts in
 const QW_BONUS_RESULT_MS = 1300; // pause showing the green/red pick before advancing
@@ -3262,8 +3163,7 @@ const QW_TURN_TIMER_S = 90; // placement turn clock — auto-pass so games can't
 // Bonus questions are pulled from every category EXCEPT death_metal.
 const QW_BONUS_CATS_SET = new Set([...CATS_SET].filter((c) => c !== 'death_metal'));
 
-// Shared guard for in-game qlashword handlers. Returns {room, player} or null
-// (after invoking cb with the appropriate error).
+// Shared guard for in-game qlashword handlers; returns {room, player} or null (after cb'ing the error).
 function _qwTurnGuard(socket, code, cb, requiredPhase) {
   const room = getRoom(code);
   if (!room?.state || room.mode !== 'qlashword') {
@@ -3356,8 +3256,7 @@ function _qwClearTurnTimer(room) {
   }
 }
 
-// Start the placement-turn clock for the current player. On expiry the turn is
-// auto-passed so a player can't stall the game by never finishing their turn.
+// Start the placement-turn clock; on expiry the turn auto-passes so a player can't stall the game.
 function _qwStartTurnTimer(ioServer, code, room) {
   _qwClearTurnTimer(room);
   if (!room.state || room.state.phase !== QW_PHASE.PLACE) {
@@ -3421,8 +3320,7 @@ function _emitQwGameStart(ioServer, code, room) {
   _qwStartTurnTimer(ioServer, code, room);
 }
 
-// Announce the next gated bonus square WITHOUT the question — the active player
-// must opt in (qlashword:bonus_start) before the question + timer are sent.
+// Announce the next gated bonus square without the question; active player must opt in (qlashword:bonus_start) first.
 function _qwSendBonusPrompt(ioServer, code, room) {
   const turn = room.qwTurn;
   turn.awaitingStart = true;
@@ -3578,8 +3476,7 @@ function _qwAfterTurn(ioServer, code, room) {
   _qwStartTurnTimer(ioServer, code, room);
 }
 
-// Wait for Redis to be ready before accepting traffic — any request before
-// this would be a cache miss into a broken session store.
+// Wait for Redis before accepting traffic — earlier requests hit a broken session store.
 if (process.env.VITEST) {
   waitForRedisReady(10_000).catch((err) => {
     console.error('[startup] Redis not ready:', err.message);

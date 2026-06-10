@@ -1,8 +1,4 @@
-// Ephemeral canvas plotter for math-quiz graph problems. Draws a graph spec
-// (axes + sampled polyline + optional shaded interval + x-marker) onto a
-// <canvas>. Nothing is stored — the canvas is redrawn per question and the
-// figure lives only as long as the DOM element. The spec ships sampled points,
-// never the closed form, so the answer can't be derived client-side.
+// Ephemeral canvas plotter for math-quiz graph problems; ships sampled points (never the closed form) so the answer can't be derived client-side.
 
 const COLORS = {
   bg: '#0d1326',
@@ -23,7 +19,7 @@ export function drawGraph(canvas, spec) {
     return;
   }
 
-  // Handle HiDPI: size the backing store to devicePixelRatio, draw in CSS px.
+  // HiDPI: size the backing store to devicePixelRatio, draw in CSS px.
   const dpr = window.devicePixelRatio || 1;
   const cssW = canvas.clientWidth || canvas.width;
   const cssH = canvas.clientHeight || canvas.height;
@@ -131,10 +127,7 @@ export function drawGraph(canvas, spec) {
   ctx.stroke();
 }
 
-// General geometric-figure renderer (triangles, circles, polygons, points,
-// angle arcs, right-angle marks). Uniform scale so shapes aren't distorted —
-// the world box `fig.view` is letterboxed into the canvas. Only given values
-// are labeled; the asked quantity is marked '?'/'θ' by the generator.
+// General geometric-figure renderer; world box `fig.view` letterboxed into the canvas, only given values labeled.
 function _unit(x, y) {
   const L = Math.hypot(x, y) || 1;
   return { x: x / L, y: y / L };
@@ -158,8 +151,7 @@ export function drawFigure(canvas, fig) {
 
   const [xmin, xmax, ymin, ymax] = fig.view;
   const pad = 52; // generous gutter so pixel-offset / outside-corner labels stay on-canvas
-  // Default: stretch each axis independently to fill the canvas (readable thin
-  // triangles — aspect not preserved). uniform:true keeps shape (circles).
+  // Default stretches each axis independently to fill the canvas; uniform:true preserves aspect (circles).
   let sx = (W - 2 * pad) / (xmax - xmin);
   let sy = (H - 2 * pad) / (ymax - ymin);
   let offX = pad;
@@ -229,8 +221,7 @@ export function drawFigure(canvas, fig) {
       let lx;
       let ly;
       if (it.edge) {
-        // Offset perpendicular to the edge AS DRAWN (screen space), so under a
-        // non-uniform stretch the label still moves straight off the line.
+        // Offset perpendicular to the edge as drawn (screen space) so non-uniform stretch still moves it straight off the line.
         const ax = px(it.edge[0][0]);
         const ay = py(it.edge[0][1]);
         const bx = px(it.edge[1][0]);
@@ -277,8 +268,7 @@ export function drawFigure(canvas, fig) {
       ctx.arc(vx, vy, r, a1, a1 + d, d < 0);
       ctx.stroke();
       if (it.label) {
-        // OUTSIDE the corner (behind the vertex, opposite the wedge) — empty
-        // space, so the number never touches the arc or either side.
+        // Place outside the corner (opposite the wedge) so the number never touches the arc or either side.
         const m = a1 + d / 2 + Math.PI;
         drawText(it.label, vx + Math.cos(m) * (r + 24), vy + Math.sin(m) * (r + 24), COLORS.mark);
       }

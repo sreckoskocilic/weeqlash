@@ -105,11 +105,7 @@ describe('questions.js', () => {
       expect(getAllQuestions(empty)).toHaveLength(0);
     });
 
-    // Regression: bucket items in `db[cat]` arrays do not carry `category` —
-    // only `_byId` did. `getAllQuestions` must attach category from the bucket
-    // key. The qlas pool filter (server/index.js) and quiz UI both rely on
-    // `q.category` being set; without this, every question is dropped by any
-    // category-aware filter.
+    // Regression: getAllQuestions must attach category from the bucket key, else category-aware filters drop every question
     it('attaches category to every returned item from the bucket key', () => {
       const data = {
         History: [

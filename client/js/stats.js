@@ -1,7 +1,3 @@
-// ============================================================
-// STATS MODULE
-// ============================================================
-
 import { showAuthMessage } from './auth.js';
 import { CAT_NAMES } from './constants.js';
 import { sanitize } from './dom.js';

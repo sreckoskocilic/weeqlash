@@ -78,9 +78,7 @@ function applyAuthRateLimit(req: Request, res: Response): boolean {
   return true;
 }
 
-// Disconnect any live sockets still attached to a session we just killed.
-// Emits 'auth:kicked' so the client can show feedback and redirect before the
-// socket hangs up. Fire-and-forget: failures here don't affect login response.
+// Disconnect live sockets on a killed session, emitting 'auth:kicked' first (fire-and-forget).
 function kickSocketsForSid(io: IoServer, sid: string): void {
   for (const [, socket] of Array.from(io.of('/').sockets)) {
     const socketSid = (socket.request as { sessionID?: string }).sessionID;
@@ -166,10 +164,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.status(result.needsConfirmation ? 403 : 401).json(result);
     }
 
-    // Single-session-per-user: if the user is already logged in elsewhere,
-    // kill the previous session server-side before issuing the new one.
-    // Fail-closed: if Redis errors at any step, do NOT proceed — otherwise
-    // the old session would linger and defeat the policy.
+    // Single-session-per-user: kill any prior session before issuing the new one; fail-closed on Redis error so the old session can't linger.
     try {
       const oldSid = await getActiveSid(result.user.id);
       if (oldSid && oldSid !== req.sessionID) {
@@ -194,8 +189,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
         ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         : undefined;
 
-      // Index TTL = 7d regardless of keepLoggedIn. For browser-session cookies
-      // the stale entry is harmless — next login would just overwrite it.
+      // Index TTL = 7d regardless of keepLoggedIn; a stale browser-session entry is harmless (next login overwrites).
       await setActiveSid(result.user.id, req.sessionID, 7 * 24 * 60 * 60);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

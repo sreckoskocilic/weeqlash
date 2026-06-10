@@ -1,13 +1,8 @@
-// Procedural math-problem generator. No question bank — each problem is built
-// at runtime from a topic's rules, with its truth computed here and kept
-// server-side. Public fields (prompt/tex/graph/points) go to the client; the
-// secret fields (answer/scoring/tol/range) stay on the server for scoring
-// (see mathquiz.ts). Always strip with toPublic() before emitting to a client.
+// Procedural math-problem generator; answer/scoring fields stay server-side, strip with toPublic() before emitting.
 
 import { BASE_POINTS } from './mathquiz.ts';
 
-// A graph is sent as sampled points, NOT a closed form, so "read the value"
-// problems can't be solved client-side — the formula never leaves the server.
+// Graph sent as sampled points, not a closed form, so the formula never leaves the server.
 export interface GraphSpec {
   points: [number, number][];
   xRange: [number, number];
@@ -16,9 +11,7 @@ export interface GraphSpec {
   markX?: number; // optional vertical marker line at x
 }
 
-// A geometric figure drawn on the client canvas (uniform scale, no distortion).
-// Coordinates are world units; the client maps them to pixels. Only the GIVEN
-// quantities are labeled — the asked value is marked with '?'/'θ', never drawn.
+// A geometric figure drawn on the client canvas; only given quantities are labeled, the asked value is never drawn.
 export interface FigureItem {
   t: 'poly' | 'seg' | 'point' | 'label' | 'angle' | 'right' | 'circle';
   pts?: number[][]; // poly
@@ -203,8 +196,7 @@ function genDefIntegral(): NumericProblem {
   };
 }
 
-// Read the value of a plotted line at a marked x. Graph sent as points only —
-// no formula leaves the server. Proximity scoring (visual estimate).
+// Read the value of a plotted line at a marked x; points only, proximity scoring.
 function genReadGraph(): NumericProblem {
   const m = nonZero(-3, 3);
   const k = randInt(-4, 4);
@@ -242,8 +234,7 @@ function boundsOf(pts: number[][], pad = 1): number[] {
 
 // --- Trigonometry ---
 
-// Evaluate sin/cos/tan at a special angle (degrees). Proximity to 3 decimals
-// since most values are irrational.
+// Evaluate sin/cos/tan at a special angle (degrees); proximity to 3 decimals.
 const TRIG_FNS = ['sin', 'cos', 'tan'] as const;
 const TRIG_ANGLES_SINCOS = [0, 30, 45, 60, 90, 120, 135, 150, 180];
 const TRIG_ANGLES_TAN = [0, 30, 45, 60, 120, 135, 150]; // skip 90/270 (undefined)
@@ -305,8 +296,7 @@ function genTriangleArea(): NumericProblem {
   const B = [b, 0];
   const P = [apexX, h];
   const foot = [apexX, 0];
-  // Offset h toward the wider base segment (the open interior), away from the
-  // nearer slanted side, so it doesn't overlap an edge.
+  // Offset h toward the wider base side so the label doesn't overlap an edge.
   const hAway = apexX < b / 2 ? A : B;
   return {
     topic: 'geo-triangle-area',
@@ -439,8 +429,7 @@ function genQuadRoot(): NumericProblem {
   };
 }
 
-// Estimate a square root of a non-perfect-square. Proximity grading by how
-// close the guess is; a near-exact answer earns a bonus on top of full credit.
+// Estimate a non-perfect-square root; proximity-graded, near-exact earns a bonus.
 function genSqrtEstimate(): NumericProblem {
   let n = randInt(2, 150);
   while (Number.isInteger(Math.sqrt(n))) {
@@ -859,9 +848,7 @@ export function generate(topic: TopicId): NumericProblem {
   return TOPICS[topic]();
 }
 
-// Build n problems from a shuffled pool of the enabled topics (default: all),
-// so each run picks varied topics rather than always the first n. When n
-// exceeds the pool size it cycles the shuffled order.
+// Build n problems from a shuffled pool of enabled topics; cycles the order if n exceeds pool size.
 export function generateSet(n: number, topics: TopicId[] = TOPIC_IDS): NumericProblem[] {
   const pool = (topics.length ? topics : TOPIC_IDS).slice();
   for (let i = pool.length - 1; i > 0; i--) {

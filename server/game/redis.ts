@@ -1,8 +1,6 @@
 import { createClient, type RedisClientType } from 'redis';
 
-// Per-environment key namespace. Prod sets SESSION_PREFIX explicitly via .env;
-// dev defaults to 'dev:'; e2e sets 'test:' in playwright.config.js webServer.
-// Evaluated lazily in initRedis() after dotenv has configured env vars.
+// Per-environment key namespace (prod/dev/test); resolved lazily in initRedis() after dotenv.
 export let SESSION_PREFIX = 'dev:';
 
 let client: RedisClientType | null = null;

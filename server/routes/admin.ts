@@ -222,8 +222,7 @@ function requireAdmin(
     if (uid === undefined || uid === null) {
       return next();
     }
-    // Re-validate against the DB so a demoted/blocked admin loses access
-    // immediately rather than at session expiry (up to 7 days).
+    // Re-validate against the DB so a demoted/blocked admin loses access immediately, not at session expiry.
     const u = getUserById(uid);
     if (u && u.is_admin === 1 && u.is_blocked === 0) {
       return next();
@@ -711,8 +710,7 @@ router.post(
     if (!username || !email) {
       return badRequest(res, 'Username and email are required.');
     }
-    // Mirror registration constraints (auth-routes.ts) so the panel can't
-    // create a username/email the public flow would reject.
+    // Mirror registration constraints (auth-routes.ts) so the panel can't create what the public flow would reject.
     if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
       return badRequest(
         res,

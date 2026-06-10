@@ -4,11 +4,7 @@ import { registerAndLogin } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
 
-// CentoGrapher is a solo, single-mega-question mode. The correct set is secret
-// and varies per run, so we can't assert an exact score the way the trivia modes
-// do with a sticky question. This is a flow smoke test: start a run, tick some
-// choices, submit, and confirm the gameover screen reports a numeric score and
-// the pick lands on the (empty) leaderboard.
+// Flow smoke test — correct set is secret/per-run, so we assert a numeric score + leaderboard insert, not an exact value
 test('centographer: start → pick → submit → gameover + leaderboard', async ({ browser }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
   await api.post('/test/clear-all', {});

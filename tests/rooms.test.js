@@ -194,9 +194,7 @@ describe('Rooms: removePlayerFromRoom', () => {
     expect(room.players[0].name).toBe('Bob');
     expect(room.players[0].index).toBe(1);
 
-    // After player 0 disconnects, player 1 is at array position 0 but
-    // retains index=1. Lookups by .index must still work — this is the
-    // pattern recordGameStats relies on for correct winner/player attribution.
+    // After p0 disconnects, p1 keeps index=1 despite moving to array[0]; .index lookups must still work (recordGameStats relies on it)
     expect(room.players.find((p) => p.index === 0)).toBeUndefined();
     expect(room.players.find((p) => p.index === 1)?.name).toBe('Bob');
   });

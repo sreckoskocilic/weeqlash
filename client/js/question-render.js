@@ -1,14 +1,8 @@
-// Shared question-rendering helpers used by qlashique (1v1 duel) and skipnot
-// (solo 20-Q quiz). Both screens reuse the same `qlas-*` CSS so the rendered
-// markup is style-identical; callers pass DOM element refs so the helpers
-// don't bind to a specific screen's IDs.
+// Shared question-rendering helpers (qlashique + skipnot); callers pass DOM refs so the helpers aren't bound to screen IDs.
 
 import { sanitize } from './dom.js';
 
-// Render the question metadata strip + question text into `questionEl`, then
-// build 4 option buttons into `optionsEl`. `onClick(i)` fires with the index
-// of the chosen option. `flashEl` (optional) gets its `show` class cleared
-// so any prior CORRECT/INCORRECT banner from the previous question is hidden.
+// Render the question + 4 option buttons; onClick(i) fires the chosen index, optional flashEl gets its `show` class cleared.
 export function renderQuestion(
   { questionEl, optionsEl, flashEl },
   q,
@@ -40,9 +34,7 @@ export function renderQuestion(
   }
 }
 
-// 100ms-tick countdown ring controller. `start(totalSec)` is idempotent — it
-// clears any prior interval before starting a fresh one. The controller owns
-// its interval handle internally so callers don't manage timers themselves.
+// 100ms-tick countdown ring controller; `start(totalSec)` is idempotent and owns its interval handle.
 export function makeCountdownRing({
   ringEl,
   labelEl,

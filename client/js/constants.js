@@ -1,7 +1,3 @@
-// ============================================================
-// CONSTANTS
-// ============================================================
-
 export const PHASE = {
   SELECT_PEG: 'selectPeg',
   SELECT_TILE: 'selectTile',
@@ -14,9 +10,7 @@ export const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
 export const KEY_MAP = { a: 0, b: 1, c: 2, d: 3, 1: 0, 2: 1, 3: 2, 4: 3 };
 
-// Mirror of server/game/engine.ts CATEGORIES. Keep in sync by hand — the
-// dynamic /js/categories.js generator was removed because Caddy serves the
-// client from disk in prod and 404s on virtual Express routes.
+// Mirror of server/game/engine.ts CATEGORIES — keep in sync by hand.
 export const CATEGORIES = {
   arts: { label: 'Arts', color: '#C62828' },
   music: { label: 'Music', color: '#6A1B9A' },

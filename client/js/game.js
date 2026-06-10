@@ -1,7 +1,3 @@
-// ============================================================
-// GAME INTERACTION
-// ============================================================
-
 import { el, showError, showScreen, getPlayerName } from './dom.js';
 import { initBoard, renderAll, renderChangedTiles } from './render.js';
 import { PHASE, COORD_BASE, TIMING } from './constants.js';
@@ -187,13 +183,7 @@ export function setNavCursorToPeg(gameState, pegId) {
   return changed;
 }
 
-// ============================================================
-// BOARD-MODE SOCKET AND GAME EVENT HANDLERS (moved from main.js)
-// ============================================================
-
-// Walk through combat result entries after the last answer, advancing the modal
-// one question at a time on a setTimeout chain. Guarded by spectateGen so stale
-// timers from a previous combat sequence are discarded.
+// Walk combat result entries after the last answer, advancing the modal one question at a time; spectateGen guards stale timers.
 function advanceSpectateResult(results, idx, moreQuestionsInProgress) {
   const gen = state.spectateGen;
   setTimeout(() => {

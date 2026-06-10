@@ -1,7 +1,3 @@
-// ============================================================
-// RENDER
-// ============================================================
-
 import { el } from './dom.js';
 import { sanitize } from './dom.js';
 import { PHASE, CAT_NAMES, COORD_BASE } from './constants.js';

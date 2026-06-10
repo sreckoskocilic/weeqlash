@@ -1,7 +1,5 @@
 // @ts-check
-// Qlashword e2e: drives two real browser clients through the full playable
-// loop — lobby (create → join → host start), board render, a scored word play
-// with a trivia-gated bonus square, and turn handoff.
+// Qlashword e2e: two browsers through the full loop — lobby, board, a scored word play with trivia-gated bonus, handoff
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import {
   registerAndLogin,
@@ -47,8 +45,7 @@ test('qlashword: lobby → place QUIZ over center DW → unlock bonus → score 
 
   // Host sees the Start button once the room is full, then starts.
   await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });
-  // The host's create_room counts against the per-socket lobby rate limit
-  // (1s); wait it out so the START click isn't throttled.
+  // Wait out the 1s per-socket lobby rate limit from create_room so START isn't throttled
   await p1.waitForTimeout(1200);
   await p1.locator('#qw-btn-start').click();
 
@@ -78,8 +75,7 @@ test('qlashword: lobby → place QUIZ over center DW → unlock bonus → score 
   }
   await expect(p1.locator('.qw-cell-pending')).toHaveCount(4);
 
-  // Submit → the center DW (a premium square) triggers one bonus square. The
-  // player must opt in (ANSWER QUESTION) before the question is revealed.
+  // Submit → the center DW triggers a bonus square; player must opt in before the question is revealed
   await p1.locator('#qw-btn-submit').click();
   await p1.locator('#qw-bonus-modal.show').waitFor({ state: 'visible', timeout: 8000 });
   await p1.locator('#qw-bonus-start-btn').click();
@@ -120,8 +116,7 @@ test('qlashword: a player can pass and the turn advances', async ({ browser }) =
   await p2.locator('#qlashword-join-code').fill(code);
   await p2.locator('#btn-qlashword-join').click();
   await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });
-  // The host's create_room counts against the per-socket lobby rate limit
-  // (1s); wait it out so the START click isn't throttled.
+  // Wait out the 1s per-socket lobby rate limit from create_room so START isn't throttled
   await p1.waitForTimeout(1200);
   await p1.locator('#qw-btn-start').click();
 
@@ -164,8 +159,7 @@ test('qlashword: a completed game counts toward played/won', async ({ browser })
   await p1.locator('#qw-btn-start').click();
   await p1.locator('#qw-phase-game').waitFor({ state: 'visible', timeout: 10000 });
 
-  // End the game by passing 4 times in a row (2 each) → 0–0 tie. Each loop waits
-  // for that player's turn (the handoff) before passing.
+  // End via 4 passes (2 each); each loop waits for that player's turn before passing
   for (const actor of [p1, p2, p1, p2]) {
     await expect(actor.locator('#qw-turn-indicator')).toHaveText(/YOUR TURN/, { timeout: 8000 });
     await actor.locator('#qw-btn-pass').click();
@@ -174,8 +168,7 @@ test('qlashword: a completed game counts toward played/won', async ({ browser })
   await p1.locator('#qw-phase-gameover').waitFor({ state: 'visible', timeout: 8000 });
   await p2.locator('#qw-phase-gameover').waitFor({ state: 'visible', timeout: 8000 });
 
-  // Both players logged one completed game. End-game subtracts leftover rack
-  // values, so an all-pass game usually has a winner — at most one win total.
+  // Both log one completed game; end-game rack subtraction means an all-pass game has at most one winner
   const s1 = await getStats(p1);
   const s2 = await getStats(p2);
   expect(s1.gamesPlayed).toBe(1);

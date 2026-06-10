@@ -1,9 +1,5 @@
 // @ts-check
-// Regression: attacker's own option must be highlighted green (answer-correct) when
-// they click the correct answer. Previously the server stripped correctIdx from the
-// question payload sent back to the attacker, so client comparison failed and the
-// button was always marked answer-wrong (red) even though the server processed it
-// as correct. Spectators were unaffected.
+// Regression: attacker's correct pick must highlight green — server used to strip correctIdx so it always marked red
 
 import { test, expect } from '@playwright/test';
 import { registerAndLogin, setNextQuestion, TEST_QUESTION } from './e2e-helpers.js';

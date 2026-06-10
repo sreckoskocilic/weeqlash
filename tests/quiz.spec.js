@@ -40,9 +40,7 @@ test('triviandom: answer Q1 correctly, answer until wrong, submit to leaderboard
   await expect(page.locator('#modal-continue-btn')).toHaveText('NEXT QUESTION');
   await page.locator('#modal-continue-btn').click();
 
-  // Keep answering with wrongIdx until the quiz ends (button reads "SEE RESULTS").
-  // Q2+ are random; wrongIdx matches the correct answer ~25% of the time, so
-  // the loop usually terminates on Q2 and always terminates within a few rounds.
+  // Answer wrongIdx until the quiz ends; Q2+ are random so wrongIdx may match (~25%), loop terminates within a few rounds
   for (let i = 0; i < 20; i++) {
     await page
       .locator('.modal-option:not([disabled])')

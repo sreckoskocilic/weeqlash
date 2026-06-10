@@ -1,7 +1,3 @@
-// ============================================================
-// DOM HELPERS
-// ============================================================
-
 import { state } from './state.js';
 
 // Element selector shorthand
@@ -30,8 +26,7 @@ export function showScreen(id) {
   const isLobby = id === 'screen-lobby';
   const hideHome =
     isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath || isCento || isLobby;
-  // Qlashword fills the viewport — drop the body's big top padding (meant for
-  // the home-screen title) so the board sits near the top edge.
+  // Qlashword fills the viewport — drop the body's home-title top padding.
   document.body.classList.toggle('qw-active', isQw);
   el('main-title').style.display = hideHome ? 'none' : '';
   el('board-banner').style.display = hideHome ? 'none' : '';
@@ -56,9 +51,7 @@ export function showScreen(id) {
   if (isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath || isCento) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
-    // Clear inline display so the `.main-columns` class CSS (display: flex
-    // with align-items: center) applies. Setting an explicit value here
-    // overrides the class and the connect card ends up left-aligned.
+    // Clear inline display so the `.main-columns` flex/center CSS applies (an explicit value left-aligns the card).
     el(id).style.display = '';
   } else {
     el(id).style.display = 'block';

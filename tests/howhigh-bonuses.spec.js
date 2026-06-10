@@ -112,10 +112,7 @@ test('howhigh: Time Crunch accepted, all correct → score 22', async ({ browser
   });
 
   await page.locator('#howhigh-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });
-  // Dice accepted at Q3: Q4 gets +2+diceSum. Time Crunch at Q6: Q7+Q8 get +3 each.
-  // Score depends on dice roll — but with dice accepted, Q4 = 2+diceSum.
-  // Rest normal: Q1-Q3=6, Q4=2+dice, Q5=2, Q6=2, Q7-Q8=6, Q9-Q10=4
-  // Too variable with random dice — just verify score is displayed and > 20
+  // Score varies with the random dice roll, so just verify it's displayed and > 20
   const scoreText = await page.locator('#howhigh-go-score').textContent();
   const score = parseInt(scoreText, 10);
   expect(score).toBeGreaterThan(20);

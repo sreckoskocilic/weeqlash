@@ -1,13 +1,4 @@
-// MathQuiz (solo numeric-input math/calculus quiz) client.
-//
-// Procedurally generated server-side: the client receives only public fields
-// (prompt / KaTeX tex / sampled graph points / points) — never the answer.
-// Each problem is rendered with KaTeX (notation) and/or a canvas graph; the
-// player types a number and submits. The server scores each guess and returns
-// the OUTCOME (correct / partial / wrong) plus points earned — the true answer
-// is NEVER sent or displayed, not mid-round and not on the review screen.
-//
-// Local timer per question (server cursor stays in lockstep via answer/skip).
+// MathQuiz solo numeric math/calculus quiz. Server sends only public fields and returns outcome + points; the true answer is NEVER sent or displayed.
 
 import { el, showScreen } from './dom.js';
 import { makeCountdownRing } from './question-render.js';
@@ -89,8 +80,7 @@ function _resetProgressDots() {
   wrap.innerHTML = html.join('');
 }
 
-// Mark dot idx with outcome state; move "now" to next.
-// Explicit classList.add with literals so the unused-selector linter sees them.
+// Mark dot idx; explicit classList.add literals so the unused-selector linter sees them.
 function _updateProgressDot(idx, outcome) {
   const wrap = _qel('mathquiz-progress');
   if (!wrap) {

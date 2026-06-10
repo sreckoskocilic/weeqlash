@@ -1,13 +1,4 @@
-// SkipNoT (solo 20-Q quiz) client. Same protocol as triviandom/qlashique:
-// server keeps correctIdx, client emits each click and gets a boolean back.
-// Server hands out all 20 questions upfront so question rendering / next-q
-// transitions are local (no per-Q server push). Per-pick verdict is the only
-// round-trip per question.
-//
-// Local timer: 12s per question, fires `_onTimeout` if no click. Skip button
-// behaves like timeout-on-demand. After verdict the chosen button is colored
-// (green for correct, red for wrong — never reveals correct answer index),
-// then a short delay before advancing to the next question.
+// SkipNoT solo 20-Q quiz. Server keeps correctIdx and hands out all 20 upfront; only the chosen button is colored (never reveals the correct answer).
 
 import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
@@ -33,8 +24,7 @@ let resolvedThisQ = false; // true between local resolve and next-q render
 let questionTimeout = null; // local 12s timeout handle
 let runStartedAt = 0;
 
-// UX state: tracks per-Q outcomes, current streak, best streak.
-// Outcomes: 'ok' | 'bad' | 'skip' (one entry per resolved question).
+// Per-Q outcomes ('ok' | 'bad' | 'skip'), current streak, best streak.
 let outcomes = [];
 let streak = 0;
 let bestStreak = 0;
@@ -91,9 +81,7 @@ function _resetProgressDots() {
   wrap.innerHTML = html.join('');
 }
 
-// Mark question idx with given state ('ok'/'bad'/'skip'); move "now" to next.
-// Use explicit classList.add() with string literals so the unused-selector
-// linter can see that .ok / .bad / .skip are referenced from JS.
+// Mark dot idx; explicit classList.add literals so the unused-selector linter sees .ok/.bad/.skip.
 function _updateProgressDot(idx, state) {
   const wrap = _qel('skipnot-progress');
   if (!wrap) {
@@ -189,8 +177,7 @@ function _ensureRing() {
   return ring;
 }
 
-// Show the score delta (+13 / -7 / 0) just left of the live score, color-coded.
-// Auto-clears after RESULT_DISPLAY_MS so the next question starts fresh.
+// Show the color-coded score delta left of the live score; auto-clears after RESULT_DISPLAY_MS.
 let _deltaTimeout = null;
 function _flash(outcome, delta) {
   const d = _qel('skipnot-score-delta');
@@ -345,8 +332,7 @@ function _onTimeout() {
   ring?.stop();
   questionTimeout = null;
   _disableAllOptions();
-  // Tell the server we abandoned this Q so its cursor advances in lockstep.
-  // (Skip and timeout both score 0, so the server treats them identically.)
+  // Tell the server we abandoned this Q so its cursor advances in lockstep (timeout = skip, both score 0).
   const q = questions[currentIdx];
   socketRef?.emit('skipnot:skip', { id: q.id }, (res) => {
     if (res?.error) {
@@ -471,9 +457,7 @@ export function initSkipnot(sock) {
   el('btn-skipnot-back').addEventListener('click', () => {
     showScreen('screen-connect');
     showView('play');
-    // Re-fetch /auth/me so the home reflects current server-side session
-    // (fixes the case where session/cookie state drifted during the run and
-    // the auth-aware nav items get the wrong visibility on return).
+    // Re-fetch /auth/me so auth-aware nav reflects the server session (may have drifted during the run).
     import('./auth.js').then(({ checkAuth }) => checkAuth());
   });
 

@@ -9,16 +9,13 @@ import {
 
 const BASE = 'http://localhost:3000';
 
-// Run a full SkipNoT match against the sticky test question (option 0 always
-// correct). Picks every option as 0 → 20 × +13 = +260, the maximum score, so
-// qualifies for the empty top-10 and we can assert the leaderboard insert.
+// Pick option 0 (always correct) every question → 20 × +13 = +260 max, qualifies for empty top-10 so we assert the insert
 test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard', async ({
   browser,
 }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
 
-  // Clean state before, register the test users (idempotent), force every
-  // question this run picks to TEST_QUESTION via the sticky override.
+  // Clean state, register test users, force every picked question to TEST_QUESTION via the sticky override
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
@@ -52,13 +49,7 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
   // Submit hides the qualifies row; that's our signal the leaderboard insert succeeded.
   await expect(page.locator('#skipnot-qualifies-row')).toBeHidden({ timeout: 5000 });
 
-  // Verify the row really landed in the skipnot leaderboard via the public endpoint.
-  // (Reuse the api request context — the test-only /test/clear-all route already
-  //  proved it works, and skipnot:leaderboard is a socket event so we hit the DB
-  //  directly instead by re-fetching the leaderboard from the server.)
-  // The score column for skipnot is `answers` (mode-agnostic name in the schema).
-  // Easiest: reload page, click Show Triviandom Leaderboard? — no, skipnot has no
-  // panel yet. Skip the secondary check; the qualifies-row hide above is sufficient.
+  // Skip the secondary DB check — the qualifies-row hide above already proves the insert (score column is `answers`)
 
   await clearStickyQuestion();
   await api.post('/test/clear-all', {});
@@ -67,10 +58,7 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
   await ctx.close();
 });
 
-// Picking option 1 (always wrong for TEST_QUESTION) on every question should
-// produce 20 × -7 = -140. Plus: negative score must still qualify for an empty
-// top-10 and land in the leaderboard (regression for a bug where the schema
-// validation silently rejected `answers < 0`).
+// Pick wrong every question → 20 × -7 = -140; regression that negative scores still qualify (schema once rejected answers < 0)
 test('skipnot: 20 wrong answers → score -140, qualifies, lands in leaderboard', async ({
   browser,
 }) => {

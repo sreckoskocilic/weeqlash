@@ -1,7 +1,4 @@
-// Pure SkipNoT game logic — no I/O, no socket, no DB.
-// Solo quiz: 20 questions, 12s each. Click an option, skip, or timeout.
-// Scoring: +13 correct / -7 wrong / 0 skip / 0 timeout (linear shift +3 from
-// strict +10/-10/-3, so a perfect run is +260 and an all-wrong run is -140).
+// Pure SkipNoT logic: solo 20-Q quiz, 12s each. Scoring +13/-7/0/0 (correct/wrong/skip/timeout).
 
 export const POINTS = {
   CORRECT: 13,
@@ -16,10 +13,7 @@ export const OPTIONS_PER_Q = 4;
 
 export type Outcome = 'correct' | 'wrong' | 'skip' | 'timeout';
 
-// Server-side re-scoring of a finished client run. Takes the questions that
-// were issued at start (full objects with correct-index `a`) and the picks the
-// client reported (optionIdx | null per question; null = skip or timeout —
-// indistinguishable here, both score 0 so it doesn't matter for the total).
+// Server-side re-score of a finished run; picks[i] is optionIdx or null (skip/timeout, both score 0).
 export function scorePicks(
   questions: { a: number; id: string }[],
   picks: (number | null)[],

@@ -1,6 +1,4 @@
-// Pure HowHigh? game logic — no I/O, no socket, no DB.
-// Async 2-player challenge: 10 questions (13s), dice bonus after Q3,
-// GoWild card after Q6 (extends to 12 questions at 10s).
+// Pure HowHigh? logic: async 2-player, 10 Qs (13s), dice bonus after Q3, GoWild after Q6 (extends to 12 Qs at 10s).
 
 export const POINTS = { CORRECT: 2, WRONG: -2 } as const;
 export const DON_MULTIPLIER = 2;

@@ -1,22 +1,4 @@
-// CentoGrapher logic. One mega-question IS the whole quiz: a country outline is
-// shown and the player selects every answer related to that country from a grid
-// of CHOICE_COUNT choices. The number of correct answers is hidden and varies
-// per run AND per category (sometimes 0 cities are correct, sometimes 4) so
-// players can't learn a fixed pattern. Score: +5 per correct pick, -8 per wrong
-// pick, capped at +MAX_SCORE, NO lower floor (the total can go negative). 60s
-// timer (client-run).
-//
-// DATA: per-country structural pools (cities/rivers/mountains/islands/seas/
-// nature/language/currency/continent/numbers) are generated from a Wikidata dump
-// into cento-data.json (see scripts/gen-cento-data.js) — NO hand-listing per
-// country. Cultural categories (border/person/club/food/sport/…) come from the
-// opt-in hand/LLM overlay in centographer-culture.ts and are merged here.
-//
-// DISTRACTORS are NOT hand-written: for a given country they are drawn from the
-// real items of OTHER countries that share a language or continent (so they are
-// notable and plausible — Salzburg/Zürich/Paris for Germany, never some obscure
-// village), plus a small absurd set (fiction/myth). Anything is fair game as a
-// distractor as long as it is not true for the shown country.
+// CentoGrapher: one mega-question is the whole quiz; player picks every item true for the shown country. #correct hidden, varies per run/cat. +5/-8, capped at MAX_SCORE, no floor. Structural pools from Wikidata (cento-data.json), culture overlay merged in, distractors auto-drawn from other countries.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -159,8 +141,7 @@ for (const c of COUNTRIES) {
   }
 }
 
-// Universally-false items: obvious give-aways, so capped HARD at ABSURD_MAX per
-// grid — a couple at most, just enough to make someone second-guess for a beat.
+// Universally-false items; obvious give-aways, capped hard at ABSURD_MAX per grid.
 const ABSURD_MAX = 2;
 export const ABSURD: Item[] = [
   ...g('fiction', [
@@ -178,11 +159,7 @@ export const ABSURD: Item[] = [
   ...g('myth', ['Zeus', 'Poseidon', 'Hercules', 'Thor', 'Anubis']),
 ];
 
-// Distractors must be PROPER-NOUN traps (cities, rivers, mountains, clubs,
-// people…) you can't easily reason away — plus false border/coastline claims.
-// Abstract/relational/numeric categories make weak or nonsensical distractors
-// ("Luxembourgish is spoken here", "Uses the Serbian dinar", "In Asia", a random
-// area number), so they are CORRECT-only — never distractors.
+// Distractors must be proper-noun traps; abstract/relational/numeric cats are correct-only, never distractors.
 export const NO_DISTRACT = new Set<Cat>(['language', 'currency', 'fact', 'sea']);
 
 function collectItems(slugs: Iterable<string>, own: Set<string>, seen: Set<string>): Item[] {
@@ -199,12 +176,7 @@ function collectItems(slugs: Iterable<string>, own: Set<string>, seen: Set<strin
   return out;
 }
 
-// Build a plausible distractor pool for one country, TIERED by closeness so the
-// grid is hard, not trivially discardable (a Serbian item next to Germany is
-// easy; an Austrian/Swiss/neighbor one is not). Tier 1: bordering countries
-// (P47) + same-language countries. Tier 2: same continent. Returned tier-first
-// (shuffled within tiers) so buildChoices consumes the closest items first;
-// far-continent and absurd items only surface if a tier runs dry.
+// Plausible distractor pool, tiered by closeness (tier1: neighbors+same-language, tier2: same continent), tier-first so closest items are consumed first.
 function distractorPoolFor(country: Country): Item[] {
   const own = new Set(country.correct.map((i) => i.label));
   const seen = new Set<string>();
@@ -239,8 +211,7 @@ function distractorPoolFor(country: Country): Item[] {
     const rest = COUNTRIES.map((c) => c.slug).filter((s) => s !== country.slug);
     pool.push(...shuffle(collectItems(rest, own, seen)));
   }
-  // Absurd items are NOT part of this pool — buildChoices adds a tiny capped
-  // quota separately so the grid never fills up with Mickey Mouse / Zeus.
+  // Absurd items aren't in this pool; buildChoices adds a tiny capped quota separately.
   return pool;
 }
 
@@ -272,10 +243,7 @@ function groupByCat(items: Item[]): Map<Cat, Item[]> {
   return m;
 }
 
-// Build one question's choice set. Correct side: a random number of correct
-// items per category (0..MAX_PER_CAT) so the count is unpredictable. Distractor
-// side: fill to CHOICE_COUNT from the plausible pool, capped per category for
-// grid variety. #correct is hidden and varies per run and per category.
+// Build one question's choice set: random 0..MAX_PER_CAT correct per cat, then fill to CHOICE_COUNT from the distractor pool.
 export function buildChoices(country: Country): Choice[] {
   const correctByCat = groupByCat(country.correct);
   // Tier-ordered (closest distractors first) — do NOT re-shuffle the whole pool.
@@ -285,10 +253,7 @@ export function buildChoices(country: Country): Choice[] {
   const usedLabels = new Set<string>();
   const catCount = new Map<Cat, number>();
 
-  // Hidden target for #correct this run — varies run to run so there's always a
-  // healthy block of distractors and the count is never predictable. Spread it
-  // across a random subset of categories (max MAX_PER_CAT each); some categories
-  // contribute 0, so e.g. "cities" may have 4 correct one run and none the next.
+  // Hidden #correct target, spread across a random subset of cats (some contribute 0) so the count is never predictable.
   const nCorrectTarget = randInt(8, 28);
   for (const cat of shuffle([...correctByCat.keys()])) {
     const remaining = nCorrectTarget - picked.length;
@@ -322,9 +287,7 @@ export function buildChoices(country: Country): Choice[] {
     }
   }
 
-  // At most ABSURD_MAX absurd items per grid — enough to make someone pause for a
-  // couple of seconds, never enough to waste real distractor slots. Reserve their
-  // slots so the proper-noun fill below doesn't claim the whole grid first.
+  // Reserve up to ABSURD_MAX absurd slots so the proper-noun fill below doesn't claim the whole grid first.
   const absurdQuota = randInt(0, ABSURD_MAX);
   const properTarget = CHOICE_COUNT - absurdQuota;
 
@@ -355,8 +318,7 @@ export function buildChoices(country: Country): Choice[] {
     absurdLeft--;
   }
 
-  // Top-up with more proper nouns (ignoring the per-cat cap) if still short —
-  // happens only before the cultural categories are fetched, when few cats exist.
+  // Top-up with more proper nouns (ignoring the per-cat cap) if still short.
   if (picked.length < CHOICE_COUNT) {
     for (const it of distract) {
       if (picked.length >= CHOICE_COUNT) {

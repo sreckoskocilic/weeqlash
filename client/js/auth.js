@@ -1,7 +1,3 @@
-// ============================================================
-// AUTHENTICATION
-// ============================================================
-
 import { $ } from './dom.js';
 import { showScreen } from './dom.js';
 import { state } from './state.js';
@@ -15,8 +11,7 @@ export function initAuth(svrUrl, sock) {
   serverUrl = svrUrl;
   socket = sock;
 
-  // Server kicks us off when the same account logs in from another browser.
-  // Clear local auth state and surface a message so the user knows why.
+  // Server kicks us when the same account logs in elsewhere; clear local state and tell the user why.
   socket.on('auth:kicked', ({ reason }) => {
     hideUserBar();
     state.qlasToken = null;
@@ -40,8 +35,7 @@ export function showAuthMessage(msg, isError) {
 export function showUserBar(user) {
   state.currentUser = user;
   applyAuthState(true);
-  // Admin button has data-auth="in" so applyAuthState shows it; further hide
-  // for non-admins so admins are the only ones who see the link.
+  // applyAuthState shows the admin button (data-auth="in"); hide it again for non-admins.
   const isAdmin = user.is_admin === 1 || user.is_admin === true;
   $('btn-admin').hidden = !isAdmin;
 }
@@ -58,9 +52,7 @@ export async function checkAuth() {
     });
     const data = await res.json();
     if (data.user) {
-      // Restore the logged-in UI immediately — don't gate it on the socket ack
-      // (after a server restart the ack can be delayed/dropped, which used to
-      // leave the login screen showing even though /auth/me confirmed the user).
+      // Restore logged-in UI from /auth/me, not the socket ack (ack can be dropped after a server restart).
       showUserBar(data.user);
       socket.emit('auth:setUserId', data.user.id, () => {});
     } else {

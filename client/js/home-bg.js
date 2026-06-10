@@ -1,6 +1,4 @@
-// Decorative home-page background — scatters the announcement node-arrow SVG
-// at random positions / sizes / rotations behind the connect screen.
-// Generated once at init; static after that.
+// Decorative home-page background: scatters node-arrow SVGs at random once at init.
 
 const SHAPE_COUNT = 130;
 const SHAPE_SVG = `<svg viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">

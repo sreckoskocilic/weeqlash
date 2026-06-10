@@ -163,9 +163,7 @@ export function finishP2(
     winnerId = p2Avg < p1Avg ? challenge.player2_id : challenge.player1_id;
   }
 
-  // Guard status in the UPDATE itself, not just the SELECT above: changes===0
-  // means the row left 'active' between the read and the write. Inert today
-  // (single synchronous process), but the correct write under any concurrency.
+  // Guard status in the UPDATE (not just the SELECT): changes===0 means the row left 'active' between read and write — correct under concurrency.
   const info = db
     .prepare(
       `UPDATE howhigh_challenges
@@ -217,8 +215,7 @@ export function getUsernameById(userId: number): string | null {
   return row?.username ?? null;
 }
 
-// Batch form of getUsernameById: one IN (...) query instead of one per id.
-// Used by howhigh:my_challenges to avoid an N+1 over up to 50 challenges.
+// Batch getUsernameById: one IN (...) query to avoid an N+1 over up to 50 challenges.
 export function getUsernamesByIds(ids: (number | null | undefined)[]): Map<number, string> {
   const out = new Map<number, string>();
   const unique = [...new Set(ids.filter((id): id is number => id !== null && id !== undefined))];

@@ -1,9 +1,6 @@
 import { getRedisClient, SESSION_PREFIX } from './redis.ts';
 
-// Active session index: one entry per logged-in user, mapping userId → sid.
-// Existence of this key means "this user is logged in on this sid right now".
-// Used to enforce single-session-per-user: on login, the previous sid (if any)
-// is destroyed so the older browser loses its session.
+// Active-session index (userId → sid) enforcing single-session-per-user: login destroys the previous sid.
 
 function activeSidKey(userId: number): string {
   return `${SESSION_PREFIX}user:activesid:${userId}`;
@@ -28,8 +25,7 @@ export async function clearActiveSid(userId: number): Promise<void> {
   await client.del(activeSidKey(userId));
 }
 
-// Directly delete a session record by sid. Equivalent to RedisStore.destroy()
-// but callable from anywhere with Redis access.
+// Delete a session record by sid (RedisStore.destroy() equivalent, callable anywhere).
 export async function destroySession(sid: string): Promise<void> {
   const client = getRedisClient();
   await client.del(sessionKey(sid));

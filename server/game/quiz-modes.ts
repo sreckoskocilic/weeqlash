@@ -1,15 +1,10 @@
-// Quiz mode definitions. Source of truth for the mode list.
-// To add a new mode:
-// 1. Add an entry here (and a matching client-side entry where needed).
-// 2. On next server start, initDb() seeds it into the game_modes table.
-// categories: null = pulls from caller's active set; array = static filtered pool.
+// Source of truth for quiz modes; initDb() seeds new entries into game_modes. categories: null = caller's active set, array = static pool.
 
 export interface QuizMode {
   id: string;
   label: string;
   categories: string[] | null;
-  // Derived: stable Set ref used by pickRandomQuestion's enabled-pool cache.
-  // null when the mode pulls from the global active-cats set instead.
+  // Derived stable Set ref for pickRandomQuestion's enabled-pool cache; null = pulls from global active-cats.
   categoriesSet: Set<string> | null;
 }
 

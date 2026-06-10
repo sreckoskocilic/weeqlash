@@ -10,8 +10,7 @@ import {
   ABSURD,
 } from '../server/game/centographer.ts';
 
-// label -> the category it belongs to, across every country's correct pool plus
-// the absurd set. Used to inspect a built grid (choices carry no category).
+// label -> category map (built grids strip category from choices)
 const LABEL_CAT = new Map();
 for (const c of COUNTRIES) {
   for (const item of c.correct) {

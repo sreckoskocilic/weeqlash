@@ -15,8 +15,7 @@ async function setBonus(bonusQ3, bonusQ6) {
   await api.dispose();
 }
 
-// With sticky TEST_QUESTION (correctIdx=0) and declining both dice and GoWild,
-// all 10 answers correct → 10 × +2 = 20.
+// Sticky TEST_QUESTION + decline both bonuses → 10 correct × +2 = 20
 const EXPECTED_SCORE_ALL_CORRECT = '20';
 
 async function playAllQuestions(page, total, correctIdx) {

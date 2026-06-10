@@ -1,7 +1,3 @@
-// ============================================================
-// KEYBOARD MODULE
-// ============================================================
-
 import { el } from './dom.js';
 import { PHASE } from './constants.js';
 import { state } from './state.js';

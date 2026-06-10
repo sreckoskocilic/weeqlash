@@ -2,10 +2,7 @@
 
 import { CATS } from '../server/game/engine.ts';
 
-/**
- * Create a mock questions database for testing
- * @returns {Object} Mock questions database with _byId lookup
- */
+// Mock questions DB (3 per category) with _byId lookup
 export function createQuestionsDb() {
   const q = {};
   for (const cat of CATS) {
@@ -42,11 +39,7 @@ export function createQuestionsDb() {
   return q;
 }
 
-/**
- * Create a sparse questions database for testing specific overrides
- * @param {Object} overrides - Category to questions mapping
- * @returns {Object} Mock questions database with _byId lookup
- */
+// Sparse questions DB seeded from a {category: questions} overrides map, with _byId lookup
 export function createSparseQuestionsDb(overrides = {}) {
   const q = Object.fromEntries(CATS.map((cat) => [cat, []]));
   for (const [cat, questions] of Object.entries(overrides)) {

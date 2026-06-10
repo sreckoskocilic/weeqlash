@@ -1,9 +1,4 @@
-// ============================================================
-// LEADERBOARD MODULE
-// ============================================================
-// Single source of truth for leaderboard row rendering. Every surface that
-// shows a leaderboard (panel toggles, gameover screens, post-submit) uses
-// `renderLeaderboardRows` — same DOM, same styling, everywhere.
+// Single source of truth for leaderboard row rendering across all surfaces.
 
 import { sanitize } from './dom.js';
 import { getSocket } from './socket.js';
@@ -21,8 +16,7 @@ export function buildLeaderboardRow(entry, rankNum) {
   return row;
 }
 
-// Always render 10 slots — empty ones get an `lb-row-empty` modifier so we can
-// dim them via CSS. Same div, same columns, just a placeholder dash.
+// Always render 10 slots; empty ones get `lb-row-empty` for CSS dimming.
 export function renderLeaderboardRows(container, entries) {
   if (!container) {
     return;

@@ -1,13 +1,4 @@
-// Pure Qlashword game logic — no I/O, no socket, no DB. All functions take
-// state/data as args and return new data. Question-picking and dictionary
-// loading live outside (index.js / qlashword-dict.ts); the dictionary is passed
-// in as a Set so this module stays pure and unit-testable.
-//
-// Qlashword = 1v1 Scrabble where the premium squares (2×/3× letter & word) are
-// LOCKED by default. After a player's word is validated, every premium square
-// their new tiles cover triggers a trivia question (random from the whole pool,
-// minus death_metal). A correct answer UNLOCKS that multiplier for this turn; a
-// wrong answer leaves it at ×1 (no-unlock — the base score is never lost).
+// Pure Qlashword logic: 1v1 Scrabble where premium squares are locked until a trivia question unlocks them (miss = ×1, base kept). Dictionary passed in as a Set to stay pure.
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -92,9 +83,7 @@ export const LETTER_DISTRIBUTION: Record<string, number> = {
   _: 2, // blanks
 };
 
-// Standard 15×15 premium-square layout.
-//   3 = triple word, 2 = double word, * = center (double word),
-//   t = triple letter, d = double letter, . = normal
+// Standard 15×15 premium layout: 3=TW, 2=DW, *=center DW, t=TL, d=DL, .=normal.
 const BONUS_LAYOUT = [
   '3..d...3...d..3',
   '.2...t...t...2.',
@@ -138,8 +127,7 @@ export interface Cell {
 
 export type Board = (Cell | null)[][];
 
-// One tile a player drops this turn. `blank` => the rack tile was '_'; `letter`
-// is the letter the player assigned it.
+// One tile dropped this turn; `blank` means the rack tile was '_'.
 export interface PlacedTile {
   row: number;
   col: number;
@@ -206,8 +194,7 @@ function emptyBoard(): Board {
 // Bag
 // ---------------------------------------------------------------------------
 
-// Build the full 100-tile bag in canonical order (NOT shuffled — callers shuffle
-// or inject a known bag for tests).
+// Build the full 100-tile bag in canonical order (callers shuffle or inject for tests).
 export function createBag(): string[] {
   const bag: string[] = [];
   for (const [letter, count] of Object.entries(LETTER_DISTRIBUTION)) {
@@ -272,12 +259,7 @@ export type ValidationResult =
   | { ok: true; orientation: Orientation }
   | { ok: false; error: string };
 
-// Validate the geometry of a placement against the current board. Does NOT check
-// the dictionary — call collectWords + a dict lookup for that.
-//
-// Rules: tiles in a single row or column, contiguous (gaps may be filled by
-// EXISTING tiles), no overlap with occupied cells, first move covers center,
-// later moves connect to ≥1 existing tile.
+// Validate placement geometry only (single line, contiguous, no overlap, center/connect rules); does NOT check the dictionary.
 export function validatePlacement(board: Board, placement: PlacedTile[]): ValidationResult {
   if (placement.length === 0) {
     return { ok: false, error: 'No tiles placed' };
@@ -315,8 +297,7 @@ export function validatePlacement(board: Board, placement: PlacedTile[]): Valida
 
   const boardEmpty = board.every((row) => row.every((c) => c === null));
 
-  // Contiguity: scan the full line between min and max; every intermediate cell
-  // must hold either a newly placed tile or an existing tile.
+  // Contiguity: every cell between min and max must hold a placed or existing tile.
   if (orientation === 'H') {
     const row = placement[0].row;
     const cs = placement.map((t) => t.col);
@@ -365,8 +346,7 @@ export function validatePlacement(board: Board, placement: PlacedTile[]): Valida
 // Word collection
 // ---------------------------------------------------------------------------
 
-// Merge placement onto a copy of the board so we can read formed words. Caller
-// should have already validated geometry.
+// Merge placement onto a board copy so we can read formed words (geometry pre-validated).
 function mergeBoard(board: Board, placement: PlacedTile[]): Board {
   const merged = board.map((row) => row.slice());
   for (const t of placement) {
@@ -375,8 +355,7 @@ function mergeBoard(board: Board, placement: PlacedTile[]): Board {
   return merged;
 }
 
-// Walk a merged-board run from a start cell in one direction, collecting the
-// full contiguous word (>=1 letters). `newSet` flags which coords are new.
+// Walk a merged-board run from a start cell in one direction, collecting the full contiguous word.
 function readWord(
   merged: Board,
   startR: number,
@@ -410,9 +389,7 @@ function readWord(
   return { word, tiles };
 }
 
-// All words formed by a placement: the main word along the placement line, plus
-// any perpendicular cross-words each new tile creates. Only words of length >=2
-// count. Assumes geometry already validated.
+// All words (main + perpendicular cross-words) of length >=2 formed by a placement.
 export function collectWords(
   board: Board,
   placement: PlacedTile[],
@@ -452,8 +429,7 @@ export function allWordsValid(words: FormedWord[], dict: Set<string>): boolean {
 // Bonus questions
 // ---------------------------------------------------------------------------
 
-// Every premium square a NEW tile covered → a gated question. Deduped by coord
-// (placement coords are already unique). Caller assigns each a random questionId.
+// Every premium square a new tile covered → a gated question; caller assigns each a questionId.
 export function planBonusQuestions(placement: PlacedTile[]): BonusSquare[] {
   const out: BonusSquare[] = [];
   for (const t of placement) {
@@ -475,9 +451,7 @@ export interface ScoreBreakdown {
   bingo: boolean;
 }
 
-// Score a turn. `bonusResults` maps coordKey → true (answered correctly →
-// premium unlocked). Missing/false = no-unlock (premium counts as ×1, base kept).
-// `tilesPlaced` is how many tiles the player laid this turn (7 → bingo bonus).
+// Score a turn; bonusResults[coordKey]=true unlocks that premium (missing/false = ×1, base kept). 7 tiles = bingo bonus.
 export function scoreTurn(
   words: FormedWord[],
   bonusResults: Record<string, boolean>,
@@ -523,8 +497,7 @@ export function scoreTurn(
 // Game over
 // ---------------------------------------------------------------------------
 
-// Game ends when the bag is empty AND a player has emptied their rack, or both
-// players passed twice in a row.
+// Game ends when bag empty AND a rack emptied, or both players passed twice in a row.
 export function checkGameOver(state: QlashwordState): boolean {
   if (state.passStreak >= END_PASS_STREAK) {
     return true;
@@ -539,8 +512,7 @@ export function checkGameOver(state: QlashwordState): boolean {
 // Turn application (mutating orchestration — keeps the socket layer thin)
 // ---------------------------------------------------------------------------
 
-// Remove the tiles a placement consumed from a rack (blanks consume a '_').
-// Returns false (and leaves the rack untouched) if the rack lacks a tile.
+// Remove placement tiles from a rack (blanks consume '_'); false + untouched if a tile is missing.
 export function removeTilesFromRack(rack: string[], placement: PlacedTile[]): boolean {
   const copy = rack.slice();
   for (const t of placement) {
@@ -561,10 +533,7 @@ function advanceTurn(state: QlashwordState): void {
   state.turnNumber += 1;
 }
 
-// Commit a validated, scored turn: place tiles, credit score, consume rack,
-// refill from the bag, reset the pass streak, hand off to the opponent.
-// `bonusResults` maps coordKey → true for unlocked premiums. Returns the score
-// breakdown, or an error if the rack can't cover the placement.
+// Commit a validated turn: place tiles, score, refill rack, hand off; error if rack can't cover placement.
 export function applyTurn(
   state: QlashwordState,
   playerIdx: 0 | 1,
@@ -602,9 +571,7 @@ export function passTurn(
   return { ok: true };
 }
 
-// Swap rack tiles back into the bag and draw replacements. Loses the turn but
-// does NOT count as a pass (it's a move). `indices` index into the rack.
-// Requires the bag to hold at least as many tiles as are being swapped.
+// Swap rack tiles back into the bag and redraw; loses the turn but does NOT count as a pass.
 export function swapTiles(
   state: QlashwordState,
   playerIdx: 0 | 1,
@@ -637,9 +604,7 @@ export function rackValue(rack: string[]): number {
   return rack.reduce((sum, l) => sum + letterValue(l, l === '_'), 0);
 }
 
-// Final score adjustment (classic Scrabble): each player loses the value of
-// their leftover rack; if one player emptied their rack first, they also gain
-// the sum of everyone else's leftovers. Returns the adjusted [s0, s1].
+// Final adjustment (classic Scrabble): each loses their leftover rack value; an emptied rack also gains the opponent's leftovers.
 export function finalScores(state: QlashwordState): [number, number] {
   const left = [rackValue(state.racks[0]), rackValue(state.racks[1])];
   const adjusted: [number, number] = [state.scores[0] - left[0], state.scores[1] - left[1]];

@@ -1,6 +1,4 @@
-// ============================================================
-// QUIZ MODE (Triviandom)
-// ============================================================
+// Quiz mode: Triviandom.
 
 import { el } from './dom.js';
 import { showError } from './dom.js';

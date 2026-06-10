@@ -1,10 +1,4 @@
-// ============================================================
-// QLASHWORD MODULE (1v1 Scrabble + trivia-gated bonus squares)
-// ============================================================
-// Mirrors the qlashique wiring style: initQlashword(sock) binds every button
-// and socket event itself. Board geometry / letter values are mirrored from
-// server/game/qlashword.ts (kept in sync by hand, like constants.js mirrors
-// engine.ts CATEGORIES).
+// Qlashword: 1v1 Scrabble + trivia-gated bonus squares. Board geometry / letter values mirror server/game/qlashword.ts by hand.
 
 import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { renderQuestion } from './question-render.js';
@@ -136,9 +130,7 @@ function qwPlayerName(idx) {
   return qwPlayers[idx]?.name || 'Player ' + (idx + 1);
 }
 
-// Append a turn-log line. `turn` is the action's turn number; entries are
-// grouped under "Turn N:" where N = round = ceil(turn / 2) (both players' moves
-// in a round share one header).
+// Append a turn-log line, grouped under "Turn N:" where N = ceil(turn / 2).
 function pushHistory(turn, text) {
   qwHistory.push({ turn: turn || 0, text });
   renderHistory();
@@ -182,12 +174,7 @@ function tileMarkup(letter, blank, extraClass) {
   );
 }
 
-// Empty cells the player could legally start/extend a play on this turn, so the
-// rest can be dimmed. Heuristic anchor-square logic (recomputed every render, so
-// it updates live as pending tiles are placed):
-//   - empty board, nothing pending → only the centre square
-//   - otherwise → empty cells orthogonally adjacent to a settled or pending tile
-// Returns null when no dimming should apply (not my turn / not placing).
+// Legal anchor cells this turn (centre if empty board, else cells adjacent to a tile); null when not my placing turn.
 function computePlayableCells() {
   if (!isMyTurn()) {
     return null;
@@ -196,8 +183,7 @@ function computePlayableCells() {
   const anyTile = qwPending.length > 0 || qwBoard.some((row) => row.some(Boolean));
   const set = new Set();
   if (!anyTile) {
-    // First move must cover the centre — the whole centre row + column are
-    // legal places to build the opening word, so don't dim them.
+    // First move covers the centre — whole centre row + column stay undimmed.
     for (let i = 0; i < BOARD_SIZE; i++) {
       set.add(coordKey(CENTER, i));
       set.add(coordKey(i, CENTER));
@@ -365,9 +351,7 @@ function exitSwapMode() {
   qEl('qw-btn-swap').classList.remove('active');
 }
 
-// blankLetter: when the rack tile is a blank, the assigned letter to use
-// without prompting (keyboard path passes the typed letter). Returns true on
-// success so callers (keyboard) can advance the cursor.
+// blankLetter pre-assigns a blank tile's letter (keyboard path); returns true on success so callers can advance the cursor.
 function placeTile(rackIdx, row, col, blankLetter) {
   if (!isMyTurn()) {
     return false;
@@ -411,8 +395,7 @@ function recallAll() {
   }
 }
 
-// Client-only reorder of the player's own rack (helps spot words). Recalls any
-// pending tiles first since they reference rack positions.
+// Client-only rack reorder; recalls pending tiles first since they reference rack positions.
 function shuffleRack() {
   recallAll();
   for (let i = qwRack.length - 1; i > 0; i--) {
@@ -457,8 +440,7 @@ function onCellClick(row, col) {
     placeTile(qwSelectedRackIdx, row, col);
     return;
   }
-  // No rack tile selected → set/toggle the keyboard typing cursor on an
-  // empty cell. Re-clicking the same cell flips the typing direction.
+  // No rack tile selected → set/toggle the keyboard cursor; re-click flips direction.
   if (!qwBoard[row][col]) {
     setCursor(row, col);
   }
@@ -541,8 +523,7 @@ function backspaceTile() {
 }
 
 function onQwKeydown(e) {
-  // Only when the qlashword board is active, it's my placing turn, and we're
-  // not mid-swap or typing into a text field.
+  // Only when the qlashword board is active, it's my placing turn, and not mid-swap or in a text field.
   if (!document.body.classList.contains('qw-active')) {
     return;
   }
@@ -813,8 +794,7 @@ function startGame() {
   sock.emit('room:start', { code: qwCode }, (res) => {
     btn.disabled = false;
     if (res?.error) {
-      // Surface the error on the waiting panel (the connect-error box is on a
-      // different screen) and leave the button so the host can retry.
+      // Surface the error on the waiting panel; leave the button so the host can retry.
       qEl('qw-waiting-label').textContent = res.error + ' — tap START again.';
     }
   });
@@ -1046,8 +1026,7 @@ export function initQlashword(socket) {
       return;
     }
     stopBonusTimer();
-    // Color the picked option green/red so BOTH players see it (only the pick —
-    // never reveal the correct answer). answerIdx -1 = timed out / no answer.
+    // Color only the picked option (never reveal the correct answer); answerIdx -1 = timed out.
     const opts = document.querySelectorAll('#qw-options .qlas-opt');
     opts.forEach((b) => (b.disabled = true));
     if (typeof answerIdx === 'number' && answerIdx >= 0 && opts[answerIdx]) {

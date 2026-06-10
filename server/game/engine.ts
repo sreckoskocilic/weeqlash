@@ -1,16 +1,6 @@
 // Pure game logic — no DOM, no globals, all functions take state as first arg.
 
-/**
- * PHASE enum - Server-side game phases
- *
- * Note: This is a simplified version compared to the original game (srazique).
- * Original has: SELECT_PEG, SELECT_TILE, QUESTION, COMBAT_Q1, COMBAT_Q2, FLAG_Q, GAME_OVER
- *
- * We only need SELECT_PEG, SELECT_TILE, GAME_OVER on the server because:
- * - QUESTION, COMBAT_Q1, COMBAT_Q2, FLAG_Q are client-side UI phases for displaying modals
- * - Server just handles the final answer validation via applyTurn()
- * - This keeps server logic cleaner and delegates UI state to client
- */
+// Server-side game phases; QUESTION/COMBAT/FLAG are client-side UI phases only.
 export const PHASE = {
   SELECT_PEG: 'selectPeg',
   SELECT_TILE: 'selectTile',
@@ -19,17 +9,7 @@ export const PHASE = {
 
 export type Phase = (typeof PHASE)[keyof typeof PHASE];
 
-// Single source of truth for question categories.
-//
-// To enable a new category: add an entry here.
-// To disable a category: delete its entry — questions tagged with it become
-//   orphaned (still in the DB, never served anywhere) until you add it back.
-//
-// Flags:
-//   defaultOff — appears in the board-setup toggle UI but starts unchecked
-//                (niche / opt-in)
-//
-// Client mirrors this list in `client/js/constants.js`. Keep both in sync.
+// Single source of truth for categories; client mirrors this in constants.js (keep in sync). defaultOff = shown unchecked.
 export const CATEGORIES = {
   arts: { label: 'Arts', color: '#C62828' },
   music: { label: 'Music', color: '#6A1B9A' },
@@ -239,8 +219,7 @@ function generateLayoutMap(
     }
   }
 
-  // Shuffle tile positions too, so the guaranteed-unique categories aren't
-  // always pinned to the same (top-left) tiles every game.
+  // Shuffle positions so guaranteed-unique categories aren't always pinned to the top-left.
   const slots = shuffle(nonCornerTiles);
 
   // Ensure each enabled category appears at least once
@@ -564,8 +543,7 @@ function pickQuestionIds(
   return [...selected, ...fallbackSelected].map((q) => q.id);
 }
 
-// Determine move type from board state.
-// Priority matches: combat (enemy peg) is checked BEFORE flag capture.
+// Determine move type; combat (enemy peg) is checked BEFORE flag capture.
 function getMoveType(
   state: GameState,
   pegId: string,
@@ -586,12 +564,7 @@ function getMoveType(
   return 'normal';
 }
 
-// ---------------------------------------------------------------------------
-// Public: plan questions for a pending move
-// Called when player selects a tile. Returns { moveType, questionIds }
-// and records the pending turn on state for later validation.
-// ---------------------------------------------------------------------------
-
+// Plan questions for a pending move; records the pending turn for later validation.
 export function planTurnQuestions(
   state: GameState,
   pegId: string,
@@ -629,9 +602,7 @@ export function planTurnQuestions(
   return { moveType, questionId: firstQuestionId };
 }
 
-// Pick the next question for an ongoing combat or flag sequence.
-// Updates state.pendingTurn.questionId and decrements questionsRemaining.
-// Returns the new question id, or null if no more questions.
+// Next question for an ongoing combat/flag sequence; null if none remain.
 export function advancePendingQuestion(state: GameState, questionsDb: QuestionsDb): string | null {
   const pending = state.pendingTurn;
   if (!pending || pending.questionsRemaining <= 1) {
@@ -678,12 +649,7 @@ export function selectPeg(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Public: apply full submitted turn
-// submission: { pegId, targetR, targetC, answerIdx }
-// Returns { ok, events, gameOver, winner, correct, combatContinues } or { error }
-// ---------------------------------------------------------------------------
-
+// Apply a full submitted turn; returns turn result or { error }.
 export function applyTurn(
   state: GameState,
   playerId: number,
@@ -786,13 +752,7 @@ export function applyTurn(
 // Turn management
 // ---------------------------------------------------------------------------
 
-/**
- * Reset per-turn flags and rebuild the set of pegs that can move this turn.
- * Called when a turn ends (whether by completion, elimination, or flag capture).
- *
- * Note: Question tracking (usedQ, wrongQ) persists across the entire game session
- * to prevent repeats even across turns. This is handled server-side only.
- */
+// Reset per-turn flags on turn end; usedQ/wrongQ deliberately persist across the game to prevent repeats.
 function resetTurnState(state: GameState): void {
   state.pendingTurn = null;
   state.selectedPegId = null;

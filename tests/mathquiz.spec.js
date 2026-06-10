@@ -4,11 +4,7 @@ import { registerAndLogin } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
 
-// MathQ is a solo, 10-question numeric-input mode with procedurally generated
-// problems, so (like CentoGrapher) there's no fixed answer key to assert an
-// exact score against. Flow smoke test: play all ten questions (typing 0 each
-// time), reach the gameover screen with a numeric score, and land the run on the
-// empty leaderboard.
+// Flow smoke test — problems are procedurally generated (no fixed key), so assert a numeric score + leaderboard insert
 test('mathquiz: play 10 questions → gameover + leaderboard', async ({ browser }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
   await api.post('/test/clear-all', {});
@@ -36,8 +32,7 @@ test('mathquiz: play 10 questions → gameover + leaderboard', async ({ browser 
   await expect(page.locator('#mathquiz-go-score')).toHaveText(/-?\d/, { timeout: 5000 });
   await expect(page.locator('#mathquiz-go-duration')).not.toHaveText('—');
 
-  // Empty leaderboard → the run qualifies; submitting the name lands it and the
-  // submit button hides as confirmation.
+  // Empty leaderboard → run qualifies; submitting hides the button as confirmation
   await expect(page.locator('#mathquiz-qualifies-row')).toBeVisible();
   await page.locator('#mathquiz-name-input').fill('e2e_mathq');
   await page.locator('#btn-mathquiz-submit-score').click();

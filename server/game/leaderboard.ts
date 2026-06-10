@@ -49,8 +49,7 @@ export function initDb(): void {
     );
   `);
 
-  // Seed game_modes from QUIZ_MODES (idempotent). Runs before migrations so
-  // 002_normalize_leaderboard_with_game_modes can resolve the triviandom row.
+  // Seed game_modes (idempotent), before migrations so 002 can resolve the triviandom row.
   const seedStmt = db.prepare(
     'INSERT OR IGNORE INTO game_modes (slug, label, created_at) VALUES (?, ?, ?)',
   );
@@ -59,8 +58,7 @@ export function initDb(): void {
     seedStmt.run(mode.id, mode.label, now);
   }
 
-  // Fresh-DB shape. Existing prod DBs created leaderboard without mode_id; the
-  // 002 migration recreates them. CREATE IF NOT EXISTS is idempotent for both.
+  // Fresh-DB shape; existing prod DBs lacking mode_id are rebuilt by the 002 migration.
   db.exec(`
     CREATE TABLE IF NOT EXISTS leaderboard (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,8 +77,7 @@ export function initDb(): void {
       ON leaderboard(mode_id, answers DESC, time_ms ASC);
   `);
 
-  // Cache slug → id resolution. Populated post-migration so any seed inserted
-  // by migrations is also available.
+  // Cache slug → id, post-migration so migration-inserted seeds are included.
   _modeIdBySlug.clear();
   const rows = db.prepare('SELECT id, slug FROM game_modes').all() as {
     id: number;
@@ -215,8 +212,7 @@ export function pruneAllModes(): void {
   }
 }
 
-// Close the SQLite handle on shutdown, checkpointing first so SIGTERM can't
-// strand the last writes in the -wal. auth.ts shares this handle via getDb().
+// Close the SQLite handle on shutdown, checkpointing first so SIGTERM can't strand writes in the -wal.
 export function closeDb(): void {
   if (!db) {
     return;
