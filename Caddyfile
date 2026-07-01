@@ -27,7 +27,7 @@ brawl.weeqlash.icu {
 
 	# tacklebox page
 	handle_path /tacklebox* {
-		root * /var/www/tacklebox
+		root * /opt/tacklebox
 		file_server
 	}
 
