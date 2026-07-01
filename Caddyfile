@@ -25,6 +25,12 @@ brawl.weeqlash.icu {
 		reverse_proxy localhost:3000
 	}
 
+	# tacklebox page
+	handle_path /tacklebox* {
+		root * /var/www/tacklebox
+		file_server
+	}
+
 	# No long-lived cache for HTML/JS — files have no content hash in their
 	# names, so a stale browser/CF copy after deploy means users get a broken
 	# mix until cache expires. `no-cache` still allows caching but forces an
