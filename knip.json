@@ -10,5 +10,6 @@
       "project": ["**/*.{js,ts}"]
     }
   },
-  "ignoreWorkspaces": ["client"]
+  "ignoreWorkspaces": ["client"],
+  "ignoreBinaries": ["redis-cli"]
 }
