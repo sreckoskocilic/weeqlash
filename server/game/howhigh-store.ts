@@ -145,8 +145,7 @@ export function finishP2(
 ): ChallengeRow {
   const db = requireDb();
   const challenge = db.prepare('SELECT * FROM howhigh_challenges WHERE code = ?').get(code) as
-    | ChallengeRow
-    | undefined;
+    ChallengeRow | undefined;
   if (!challenge || challenge.status !== 'active') {
     throw new Error('Challenge not found or not active');
   }
@@ -192,8 +191,7 @@ export function finishP2(
 export function getChallengeByCode(code: string): ChallengeRow | undefined {
   const db = requireDb();
   return db.prepare('SELECT * FROM howhigh_challenges WHERE code = ?').get(code) as
-    | ChallengeRow
-    | undefined;
+    ChallengeRow | undefined;
 }
 
 export function getChallengesForUser(userId: number): ChallengeRow[] {
@@ -210,8 +208,7 @@ export function getChallengesForUser(userId: number): ChallengeRow[] {
 export function getUsernameById(userId: number): string | null {
   const db = requireDb();
   const row = db.prepare('SELECT username FROM users WHERE id = ?').get(userId) as
-    | { username: string }
-    | undefined;
+    { username: string } | undefined;
   return row?.username ?? null;
 }
 
@@ -239,7 +236,7 @@ export function expireStale(maxAgeMs: number): number {
   const res = db
     .prepare(
       `UPDATE howhigh_challenges SET status = 'expired'
-       WHERE status IN ('pending', 'waiting') AND created_at < ?`,
+       WHERE status IN ('pending', 'waiting', 'active') AND created_at < ?`,
     )
     .run(cutoff);
   return res.changes;

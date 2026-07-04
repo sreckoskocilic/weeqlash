@@ -89,6 +89,15 @@ function kickSocketsForSid(io: IoServer, sid: string): void {
   }
 }
 
+function deauthSocketsForSid(io: IoServer, sid: string): void {
+  for (const [, socket] of Array.from(io.of('/').sockets)) {
+    const socketSid = (socket.request as { sessionID?: string }).sessionID;
+    if (socketSid === sid) {
+      (socket as { userId?: number }).userId = undefined;
+    }
+  }
+}
+
 export function registerAuthRoutes(app: Express, io: IoServer): void {
   // Register
   app.post('/auth/register', async (req: Request, res: Response) => {
@@ -210,6 +219,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
   // Logout
   app.post('/auth/logout', async (req: Request, res: Response) => {
     const userId = req.session.userId;
+    const sid = req.sessionID;
     if (userId) {
       try {
         await clearActiveSid(userId);
@@ -219,6 +229,7 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
         console.error('[auth] clearActiveSid failed:', msg);
       }
     }
+    deauthSocketsForSid(io, sid);
     req.session.destroy(() => {
       res.json({ ok: true });
     });

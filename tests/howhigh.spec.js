@@ -15,6 +15,11 @@ async function setBonus(bonusQ3, bonusQ6) {
   await api.dispose();
 }
 
+test.afterEach(async () => {
+  await clearStickyQuestion();
+  await setBonus(null, null);
+});
+
 // Sticky TEST_QUESTION + decline both bonuses → 10 correct × +2 = 20
 const EXPECTED_SCORE_ALL_CORRECT = '20';
 

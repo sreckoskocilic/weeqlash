@@ -18,6 +18,11 @@ async function setBonus(bonusQ3, bonusQ6) {
   }
 }
 
+test.afterEach(async () => {
+  await clearStickyQuestion();
+  await setBonus(null, null);
+});
+
 async function playQuestions(page, count, correctIdx, { bonusQ3, bonusQ6 }) {
   for (let i = 0; i < count; i++) {
     await expect(page.locator('#howhigh-counter')).toContainText(`${i + 1}/`, { timeout: 5000 });

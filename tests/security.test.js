@@ -53,6 +53,7 @@ describe('Resend confirmation email error handling', () => {
   });
 
   it('registers and logs in a test user', async () => {
+    const spy = vi.spyOn(emailModule, 'sendEmail').mockResolvedValue(undefined);
     await request(app)
       .post('/auth/register')
       .send({ username: `resend_${unique}`, email, password: 'testpass123' });
@@ -62,6 +63,7 @@ describe('Resend confirmation email error handling', () => {
       .send({ username: `resend_${unique}`, password: 'testpass123' });
     expect(login.status).toBe(200);
     cookies = login.headers['set-cookie'];
+    spy.mockRestore();
   });
 
   it('returns 500 when sendEmail throws', async () => {

@@ -9,6 +9,10 @@ import {
 
 const BASE = 'http://localhost:3000';
 
+test.afterEach(async () => {
+  await clearStickyQuestion();
+});
+
 // Pick option 0 (always correct) every question → 20 × +13 = +260 max, qualifies for empty top-10 so we assert the insert
 test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard', async ({
   browser,
