@@ -38,13 +38,13 @@ export const DEFAULT_CATS = Object.entries(CATEGORIES)
 export const QLAS_DEFAULT_HP = 15;
 export const QLAS_HP_OPTIONS = [10, 15, 20, 30];
 
-// Timing constants
+const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
 export const TIMING = {
-  RESULT_DISPLAY_MS: 1500,
-  NEXT_QUESTION_DELAY_MS: 1600,
-  WRONG_ANSWER_DELAY_MS: 500,
+  RESULT_DISPLAY_MS: 1500 / _testSpeed,
+  NEXT_QUESTION_DELAY_MS: 1600 / _testSpeed,
+  WRONG_ANSWER_DELAY_MS: 500 / _testSpeed,
   TICK_INTERVAL_MS: 100,
   TIMER_WARNING_PCT: 50,
   TIMER_DANGER_PCT: 25,
-  ANSWER_DELAY_MS: 2000,
+  ANSWER_DELAY_MS: 2000 / _testSpeed,
 };

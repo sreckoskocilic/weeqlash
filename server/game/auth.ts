@@ -3,7 +3,8 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import Database from 'better-sqlite3';
 
-const SALT_ROUNDS = 10;
+// Weaker rounds only under the e2e test flag (never set in prod); compare() reads rounds from the hash, so login is unaffected.
+const SALT_ROUNDS = process.env.ENABLE_TEST_ROUTES === '1' ? 4 : 10;
 
 export function initAuthDb() {
   const db: Database.Database | null = getDb();
@@ -158,15 +159,13 @@ export async function createUser({
   const now = Date.now();
 
   const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username) as
-    | { id: number }
-    | undefined;
+    { id: number } | undefined;
   if (existingUser) {
     return { error: 'Registration failed' };
   }
 
   const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as
-    | { id: number }
-    | undefined;
+    { id: number } | undefined;
   if (existingEmail) {
     return { error: 'Registration failed' };
   }
@@ -319,8 +318,7 @@ export function createResetToken(email: string) {
     throw new Error('Database not initialized');
   }
   const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as
-    | { id: number }
-    | undefined;
+    { id: number } | undefined;
   if (!user) {
     // Don't reveal if email exists
     return { ok: true };

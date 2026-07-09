@@ -10,9 +10,9 @@ test('mathquiz: play 10 questions → gameover + leaderboard', async ({ browser 
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
 
-  // testSpeed=2 shortens the between-question result flash.
+  // testSpeed=8 shortens the between-question result flash.
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-mathquiz-create').click();

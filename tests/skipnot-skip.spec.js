@@ -23,7 +23,7 @@ test('skipnot: skip button scores 0, mixed run produces correct total', async ({
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-skipnot-create').click();

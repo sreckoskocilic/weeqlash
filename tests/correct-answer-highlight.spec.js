@@ -5,8 +5,8 @@ import { test, expect } from '@playwright/test';
 import { registerAndLogin, setNextQuestion, TEST_QUESTION } from './e2e-helpers.js';
 
 test('correct answer highlights attacker button green', async ({ browser }) => {
-  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1');
-  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2');
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', { query: 'testSpeed=8' });
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', { query: 'testSpeed=8' });
 
   await p1.locator('[data-view="settings"]').click();
   await p1.locator('[data-val="4"]').click();

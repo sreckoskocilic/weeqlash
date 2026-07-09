@@ -11,8 +11,8 @@ async function getUserGamesPlayed(email) {
 }
 
 test('normal move: select peg → click empty tile → peg moves', async ({ browser }) => {
-  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1');
-  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2');
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', { query: 'testSpeed=8' });
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', { query: 'testSpeed=8' });
 
   // P1 creates 4×4 room (board size lives under Settings tab now)
   await p1.locator('[data-view="settings"]').click();

@@ -60,7 +60,7 @@ test('howhigh: P1 plays 10 correct, gets challenge code', async ({ browser }) =>
   await setBonus('dice', 'gowild');
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-howhigh-create').click();
@@ -95,7 +95,7 @@ test('howhigh: P2 joins, plays same questions, sees head-to-head result', async 
 
   // --- P1 plays ---
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
   await p1.locator('#btn-howhigh-create').click();
   await p1.locator('#howhigh-phase-game').waitFor({ state: 'visible', timeout: 5000 });
@@ -107,7 +107,7 @@ test('howhigh: P2 joins, plays same questions, sees head-to-head result', async 
 
   // --- P2 joins ---
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p1', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
   await p2.locator('#howhigh-join-code').fill(code);
   await p2.locator('#btn-howhigh-join').click();
@@ -139,7 +139,7 @@ test('howhigh: challenges tab shows completed challenge', async ({ browser }) =>
 
   // P1 plays
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
   await p1.locator('#btn-howhigh-create').click();
   await p1.locator('#howhigh-phase-game').waitFor({ state: 'visible', timeout: 5000 });
@@ -149,7 +149,7 @@ test('howhigh: challenges tab shows completed challenge', async ({ browser }) =>
 
   // P2 plays
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p1', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
   await p2.locator('#howhigh-join-code').fill(code);
   await p2.locator('#btn-howhigh-join').click();

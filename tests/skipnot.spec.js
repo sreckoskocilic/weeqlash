@@ -25,7 +25,7 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-skipnot-create').click();
@@ -40,7 +40,6 @@ test('skipnot: 20 correct answers → score 260, qualifies, lands on leaderboard
     await page
       .locator(`#skipnot-options button:nth-child(${TEST_QUESTION.correctIdx + 1})`)
       .click();
-    await page.waitForTimeout(500);
   }
 
   await page.locator('#skipnot-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });
@@ -73,7 +72,7 @@ test('skipnot: 20 wrong answers → score -140, qualifies, lands in leaderboard'
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-skipnot-create').click();
@@ -82,7 +81,6 @@ test('skipnot: 20 wrong answers → score -140, qualifies, lands in leaderboard'
   for (let i = 0; i < 20; i++) {
     await expect(page.locator('#skipnot-counter')).toHaveText(`${i + 1}/20`, { timeout: 5000 });
     await page.locator('#skipnot-options button:nth-child(2)').click();
-    await page.waitForTimeout(500);
   }
 
   await page.locator('#skipnot-phase-gameover').waitFor({ state: 'visible', timeout: 5000 });

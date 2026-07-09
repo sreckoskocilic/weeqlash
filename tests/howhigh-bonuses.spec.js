@@ -72,7 +72,7 @@ test('howhigh: Double or Nothing accepted, all correct → score 24', async ({ b
   await setBonus('double_or_nothing', 'gowild');
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-howhigh-create').click();
@@ -104,7 +104,7 @@ test('howhigh: Time Crunch accepted, all correct → score 22', async ({ browser
   await setBonus('dice', 'time_crunch');
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-howhigh-create').click();
@@ -138,7 +138,7 @@ test('howhigh: Double or Nothing declined → normal score 20', async ({ browser
   await setBonus('double_or_nothing', 'time_crunch');
 
   const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
-    query: 'testSpeed=2',
+    query: 'testSpeed=8',
   });
 
   await page.locator('#btn-howhigh-create').click();
