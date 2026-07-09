@@ -54,6 +54,7 @@ export function loadQuestions(encPath?: string): QuestionsDb {
       `questions.enc not found at ${resolved}. ` +
         'Set QUESTIONS_PATH env var or place file in server/questions.enc: ' +
         (err as Error).message,
+      { cause: err },
     );
   }
   const data = JSON.parse(decrypt(raw)) as QuestionsDb;

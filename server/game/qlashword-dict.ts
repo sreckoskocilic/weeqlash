@@ -27,6 +27,7 @@ export function loadDictionary(dictPath?: string): Set<string> {
       `Qlashword dictionary not found at ${resolved}. ` +
         'Set QLASHWORD_DICT_PATH or place the word list at server/twl06.txt: ' +
         (err as Error).message,
+      { cause: err },
     );
   }
 

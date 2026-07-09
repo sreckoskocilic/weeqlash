@@ -88,6 +88,7 @@ function loadRaw(): { version: number; countries: RawCountry[] } {
       `centographer: cannot load ${file} — run \`node scripts/gen-cento-data.js\` to build it. (${
         (e as Error).message
       })`,
+      { cause: e },
     );
   }
 }
