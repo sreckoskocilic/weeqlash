@@ -1,4 +1,4 @@
-FROM node:25-alpine
+FROM node:26-alpine
 WORKDIR /app
 # libstdc++: runtime dep of native modules (better-sqlite3, bcrypt).
 # tini: PID 1, forwards SIGTERM to node for graceful shutdown.
