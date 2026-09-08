@@ -22,7 +22,6 @@ export interface QlashiqueState {
   currentPlayerIdx: number; // 0 or 1
   turnNumber: number;
   currentScore: number;
-  correctStreak: number;
   phase: Phase;
   maxHp: number;
 }
@@ -33,6 +32,7 @@ export interface QlashiqueState {
 
 export const QLAS_DEFAULT_HP = 15;
 export const QLAS_HP_OPTIONS = [10, 15, 20, 30] as const;
+export const QLAS_MAX_ANSWERS_PER_TURN = 20;
 
 export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
   return {
@@ -40,7 +40,6 @@ export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
     currentPlayerIdx: 0,
     turnNumber: 1,
     currentScore: 0,
-    correctStreak: 0,
     phase: PHASE.DECISION,
     maxHp: hp,
   };
@@ -68,10 +67,8 @@ export function processAnswer(
   const correct = answerIdx === correctIdx;
   if (correct) {
     state.currentScore += 1;
-    state.correctStreak += 1;
   } else {
     state.currentScore -= 1;
-    state.correctStreak = 0;
   }
 
   return { state, correct };
@@ -176,5 +173,4 @@ function _advanceTurn(state: QlashiqueState): void {
   state.currentPlayerIdx = 1 - state.currentPlayerIdx;
   state.turnNumber += 1;
   state.currentScore = 0;
-  state.correctStreak = 0;
 }

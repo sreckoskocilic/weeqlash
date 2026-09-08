@@ -23,6 +23,7 @@ export interface ChallengeRow {
   p2_gowild_accepted: number | null;
   p2_time_ms: number | null;
   p2_finished_at: number | null;
+  p2_joined_at: number | null;
   winner_id: number | null;
   status: string;
   created_at: number;
@@ -125,10 +126,10 @@ export function joinChallenge(code: string, p2Id: number): ChallengeRow {
   const res = db
     .prepare(
       `UPDATE howhigh_challenges
-       SET player2_id = ?, status = 'active'
+       SET player2_id = ?, status = 'active', p2_joined_at = ?
        WHERE code = ? AND status = 'waiting' AND player2_id IS NULL AND player1_id != ?`,
     )
-    .run(p2Id, code, p2Id);
+    .run(p2Id, Date.now(), code, p2Id);
   if (res.changes === 0) {
     throw new Error('Challenge not found, not waiting, or same player');
   }
@@ -236,8 +237,33 @@ export function expireStale(maxAgeMs: number): number {
   const res = db
     .prepare(
       `UPDATE howhigh_challenges SET status = 'expired'
-       WHERE status IN ('pending', 'waiting', 'active') AND created_at < ?`,
+       WHERE status IN ('pending', 'waiting') AND created_at < ?`,
     )
     .run(cutoff);
   return res.changes;
+}
+
+export function forfeitStaleActive(maxActiveMs: number): ChallengeRow[] {
+  const db = requireDb();
+  const cutoff = Date.now() - maxActiveMs;
+  const rows = db
+    .prepare(
+      `SELECT * FROM howhigh_challenges
+       WHERE status = 'active' AND COALESCE(p2_joined_at, created_at) < ?`,
+    )
+    .all(cutoff) as ChallengeRow[];
+
+  const upd = db.prepare(
+    `UPDATE howhigh_challenges
+     SET status = 'complete', winner_id = player1_id, completed_at = ?
+     WHERE code = ? AND status = 'active'`,
+  );
+  const now = Date.now();
+  const forfeited: ChallengeRow[] = [];
+  for (const row of rows) {
+    if (upd.run(now, row.code).changes > 0) {
+      forfeited.push({ ...row, status: 'complete', winner_id: row.player1_id, completed_at: now });
+    }
+  }
+  return forfeited;
 }

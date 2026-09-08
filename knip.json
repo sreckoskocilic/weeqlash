@@ -3,7 +3,7 @@
     ".": {
       "entry": ["tests/*.test.js", "tests/*.spec.js", "tests/test-utils.js"],
       "project": ["tests/**/*.js"],
-      "ignoreDependencies": ["dotenv", "ts-node"]
+      "ignoreDependencies": ["dotenv"]
     },
     "server": {
       "entry": ["game/*.ts", "routes/*.ts"],

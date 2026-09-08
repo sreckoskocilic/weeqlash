@@ -761,8 +761,7 @@ router.post(
       return badRequest(res, 'Database unavailable.');
     }
     const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId) as
-      | { id: number; username: string }
-      | undefined;
+      { id: number; username: string } | undefined;
     if (!user) {
       return res.redirect('/admin/users');
     }
@@ -814,8 +813,7 @@ router.post(
       return badRequest(res, 'Database unavailable.');
     }
     const user = db.prepare('SELECT id FROM users WHERE id = ?').get(userId) as
-      | { id: number }
-      | undefined;
+      { id: number } | undefined;
     if (!user) {
       return res.redirect('/admin/users');
     }

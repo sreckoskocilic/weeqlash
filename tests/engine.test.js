@@ -809,3 +809,127 @@ describe('Engine: Turn Number', () => {
     }
   });
 });
+
+describe('Engine: Flag Capture', () => {
+  function setupFlagAttack(boardSize = 7) {
+    const state = createGame(
+      [
+        { name: 'P1', color: '#f00' },
+        { name: 'P2', color: '#00f' },
+      ],
+      { boardSize },
+    );
+
+    let flag = null;
+    for (let r = 0; r < boardSize && !flag; r++) {
+      for (let c = 0; c < boardSize && !flag; c++) {
+        const tile = state.board[r][c];
+        if (tile.category === 'flag' && tile.cornerOwner === 1) {
+          flag = { r, c };
+        }
+      }
+    }
+    expect(flag).not.toBeNull();
+
+    const p1PegId = state.players[0].pegIds[0];
+    const peg = state.pegs[p1PegId];
+    let from = null;
+    for (const [dr, dc] of [
+      [0, -1],
+      [0, 1],
+      [-1, 0],
+      [1, 0],
+    ]) {
+      const r = flag.r + dr;
+      const c = flag.c + dc;
+      if (r >= 0 && r < boardSize && c >= 0 && c < boardSize) {
+        from = { r, c };
+        break;
+      }
+    }
+    expect(from).not.toBeNull();
+
+    const occupant = state.board[from.r][from.c].pegId;
+    if (occupant && occupant !== p1PegId) {
+      const free = [];
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          if (!state.board[r][c].pegId && state.board[r][c].category !== 'flag') {
+            free.push({ r, c });
+          }
+        }
+      }
+      const spot = free[free.length - 1];
+      state.board[from.r][from.c].pegId = null;
+      state.pegs[occupant].row = spot.r;
+      state.pegs[occupant].col = spot.c;
+      state.board[spot.r][spot.c].pegId = occupant;
+    }
+
+    state.board[peg.row][peg.col].pegId = null;
+    peg.row = from.r;
+    peg.col = from.c;
+    state.board[from.r][from.c].pegId = p1PegId;
+
+    return { state, p1PegId, flag, questionsDb: createQuestionsDb() };
+  }
+
+  function answerFlagQuestion(state, p1PegId, flag, questionsDb, correct) {
+    const qId = state.pendingTurn.questionId;
+    const a = questionsDb._byId[qId].a;
+    return applyTurn(
+      state,
+      0,
+      { pegId: p1PegId, targetR: flag.r, targetC: flag.c, answerIdx: correct ? a : (a + 1) % 4 },
+      questionsDb,
+    );
+  }
+
+  it('plans 3 questions for a flag move', () => {
+    const { state, p1PegId, flag, questionsDb } = setupFlagAttack();
+    selectPeg(state, 0, p1PegId);
+    const planned = planTurnQuestions(state, p1PegId, flag.r, flag.c, questionsDb);
+
+    expect(planned.moveType).toBe('flag');
+    expect(state.pendingTurn.questionsTotal).toBe(3);
+    expect(state.pendingTurn.questionsRemaining).toBe(3);
+  });
+
+  it('wrong answer aborts the capture and ends the turn', () => {
+    const { state, p1PegId, flag, questionsDb } = setupFlagAttack();
+    selectPeg(state, 0, p1PegId);
+    planTurnQuestions(state, p1PegId, flag.r, flag.c, questionsDb);
+
+    const result = answerFlagQuestion(state, p1PegId, flag, questionsDb, false);
+
+    expect(result.ok).toBe(true);
+    expect(result.correct).toBe(false);
+    expect(result.combatContinues).toBe(false);
+    expect(result.gameOver).toBe(false);
+    expect(result.events.some((e) => e.type === 'flag_captured')).toBe(false);
+    expect(state.board[flag.r][flag.c].pegId).toBeNull();
+    expect(state.pendingTurn).toBeNull();
+  });
+
+  it('three correct answers capture the flag and end the game', () => {
+    const { state, p1PegId, flag, questionsDb } = setupFlagAttack();
+    selectPeg(state, 0, p1PegId);
+    planTurnQuestions(state, p1PegId, flag.r, flag.c, questionsDb);
+
+    const first = answerFlagQuestion(state, p1PegId, flag, questionsDb, true);
+    expect(first.combatContinues).toBe(true);
+
+    advancePendingQuestion(state, questionsDb);
+    const second = answerFlagQuestion(state, p1PegId, flag, questionsDb, true);
+    expect(second.combatContinues).toBe(true);
+
+    advancePendingQuestion(state, questionsDb);
+    const third = answerFlagQuestion(state, p1PegId, flag, questionsDb, true);
+
+    expect(third.gameOver).toBe(true);
+    expect(third.winner).toBe(0);
+    expect(third.events.some((e) => e.type === 'flag_captured')).toBe(true);
+    expect(state.phase).toBe(PHASE.GAME_OVER);
+    expect(state.board[flag.r][flag.c].pegId).toBe(p1PegId);
+  });
+});

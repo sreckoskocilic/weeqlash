@@ -28,6 +28,7 @@ export interface RoomState {
   currentQuestion?: Question | null;
   questionIdx?: number;
   qlasTimer?: ReturnType<typeof setTimeout> | null;
+  qlasChoiceTimer?: ReturnType<typeof setTimeout> | null;
   qlasTimerExpired?: boolean;
   qlasTimerSeconds?: number;
   qlasGuessingStartedAt?: number;
@@ -251,6 +252,10 @@ export function removePlayerFromRoom(
           clearTimeout(existingRoom.qlasTimer);
           existingRoom.qlasTimer = null;
         }
+        if (existingRoom.qlasChoiceTimer) {
+          clearTimeout(existingRoom.qlasChoiceTimer);
+          existingRoom.qlasChoiceTimer = null;
+        }
         if (existingRoom.qwTimer) {
           clearTimeout(existingRoom.qwTimer);
           existingRoom.qwTimer = null;
@@ -311,6 +316,10 @@ export function cleanupStaleRooms(): number {
       if (room.qlasTimer) {
         clearTimeout(room.qlasTimer);
         room.qlasTimer = null;
+      }
+      if (room.qlasChoiceTimer) {
+        clearTimeout(room.qlasChoiceTimer);
+        room.qlasChoiceTimer = null;
       }
       if (room.qwTimer) {
         clearTimeout(room.qwTimer);

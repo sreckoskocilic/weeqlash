@@ -6,10 +6,10 @@ import { loadPanelLeaderboard } from './leaderboard.js';
 import { showView } from './nav.js';
 import { drawGraph, drawFigure } from './mathgraph.js';
 import katex from '../vendor/katex/katex.mjs';
+import { TEST_SPEED } from './constants.js';
 
 const TIMER_RING_CIRC = 175.93;
-const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
-const RESULT_DISPLAY_MS = 900 / _testSpeed;
+const RESULT_DISPLAY_MS = 900 / TEST_SPEED;
 
 // Per-run UI state. Cleared by _resetRun on every fresh start.
 let socketRef = null;

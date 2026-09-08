@@ -100,26 +100,6 @@ export function getAllQuestions(db: QuestionsDb): Question[] {
   return _allCacheByDb.get(db)!;
 }
 
-// Filtered pool for a specific set of categories. Cached per db+category key.
-const _catCacheByDb = new WeakMap<QuestionsDb, Map<string, Question[]>>();
-export function getQuestionsForCategories(db: QuestionsDb, categories: Category[]): Question[] {
-  const key = categories.slice().sort().join(',');
-  let dbCache = _catCacheByDb.get(db);
-  if (!dbCache) {
-    dbCache = new Map();
-    _catCacheByDb.set(db, dbCache);
-  }
-  if (!dbCache.has(key)) {
-    dbCache.set(
-      key,
-      categories.flatMap((cat) =>
-        Array.isArray(db[cat]) ? db[cat].filter((q): q is Question => q.id !== undefined) : [],
-      ),
-    );
-  }
-  return dbCache.get(key)!;
-}
-
 // Shared fetch primitive: one random question from the enabled pool, skipping excludeIds (falls back to full pool if exclude empties it). Enabled pool is WeakMap-cached by the enabledCats Set ref.
 const _enabledPoolByDb = new WeakMap<QuestionsDb, WeakMap<Set<string>, Question[]>>();
 function _getEnabledPool(db: QuestionsDb, enabledCats: Set<string>): Question[] {

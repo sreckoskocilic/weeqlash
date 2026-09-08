@@ -2,6 +2,7 @@ import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { showView } from './nav.js';
 import { QLAS_THEMES } from './qlashique.js';
+import { TEST_SPEED } from './constants.js';
 
 const HH_THEME_KEY = 'weeqlash.hhTheme';
 
@@ -26,8 +27,7 @@ function hhGetStoredTheme() {
 }
 
 const TIMER_RING_CIRC = 175.93;
-const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
-const RESULT_DISPLAY_MS = 800 / _testSpeed;
+const RESULT_DISPLAY_MS = 800 / TEST_SPEED;
 const POINT_CORRECT = 2;
 const POINT_WRONG = -2;
 const DON_MULTIPLIER = 2;
@@ -60,6 +60,7 @@ let score = 0;
 let optionBtns = [];
 let resolvedThisQ = false;
 let questionTimeout = null;
+let diceRollInterval = null;
 let runStartedAt = 0;
 let outcomes = [];
 let scoreAnimRaf = null;
@@ -108,6 +109,10 @@ function _resetRun() {
   if (questionTimeout) {
     clearTimeout(questionTimeout);
     questionTimeout = null;
+  }
+  if (diceRollInterval) {
+    clearInterval(diceRollInterval);
+    diceRollInterval = null;
   }
   if (scoreAnimRaf) {
     cancelAnimationFrame(scoreAnimRaf);
@@ -434,12 +439,14 @@ function _showDiceOffer() {
   infoEl.innerHTML = '';
 
   let rollCount = 0;
-  const rollInterval = setInterval(() => {
+  clearInterval(diceRollInterval);
+  diceRollInterval = setInterval(() => {
     die1El.textContent = String(Math.floor(Math.random() * 6) + 1);
     die2El.textContent = String(Math.floor(Math.random() * 6) + 1);
     rollCount++;
-    if (rollCount >= 10 / _testSpeed) {
-      clearInterval(rollInterval);
+    if (rollCount >= 10) {
+      clearInterval(diceRollInterval);
+      diceRollInterval = null;
       die1El.classList.remove('rolling');
       die2El.classList.remove('rolling');
       die1El.textContent = String(diceValues.die1);
@@ -455,7 +462,7 @@ function _showDiceOffer() {
         (2 + Math.ceil(diceSum / 2)) +
         '</span>';
     }
-  }, 100 * _testSpeed);
+  }, 100 / TEST_SPEED);
 }
 
 function _onDiceAccept() {
@@ -787,11 +794,11 @@ function _loadChallenges() {
             return (
               '<div class="hh-row hh-row--waiting">' +
               '<span class="hh-col-left"><span class="hh-badge hh-badge--waiting">?</span>unmatched</span>' +
-              '<span class="hh-col-center"><span class="hh-code" data-code="' +
+              '<span class="hh-col-center"><button type="button" class="hh-code" data-code="' +
               sanitize(c.code) +
               '">' +
               sanitize(c.code) +
-              '</span></span>' +
+              '</button></span>' +
               '<span class="hh-col-right">' +
               ago +
               '</span></div>'
@@ -835,8 +842,7 @@ function _loadChallenges() {
     list.innerHTML = waitingHtml + completedHtml;
 
     list.querySelectorAll('.hh-code').forEach((codeEl) => {
-      codeEl.style.cursor = 'pointer';
-      codeEl.title = 'Click to copy';
+      codeEl.title = 'Copy code';
       codeEl.addEventListener('click', () => {
         navigator.clipboard.writeText(codeEl.dataset.code || '');
         codeEl.textContent = 'copied!';

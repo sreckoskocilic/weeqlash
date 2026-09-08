@@ -6,8 +6,6 @@ import { getSocket } from './socket.js';
 import { showQuestion, stopTimer, gameModalOptionBtns } from './question.js';
 import { renderPlayers } from './lobby.js';
 
-export { initBoard };
-
 // Peg click handler
 export function onPegClick(pegId) {
   const gameState = state.gameState;
@@ -471,10 +469,6 @@ export function setupBoardGameHandlers(sock) {
         if (error) {
           return showError(error);
         }
-        const me = players.find((p) => p.id === state.myId);
-        if (me) {
-          el('player-name').value = me.name;
-        }
         state.myToken = token;
         state.myPlayerIndex = 0;
         state.myRoom = {
@@ -507,12 +501,8 @@ export function setupBoardGameHandlers(sock) {
       if (error) {
         return showError(error);
       }
-      const me = players.find((p) => p.id === state.myId);
-      if (me) {
-        el('player-name').value = me.name;
-      }
       state.myToken = token;
-      state.myPlayerIndex = me?.index ?? players.length - 1;
+      state.myPlayerIndex = players.length - 1;
       state.myRoom = { code, settings };
       state.isHost = false;
       el('lobby-code').textContent = code;

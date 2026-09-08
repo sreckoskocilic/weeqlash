@@ -3,9 +3,9 @@
 import { el, showScreen, sanitize } from './dom.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
 import { showView } from './nav.js';
+import { TEST_SPEED } from './constants.js';
 
-const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
-const RESULT_FLASH_MS = 1100 / _testSpeed;
+const RESULT_FLASH_MS = 1100 / TEST_SPEED;
 
 let socketRef = null;
 let choices = [];

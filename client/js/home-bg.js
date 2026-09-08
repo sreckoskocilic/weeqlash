@@ -17,7 +17,9 @@ function _rand(min, max) {
 
 export function initHomeBg() {
   const host = document.getElementById('home-bg');
-  if (!host) {return;}
+  if (!host) {
+    return;
+  }
   host.innerHTML = '';
   for (let i = 0; i < SHAPE_COUNT; i++) {
     const wrap = document.createElement('span');
@@ -30,7 +32,7 @@ export function initHomeBg() {
     wrap.style.left = _rand(-2, 99).toFixed(2) + '%';
     wrap.style.top = _rand(-2, 99).toFixed(2) + '%';
     wrap.style.transform = `rotate(${Math.round(_rand(0, 360))}deg)`;
-    wrap.style.opacity = _rand(0.05, 0.20).toFixed(2);
+    wrap.style.opacity = _rand(0.05, 0.2).toFixed(2);
     wrap.innerHTML = SHAPE_SVG;
     host.appendChild(wrap);
   }

@@ -95,15 +95,12 @@ describe('mathgen: generators', () => {
   });
 
   it('read-graph ships sampled points and no tex/formula', () => {
-    let sawGraph = false;
     for (let i = 0; i < 20; i++) {
       const p = generate('read-graph');
       expect(p.graph).toBeTruthy();
       expect(p.graph.points.length).toBeGreaterThan(2);
       expect(p.tex).toBeUndefined();
-      sawGraph = true;
     }
-    expect(sawGraph).toBe(true);
   });
 
   it('generateSet returns the requested count', () => {

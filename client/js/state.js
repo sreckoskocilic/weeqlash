@@ -29,9 +29,6 @@ export const state = {
   currentQIdx: 0,
   // Bumped per combat sequence to invalidate stale setTimeout callbacks.
   spectateGen: 0,
-  timerInterval: null,
-  quizModalOptionBtns: [],
-  gameModalOptionBtns: [],
   spectatingQuestion: false,
   spectatingMoveType: null,
   spectatingPlayerIdx: null,
@@ -53,5 +50,4 @@ export const state = {
   currentUser: null,
 
   // HowHigh
-  howHighChallengeCode: null,
 };

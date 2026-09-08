@@ -3,8 +3,8 @@ import { sanitize } from './dom.js';
 import { PHASE, CAT_NAMES, COORD_BASE } from './constants.js';
 import { state as S } from './state.js';
 
-export const tileEls = S.tileEls;
-export const movedPegs = S.movedPegs;
+const tileEls = S.tileEls;
+const movedPegs = S.movedPegs;
 
 let _boardSize = 0;
 let _boardResizeRaf = 0;
@@ -197,8 +197,6 @@ export function renderChangedTiles(oldState, newState, events) {
   updateTurnUI(newState);
   movedPegs.clear();
 }
-
-export { renderChangedTiles as diffRender };
 
 // Single tile update
 export function updateTile(r, c, state) {

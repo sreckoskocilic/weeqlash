@@ -109,6 +109,22 @@ const MIGRATIONS: Migration[] = [
     },
   },
   {
+    id: '006_add_howhigh_p2_joined_at',
+    up: (db) => {
+      const tables = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='howhigh_challenges'")
+        .all();
+      if (tables.length === 0) {
+        return;
+      }
+      const cols = db.prepare('PRAGMA table_info(howhigh_challenges)').all() as { name: string }[];
+      if (cols.some((c) => c.name === 'p2_joined_at')) {
+        return;
+      }
+      db.exec('ALTER TABLE howhigh_challenges ADD COLUMN p2_joined_at INTEGER');
+    },
+  },
+  {
     id: '003_add_confirmation_token_expires',
     up: (db) => {
       // Fresh DBs: users doesn't exist yet (initAuthDb runs after migrations and already includes the column).

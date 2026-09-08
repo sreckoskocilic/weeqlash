@@ -22,8 +22,12 @@ test('board: wrong answer on normal move keeps peg in original tile', async ({ b
   // Force a known question so we can deliberately answer wrong
   await setNextQuestion(TEST_QUESTION.id, { sticky: true });
 
-  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', { query: 'testSpeed=8' });
-  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', { query: 'testSpeed=8' });
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', {
+    query: 'testSpeed=8',
+  });
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', {
+    query: 'testSpeed=8',
+  });
 
   // Create 4×4 game
   await p1.locator('[data-view="settings"]').click();

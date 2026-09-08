@@ -8,8 +8,6 @@ export const COORD_BASE = 100;
 
 export const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
-export const KEY_MAP = { a: 0, b: 1, c: 2, d: 3, 1: 0, 2: 1, 3: 2, 4: 3 };
-
 // Mirror of server/game/engine.ts CATEGORIES — keep in sync by hand.
 export const CATEGORIES = {
   arts: { label: 'Arts', color: '#C62828' },
@@ -38,13 +36,16 @@ export const DEFAULT_CATS = Object.entries(CATEGORIES)
 export const QLAS_DEFAULT_HP = 15;
 export const QLAS_HP_OPTIONS = [10, 15, 20, 30];
 
-const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
+const _localHost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+export const TEST_SPEED = _localHost
+  ? Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1
+  : 1;
 export const TIMING = {
-  RESULT_DISPLAY_MS: 1500 / _testSpeed,
-  NEXT_QUESTION_DELAY_MS: 1600 / _testSpeed,
-  WRONG_ANSWER_DELAY_MS: 500 / _testSpeed,
+  RESULT_DISPLAY_MS: 1500 / TEST_SPEED,
+  NEXT_QUESTION_DELAY_MS: 1600 / TEST_SPEED,
+  WRONG_ANSWER_DELAY_MS: 500 / TEST_SPEED,
   TICK_INTERVAL_MS: 100,
   TIMER_WARNING_PCT: 50,
   TIMER_DANGER_PCT: 25,
-  ANSWER_DELAY_MS: 2000 / _testSpeed,
+  ANSWER_DELAY_MS: 2000 / TEST_SPEED,
 };

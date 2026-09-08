@@ -82,10 +82,6 @@ async function init() {
   sock.on('connect', () => {
     leaderboard.loadMainLeaderboard();
     state.myId = sock.id;
-
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      dom.el('dev-quickstart-section').style.display = '';
-    }
   });
 }
 
@@ -181,17 +177,6 @@ function initUI() {
   });
 
   dom.el('btn-gameover-newgame').addEventListener('click', () => location.reload());
-
-  // Dev quickstart
-  dom.el('btn-dev-quickstart').addEventListener('click', () => {
-    state.myPlayerIndex = 0;
-    const sock = socket.getSocket();
-    sock.emit('dev:quickstart', { boardSize: 4 }, ({ ok, error }) => {
-      if (!ok) {
-        dom.showError(error ?? 'Dev quickstart failed');
-      }
-    });
-  });
 }
 
 function initOptBtnGroup(groupId, setter) {

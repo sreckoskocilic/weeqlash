@@ -256,8 +256,7 @@ export function createGame(opts: CreateGameOpts = {}): QlashwordState {
 // ---------------------------------------------------------------------------
 
 export type ValidationResult =
-  | { ok: true; orientation: Orientation }
-  | { ok: false; error: string };
+  { ok: true; orientation: Orientation } | { ok: false; error: string };
 
 // Validate placement geometry only (single line, contiguous, no overlap, center/connect rules); does NOT check the dictionary.
 export function validatePlacement(board: Board, placement: PlacedTile[]): ValidationResult {

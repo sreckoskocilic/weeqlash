@@ -2,11 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import {
-  loadQuestions,
-  getAllQuestions,
-  getQuestionsForCategories,
-} from '../server/game/questions.ts';
+import { loadQuestions, getAllQuestions } from '../server/game/questions.ts';
 
 // Helper to XOR-encrypt data (matches questions.js decrypt logic)
 function encrypt(data) {
@@ -138,68 +134,6 @@ describe('questions.js', () => {
       const all1 = getAllQuestions(data);
       const all2 = getAllQuestions(data);
       expect(all1).toBe(all2); // Same object (cached)
-    });
-  });
-
-  describe('getQuestionsForCategories', () => {
-    it('returns questions filtered by category', () => {
-      const data = {
-        History: [
-          { id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] },
-          { id: 'H2', q: 'Q2', a: 1, opts: ['A', 'B', 'C', 'D'] },
-        ],
-        Science: [{ id: 'S1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] }],
-        _byId: {},
-      };
-      for (const cat of ['History', 'Science']) {
-        for (const q of data[cat]) {
-          data._byId[q.id] = { ...q, category: cat };
-        }
-      }
-
-      const history = getQuestionsForCategories(data, ['History']);
-      expect(history).toHaveLength(2);
-
-      const science = getQuestionsForCategories(data, ['Science']);
-      expect(science).toHaveLength(1);
-    });
-
-    it('handles multiple categories', () => {
-      const data = {
-        History: [{ id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] }],
-        Science: [{ id: 'S1', q: 'Q2', a: 1, opts: ['A', 'B', 'C', 'D'] }],
-        Sports: [{ id: 'SP1', q: 'Q3', a: 2, opts: ['A', 'B', 'C', 'D'] }],
-        _byId: {},
-      };
-      for (const cat of ['History', 'Science', 'Sports']) {
-        for (const q of data[cat]) {
-          data._byId[q.id] = { ...q, category: cat };
-        }
-      }
-
-      const both = getQuestionsForCategories(data, ['History', 'Science']);
-      expect(both).toHaveLength(2);
-    });
-
-    it('returns empty for unknown category', () => {
-      const data = {
-        History: [{ id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] }],
-        _byId: { H1: { id: 'H1', category: 'History' } },
-      };
-
-      const unknown = getQuestionsForCategories(data, ['Unknown']);
-      expect(unknown).toHaveLength(0);
-    });
-
-    it('caches results per category key', () => {
-      const data = {
-        History: [{ id: 'H1', q: 'Q1', a: 0, opts: ['A', 'B', 'C', 'D'] }],
-        _byId: { H1: { id: 'H1', category: 'History' } },
-      };
-
-      const r1 = getQuestionsForCategories(data, ['History']);
-      const r2 = getQuestionsForCategories(data, ['History']);
-      expect(r1).toBe(r2); // Same object (cached)
     });
   });
 });

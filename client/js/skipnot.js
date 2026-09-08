@@ -4,10 +4,10 @@ import { el, showScreen, sanitize } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
 import { showView } from './nav.js';
+import { TEST_SPEED } from './constants.js';
 
 const TIMER_RING_CIRC = 175.93;
-const _testSpeed = Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1;
-const RESULT_DISPLAY_MS = 800 / _testSpeed;
+const RESULT_DISPLAY_MS = 800 / TEST_SPEED;
 const POINT_CORRECT = 13;
 const POINT_WRONG = -7;
 

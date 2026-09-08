@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createQlasGame,
+  QLAS_HP_OPTIONS,
   calcTimer,
   processAnswer,
   endTurn,
@@ -19,9 +20,12 @@ describe('createQlasGame', () => {
   });
 
   it('accepts custom HP', () => {
-    const s = createQlasGame(15);
-    expect(s.players[0].hp).toBe(15);
-    expect(s.players[1].hp).toBe(15);
+    for (const hp of QLAS_HP_OPTIONS) {
+      const s = createQlasGame(hp);
+      expect(s.players[0].hp).toBe(hp);
+      expect(s.players[1].hp).toBe(hp);
+      expect(s.maxHp).toBe(hp);
+    }
   });
 
   it('starts at turn 1, player 0, score 0, decision phase', () => {
@@ -67,17 +71,14 @@ describe('processAnswer', () => {
     const { correct } = processAnswer(s, 2, 2);
     expect(correct).toBe(true);
     expect(s.currentScore).toBe(1);
-    expect(s.correctStreak).toBe(1);
   });
 
   it('decrements score and resets streak on wrong answer', () => {
     const s = guessingState();
     s.currentScore = 3;
-    s.correctStreak = 3;
     const { correct } = processAnswer(s, 1, 0);
     expect(correct).toBe(false);
     expect(s.currentScore).toBe(2);
-    expect(s.correctStreak).toBe(0);
   });
 
   it('returns error outside guessing phase', () => {
@@ -89,11 +90,9 @@ describe('processAnswer', () => {
   it('treats timer-expiry sentinel (-1) as a wrong answer', () => {
     const s = guessingState();
     s.currentScore = 2;
-    s.correctStreak = 2;
     const { correct } = processAnswer(s, -1, 2);
     expect(correct).toBe(false);
     expect(s.currentScore).toBe(1);
-    expect(s.correctStreak).toBe(0);
   });
 });
 
@@ -104,7 +103,6 @@ describe('endTurn', () => {
     const s = createQlasGame(30);
     s.phase = PHASE.GUESSING;
     s.currentScore = score;
-    s.correctStreak = Math.max(score, 0);
     return s;
   }
 

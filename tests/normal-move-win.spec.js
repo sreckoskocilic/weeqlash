@@ -198,8 +198,12 @@ async function findCurrentTurnPage(p1, p2) {
 test('normal move: play until one player wins', async ({ browser }) => {
   const api = await playwrightRequest.newContext({ baseURL: BASE });
 
-  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', { query: 'testSpeed=8' });
-  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', { query: 'testSpeed=8' });
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', {
+    query: 'testSpeed=8',
+  });
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', {
+    query: 'testSpeed=8',
+  });
 
   const p1Initial = await getUserStats(api, 'e2e_normal_p1@test.invalid');
   const p2Initial = await getUserStats(api, 'e2e_normal_p2@test.invalid');

@@ -6,7 +6,7 @@ updates:
       interval: monthly
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']
 
   - package-ecosystem: npm
     directory: /
@@ -14,13 +14,18 @@ updates:
       interval: monthly
     groups:
       npm-deps:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns: ['*']
+        update-types: ['minor', 'patch']
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: docker
     directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directory: /server
     schedule:
       interval: monthly

@@ -82,7 +82,6 @@ let qwRack = []; // my rack letters
 let qwScores = [0, 0];
 let qwCurrentIdx = 0; // whose turn (server)
 let qwPhase = 'place'; // 'place' | 'bonus_q' | 'game_over'
-let qwBagCount = 0;
 
 let qwPending = []; // [{row,col,letter,blank,rackIdx}] placed this turn, not submitted
 let qwSelectedRackIdx = null; // click-to-place selection
@@ -309,10 +308,6 @@ function renderScores() {
   // Highlight the half whose turn it is.
   qEl('qw-score0').classList.toggle('active', qwCurrentIdx === 0);
   qEl('qw-score1').classList.toggle('active', qwCurrentIdx === 1);
-  const bag = qEl('qw-bag-count');
-  if (bag) {
-    bag.textContent = qwBagCount;
-  }
 }
 
 function renderTurnState() {
@@ -806,7 +801,6 @@ function resetMatch() {
   qwScores = [0, 0];
   qwCurrentIdx = 0;
   qwPhase = 'place';
-  qwBagCount = 0;
   qwPending = [];
   qwSelectedRackIdx = null;
   qwCursor = null;
@@ -1122,8 +1116,5 @@ function applyState(state) {
   }
   if (state.phase) {
     qwPhase = state.phase;
-  }
-  if (typeof state.bagCount === 'number') {
-    qwBagCount = state.bagCount;
   }
 }

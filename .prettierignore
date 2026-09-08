@@ -1,0 +1,9 @@
+node_modules
+package-lock.json
+client/vendor
+server/questions.enc
+server/data
+test-results
+playwright-report
+coverage
+screenshots

@@ -10,11 +10,6 @@ export function showStatsModal(statsData) {
   if (!modalOverlay) {
     modalOverlay = document.createElement('div');
     modalOverlay.id = 'stats-modal-overlay';
-    modalOverlay.style.cssText = `
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 5000;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    `;
     modalOverlay.innerHTML = `
       <div id="stats-modal" style="
         background: linear-gradient(145deg, #1e1e24 0%, #25252d 100%);
@@ -51,25 +46,26 @@ export function showStatsModal(statsData) {
       </div>
     `;
 
-    modalOverlay.querySelector('#stats-modal-close').addEventListener('click', () => {
+    const closeModal = () => {
       modalOverlay.classList.remove('visible');
       setTimeout(() => {
-        if (modalOverlay.parentElement) {
+        if (!modalOverlay.classList.contains('visible') && modalOverlay.parentElement) {
           modalOverlay.parentElement.removeChild(modalOverlay);
         }
       }, 300);
-    });
+      document.getElementById('btn-view-stats')?.focus();
+    };
+
+    modalOverlay.querySelector('#stats-modal-close').addEventListener('click', closeModal);
 
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) {
-        modalOverlay.classList.remove('visible');
+        closeModal();
       }
     });
 
     document.body.appendChild(modalOverlay);
   }
-
-  const _contentEl = modalOverlay.querySelector('#stats-modal-content');
 
   const totalAnswered = statsData.categories.reduce((sum, cat) => sum + cat.answered, 0);
   const totalCorrect = statsData.categories.reduce((sum, cat) => sum + cat.correct, 0);
@@ -167,6 +163,4 @@ export function showStatsModal(statsData) {
   statsContainer.innerHTML = _statsHTML;
 
   modalOverlay.classList.add('visible');
-  modalOverlay.style.opacity = '1';
-  modalOverlay.style.pointerEvents = 'auto';
 }

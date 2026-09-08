@@ -766,9 +766,13 @@ export function initQlashique(socket) {
     }
   });
 
-  socket.on('qlashique:attack_stopped', ({ score }) => {
+  socket.on('qlashique:attack_stopped', ({ score, choiceMs }) => {
     clearTimeout(qlasNextQTimeout);
     qlasGuessingActive = false;
+    qlasStopTimer();
+    if (choiceMs > 0) {
+      qlasStartTimer(choiceMs / 1000);
+    }
     document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
     qEl('btn-qlas-stop').style.display = 'none';
     qEl('btn-qlas-end').style.display = '';
@@ -779,12 +783,15 @@ export function initQlashique(socket) {
     }
   });
 
-  socket.on('qlashique:timer_expired', () => {
+  socket.on('qlashique:timer_expired', ({ choiceMs } = {}) => {
     clearTimeout(qlasNextQTimeout);
     if (!qlasGuessingActive) {
       return;
     }
     qlasStopTimer();
+    if (choiceMs > 0) {
+      qlasStartTimer(choiceMs / 1000);
+    }
     qlasGuessingActive = false;
     document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
     qEl('btn-qlas-stop').style.display = 'none';

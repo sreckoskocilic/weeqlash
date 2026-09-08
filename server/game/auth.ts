@@ -4,7 +4,8 @@ import crypto from 'crypto';
 import Database from 'better-sqlite3';
 
 // Weaker rounds only under the e2e test flag (never set in prod); compare() reads rounds from the hash, so login is unaffected.
-const SALT_ROUNDS = process.env.ENABLE_TEST_ROUTES === '1' ? 4 : 10;
+const SALT_ROUNDS =
+  process.env.ENABLE_TEST_ROUTES === '1' && process.env.NODE_ENV !== 'production' ? 4 : 10;
 
 export function initAuthDb() {
   const db: Database.Database | null = getDb();

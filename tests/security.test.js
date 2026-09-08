@@ -82,3 +82,53 @@ describe('Resend confirmation email error handling', () => {
     spy.mockRestore();
   });
 });
+
+describe('Security: single session per user', () => {
+  const unique = Math.random().toString(36).slice(2, 8);
+  const username = `sess_${unique}`;
+  const email = `sess_${unique}@test.invalid`;
+
+  afterAll(() => {
+    const db = getDb();
+    if (!db) {
+      return;
+    }
+    db.prepare(
+      "DELETE FROM user_stats WHERE user_id IN (SELECT id FROM users WHERE username LIKE 'sess_%')",
+    ).run();
+    db.prepare("DELETE FROM users WHERE username LIKE 'sess_%'").run();
+  });
+
+  it('a second login invalidates the first session, and logout clears the last one', async () => {
+    const spy = vi.spyOn(emailModule, 'sendEmail').mockResolvedValue(undefined);
+    await request(app).post('/auth/register').send({ username, email, password: 'testpass123' });
+    spy.mockRestore();
+
+    const first = await request(app)
+      .post('/auth/login')
+      .send({ username, password: 'testpass123' });
+    expect(first.status).toBe(200);
+    const firstCookies = first.headers['set-cookie'];
+
+    const meFirst = await request(app).get('/auth/me').set('Cookie', firstCookies);
+    expect(meFirst.body.user?.username).toBe(username);
+
+    const second = await request(app)
+      .post('/auth/login')
+      .send({ username, password: 'testpass123' });
+    expect(second.status).toBe(200);
+    const secondCookies = second.headers['set-cookie'];
+
+    const meAfterKick = await request(app).get('/auth/me').set('Cookie', firstCookies);
+    expect(meAfterKick.body.user).toBeNull();
+
+    const meSecond = await request(app).get('/auth/me').set('Cookie', secondCookies);
+    expect(meSecond.body.user?.username).toBe(username);
+
+    const out = await request(app).post('/auth/logout').set('Cookie', secondCookies);
+    expect(out.status).toBe(200);
+
+    const meAfterLogout = await request(app).get('/auth/me').set('Cookie', secondCookies);
+    expect(meAfterLogout.body.user).toBeNull();
+  });
+});

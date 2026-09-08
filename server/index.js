@@ -75,6 +75,7 @@ import {
   getUsernameById,
   getUsernamesByIds,
   expireStale as expireHowHighStale,
+  forfeitStaleActive as forfeitHowHighStaleActive,
 } from './game/howhigh-store.ts';
 import {
   createQlasGame,
@@ -85,6 +86,7 @@ import {
   checkGameOver,
   QLAS_DEFAULT_HP,
   QLAS_HP_OPTIONS,
+  QLAS_MAX_ANSWERS_PER_TURN,
   PHASE as QLAS_PHASE,
 } from './game/qlashique.ts';
 import {
@@ -240,6 +242,8 @@ const ANSWER_GRACE_MS = 2000;
 // Default qlashique turn timer, plus grace before the server force-ends an unanswered turn.
 const QLAS_DEFAULT_TIMER_S = 5;
 const TURN_GRACE_S = 3;
+const QLAS_CHOICE_S = 10;
+const HOWHIGH_ACTIVE_TTL_MS = 15 * 60_000;
 
 // Clamp a client-reported run duration into [minMs, maxMs] so a tampered client can't fake it; falls back to server time.
 function clampRunMs(totalMs, startedAt, minMs, maxMs) {
@@ -343,8 +347,25 @@ const howHighExpireInterval = setInterval(() => {
     if (n > 0) {
       console.log(`[howhigh] expired ${n} stale challenges`);
     }
+    for (const ch of forfeitHowHighStaleActive(HOWHIGH_ACTIVE_TTL_MS)) {
+      insertGameResult({
+        player1Id: ch.player1_id,
+        player2Id: ch.player2_id,
+        winnerId: ch.winner_id,
+        gameMode: 'howhigh',
+        boardSize: null,
+        durationMs: null,
+        player1Stats: {
+          score: ch.p1_score,
+          diceAccepted: !!ch.p1_dice_accepted,
+          goWildAccepted: !!ch.p1_gowild_accepted,
+        },
+        player2Stats: { score: null, forfeit: true },
+      });
+      console.log(`[howhigh] forfeited ${ch.code} — player 2 abandoned, player 1 wins`);
+    }
   } catch {
-    /* DB may not be initialized yet */
+    return;
   }
 }, 10 * 60_000);
 howHighExpireInterval.unref();
@@ -990,7 +1011,7 @@ io.on('connection', (socket) => {
       return;
     }
     const room = getRoom(code);
-    if (!room?.state) {
+    if (!room?.state || room.mode) {
       return cb({ error: 'No active game' });
     }
 
@@ -1012,7 +1033,7 @@ io.on('connection', (socket) => {
       return;
     }
     const room = getRoom(code);
-    if (!room?.state) {
+    if (!room?.state || room.mode) {
       return cb({ error: 'No active game' });
     }
 
@@ -1080,7 +1101,7 @@ io.on('connection', (socket) => {
 
   socket.on('turn:answer_preview', ({ code, questionIdx, answerIdx }, cb) => {
     const room = getRoom(code);
-    if (!room?.state) {
+    if (!room?.state || room.mode) {
       return cb?.({ error: 'No active game' });
     }
     const player = getPlayerBySocket(room, socket.id);
@@ -1117,7 +1138,7 @@ io.on('connection', (socket) => {
       return;
     }
     const room = getRoom(code);
-    if (!room?.state) {
+    if (!room?.state || room.mode) {
       return cb({ error: 'No active game' });
     }
     if (room.state.phase === PHASE.GAME_OVER) {
@@ -2280,60 +2301,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- Dev quickstart (non-production only) ---
-
-  if (process.env.NODE_ENV !== 'production') {
-    socket.on('dev:quickstart', ({ boardSize = 4 } = {}, cb) => {
-      const colors = ['#e53935', '#1565c0'];
-      const room = createRoom({ playerCount: 2, boardSize, timer: 30 });
-      const fakePlayers = [
-        {
-          id: socket.id,
-          name: 'Dev Player',
-          color: colors[0],
-          isHost: true,
-          index: 0,
-          token: null,
-          userId: null,
-        },
-        {
-          id: 'bot-dev',
-          name: 'Bot',
-          color: colors[1],
-          isHost: false,
-          index: 1,
-          token: null,
-          userId: null,
-        },
-      ];
-      room.players = fakePlayers;
-      room.playersBySocket = new Map(fakePlayers.map((p) => [p.id, p]));
-      socketToRoom.set(socket.id, room.code);
-      socket.join(room.code);
-
-      let gameState;
-      try {
-        gameState = createGame(fakePlayers, room.settings);
-      } catch (err) {
-        return cb({ error: err.message });
-      }
-      room.started = true;
-      room.startedAt = Date.now();
-      room.state = gameState;
-
-      for (const p of room.players) {
-        registerActiveSocket(p.id);
-      }
-
-      socket.emit('game:start', {
-        players: gameState.players,
-        settings: room.settings,
-        state: publicState(gameState),
-      });
-      cb({ ok: true, code: room.code, playerIndex: 0 });
-    });
-  }
-
   // --- Qlashique ---
 
   socket.on('qlashique:create_room', ({ playerName, hp } = {}, cb) => {
@@ -2416,9 +2383,8 @@ io.on('connection', (socket) => {
           return;
         }
         room.qlasTimerExpired = true;
-        io.to(code).emit('qlashique:timer_expired');
-        // Force-end the turn so an AFK active player can't freeze the duel (grace already baked into _gracedMs).
-        _endQlasTurn(io, code, room, 'attack');
+        io.to(code).emit('qlashique:timer_expired', { choiceMs: QLAS_CHOICE_S * 1000 });
+        _armQlasChoiceTimer(io, code, room);
       } catch (err) {
         console.error('[qlashique] timer callback error:', err);
       }
@@ -2446,6 +2412,9 @@ io.on('connection', (socket) => {
     }
     if (room.qlasTimerExpired) {
       return cb({ error: 'Turn time expired' });
+    }
+    if (room.questionIdx >= QLAS_MAX_ANSWERS_PER_TURN) {
+      return cb({ error: 'Answer limit reached' });
     }
     if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
       return cb({ error: 'Invalid answer' });
@@ -2502,7 +2471,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('qlashique:answer_result', answerPayload);
 
     room.questionIdx++;
-    if (!room.qlasTimerExpired) {
+    if (!room.qlasTimerExpired && room.questionIdx < QLAS_MAX_ANSWERS_PER_TURN) {
       const nextQ = _pickQlasQuestion(room, questionsDb);
       if (nextQ) {
         room.currentQuestion = nextQ;
@@ -2548,7 +2517,11 @@ io.on('connection', (socket) => {
       room.qlasTimer = null;
     }
     room.qlasTimerExpired = true;
-    socket.emit('qlashique:attack_stopped', { score: room.state.currentScore });
+    _armQlasChoiceTimer(io, code, room);
+    socket.emit('qlashique:attack_stopped', {
+      score: room.state.currentScore,
+      choiceMs: QLAS_CHOICE_S * 1000,
+    });
     cb({ ok: true });
   });
 
@@ -2817,6 +2790,10 @@ io.on('connection', (socket) => {
             if (room.qlasTimer) {
               clearTimeout(room.qlasTimer);
               room.qlasTimer = null;
+            }
+            if (room.qlasChoiceTimer) {
+              clearTimeout(room.qlasChoiceTimer);
+              room.qlasChoiceTimer = null;
             }
             room.qlasTimerExpired = true;
             room.state.phase = QLAS_PHASE.GAME_OVER;
@@ -3088,6 +3065,10 @@ function _emitQlasTurnStart(ioServer, code, room) {
   room.questionIdx = 0;
   room.qlasTimerSeconds = timerSeconds;
   room.qlasTimerExpired = false;
+  if (room.qlasChoiceTimer) {
+    clearTimeout(room.qlasChoiceTimer);
+    room.qlasChoiceTimer = null;
+  }
   ioServer.to(code).emit('qlashique:turn_start', {
     playerIdx: idx,
     timerSeconds,
@@ -3096,10 +3077,31 @@ function _emitQlasTurnStart(ioServer, code, room) {
 }
 
 // Resolve the active player's turn (score, apply outcome, broadcast HP + game-over or next turn); caller must have validated room/phase. Returns {ok}|{error}.
+function _armQlasChoiceTimer(ioServer, code, room) {
+  if (room.qlasChoiceTimer) {
+    clearTimeout(room.qlasChoiceTimer);
+  }
+  room.qlasChoiceTimer = setTimeout(() => {
+    room.qlasChoiceTimer = null;
+    try {
+      if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
+        return;
+      }
+      _endQlasTurn(ioServer, code, room, 'attack');
+    } catch (err) {
+      console.error('[qlashique] choice timer error:', err);
+    }
+  }, QLAS_CHOICE_S * 1000);
+}
+
 function _endQlasTurn(ioServer, code, room, choice = 'attack') {
   if (room.qlasTimer) {
     clearTimeout(room.qlasTimer);
     room.qlasTimer = null;
+  }
+  if (room.qlasChoiceTimer) {
+    clearTimeout(room.qlasChoiceTimer);
+    room.qlasChoiceTimer = null;
   }
 
   const scoreBeforeEnd = room.state.currentScore;

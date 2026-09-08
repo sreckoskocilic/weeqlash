@@ -10,6 +10,13 @@ brawl.weeqlash.icu {
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
+	@notadmin not path /admin/*
+	header @notadmin {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+	}
+
 	# robots.txt
 	handle /robots.txt {
 		respond * "User-agent: *\nAllow: /\nSitemap: https://brawl.weeqlash.icu/sitemap.xml"
@@ -31,10 +38,6 @@ brawl.weeqlash.icu {
 		file_server
 	}
 
-	# No long-lived cache for HTML/JS — files have no content hash in their
-	# names, so a stale browser/CF copy after deploy means users get a broken
-	# mix until cache expires. `no-cache` still allows caching but forces an
-	# ETag revalidation round-trip (cheap 304 when unchanged).
 	@nocache path *.html *.js /
 	header @nocache Cache-Control "no-cache, must-revalidate"
 
