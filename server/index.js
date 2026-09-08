@@ -117,7 +117,6 @@ import {
 import {
   initAuthDb,
   insertGameResult,
-  trackAnswer,
   trackAnswersBatch,
   createUser,
   clearTestUsers,
@@ -446,6 +445,7 @@ process.on('unhandledRejection', (reason) => {
 
 // Load questions once at startup
 const questionsDb = loadQuestions();
+getDictionary();
 initDb();
 initAuthDb();
 
@@ -1507,11 +1507,8 @@ io.on('connection', (socket) => {
     run.picks[run.currentIdx] = optionIdx;
     run.currentIdx += 1;
     if (socket.userId) {
-      try {
-        trackAnswer(socket.userId, currentQ.category, correct);
-      } catch (err) {
-        console.error('[skipnot] trackAnswer failed:', err.message);
-      }
+      run.tally ??= new Map();
+      _tallyAnswer(run.tally, currentQ.category, correct);
     }
     cb({ ok: true, correct });
   });
@@ -1548,6 +1545,7 @@ io.on('connection', (socket) => {
     if (run.finished) {
       return cb({ error: 'Run already finished' });
     }
+    _flushRunStats(socket.userId, run.tally);
     // Score from server-stored picks, not the client; a missing slot = timeout/unanswered, scores like skip.
     const picks = run.picks.map((p) => (p === undefined ? null : p));
     const elapsedMs = clampRunMs(
@@ -1885,36 +1883,11 @@ io.on('connection', (socket) => {
     run.currentIdx += 1;
 
     if (socket.userId) {
-      try {
-        trackAnswer(socket.userId, currentQ.category, correct);
-      } catch (err) {
-        console.error('[howhigh] trackAnswer failed:', err.message);
-      }
+      run.tally ??= new Map();
+      _tallyAnswer(run.tally, currentQ.category, correct);
     }
 
-    // Check for phase transitions and timer changes
-    let nextEvent;
-    let timerMs;
-    if (run.currentIdx === howhigh.DICE_AFTER_Q) {
-      if (run.bonusQ3 === 'dice' && run.diceAccepted === null) {
-        nextEvent = 'dice_offer';
-      } else if (run.bonusQ3 === 'double_or_nothing' && run.donAccepted === null) {
-        nextEvent = 'don_offer';
-      }
-    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q) {
-      if (run.bonusQ6 === 'gowild' && run.goWildAccepted === null) {
-        nextEvent = 'gowild_offer';
-      } else if (run.bonusQ6 === 'time_crunch' && run.timeCrunchAccepted === null) {
-        nextEvent = 'time_crunch_offer';
-      }
-    }
-    if (
-      run.timeCrunchAccepted &&
-      run.currentIdx === howhigh.GOWILD_AFTER_Q + howhigh.TIME_CRUNCH_Q_COUNT
-    ) {
-      run.timerMs = howhigh.BASE_TIMER_MS;
-      timerMs = howhigh.BASE_TIMER_MS;
-    }
+    const { nextEvent, timerMs } = _howhighPhaseTransition(run);
 
     const resp = { ok: true, correct, nextEvent };
     if (timerMs) {
@@ -1943,28 +1916,7 @@ io.on('connection', (socket) => {
     run.picks[run.currentIdx] = null;
     run.currentIdx += 1;
 
-    let nextEvent;
-    let timerMs;
-    if (run.currentIdx === howhigh.DICE_AFTER_Q) {
-      if (run.bonusQ3 === 'dice' && run.diceAccepted === null) {
-        nextEvent = 'dice_offer';
-      } else if (run.bonusQ3 === 'double_or_nothing' && run.donAccepted === null) {
-        nextEvent = 'don_offer';
-      }
-    } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q) {
-      if (run.bonusQ6 === 'gowild' && run.goWildAccepted === null) {
-        nextEvent = 'gowild_offer';
-      } else if (run.bonusQ6 === 'time_crunch' && run.timeCrunchAccepted === null) {
-        nextEvent = 'time_crunch_offer';
-      }
-    }
-    if (
-      run.timeCrunchAccepted &&
-      run.currentIdx === howhigh.GOWILD_AFTER_Q + howhigh.TIME_CRUNCH_Q_COUNT
-    ) {
-      run.timerMs = howhigh.BASE_TIMER_MS;
-      timerMs = howhigh.BASE_TIMER_MS;
-    }
+    const { nextEvent, timerMs } = _howhighPhaseTransition(run);
 
     const resp = { ok: true, nextEvent };
     if (timerMs) {
@@ -2098,6 +2050,7 @@ io.on('connection', (socket) => {
     if (run.finished) {
       return cb({ error: 'Run already finished' });
     }
+    _flushRunStats(socket.userId, run.tally);
 
     const picks = run.picks.map((p) => (p === undefined ? null : p));
     const baseTimerMs = run.goWildAccepted ? howhigh.GOWILD_TIMER_MS : howhigh.BASE_TIMER_MS;
@@ -2436,11 +2389,9 @@ io.on('connection', (socket) => {
     }
 
     if (player.userId) {
-      try {
-        trackAnswer(player.userId, 'qlashique', result.correct);
-      } catch (err) {
-        console.error('[qlas] trackAnswer failed:', err.message);
-      }
+      room.qlasTurnTally ??= new Map();
+      _tallyAnswer(room.qlasTurnTally, 'qlashique', result.correct);
+      room.qlasTurnUserId = player.userId;
     }
     if (room.qlasStats) {
       room.qlasStats[player.index].answered++;
@@ -3101,6 +3052,58 @@ function _armQlasChoiceTimer(ioServer, code, room) {
   }, QLAS_CHOICE_S * 1000);
 }
 
+function _howhighPhaseTransition(run) {
+  let nextEvent;
+  let timerMs;
+  if (run.currentIdx === howhigh.DICE_AFTER_Q) {
+    if (run.bonusQ3 === 'dice' && run.diceAccepted === null) {
+      nextEvent = 'dice_offer';
+    } else if (run.bonusQ3 === 'double_or_nothing' && run.donAccepted === null) {
+      nextEvent = 'don_offer';
+    }
+  } else if (run.currentIdx === howhigh.GOWILD_AFTER_Q) {
+    if (run.bonusQ6 === 'gowild' && run.goWildAccepted === null) {
+      nextEvent = 'gowild_offer';
+    } else if (run.bonusQ6 === 'time_crunch' && run.timeCrunchAccepted === null) {
+      nextEvent = 'time_crunch_offer';
+    }
+  }
+  if (
+    run.timeCrunchAccepted &&
+    run.currentIdx === howhigh.GOWILD_AFTER_Q + howhigh.TIME_CRUNCH_Q_COUNT
+  ) {
+    run.timerMs = howhigh.BASE_TIMER_MS;
+    timerMs = howhigh.BASE_TIMER_MS;
+  }
+  return { nextEvent, timerMs };
+}
+
+function _flushRunStats(userId, tally) {
+  if (!userId || !tally) {
+    return;
+  }
+  for (const [cat, t] of tally) {
+    try {
+      trackAnswersBatch(userId, cat, t.answered, t.correct);
+    } catch (err) {
+      console.error('[stats] trackAnswersBatch failed:', err.message);
+    }
+  }
+  tally.clear();
+}
+
+function _tallyAnswer(tally, category, correct) {
+  let t = tally.get(category);
+  if (!t) {
+    t = { answered: 0, correct: 0 };
+    tally.set(category, t);
+  }
+  t.answered += 1;
+  if (correct) {
+    t.correct += 1;
+  }
+}
+
 function _endQlasTurn(ioServer, code, room, choice = 'attack') {
   if (room.qlasTimer) {
     clearTimeout(room.qlasTimer);
@@ -3110,6 +3113,7 @@ function _endQlasTurn(ioServer, code, room, choice = 'attack') {
     clearTimeout(room.qlasChoiceTimer);
     room.qlasChoiceTimer = null;
   }
+  _flushRunStats(room.qlasTurnUserId, room.qlasTurnTally);
 
   const scoreBeforeEnd = room.state.currentScore;
   const { outcome, error, actingPlayerIdx } = endTurn(room.state);

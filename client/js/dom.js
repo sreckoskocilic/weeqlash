@@ -6,7 +6,6 @@ export function el(id) {
 }
 
 // Alias for compatibility
-export const $ = el;
 
 // Qlashique element selector
 export function qEl(id) {

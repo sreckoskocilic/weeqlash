@@ -35,7 +35,7 @@ function _applyTheme(theme) {
   });
 }
 
-export function initSkipnotTheme() {
+export function initGameTheme() {
   _applyTheme(_getStored());
 
   // Wire all pickers via per-picker delegation so dynamically added pickers also work.

@@ -80,27 +80,14 @@ export function loadQuestions(encPath?: string): QuestionsDb {
   return data;
 }
 
-// Lazy flat array, WeakMap-cached per db (avoids the OOM an eager _all[] caused). Each item gets its `category` from the bucket key since db[cat] arrays don't carry it.
 const _allCacheByDb = new WeakMap<QuestionsDb, Question[]>();
 export function getAllQuestions(db: QuestionsDb): Question[] {
   if (!_allCacheByDb.has(db)) {
-    const flat: Question[] = [];
-    for (const [cat, qs] of Object.entries(db)) {
-      if (!Array.isArray(qs)) {
-        continue;
-      }
-      for (const q of qs) {
-        if (q.id !== undefined) {
-          flat.push({ ...q, category: cat as Category });
-        }
-      }
-    }
-    _allCacheByDb.set(db, flat);
+    _allCacheByDb.set(db, db._byId ? Object.values(db._byId) : []);
   }
   return _allCacheByDb.get(db)!;
 }
 
-// Shared fetch primitive: one random question from the enabled pool, skipping excludeIds (falls back to full pool if exclude empties it). Enabled pool is WeakMap-cached by the enabledCats Set ref.
 const _enabledPoolByDb = new WeakMap<QuestionsDb, WeakMap<Set<string>, Question[]>>();
 function _getEnabledPool(db: QuestionsDb, enabledCats: Set<string>): Question[] {
   let perDb = _enabledPoolByDb.get(db);
@@ -125,12 +112,9 @@ export function pickRandomQuestion(
   if (!pool.length) {
     return null;
   }
-  const src =
-    excludeIds && excludeIds.size > 0
-      ? (() => {
-          const avail = pool.filter((q) => !excludeIds.has(q.id));
-          return avail.length > 0 ? avail : pool;
-        })()
-      : pool;
-  return src[Math.floor(Math.random() * src.length)];
+  let q = pool[Math.floor(Math.random() * pool.length)];
+  for (let i = 0; i < 100 && excludeIds?.has(q.id); i++) {
+    q = pool[Math.floor(Math.random() * pool.length)];
+  }
+  return q;
 }

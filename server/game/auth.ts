@@ -393,10 +393,6 @@ export function resendConfirmation(userId: number) {
 
 // --- Stats ---
 
-export function trackAnswer(userId: number, category: string, correct: boolean) {
-  trackAnswersBatch(userId, category, 1, correct ? 1 : 0);
-}
-
 export function trackAnswersBatch(
   userId: number,
   category: string,

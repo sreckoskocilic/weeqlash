@@ -38,7 +38,7 @@ brawl.weeqlash.icu {
 		file_server
 	}
 
-	@nocache path *.html *.js /
+	@nocache path *.html *.js *.mjs *.css /
 	header @nocache Cache-Control "no-cache, must-revalidate"
 
 	root * /opt/weeqlash/client

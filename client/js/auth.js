@@ -1,4 +1,4 @@
-import { $ } from './dom.js';
+import { el as $ } from './dom.js';
 import { showScreen } from './dom.js';
 import { state } from './state.js';
 import { applyAuthState, showView } from './nav.js';

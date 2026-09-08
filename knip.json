@@ -8,8 +8,11 @@
     "server": {
       "entry": ["game/*.ts", "routes/*.ts"],
       "project": ["**/*.{js,ts}"]
+    },
+    "client": {
+      "entry": ["js/admin-confirm.js"],
+      "project": ["js/**/*.js"]
     }
   },
-  "ignoreWorkspaces": ["client"],
   "ignoreBinaries": ["redis-cli"]
 }

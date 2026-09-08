@@ -93,7 +93,7 @@ export function showQuestion(idx) {
 }
 
 // Answer handler
-export async function onAnswer(chosenIdx, qIdx) {
+async function onAnswer(chosenIdx, qIdx) {
   if (chosenIdx < 0 || chosenIdx > 3) {
     console.error('Invalid answer index:', chosenIdx);
     return;
@@ -177,7 +177,7 @@ export function continueAfterQuestion() {
 }
 
 // Timer
-export function startTimer(qIdx) {
+function startTimer(qIdx) {
   stopTimer();
   const fill = el('timer-fill');
   const text = el('timer-text');

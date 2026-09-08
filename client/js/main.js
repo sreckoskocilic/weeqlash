@@ -5,18 +5,15 @@ import * as auth from './auth.js';
 import * as socket from './socket.js';
 import * as game from './game.js';
 import * as question from './question.js';
-import * as quiz from './quiz.js';
-import * as leaderboard from './leaderboard.js';
 import * as keyboard from './keyboard.js';
 import * as qlashique from './qlashique.js';
 import { initQlashword } from './qlashword.js';
 import { initSkipnot } from './skipnot.js';
-import { initSkipnotTheme } from './skipnot-theme.js';
+import { initGameTheme } from './game-theme.js';
 import { initHowHigh } from './howhigh.js';
 import { initMathquiz } from './mathquiz.js';
 import { initCentographer } from './centographer.js';
 import { initNav } from './nav.js';
-import { initHomeBg } from './home-bg.js';
 
 // Server URL configuration
 const serverUrl =
@@ -52,7 +49,7 @@ async function init() {
   // SkipNoT (solo 20-Q quiz)
   initSkipnot(sock);
   // SkipNoT theme switcher (amber/green/cyan/pink, persisted)
-  initSkipnotTheme();
+  initGameTheme();
 
   // MathQuiz (solo numeric math/calculus quiz)
   initMathquiz(sock);
@@ -63,14 +60,8 @@ async function init() {
   // HowHigh? (async 2P challenge)
   initHowHigh(sock);
 
-  // Decorative scattered shapes behind the connect screen
-  initHomeBg();
-
   // Setup-screen UI (category toggles, help, legal modals, etc.)
   initUI();
-
-  // Quiz mode handlers
-  quiz.initQuiz();
 
   // Question modal continue button
   question.initQuestion();
@@ -78,9 +69,7 @@ async function init() {
   // Keyboard handlers
   keyboard.initKeyboard();
 
-  // Load leaderboard on connect
   sock.on('connect', () => {
-    leaderboard.loadMainLeaderboard();
     state.myId = sock.id;
   });
 }

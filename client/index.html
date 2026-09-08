@@ -23,17 +23,15 @@
     <meta property="og:image:alt" content="wQ$x — multiplayer trivia brawls" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png?v=2" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Mono:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="vendor/katex/katex.min.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Decorative scattered node-arrow shapes behind the home page (populated by home-bg.js) -->
-    <div id="home-bg" aria-hidden="true"></div>
-
     <h1 id="main-title" class="brand">wQ$x — real-time multiplayer trivia brawls</h1>
 
     <div id="board-banner" aria-hidden="true">
@@ -688,29 +686,6 @@
               <button id="btn-cats-none">None</button>
             </div>
           </div>
-        </div>
-
-        <!-- Triviandom leftovers — UI hidden, kept so .col-triviandom CSS stays valid -->
-        <div class="col-triviandom" style="display: none">
-          <button class="btn-show-triv-lb" id="btn-show-triv-lb">
-            Show Triviandom Leaderboard
-          </button>
-          <div
-            id="triv-lb-panel"
-            class="leaderboard-panel"
-            style="max-width: none; padding: 0; background: transparent; border-color: #2a4a7a"
-          >
-            <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
-            <div class="lb-divider"></div>
-            <div class="lb-thead">
-              <div>#</div>
-              <div>NAME</div>
-              <div style="text-align: center">SCORE</div>
-              <div style="text-align: right">TIME</div>
-            </div>
-            <div id="triv-lb-rows" class="lb-rows"></div>
-          </div>
-          <button id="btn-quiz-start" class="btn-triviandom">Start Triviandom</button>
         </div>
       </div>
     </div>

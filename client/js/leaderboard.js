@@ -3,7 +3,7 @@
 import { sanitize } from './dom.js';
 import { getSocket } from './socket.js';
 
-export function buildLeaderboardRow(entry, rankNum) {
+function buildLeaderboardRow(entry, rankNum) {
   const row = document.createElement('div');
   row.className = entry ? 'lb-row' : 'lb-row lb-row-empty';
   const rkText = String(rankNum).padStart(2, '0');
@@ -17,7 +17,7 @@ export function buildLeaderboardRow(entry, rankNum) {
 }
 
 // Always render 10 slots; empty ones get `lb-row-empty` for CSS dimming.
-export function renderLeaderboardRows(container, entries) {
+function renderLeaderboardRows(container, entries) {
   if (!container) {
     return;
   }
@@ -25,15 +25,6 @@ export function renderLeaderboardRows(container, entries) {
   for (let i = 0; i < 10; i++) {
     container.appendChild(buildLeaderboardRow(entries[i], i + 1));
   }
-}
-
-let _mainLoaded = false;
-export function loadMainLeaderboard() {
-  if (_mainLoaded) {
-    return;
-  }
-  _mainLoaded = true;
-  loadPanelLeaderboard('triviandom', 'triv-lb-rows');
 }
 
 export function loadPanelLeaderboard(mode, containerId) {

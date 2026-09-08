@@ -127,14 +127,14 @@ const QLAS_TIMER_RING_CIRC = 175.93; // 2 * PI * r where r=28
 
 // --- UI helpers ---
 
-export function qlasShowPhase(phase) {
+function qlasShowPhase(phase) {
   ['qlas-phase-waiting', 'qlas-phase-combat', 'qlas-phase-gameover'].forEach((id) => {
     qEl(id).style.display = 'none';
   });
   qEl('qlas-phase-' + phase).style.display = '';
 }
 
-export function qlasSetHP(playerIdx, hp) {
+function qlasSetHP(playerIdx, hp) {
   hp = Math.max(0, Math.min(qlasMaxHp, hp));
   qlasHp[playerIdx] = hp;
   qEl('qlas-p' + playerIdx + 'hp').textContent = hp;
@@ -145,7 +145,7 @@ export function qlasSetHP(playerIdx, hp) {
   bar.classList.toggle('hp-critical', pct > 0 && pct <= 0.15);
 }
 
-export function qlasSetScore(score) {
+function qlasSetScore(score) {
   qlasScore = score;
   const scoreEl = qEl('qlas-turn-score');
   if (scoreEl) {
@@ -154,7 +154,7 @@ export function qlasSetScore(score) {
   qEl('qlas-heal-val').textContent = '+2 HP';
 }
 
-export function qlasFlash(playerIdx, type) {
+function qlasFlash(playerIdx, type) {
   const bar = qEl('qlas-p' + playerIdx + 'bar');
   if (type === 'dmg') {
     bar.classList.add('qlas-take-dmg');
@@ -262,7 +262,7 @@ function qlasUpdateStreakBadge(playerIdx) {
   }
 }
 
-export function qlasRenderQuestion(q, idx) {
+function qlasRenderQuestion(q, idx) {
   if (!qlasMatchStart) {
     qlasMatchStart = Date.now();
   }
@@ -307,7 +307,7 @@ function qlasLogEntry(text) {
   setTimeout(() => entry.remove(), 2500);
 }
 
-export function qlasStartTimer(seconds) {
+function qlasStartTimer(seconds) {
   qlasTimerTotal = seconds;
   if (!qlasRing) {
     qlasRing = makeCountdownRing({
@@ -320,11 +320,11 @@ export function qlasStartTimer(seconds) {
   qlasRing.start(seconds);
 }
 
-export function qlasStopTimer() {
+function qlasStopTimer() {
   qlasRing?.stop();
 }
 
-export function qlasRenderPlayerInfo() {
+function qlasRenderPlayerInfo() {
   [0, 1].forEach((i) => {
     const p = qlasPlayers[i];
     const textEl = qEl('qlas-p' + i + 'name-text');
@@ -351,7 +351,7 @@ function qlasSetScoreOther(playerIdx, score) {
 
 // --- Guessing phase ---
 
-export function qlasStartGuessing() {
+function qlasStartGuessing() {
   qlasGuessingActive = true;
   qEl('qlas-decision-panel').style.display = 'none';
   qEl('qlas-action-row').style.display = '';
@@ -371,7 +371,7 @@ export function qlasStartGuessing() {
   });
 }
 
-export function qlasSubmitAnswer(answerIdx) {
+function qlasSubmitAnswer(answerIdx) {
   if (!qlasGuessingActive || !qlasCurrentQ) {
     return;
   }
@@ -381,7 +381,7 @@ export function qlasSubmitAnswer(answerIdx) {
   socket.emit('qlashique:answer', { code: qlasCode, answerIdx }, () => {});
 }
 
-export function qlasStopAttack() {
+function qlasStopAttack() {
   if (!qlasGuessingActive) {
     return;
   }
@@ -403,14 +403,14 @@ export function qlasStopAttack() {
   });
 }
 
-export function qlasEndTurn() {
+function qlasEndTurn() {
   qEl('btn-qlas-end').disabled = true;
   qEl('btn-qlas-heal').disabled = true;
   const socket = getSocket();
   socket.emit('qlashique:end_turn', { code: qlasCode, choice: 'attack' }, () => {});
 }
 
-export function qlasHeal() {
+function qlasHeal() {
   qEl('btn-qlas-end').disabled = true;
   qEl('btn-qlas-heal').disabled = true;
   const socket = getSocket();

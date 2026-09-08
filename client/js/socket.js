@@ -52,8 +52,11 @@ export function initSocketEvents() {
     import('./auth.js').then(({ checkAuth }) => checkAuth());
   });
 
-  // Periodically re-check authentication status (every 2 minutes)
+  // Periodically re-check authentication status (every 2 minutes; hidden tabs skip it)
   setInterval(() => {
+    if (document.visibilityState !== 'visible') {
+      return;
+    }
     import('./auth.js').then(({ checkAuth }) => checkAuth());
   }, 120000);
 

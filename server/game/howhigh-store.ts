@@ -199,7 +199,9 @@ export function getChallengesForUser(userId: number): ChallengeRow[] {
   const db = requireDb();
   return db
     .prepare(
-      `SELECT * FROM howhigh_challenges
+      `SELECT code, status, player1_id, player2_id, p1_score, p2_score,
+              winner_id, created_at, completed_at
+       FROM howhigh_challenges
        WHERE (player1_id = ? OR player2_id = ?) AND status != 'expired'
        ORDER BY created_at DESC LIMIT 50`,
     )

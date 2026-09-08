@@ -458,56 +458,32 @@ function takeQuestions(
   }
 
   const selected: Question[] = [];
-  const reservedIds = new Set(excludedIds);
+  const taken = new Set(excludedIds);
+  const free = (q: Question) => !usedSet.has(q.id) && !wrongSet.has(q.id) && !taken.has(q.id);
 
-  // Pre-compute eligibility once to avoid multiple filtering passes
-  const eligible = pool.filter(
-    (q) => !usedSet.has(q.id) && !wrongSet.has(q.id) && !reservedIds.has(q.id),
-  );
-
-  if (eligible.length >= count) {
-    // We have enough eligible questions, shuffle and take what we need
-    const shuffled = shuffle(eligible);
-    selected.push(...shuffled.slice(0, count));
-    selected.forEach((q) => usedSet.add(q.id));
-    return selected;
-  }
-
-  // Not enough eligible questions, take all eligible ones
-  selected.push(...eligible);
-  eligible.forEach((q) => usedSet.add(q.id));
-
-  // If we still need more, clear usedSet and try again (but avoid duplicates)
-  if (selected.length < count) {
-    usedSet.clear();
-
-    // Get all questions excluding wrong ones and already selected ones in this batch
-    const remainingPool = pool.filter(
-      (q) =>
-        !wrongSet.has(q.id) && !reservedIds.has(q.id) && !selected.some((sq) => sq.id === q.id),
-    );
-
-    if (remainingPool.length > 0) {
-      const needed = count - selected.length;
-      const shuffled = shuffle(remainingPool);
-      selected.push(...shuffled.slice(0, Math.min(needed, remainingPool.length)));
-      selected.forEach((q) => usedSet.add(q.id));
-    }
-
-    // If we STILL don't have enough, allow repeats but avoid immediate duplicates
-    if (selected.length < count) {
-      const needed = count - selected.length;
-      const poolForRepeats = pool.filter((q) => !wrongSet.has(q.id) && !reservedIds.has(q.id));
-
-      if (poolForRepeats.length > 0) {
-        // Shallow shuffle for variety but allow repeats
-        const shuffledPool = shuffle(poolForRepeats);
-        for (let i = 0; i < needed; i++) {
-          selected.push(shuffledPool[i % shuffledPool.length]);
-          usedSet.add(shuffledPool[i % shuffledPool.length].id);
-        }
+  for (let n = 0; n < count; n++) {
+    let picked: Question | null = null;
+    for (let i = 0; i < 100; i++) {
+      const cand = pool[Math.floor(Math.random() * pool.length)];
+      if (free(cand)) {
+        picked = cand;
+        break;
       }
     }
+    if (!picked) {
+      const eligible = pool.filter(free);
+      if (eligible.length) {
+        picked = eligible[Math.floor(Math.random() * eligible.length)];
+      } else {
+        usedSet.clear();
+        const relaxed = pool.filter((q) => !wrongSet.has(q.id) && !taken.has(q.id));
+        const src = relaxed.length ? relaxed : pool;
+        picked = src[Math.floor(Math.random() * src.length)];
+      }
+    }
+    selected.push(picked);
+    usedSet.add(picked.id);
+    taken.add(picked.id);
   }
 
   return selected;

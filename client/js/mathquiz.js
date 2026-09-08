@@ -5,7 +5,6 @@ import { makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
 import { showView } from './nav.js';
 import { drawGraph, drawFigure } from './mathgraph.js';
-import katex from '../vendor/katex/katex.mjs';
 import { TEST_SPEED } from './constants.js';
 
 const TIMER_RING_CIRC = 175.93;
@@ -236,7 +235,18 @@ function _renderCurrentProblem() {
   if (p.tex) {
     texEl.style.display = '';
     try {
-      katex.render(p.tex, texEl, { throwOnError: false, displayMode: true });
+      if (katex) {
+        katex.render(p.tex, texEl, { throwOnError: false, displayMode: true });
+      } else {
+        texEl.textContent = p.tex;
+        _loadKatex().then(() => {
+          try {
+            katex.render(p.tex, texEl, { throwOnError: false, displayMode: true });
+          } catch {
+            texEl.textContent = p.tex;
+          }
+        });
+      }
     } catch {
       texEl.textContent = p.tex;
     }
@@ -428,7 +438,23 @@ function _onSubmitScore() {
   });
 }
 
+let katex = null;
+async function _loadKatex() {
+  if (katex) {
+    return;
+  }
+  if (!document.getElementById('katex-css')) {
+    const link = document.createElement('link');
+    link.id = 'katex-css';
+    link.rel = 'stylesheet';
+    link.href = 'vendor/katex/katex.min.css';
+    document.head.appendChild(link);
+  }
+  katex = (await import('../vendor/katex/katex.mjs')).default;
+}
+
 function _startRun() {
+  _loadKatex();
   _resetRun();
   _showPhase('game');
   showScreen('screen-mathquiz');

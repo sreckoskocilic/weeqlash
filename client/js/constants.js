@@ -9,7 +9,7 @@ export const COORD_BASE = 100;
 export const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
 // Mirror of server/game/engine.ts CATEGORIES — keep in sync by hand.
-export const CATEGORIES = {
+const CATEGORIES = {
   arts: { label: 'Arts', color: '#C62828' },
   music: { label: 'Music', color: '#6A1B9A' },
   death_metal: { label: 'Death Metal', color: '#37474F', defaultOff: true },
