@@ -171,10 +171,17 @@ app.use((req, res, next) => {
   next();
 });
 
+const SESSION_TTL_S = 7 * 24 * 60 * 60;
+const ANON_SESSION_TTL_S = 30 * 60;
+
 // Do not flip saveUninitialized:false — socket handshake binds session before login; breaks auth/stats.
 function createSessionMiddleware() {
   return session({
-    store: new RedisStore({ client: redisClient, prefix: SESSION_PREFIX + 'session:' }),
+    store: new RedisStore({
+      client: redisClient,
+      prefix: SESSION_PREFIX + 'session:',
+      ttl: (sess) => (sess?.userId ? SESSION_TTL_S : ANON_SESSION_TTL_S),
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
