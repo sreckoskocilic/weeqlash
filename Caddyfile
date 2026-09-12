@@ -10,7 +10,7 @@ brawl.weeqlash.icu {
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	@notadmin not path /admin/*
+	@notadmin not path /admin/* /tacklebox*
 	header @notadmin {
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
