@@ -22,7 +22,7 @@ services:
       - ./server/questions.enc:/app/server/questions.enc:ro
       - ./data:/app/server/data
   redis:
-    image: redis:8.8-alpine@sha256:96cb544fa0af5aa898d160cffb7dae70c3df117190fc123831c64712cda425ff
+    image: redis:8.10-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
     restart: unless-stopped
     command: >
       redis-server

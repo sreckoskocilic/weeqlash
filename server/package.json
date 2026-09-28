@@ -11,13 +11,13 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^13.0.3",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "connect-redis": "^10.0.0",
-    "dotenv": "^17.4.2",
-    "express": "^5.1.0",
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "nodemailer": "^10.0.1",
+    "nodemailer": "^10.0.12",
     "redis": "^6.2.1",
-    "socket.io": "^4.8.0"
+    "socket.io": "^4.8.4"
   }
 }

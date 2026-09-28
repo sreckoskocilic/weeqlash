@@ -31,18 +31,23 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
-    "@types/node": "^26.5.0",
-    "@types/nodemailer": "^8.0.0",
+    "@types/node": "^26.6.3",
+    "@types/nodemailer": "^8.0.2",
     "@vitest/coverage-v8": "^5.0.0",
     "concurrently": "^10.0.5",
-    "eslint": "^10.10.0",
-    "eslint-plugin-html": "^8.2.0",
+    "eslint": "^10.11.0",
+    "eslint-plugin-html": "^8.2.1",
     "globals": "^17.12.0",
-    "knip": "^6.34.0",
-    "prettier": "^3.9.6",
-    "supertest": "^7.2.2",
+    "knip": "^6.38.0",
+    "prettier": "^3.9.9",
+    "supertest": "^7.3.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.0",
+    "typescript-eslint": "^8.71.0",
     "vitest": "^5.0.0"
+  },
+  "allowScripts": {
+    "bcrypt": false,
+    "fsevents": false,
+    "better-sqlite3": false
   }
 }
