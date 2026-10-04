@@ -1,5 +1,4 @@
 import { el } from './dom.js';
-import { sanitize } from './dom.js';
 import { PHASE, CAT_NAMES, COORD_BASE } from './constants.js';
 import { state as S } from './state.js';
 
@@ -288,7 +287,7 @@ export function updateTile(r, c, state) {
     const letterEl = document.createElement('span');
     letterEl.textContent = pegLetterIdx >= 0 ? String.fromCharCode(65 + pegLetterIdx) : '';
     pegEl.appendChild(letterEl);
-    pegEl.title = `${sanitize(player.name)} — HP: ${peg.hp}`;
+    pegEl.title = `${player.name} — HP: ${peg.hp}`;
     const hpEl = document.createElement('span');
     hpEl.className = 'peg-hp';
     const heartEl = document.createElement('span');

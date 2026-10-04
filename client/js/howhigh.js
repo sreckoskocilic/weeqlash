@@ -1,8 +1,8 @@
-import { el, showScreen, sanitize } from './dom.js';
+import { el, showScreen, sanitize, showError, getPlayerName } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
-import { showView } from './nav.js';
 import { QLAS_THEMES } from './qlashique.js';
 import { TEST_SPEED } from './constants.js';
+import { registerHomeHandler } from './home.js';
 
 const HH_THEME_KEY = 'weeqlash.hhTheme';
 
@@ -692,16 +692,17 @@ function _finishRun() {
 // --- Start / Join ---
 
 function _startRun() {
-  _resetRun();
-  _showPhase('game');
-  showScreen('screen-howhigh');
+  if (!getPlayerName()) {
+    return;
+  }
   socketRef?.emit('howhigh:start', (res) => {
     if (res?.error) {
-      console.warn('[howhigh] start failed:', res.error);
-      _qel('howhigh-question').innerHTML =
-        '<div class="qlas-q-text">' + sanitize(res.error) + '</div>';
+      showError(res.error);
       return;
     }
+    _resetRun();
+    _showPhase('game');
+    showScreen('screen-howhigh');
     questions = res.questions || [];
     total = res.total ?? questions.length;
     timerSec = (res.timerMs ?? 13000) / 1000;
@@ -728,16 +729,17 @@ function _joinRun() {
     return;
   }
 
-  _resetRun();
-  _showPhase('game');
-  showScreen('screen-howhigh');
+  if (!getPlayerName()) {
+    return;
+  }
   socketRef?.emit('howhigh:join', { code }, (res) => {
     if (res?.error) {
-      console.warn('[howhigh] join failed:', res.error);
-      _qel('howhigh-question').innerHTML =
-        '<div class="qlas-q-text">' + sanitize(res.error) + '</div>';
+      showError(res.error);
       return;
     }
+    _resetRun();
+    _showPhase('game');
+    showScreen('screen-howhigh');
     questions = res.questions || [];
     total = res.total ?? questions.length;
     timerSec = (res.timerMs ?? 13000) / 1000;
@@ -870,14 +872,6 @@ function _onCopyCode() {
   });
 }
 
-function _goBack() {
-  ring?.stop();
-  _resetRun();
-  showScreen('screen-connect');
-  showView('play');
-  import('./auth.js').then(({ checkAuth }) => checkAuth());
-}
-
 // --- Public init ---
 
 export function initHowHigh(sock) {
@@ -900,7 +894,12 @@ export function initHowHigh(sock) {
 
   el('btn-howhigh-create').addEventListener('click', _startRun);
   el('btn-howhigh-join').addEventListener('click', _joinRun);
-  el('btn-howhigh-back').addEventListener('click', _goBack);
+  registerHomeHandler({
+    reset: () => {
+      ring?.stop();
+      _resetRun();
+    },
+  });
   el('btn-howhigh-copy-code').addEventListener('click', _onCopyCode);
   el('btn-howhigh-dice-accept').addEventListener('click', _onDiceAccept);
   el('btn-howhigh-dice-decline').addEventListener('click', _onDiceDecline);

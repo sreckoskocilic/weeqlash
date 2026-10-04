@@ -1,11 +1,11 @@
 // MathQuiz solo numeric math/calculus quiz. Server sends only public fields and returns outcome + points; the true answer is NEVER sent or displayed.
 
-import { el, showScreen } from './dom.js';
+import { el, showScreen, showError, getPlayerName } from './dom.js';
 import { makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
-import { showView } from './nav.js';
 import { drawGraph, drawFigure } from './mathgraph.js';
 import { TEST_SPEED } from './constants.js';
+import { registerHomeHandler } from './home.js';
 
 const TIMER_RING_CIRC = 175.93;
 const RESULT_DISPLAY_MS = 900 / TEST_SPEED;
@@ -239,13 +239,16 @@ function _renderCurrentProblem() {
         katex.render(p.tex, texEl, { throwOnError: false, displayMode: true });
       } else {
         texEl.textContent = p.tex;
-        _loadKatex().then(() => {
-          try {
-            katex.render(p.tex, texEl, { throwOnError: false, displayMode: true });
-          } catch {
-            texEl.textContent = p.tex;
-          }
-        });
+        _loadKatex().then(
+          () => {
+            try {
+              katex.render(p.tex, texEl, { throwOnError: false, displayMode: true });
+            } catch {
+              texEl.textContent = p.tex;
+            }
+          },
+          () => {},
+        );
       }
     } catch {
       texEl.textContent = p.tex;
@@ -454,16 +457,18 @@ async function _loadKatex() {
 }
 
 function _startRun() {
-  _loadKatex();
-  _resetRun();
-  _showPhase('game');
-  showScreen('screen-mathquiz');
+  if (!getPlayerName()) {
+    return;
+  }
+  _loadKatex().catch(() => {});
   socketRef?.emit('mathquiz:start', (res) => {
     if (res?.error) {
-      console.warn('[mathquiz] start failed:', res.error);
-      _qel('mathquiz-prompt').textContent = res.error;
+      showError(res.error);
       return;
     }
+    _resetRun();
+    _showPhase('game');
+    showScreen('screen-mathquiz');
     problems = res.problems || [];
     total = res.total ?? problems.length;
     timerSec = (res.timerMs ?? 45000) / 1000;
@@ -482,12 +487,11 @@ export function initMathquiz(sock) {
   el('mathquiz-form').addEventListener('submit', _onSubmit);
   el('btn-mathquiz-skip').addEventListener('click', _onSkipClick);
   el('btn-mathquiz-submit-score').addEventListener('click', _onSubmitScore);
-  el('btn-mathquiz-back').addEventListener('click', () => {
-    ring?.stop();
-    _resetRun();
-    showScreen('screen-connect');
-    showView('play');
-    import('./auth.js').then(({ checkAuth }) => checkAuth());
+  registerHomeHandler({
+    reset: () => {
+      ring?.stop();
+      _resetRun();
+    },
   });
 
   const lbBtn = el('btn-show-mathquiz-lb');

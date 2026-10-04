@@ -107,8 +107,7 @@ h1 {
   }
 }
 /* Empty-state watermark for dynamically-populated leaderboard containers */
-.lb-rows:empty::after,
-#lb-rows:empty::after {
+.lb-rows:empty::after {
   content: 'No scores yet.';
   display: block;
   text-align: center;
@@ -1135,13 +1134,6 @@ body.high-contrast {
   font-size: 0.85rem;
   color: var(--muted);
 }
-#modal-game-timer {
-  font-size: 2.4rem;
-  color: #63a437;
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
 #modal-combat-label {
   font-size: 0.8rem;
   font-weight: 700;
@@ -1356,21 +1348,6 @@ body.high-contrast {
 }
 
 /* ===== LEADERBOARD ===== */
-#screen-leaderboard {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 10;
-}
-#screen-leaderboard.show {
-  display: flex;
-}
-
 .leaderboard-panel {
   background: var(--bg2);
   border: 1px solid var(--bg3);
@@ -1526,38 +1503,6 @@ body.high-contrast {
 }
 .lb-row:nth-child(3) .lb-rk {
   color: #7a4a2a;
-}
-
-.lb-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.lb-actions button {
-  flex: 1;
-  background: transparent;
-  border: 1px solid var(--bg3);
-  color: var(--muted);
-  font-family: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
-  font-size: 0.75rem;
-  padding: 8px 10px;
-  cursor: pointer;
-  letter-spacing: 0.05em;
-  border-radius: 4px;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.lb-actions button.primary {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.lb-actions button:hover {
-  border-color: var(--text);
-  color: var(--text);
 }
 
 /* ===== FOOTER ===== */
@@ -5153,4 +5098,32 @@ body.qw-active {
 }
 .leaderboard-panel.lb-cento .lb-row {
   border-bottom-color: rgba(31, 77, 58, 0.4);
+}
+
+.home-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  width: auto;
+  height: auto;
+  padding: 12px 14px;
+  background: var(--accent-2);
+  border: 2px solid var(--accent-2);
+  border-radius: 8px;
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.home-btn:hover,
+.home-btn:focus-visible {
+  border-color: var(--text);
+  filter: brightness(1.1);
+}
+.home-btn[hidden] {
+  display: none;
 }

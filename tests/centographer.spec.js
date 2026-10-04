@@ -10,7 +10,9 @@ test('centographer: start → pick → submit → gameover + leaderboard', async
   await api.post('/test/clear-all', {});
   await api.post('/test/setup-users', {});
 
-  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player');
+  const { ctx, page } = await registerAndLogin(browser, 'e2e_quiz_player', {
+    query: 'testSpeed=8',
+  });
 
   await page.locator('#btn-cento-create').click();
   await page.locator('#screen-centographer').waitFor({ state: 'visible', timeout: 5000 });

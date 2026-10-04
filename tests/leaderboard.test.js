@@ -107,6 +107,16 @@ describe('leaderboard: checkQualifiesTop10ForMode (cnt < 10 cap)', () => {
   });
 });
 
+describe('leaderboard: negative scores (SkipNoT min -140)', () => {
+  it('a negative score qualifies on an empty board and is stored', () => {
+    expect(checkQualifiesTop10ForMode(OTHER, -140, 30000)).toBe(true);
+    insertScoreForMode(OTHER, 'Neg', -140, 30000);
+    const top = getTop10ForMode(OTHER);
+    expect(top).toHaveLength(1);
+    expect(top[0].answers).toBe(-140);
+  });
+});
+
 describe('leaderboard: pruneMode', () => {
   it('keeps the top 100 and drops the rest', () => {
     for (let i = 0; i < 105; i++) {

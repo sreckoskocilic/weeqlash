@@ -834,6 +834,10 @@
     <!-- Help modal -->
     <div id="help-modal">
       <div class="help-content">
+        <p>
+          ⌂ HOME (top-left) gets you out of any game. Bail on a live brawl, duel or Qlashword match
+          and it counts as a loss; the other side takes the win.
+        </p>
         <h2>HOW TO PLAY — WEEQLASH BRAWL</h2>
         <p>
           Multiplayer board game. Pick a board size (4×4 up to 10×10), deploy pegs, move them across
@@ -868,9 +872,14 @@
           same button to join.
         </p>
         <p>
-          When it's your turn, click ⚔ ATTACK to start the timer. Questions appear one by one —
-          correct: +1, wrong: −1. Keep answering until the timer runs out or you click END TURN.
-          Timer starts at 5 s and grows +3 s each round (max 25 s).
+          When it's your turn, click ⚔ ATTACK to start the timer. You get 10 s to click it, then it
+          starts on its own. Questions appear one by one — correct: +1, wrong: −1. Keep answering
+          until the timer runs out or you click END TURN. Timer starts at 5 s and grows +3 s each
+          round (max 25 s).
+        </p>
+        <p>
+          Don't go AFK. A turn with no answer and no END TURN costs you 2 HP. Do it twice in a row
+          and you lose.
         </p>
         <p>Your final score determines what happens:</p>
         <ul>
@@ -1033,7 +1042,6 @@
         <div class="modal-header">
           <span id="modal-cat-badge"></span>
           <span id="modal-player-label"></span>
-          <span id="modal-game-timer" style="display: none"></span>
           <span id="modal-combat-label" style="display: none"></span>
         </div>
         <div id="modal-question"></div>
@@ -1060,8 +1068,9 @@
     <div id="screen-gameover">
       <h2>GAME OVER</h2>
       <div id="winner-text"></div>
-      <button id="btn-gameover-newgame">NEW GAME</button>
     </div>
+
+    <button id="btn-home" class="home-btn" type="button" hidden>⌂ HOME</button>
 
     <script type="module" src="./js/main.js"></script>
 
@@ -1304,13 +1313,6 @@
               [ show recap ]
             </button>
             <div class="qlas-recap" id="qlas-recap" style="display: none"></div>
-            <button
-              class="qlas-btn qlas-btn--ghost"
-              id="btn-qlas-playagain"
-              style="margin-top: 20px"
-            >
-              [ REMATCH ]
-            </button>
           </div>
         </div>
       </div>
@@ -1432,7 +1434,6 @@
             <div><span id="qw-go-p0name">P1</span>: <span id="qw-go-p0score">0</span></div>
             <div><span id="qw-go-p1name">P2</span>: <span id="qw-go-p1score">0</span></div>
           </div>
-          <button id="qw-btn-playagain" class="qw-btn-primary" type="button">PLAY AGAIN</button>
         </div>
       </div>
     </div>
@@ -1597,14 +1598,6 @@
               >
                 [ SUBMIT ]
               </button>
-              <button
-                class="qlas-btn qlas-btn--ghost"
-                id="btn-skipnot-back"
-                type="button"
-                style="flex: 1 1 0"
-              >
-                [ BACK ]
-              </button>
             </div>
             <div class="leaderboard-panel lb-skipnot" style="margin-top: 1.2rem">
               <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
@@ -1756,14 +1749,6 @@
               >
                 [ SUBMIT ]
               </button>
-              <button
-                class="qlas-btn qlas-btn--ghost"
-                id="btn-mathquiz-back"
-                type="button"
-                style="flex: 1 1 0"
-              >
-                [ BACK ]
-              </button>
             </div>
             <div class="leaderboard-panel lb-mathquiz" style="margin-top: 1.2rem">
               <div class="lb-heading">MATH <span>MINDS</span></div>
@@ -1858,14 +1843,6 @@
                 style="display: none; flex: 1 1 0"
               >
                 [ SUBMIT ]
-              </button>
-              <button
-                class="qlas-btn qlas-btn--ghost"
-                id="btn-cento-back"
-                type="button"
-                style="flex: 1 1 0"
-              >
-                [ BACK ]
               </button>
             </div>
             <div class="leaderboard-panel lb-cento" style="margin-top: 1.2rem">
@@ -2124,37 +2101,8 @@
                 </button>
               </div>
             </div>
-            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
-              <button
-                class="qlas-btn qlas-btn--ghost"
-                id="btn-howhigh-back"
-                type="button"
-                style="flex: 1 1 0"
-              >
-                [ BACK ]
-              </button>
-            </div>
+            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0"></div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quiz Screen (overlay) -->
-    <!-- Leaderboard Screen -->
-    <div id="screen-leaderboard">
-      <div class="leaderboard-panel">
-        <div class="lb-heading">DEM <span>QWIZZACKS</span></div>
-        <div class="lb-divider"></div>
-        <div class="lb-thead">
-          <div>#</div>
-          <div>NAME</div>
-          <div style="text-align: center">SCORE</div>
-          <div style="text-align: right">TIME</div>
-        </div>
-        <div id="lb-rows" class="lb-rows"></div>
-        <div class="lb-actions">
-          <button class="primary" id="lb-play-again">[ play again ]</button>
-          <button id="lb-back">[ back to lobby ]</button>
         </div>
       </div>
     </div>

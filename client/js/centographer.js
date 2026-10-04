@@ -1,9 +1,9 @@
 // CentoGrapher: single-question geography select-all. Verdict covers the player's OWN picks only; the true correct set is never revealed.
 
-import { el, showScreen, sanitize } from './dom.js';
+import { el, showScreen, sanitize, showError, getPlayerName } from './dom.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
-import { showView } from './nav.js';
 import { TEST_SPEED } from './constants.js';
+import { registerHomeHandler } from './home.js';
 
 const RESULT_FLASH_MS = 1100 / TEST_SPEED;
 
@@ -65,12 +65,12 @@ function _startTimer(totalSec) {
   _stopTimer();
   const fill = _qel('cento-timer-fill');
   const text = _qel('cento-timer-text');
-  let left = totalSec;
+  const deadline = Date.now() + totalSec * 1000;
   fill.style.width = '100%';
   fill.className = 'cento-timer-fill safe';
-  text.textContent = Math.ceil(left) + 's';
+  text.textContent = Math.ceil(totalSec) + 's';
   timerInt = setInterval(() => {
-    left = Math.max(0, left - 0.1);
+    const left = Math.max(0, (deadline - Date.now()) / 1000);
     const pct = (left / totalSec) * 100;
     fill.style.width = pct + '%';
     text.textContent = Math.ceil(left) + 's';
@@ -139,17 +139,19 @@ function _onSubmitScore() {
 }
 
 function _startRun() {
-  selected = new Set();
-  resolved = false;
-  _qel('btn-cento-submit').disabled = false;
-  _showPhase('game');
-  showScreen('screen-centographer');
+  if (!getPlayerName()) {
+    return;
+  }
   socketRef?.emit('centographer:start', (res) => {
     if (res?.error) {
-      console.warn('[cento] start failed:', res.error);
-      _qel('cento-count').textContent = '—';
+      showError(res.error);
       return;
     }
+    selected = new Set();
+    resolved = false;
+    _qel('btn-cento-submit').disabled = false;
+    _showPhase('game');
+    showScreen('screen-centographer');
     choices = res.choices || [];
     _qel('cento-img').src = '/assets/countries/' + res.slug + '.svg';
     _qel('cento-count').textContent = '0';
@@ -163,12 +165,7 @@ export function initCentographer(sock) {
   el('btn-cento-create').addEventListener('click', _startRun);
   el('btn-cento-submit').addEventListener('click', _submit);
   el('btn-cento-submit-score').addEventListener('click', _onSubmitScore);
-  el('btn-cento-back').addEventListener('click', () => {
-    _stopTimer();
-    showScreen('screen-connect');
-    showView('play');
-    import('./auth.js').then(({ checkAuth }) => checkAuth());
-  });
+  registerHomeHandler({ reset: _stopTimer });
 
   const lbBtn = el('btn-show-cento-lb');
   const lbPanel = el('cento-lb-panel');

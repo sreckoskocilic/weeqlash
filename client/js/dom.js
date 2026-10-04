@@ -5,8 +5,6 @@ export function el(id) {
   return document.getElementById(id);
 }
 
-// Alias for compatibility
-
 // Qlashique element selector
 export function qEl(id) {
   return document.getElementById(id);
@@ -31,12 +29,12 @@ export function showScreen(id) {
   el('board-banner').style.display = hideHome ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
   el('announcements').style.display = hideHome ? 'none' : '';
+  el('btn-home').hidden = isConnect;
   [
     'screen-connect',
     'screen-lobby',
     'screen-game',
     'screen-gameover',
-    'screen-leaderboard',
     'screen-qlashique',
     'screen-qlashword',
     'screen-skipnot',

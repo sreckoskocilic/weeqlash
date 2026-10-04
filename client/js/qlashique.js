@@ -3,7 +3,8 @@
 import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
-import { QLAS_DEFAULT_HP, QLAS_HP_OPTIONS } from './constants.js';
+import { QLAS_DEFAULT_HP, QLAS_HP_OPTIONS, TEST_SPEED } from './constants.js';
+import { registerHomeHandler } from './home.js';
 
 export const QLAS_THEMES = {
   terminal: {
@@ -109,7 +110,7 @@ let qlasMaxHp = QLAS_DEFAULT_HP;
 let qlasHp = [QLAS_DEFAULT_HP, QLAS_DEFAULT_HP];
 let qlasScore = 0;
 let qlasCurrentQ = null;
-let qlasTimerTotal = 5;
+let qlasTurnSeconds = 5;
 let qlasRing = null; // CountdownRing, lazily created on first qlasStartTimer
 let qlasGuessingActive = false;
 let qlasLastAnswerIdx = -1;
@@ -308,7 +309,6 @@ function qlasLogEntry(text) {
 }
 
 function qlasStartTimer(seconds) {
-  qlasTimerTotal = seconds;
   if (!qlasRing) {
     qlasRing = makeCountdownRing({
       ringEl: qEl('qlas-turn-timer'),
@@ -568,7 +568,16 @@ export function initQlashique(socket) {
       qlasCloseLiveRecap();
     }
   });
-  qEl('btn-qlas-playagain').addEventListener('click', () => location.reload());
+  registerHomeHandler({
+    isLive: () => qlasCode !== null && qEl('qlas-phase-combat').style.display !== 'none',
+    reset: () => {
+      clearTimeout(qlasNextQTimeout);
+      qlasStopTimer();
+      qlasCloseLiveRecap();
+      qlasCode = null;
+      qlasShowPhase('waiting');
+    },
+  });
 
   // Socket events
   socket.on('room:player_joined', ({ players }) => {
@@ -586,7 +595,7 @@ export function initQlashique(socket) {
     }
   });
 
-  socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds, maxHp }) => {
+  socket.on('qlashique:turn_start', ({ playerIdx, timerSeconds, decisionSeconds, maxHp }) => {
     if (maxHp !== undefined) {
       qlasMaxHp = maxHp;
     }
@@ -632,15 +641,12 @@ export function initQlashique(socket) {
     const activeColor = playerIdx === 0 ? 'var(--game-accent)' : 'var(--game-accent-2)';
     qEl('qlas-turn-bar').style.setProperty('--active-pc', activeColor);
     qEl('qlas-turn-name').textContent = turnPlayerName;
-    qEl('qlas-turn-timer').className = 'qlas-timer-ring';
-    qEl('qlas-timer-ring-label').textContent = timerSeconds + 's';
-    const progress0 = qEl('qlas-timer-ring-progress');
-    if (progress0) {
-      progress0.setAttribute('stroke-dashoffset', '0');
-    }
     qEl('qlas-turn-score').textContent = '0';
 
-    qlasTimerTotal = timerSeconds;
+    qlasTurnSeconds = timerSeconds;
+    if (decisionSeconds > 0) {
+      qlasStartTimer(decisionSeconds);
+    }
     if (isMyTurn) {
       qEl('qlas-decision-panel').style.display = '';
     } else {
@@ -673,7 +679,7 @@ export function initQlashique(socket) {
       qEl('btn-qlas-heal').style.display = 'none';
       qEl('qlas-qpanel').style.display = '';
       qEl('qlas-qpanel').style.opacity = '1.0';
-      qlasStartTimer(qlasTimerTotal);
+      qlasStartTimer(qlasTurnSeconds);
       qlasRenderQuestion(question, questionIdx);
       if (!isMyTurn) {
         document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
@@ -682,7 +688,7 @@ export function initQlashique(socket) {
       qlasNextQTimeout = setTimeout(() => {
         document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = false));
         qlasRenderQuestion(question, questionIdx);
-      }, 600);
+      }, 600 / TEST_SPEED);
     } else {
       qlasRenderQuestion(question, questionIdx);
       document.querySelectorAll('.qlas-opt').forEach((b) => (b.disabled = true));
@@ -740,7 +746,7 @@ export function initQlashique(socket) {
     },
   );
 
-  socket.on('qlashique:turn_end', () => {
+  socket.on('qlashique:turn_end', ({ score } = {}) => {
     clearTimeout(qlasNextQTimeout);
     qlasStopTimer();
     qlasGuessingActive = false;
@@ -752,7 +758,7 @@ export function initQlashique(socket) {
     // Push a history dot + a brief recap line into the log.
     const idx = qlasActivePlayerIdx;
     if (idx === 0 || idx === 1) {
-      const finalScore = qlasLastScoreByPlayer[idx] || 0;
+      const finalScore = score ?? (qlasLastScoreByPlayer[idx] || 0);
       qlasPushHistoryDot(idx, finalScore);
       const name = qlasPlayers[idx]?.name || 'P' + (idx + 1);
       const correct = qlasTurnCorrectCount[idx] || 0;
@@ -839,6 +845,7 @@ export function initQlashique(socket) {
       hp: 'Player defeated (0 HP)',
       self_destruct: 'self-destruct',
       disconnect: 'disconnect',
+      afk: 'AFK — 2 idle turns',
     };
     qEl('qlas-winner-reason').textContent = (reasonMap[reason] || reason || '—').toUpperCase();
 
@@ -917,15 +924,18 @@ export function initQlashique(socket) {
     qlasResetForNewMatch();
 
     const playerName = getPlayerName();
-    showScreen('screen-qlashique');
-    qlasShowPhase('waiting');
-    qEl('qlas-waiting-panel').style.display = '';
+    if (!playerName) {
+      return;
+    }
 
     socket.emit('qlashique:create_room', { playerName, hp: qlasMaxHp }, (res) => {
       if (res.error) {
         showError(res.error);
         return;
       }
+      showScreen('screen-qlashique');
+      qlasShowPhase('waiting');
+      qEl('qlas-waiting-panel').style.display = '';
       qlasCode = res.code;
 
       qlasMyIdx = 0;
@@ -943,19 +953,22 @@ export function initQlashique(socket) {
       return;
     }
 
+    const playerName = getPlayerName();
+    if (!playerName) {
+      return;
+    }
     qlasCode = codeInput;
     qlasResetForNewMatch();
-
-    const playerName = getPlayerName();
-    showScreen('screen-qlashique');
-    qlasShowPhase('waiting');
-    qEl('qlas-waiting-panel').style.display = '';
 
     socket.emit('room:join', { code: qlasCode, playerName }, (res) => {
       if (res.error) {
         showError(res.error);
+        qlasCode = null;
         return;
       }
+      showScreen('screen-qlashique');
+      qlasShowPhase('waiting');
+      qEl('qlas-waiting-panel').style.display = '';
 
       qlasMyIdx = res.myIdx;
       qlasPlayers[0].name = res.players[0]?.name || '';

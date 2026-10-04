@@ -41,8 +41,6 @@ export const TEST_SPEED = _localHost
   ? Number(new URLSearchParams(window.location.search).get('testSpeed')) || 1
   : 1;
 export const TIMING = {
-  RESULT_DISPLAY_MS: 1500 / TEST_SPEED,
-  NEXT_QUESTION_DELAY_MS: 1600 / TEST_SPEED,
   WRONG_ANSWER_DELAY_MS: 500 / TEST_SPEED,
   TICK_INTERVAL_MS: 100,
   TIMER_WARNING_PCT: 50,

@@ -224,8 +224,8 @@ export function getRoom(code: string): RoomState | null {
 
 export function removePlayerFromRoom(
   socketId: string,
+  code: string | undefined = socketToRoom.get(socketId),
 ): { room: RoomState; player: PlayerInRoom } | {} {
-  const code = socketToRoom.get(socketId);
   if (!code) {
     return {};
   }
@@ -240,7 +240,9 @@ export function removePlayerFromRoom(
     room.playersBySocket.delete(socketId);
   }
   room.players = room.players.filter((p) => p.id !== socketId);
-  socketToRoom.delete(socketId);
+  if (socketToRoom.get(socketId) === code) {
+    socketToRoom.delete(socketId);
+  }
 
   // Delete empty rooms after a delay (survives brief reconnects); re-check emptiness at execution time to avoid a race.
   if (room.players.length === 0) {

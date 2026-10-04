@@ -83,7 +83,11 @@ export function loadQuestions(encPath?: string): QuestionsDb {
 const _allCacheByDb = new WeakMap<QuestionsDb, Question[]>();
 export function getAllQuestions(db: QuestionsDb): Question[] {
   if (!_allCacheByDb.has(db)) {
-    _allCacheByDb.set(db, db._byId ? Object.values(db._byId) : []);
+    const buckets = (Object.values(db) as unknown[]).filter(Array.isArray) as Question[][];
+    _allCacheByDb.set(
+      db,
+      buckets.flatMap((qs) => qs.map((q) => db._byId?.[q.id]).filter((q) => q !== undefined)),
+    );
   }
   return _allCacheByDb.get(db)!;
 }

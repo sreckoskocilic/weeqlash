@@ -1,4 +1,3 @@
-import path from 'path';
 import {
   createUser,
   authenticateUser,
@@ -342,11 +341,6 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
 
     // Always return success to avoid email enumeration
     res.json({ ok: true, message: 'If that email exists, a reset link has been sent' });
-  });
-
-  // Reset password page (serve client for direct URL access)
-  app.get('/auth/reset-password', (_req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, '../../client/index.html'));
   });
 
   // Reset password

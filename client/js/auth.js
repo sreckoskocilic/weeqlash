@@ -7,6 +7,20 @@ import { applyAuthState, showView } from './nav.js';
 let serverUrl = '';
 let socket = null;
 
+async function postAuth(path, body) {
+  try {
+    const res = await fetch(`${serverUrl}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch {
+    return { error: 'Network error — try again.' };
+  }
+}
+
 export function initAuth(svrUrl, sock) {
   serverUrl = svrUrl;
   socket = sock;
@@ -72,13 +86,7 @@ export function initLogin() {
       return showAuthMessage('Fill in all fields', true);
     }
 
-    const res = await fetch(`${serverUrl}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ username, password, keepLoggedIn }),
-    });
-    const data = await res.json();
+    const data = await postAuth('/auth/login', { username, password, keepLoggedIn });
     if (data.error) {
       return showAuthMessage(data.error, true);
     }
@@ -108,12 +116,7 @@ export function initRegister() {
       return showAuthMessage('Fill in all fields', true);
     }
 
-    const res = await fetch(`${serverUrl}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password }),
-    });
-    const data = await res.json();
+    const data = await postAuth('/auth/register', { username, email, password });
     if (data.error) {
       return showAuthMessage(data.error, true);
     }
@@ -143,12 +146,10 @@ export function initForgotPassword() {
       return showAuthMessage('Enter your email', true);
     }
 
-    const res = await fetch(`${serverUrl}/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
+    const data = await postAuth('/auth/forgot-password', { email });
+    if (data.error) {
+      return showAuthMessage(data.error, true);
+    }
     showAuthMessage(data.message || 'If that email exists, a reset link has been sent', false);
   });
 }
@@ -163,12 +164,7 @@ export function initResetPassword() {
       return showAuthMessage('Password must be at least 8 characters', true);
     }
 
-    const res = await fetch(`${serverUrl}/auth/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: resetToken, password }),
-    });
-    const data = await res.json();
+    const data = await postAuth('/auth/reset-password', { token: resetToken, password });
     if (data.error) {
       return showAuthMessage(data.error, true);
     }

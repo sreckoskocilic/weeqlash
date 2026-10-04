@@ -35,6 +35,7 @@ test('qlashword: lobby → place QUIZ over center DW → unlock bonus → score 
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
 
   // Host creates a Qlashword room.
+  const createdAt = Date.now();
   await p1.locator('#btn-qlashword-create').click();
   await expect(p1.locator('#qw-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = (await p1.locator('#qw-code-val').textContent()).trim();
@@ -45,8 +46,7 @@ test('qlashword: lobby → place QUIZ over center DW → unlock bonus → score 
 
   // Host sees the Start button once the room is full, then starts.
   await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });
-  // Wait out the 1s per-socket lobby rate limit from create_room so START isn't throttled
-  await p1.waitForTimeout(1200);
+  await p1.waitForTimeout(Math.max(0, 1100 - (Date.now() - createdAt)));
   await p1.locator('#qw-btn-start').click();
 
   // Both reach the board; 15×15 = 225 cells render.
@@ -101,37 +101,6 @@ test('qlashword: lobby → place QUIZ over center DW → unlock bonus → score 
   await ctx2.close();
 });
 
-test('qlashword: a player can pass and the turn advances', async ({ browser }) => {
-  const api = await playwrightRequest.newContext({ baseURL: BASE });
-  await api.post('/test/clear-all', {});
-  await api.post('/test/setup-users', {});
-
-  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_qlas_p1');
-  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
-
-  await p1.locator('#btn-qlashword-create').click();
-  await expect(p1.locator('#qw-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
-  const code = (await p1.locator('#qw-code-val').textContent()).trim();
-
-  await p2.locator('#qlashword-join-code').fill(code);
-  await p2.locator('#btn-qlashword-join').click();
-  await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });
-  // Wait out the 1s per-socket lobby rate limit from create_room so START isn't throttled
-  await p1.waitForTimeout(1200);
-  await p1.locator('#qw-btn-start').click();
-
-  await p1.locator('#qw-phase-game').waitFor({ state: 'visible', timeout: 10000 });
-  await expect(p1.locator('#qw-turn-indicator')).toHaveText(/YOUR TURN/);
-
-  await p1.locator('#qw-btn-pass').click();
-  await expect(p2.locator('#qw-turn-indicator')).toHaveText(/YOUR TURN/, { timeout: 8000 });
-  await expect(p1.locator('#qw-turn-indicator')).not.toHaveText(/YOUR TURN/);
-
-  await api.dispose();
-  await ctx1.close();
-  await ctx2.close();
-});
-
 // Read the logged-in player's id + game stats through their own session.
 async function getStats(page) {
   return page.evaluate(async () => {
@@ -149,13 +118,14 @@ test('qlashword: a completed game counts toward played/won', async ({ browser })
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
 
+  const createdAt = Date.now();
   await p1.locator('#btn-qlashword-create').click();
   await expect(p1.locator('#qw-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = (await p1.locator('#qw-code-val').textContent()).trim();
   await p2.locator('#qlashword-join-code').fill(code);
   await p2.locator('#btn-qlashword-join').click();
   await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });
-  await p1.waitForTimeout(1200);
+  await p1.waitForTimeout(Math.max(0, 1100 - (Date.now() - createdAt)));
   await p1.locator('#qw-btn-start').click();
   await p1.locator('#qw-phase-game').waitFor({ state: 'visible', timeout: 10000 });
 

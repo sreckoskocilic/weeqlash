@@ -13,6 +13,7 @@ import { initGameTheme } from './game-theme.js';
 import { initHowHigh } from './howhigh.js';
 import { initMathquiz } from './mathquiz.js';
 import { initCentographer } from './centographer.js';
+import { initHome } from './home.js';
 import { initNav } from './nav.js';
 
 // Server URL configuration
@@ -59,6 +60,7 @@ async function init() {
 
   // HowHigh? (async 2P challenge)
   initHowHigh(sock);
+  initHome();
 
   // Setup-screen UI (category toggles, help, legal modals, etc.)
   initUI();
@@ -165,7 +167,6 @@ function initUI() {
     });
   });
 
-  dom.el('btn-gameover-newgame').addEventListener('click', () => location.reload());
 }
 
 function initOptBtnGroup(groupId, setter) {

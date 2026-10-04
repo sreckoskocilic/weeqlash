@@ -2,6 +2,8 @@
 	admin off
 }
 brawl.weeqlash.icu {
+	encode zstd gzip
+
 	# SEO headers
 	header /* {
 		X-Robots-Tag "all"

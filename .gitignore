@@ -13,3 +13,4 @@ coverage/
 qlashique
 screenshots/iphone13
 docs/
+.vitest/

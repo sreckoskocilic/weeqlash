@@ -24,7 +24,6 @@ test('mathquiz: play 10 questions → gameover + leaderboard', async ({ browser 
     await expect(page.locator('#mathquiz-prompt')).not.toBeEmpty();
     await page.locator('#mathquiz-input').fill('0');
     await page.locator('#btn-mathquiz-submit').click();
-    await page.waitForTimeout(600);
   }
 
   // Gameover: a numeric score (can be 0 / negative / fractional) and a duration.

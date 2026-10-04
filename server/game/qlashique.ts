@@ -24,6 +24,7 @@ export interface QlashiqueState {
   currentScore: number;
   phase: Phase;
   maxHp: number;
+  idleTurns: [number, number];
 }
 
 // ---------------------------------------------------------------------------
@@ -33,6 +34,8 @@ export interface QlashiqueState {
 export const QLAS_DEFAULT_HP = 15;
 export const QLAS_HP_OPTIONS = [10, 15, 20, 30] as const;
 export const QLAS_MAX_ANSWERS_PER_TURN = 20;
+export const QLAS_IDLE_DAMAGE = 2;
+export const QLAS_IDLE_TURNS_TO_LOSE = 2;
 
 export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
   return {
@@ -42,6 +45,7 @@ export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
     currentScore: 0,
     phase: PHASE.DECISION,
     maxHp: hp,
+    idleTurns: [0, 0],
   };
 }
 
@@ -72,6 +76,21 @@ export function processAnswer(
   }
 
   return { state, correct };
+}
+
+// Call before endTurn. An idle turn (no answer, no STOP) scores -QLAS_IDLE_DAMAGE; consecutive idle turns forfeit. Returns forfeit winnerIdx or -1.
+export function recordTurnActivity(state: QlashiqueState, engaged: boolean): number {
+  const idx = state.currentPlayerIdx;
+  if (engaged) {
+    state.idleTurns[idx] = 0;
+    return -1;
+  }
+  state.idleTurns[idx] += 1;
+  if (state.idleTurns[idx] >= QLAS_IDLE_TURNS_TO_LOSE) {
+    return 1 - idx;
+  }
+  state.currentScore = -QLAS_IDLE_DAMAGE;
+  return -1;
 }
 
 // End the turn and compute outcome; HP updates immediately except 'choose' (caller follows up with applyOutcome).

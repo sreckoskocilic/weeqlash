@@ -1,7 +1,7 @@
 // @ts-check
 // Shared Playwright e2e helpers — require the server running with ENABLE_TEST_ROUTES=1
 
-import { request as playwrightRequest } from '@playwright/test';
+import { expect, request as playwrightRequest } from '@playwright/test';
 
 export const BASE = 'http://localhost:3000';
 
@@ -45,4 +45,45 @@ export async function clearStickyQuestion() {
   if (!res.ok()) {
     throw new Error(`/test/clear-sticky-question failed: ${res.status()}`);
   }
+}
+
+export async function startBoardGame(browser) {
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', {
+    query: 'testSpeed=8',
+  });
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_normal_p2', {
+    query: 'testSpeed=8',
+  });
+
+  await p1.locator('[data-view="settings"]').click();
+  await p1.locator('[data-val="4"]').click();
+  await p1.locator('[data-view="play"]').click();
+  const createdAt = Date.now();
+  await p1.locator('#btn-create').click();
+  await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
+  const code = await p1.locator('#lobby-code').innerText();
+
+  await p2.locator('#join-code').fill(code);
+  await p2.locator('#btn-join').click();
+  await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
+
+  await p1.locator('#btn-start:not([disabled])').waitFor({ timeout: 8000 });
+  // Lobby rate limit is 1000ms per socket between room:create and room:start.
+  await p1.waitForTimeout(Math.max(0, 1100 - (Date.now() - createdAt)));
+  await p1.locator('#btn-start').click();
+  await p1.locator('#screen-game').waitFor({ timeout: 8000 });
+  await p2.locator('#screen-game').waitFor({ timeout: 8000 });
+
+  return { ctx1, p1, ctx2, p2, code };
+}
+
+// Server rejects board answers sooner than MIN_ANSWER_DELAY_MS (300ms) after the question opens.
+export async function answerBoardQuestion(page, optionIdx) {
+  await page.locator('#modal-overlay.visible').waitFor({ timeout: 5000 });
+  const option = page.locator('#modal-options .modal-option').nth(optionIdx);
+  await expect(option).toBeEnabled({ timeout: 5000 });
+  await page.waitForTimeout(350);
+  await option.click();
+  await expect(option).toBeDisabled({ timeout: 5000 });
+  return option;
 }

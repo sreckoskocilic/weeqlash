@@ -24,8 +24,12 @@ test('qlashique: score >= 2 heal restores HP, opponent untouched', async ({ brow
   const correctIdx = TEST_QUESTION.correctIdx; // 0
   const wrongIdx = 1;
 
-  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_qlas_p1');
-  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
+  const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_qlas_p1', {
+    query: 'testSpeed=8',
+  });
+  const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2', {
+    query: 'testSpeed=8',
+  });
 
   await p1.locator('#btn-qlas-create').click();
   await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });

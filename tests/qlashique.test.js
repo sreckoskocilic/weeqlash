@@ -7,6 +7,8 @@ import {
   endTurn,
   applyOutcome,
   checkGameOver,
+  recordTurnActivity,
+  QLAS_IDLE_DAMAGE,
   PHASE,
 } from '../server/game/qlashique.ts';
 
@@ -434,5 +436,70 @@ describe('edge cases: attack damage calculation', () => {
     s.players[1].hp = 20;
     applyOutcome(s, 'attack');
     expect(s.players[1].hp).toBe(10); // 20 - 10
+  });
+});
+
+describe('recordTurnActivity (idle turns)', () => {
+  function idleTurn(s) {
+    s.phase = PHASE.GUESSING;
+    const winner = recordTurnActivity(s, false);
+    if (winner < 0) {
+      endTurn(s);
+    }
+    return winner;
+  }
+
+  it('idle turn costs QLAS_IDLE_DAMAGE HP and passes the turn', () => {
+    const s = createQlasGame(15);
+    expect(idleTurn(s)).toBe(-1);
+    expect(s.players[0].hp).toBe(15 - QLAS_IDLE_DAMAGE);
+    expect(s.currentPlayerIdx).toBe(1);
+  });
+
+  it('second consecutive idle turn forfeits to the opponent', () => {
+    const s = createQlasGame(15);
+    idleTurn(s);
+    s.phase = PHASE.GUESSING;
+    recordTurnActivity(s, true);
+    endTurn(s);
+    expect(idleTurn(s)).toBe(1);
+  });
+
+  it('an engaged turn resets the idle streak', () => {
+    const s = createQlasGame(15);
+    idleTurn(s);
+    s.phase = PHASE.GUESSING;
+    recordTurnActivity(s, true);
+    endTurn(s);
+    s.phase = PHASE.GUESSING;
+    recordTurnActivity(s, true);
+    endTurn(s);
+    s.phase = PHASE.GUESSING;
+    recordTurnActivity(s, true);
+    endTurn(s);
+    expect(idleTurn(s)).toBe(-1);
+    expect(s.idleTurns[0]).toBe(1);
+  });
+
+  it('engaged turn with score 0 leaves HP untouched', () => {
+    const s = createQlasGame(15);
+    s.phase = PHASE.GUESSING;
+    expect(recordTurnActivity(s, true)).toBe(-1);
+    endTurn(s);
+    expect(s.players[0].hp).toBe(15);
+  });
+
+  it('idle streaks are tracked per player', () => {
+    const s = createQlasGame(15);
+    idleTurn(s);
+    expect(idleTurn(s)).toBe(-1);
+    expect(s.idleTurns).toEqual([1, 1]);
+  });
+
+  it('idle damage that drops HP to 0 ends the game on HP', () => {
+    const s = createQlasGame(15);
+    s.players[0].hp = QLAS_IDLE_DAMAGE;
+    idleTurn(s);
+    expect(checkGameOver(s, 0)).toBe(1);
   });
 });

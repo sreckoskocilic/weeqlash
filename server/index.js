@@ -13,7 +13,7 @@ const envPath = existsSync(path.join(__dirname, '.env'))
     ? path.join(__dirname, '..', '.env')
     : null;
 if (envPath) {
-  dotenv.config({ path: envPath, override: true });
+  dotenv.config({ path: envPath });
 }
 
 // Report all missing secrets at once at boot, before any lazy per-module throw.
@@ -60,7 +60,6 @@ import {
   DEFAULT_CATS_SET,
 } from './game/engine.ts';
 import { loadQuestions, pickRandomQuestion } from './game/questions.ts';
-import { QUIZ_MODES_BY_ID } from './game/quiz-modes.ts';
 import * as skipnot from './game/skipnot.ts';
 import * as mathquiz from './game/mathquiz.ts';
 import { generateSet as mathGenerateSet, toPublic as mathToPublic } from './game/mathgen.ts';
@@ -84,6 +83,7 @@ import {
   endTurn,
   applyOutcome,
   checkGameOver,
+  recordTurnActivity,
   QLAS_DEFAULT_HP,
   QLAS_HP_OPTIONS,
   QLAS_MAX_ANSWERS_PER_TURN,
@@ -249,6 +249,7 @@ const ANSWER_GRACE_MS = 2000;
 const QLAS_DEFAULT_TIMER_S = 5;
 const TURN_GRACE_S = 3;
 const QLAS_CHOICE_S = 10;
+const QLAS_DECISION_S = 10;
 const HOWHIGH_ACTIVE_TTL_MS = 15 * 60_000;
 
 // Clamp a client-reported run duration into [minMs, maxMs] so a tampered client can't fake it; falls back to server time.
@@ -298,8 +299,31 @@ function quizStartGuard(
   return false;
 }
 
-// Quiz session tracking
-const quizRuns = new Map(); // socketId -> { startedAt, questionIds[], answers: 0 }
+function _roomSwitchBlocked(socket, cb) {
+  if (isInActiveGame(socket.id)) {
+    cb({ error: 'Finish your current game first.' });
+    return true;
+  }
+  return false;
+}
+
+function _leavePreviousRoom(socket, prevCode) {
+  if (!prevCode) {
+    return;
+  }
+  const { room, player } = removePlayerFromRoom(socket.id, prevCode);
+  if (!room) {
+    return;
+  }
+  socket.leave(room.code);
+  if (!room.started) {
+    io.to(room.code).emit('room:player_left', {
+      playerId: socket.id,
+      playerName: player.name,
+      players: room.players.map(publicPlayer),
+    });
+  }
+}
 
 // SkipNoT session tracking (solo 20-Q quiz). One run per socket.
 const skipnotRuns = new Map();
@@ -321,11 +345,6 @@ const cleanupInterval = setInterval(() => {
   for (const [socketId, run] of skipnotRuns) {
     if (now - run.startedAt > 10 * 60_000) {
       skipnotRuns.delete(socketId);
-    }
-  }
-  for (const [socketId, run] of quizRuns) {
-    if (now - run.startedAt > 10 * 60_000) {
-      quizRuns.delete(socketId);
     }
   }
   for (const [socketId, run] of howHighRuns) {
@@ -566,6 +585,15 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, hp });
   });
 
+  app.post('/test/set-qlas-timers', (req, res) => {
+    const { seconds } = req.body;
+    if (!Number.isInteger(seconds) || seconds < 1) {
+      return res.status(400).json({ error: 'seconds must be a positive integer' });
+    }
+    _testQlasTimerOverride = seconds;
+    res.json({ ok: true, seconds });
+  });
+
   app.post('/test/set-howhigh-bonus', (req, res) => {
     const { bonusQ3, bonusQ6 } = req.body;
     if (bonusQ3 && bonusQ3 !== 'dice' && bonusQ3 !== 'double_or_nothing') {
@@ -790,8 +818,10 @@ io.on('connection', (socket) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
-    // Clean up any lingering quiz session when joining a room game
-    quizRuns.delete(socket.id);
+    if (_roomSwitchBlocked(socket, cb)) {
+      return;
+    }
+    const prevCode = socketToRoom.get(socket.id);
     const room = createRoom({
       playerCount,
       boardSize,
@@ -805,6 +835,7 @@ io.on('connection', (socket) => {
       rooms.delete(room.code);
       return cb({ error: player.error || 'Failed to create room' });
     }
+    _leavePreviousRoom(socket, prevCode);
     socket.join(room.code);
     console.log(`[room] ${room.code} created by ${playerName}`);
     const token = getPlayerBySocket(room, socket.id)?.token;
@@ -827,8 +858,10 @@ io.on('connection', (socket) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
-    // Clean up any lingering quiz session when joining a room game
-    quizRuns.delete(socket.id);
+    if (_roomSwitchBlocked(socket, cb)) {
+      return;
+    }
+    const prevCode = socketToRoom.get(socket.id);
     // Use socket.userId or pendingUserId if not yet in socket
     const userId = socket.userId || socket.pendingUserId;
     const joinResult = joinRoom(code, socket.id, playerName, userId || null);
@@ -836,6 +869,7 @@ io.on('connection', (socket) => {
       return cb(joinResult);
     }
     const room = getRoom(code);
+    _leavePreviousRoom(socket, prevCode);
     socket.join(code);
     socket.to(code).emit('room:player_joined', { players: room.players.map(publicPlayer) });
     const joiningPlayer = getPlayerBySocket(room, socket.id);
@@ -900,7 +934,6 @@ io.on('connection', (socket) => {
       room.qwUsedQIds = new Set();
       for (const player of room.players) {
         registerActiveSocket(player.id);
-        quizRuns.delete(player.id);
       }
       console.log(`[qlashword] ${code} started (2p)`);
       _emitQwGameStart(io, code, room);
@@ -923,7 +956,6 @@ io.on('connection', (socket) => {
     // Register all player sockets as in an active game
     for (const player of room.players) {
       registerActiveSocket(player.id);
-      quizRuns.delete(player.id);
     }
 
     console.log(
@@ -956,8 +988,7 @@ io.on('connection', (socket) => {
       return cb({ error: 'Invalid session token' });
     }
 
-    // Clean up any lingering quiz/skipnot session on reconnect
-    quizRuns.delete(socket.id);
+    // Clean up any lingering skipnot session on reconnect
     _disposeSkipnotRun(socket.id);
 
     const oldSocketId = player.id;
@@ -1264,142 +1295,6 @@ io.on('connection', (socket) => {
       }
       recordGameStats(room);
     }
-  });
-
-  // --- Quiz ---
-
-  function getModeCats(mode) {
-    const cfg = QUIZ_MODES_BY_ID[mode];
-    return cfg?.categoriesSet ?? CATS_SET;
-  }
-
-  socket.on('quiz:start', ({ mode = 'triviandom' } = {}, cb) => {
-    if (typeof cb !== 'function') {
-      ((cb = mode), (mode = 'triviandom'));
-    } // backward compat
-    if (typeof cb !== 'function') {
-      return;
-    }
-    if (!socket.userId) {
-      return cb({ error: 'Login required' });
-    }
-
-    if (!QUIZ_MODES_BY_ID[mode]) {
-      return cb({ error: `Unknown quiz mode: ${mode}` });
-    }
-
-    const now = Date.now();
-    if (quizStartGuard(socket, cb, now)) {
-      return;
-    }
-
-    let randomQ = pickRandomQuestion(questionsDb, getModeCats(mode));
-    if (!randomQ) {
-      return cb({ error: 'No questions available for this mode.' });
-    }
-    const quizOverrideId = _consumeQuestionOverride(questionsDb);
-    if (quizOverrideId) {
-      randomQ = questionsDb._byId[quizOverrideId];
-    }
-    quizRuns.set(socket.id, { startedAt: Date.now(), questionIds: [randomQ.id], answers: 0, mode });
-
-    cb({ ok: true, id: randomQ.id, q: randomQ.q, opts: randomQ.opts, category: randomQ.category });
-  });
-
-  socket.on('quiz:answer', ({ answerIdx }, cb) => {
-    if (typeof cb !== 'function') {
-      return;
-    }
-    const run = quizRuns.get(socket.id);
-    if (!run) {
-      return cb({ error: 'Quiz not started' });
-    }
-    if (run.gameOver) {
-      return cb({ error: 'Quiz already ended' });
-    }
-
-    if (typeof answerIdx !== 'number' || answerIdx < -1 || answerIdx > 3) {
-      return cb({ error: 'Invalid answer index' });
-    }
-
-    const q = questionsDb._byId[run.questionIds[run.answers]];
-    if (!q) {
-      return cb({ error: 'Question not found' });
-    }
-
-    const correct = answerIdx !== -1 && q.a === answerIdx;
-
-    if (!correct) {
-      run.gameOver = true;
-      const endTime = Date.now();
-      const timeSec = (endTime - run.startedAt) / 1000;
-      const qualifies = checkQualifiesTop10ForMode(run.mode, run.answers, endTime - run.startedAt);
-      const res = {
-        ok: true,
-        correct: false,
-        gameOver: true,
-        answers: run.answers,
-        timeSec: Math.round(timeSec * 10) / 10,
-        qualifies,
-      };
-      if (answerIdx !== -1) {
-        res.correctIdx = q.a;
-      }
-      return cb(res);
-    }
-
-    run.answers++;
-    cb({ ok: true, correct: true });
-  });
-
-  socket.on('quiz:next', (cb) => {
-    if (typeof cb !== 'function') {
-      return;
-    }
-    const run = quizRuns.get(socket.id);
-    if (!run) {
-      return cb({ error: 'Quiz not started' });
-    }
-    if (run.gameOver) {
-      return cb({ error: 'Quiz already ended' });
-    }
-
-    const randomQ = pickRandomQuestion(
-      questionsDb,
-      getModeCats(run.mode),
-      new Set(run.questionIds),
-    );
-    if (!randomQ) {
-      return cb({ error: 'No questions available' });
-    }
-
-    run.questionIds.push(randomQ.id);
-    cb({ ok: true, id: randomQ.id, q: randomQ.q, opts: randomQ.opts, category: randomQ.category });
-  });
-
-  socket.on('quiz:submit_score', ({ name }, cb) => {
-    if (typeof cb !== 'function') {
-      return;
-    }
-    const run = quizRuns.get(socket.id);
-    if (!run) {
-      return cb({ error: 'No completed run' });
-    }
-
-    if (!run.gameOver) {
-      return cb({ error: 'Quiz not finished' });
-    }
-
-    const sanitizedName = name?.trim();
-    if (!sanitizedName || sanitizedName.length > 16) {
-      return cb({ error: 'Name must be 1-16 characters' });
-    }
-
-    const timeMs = Date.now() - run.startedAt;
-    const top10 = insertScoreForMode(run.mode, sanitizedName, run.answers, timeMs);
-    quizRuns.delete(socket.id);
-
-    cb({ ok: true, top10 });
   });
 
   socket.on('quiz:leaderboard', ({ mode = 'triviandom' } = {}, cb) => {
@@ -2273,7 +2168,10 @@ io.on('connection', (socket) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
-    quizRuns.delete(socket.id);
+    if (_roomSwitchBlocked(socket, cb)) {
+      return;
+    }
+    const prevCode = socketToRoom.get(socket.id);
     const userId = socket.userId || socket.pendingUserId;
     const room = createQlasRoom();
     room.qlasHP = QLAS_HP_OPTIONS.includes(hp) ? hp : QLAS_DEFAULT_HP;
@@ -2282,6 +2180,7 @@ io.on('connection', (socket) => {
       rooms.delete(room.code);
       return cb(player);
     }
+    _leavePreviousRoom(socket, prevCode);
     socket.join(room.code);
     const token = getPlayerBySocket(room, socket.id)?.token;
     cb({
@@ -2313,42 +2212,8 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not in decision phase' });
     }
 
-    room.state.phase = QLAS_PHASE.GUESSING;
-    room.questionIdx = 0;
-
-    const q = _pickQlasQuestion(room, questionsDb);
-    if (!q) {
-      return cb({ error: 'No questions available' });
-    }
-    room.currentQuestion = q;
-
-    io.to(code).emit('qlashique:question', {
-      question: { id: q.id, q: q.q, opts: q.opts, category: q.category },
-      questionIdx: 0,
-      activePlayerIdx: room.state.currentPlayerIdx,
-    });
-    cb({ ok: true });
-
-    // Server-side authoritative timer — fires if client never sends end_turn
-    room.qlasGuessingStartedAt = Date.now();
-    if (room.qlasTimer) {
-      clearTimeout(room.qlasTimer);
-    }
-    const _gracedMs = ((room.qlasTimerSeconds || QLAS_DEFAULT_TIMER_S) + TURN_GRACE_S) * 1000;
-    room.qlasTimerExpired = false;
-    room.qlasTimer = setTimeout(() => {
-      room.qlasTimer = null;
-      try {
-        if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
-          return;
-        }
-        room.qlasTimerExpired = true;
-        io.to(code).emit('qlashique:timer_expired', { choiceMs: QLAS_CHOICE_S * 1000 });
-        _armQlasChoiceTimer(io, code, room);
-      } catch (err) {
-        console.error('[qlashique] timer callback error:', err);
-      }
-    }, _gracedMs);
+    const result = _startQlasGuessing(io, code, room);
+    cb(result);
   });
 
   socket.on('qlashique:answer', ({ code, answerIdx } = {}, cb) => {
@@ -2387,6 +2252,7 @@ io.on('connection', (socket) => {
     if (result.error) {
       return cb(result);
     }
+    room.qlasTurnEngaged = true;
 
     if (player.userId) {
       room.qlasTurnTally ??= new Map();
@@ -2475,6 +2341,7 @@ io.on('connection', (socket) => {
       room.qlasTimer = null;
     }
     room.qlasTimerExpired = true;
+    room.qlasTurnEngaged = true;
     _armQlasChoiceTimer(io, code, room);
     socket.emit('qlashique:attack_stopped', {
       score: room.state.currentScore,
@@ -2522,7 +2389,10 @@ io.on('connection', (socket) => {
     if (checkLobbyRateLimit(socket.id, cb)) {
       return;
     }
-    quizRuns.delete(socket.id);
+    if (_roomSwitchBlocked(socket, cb)) {
+      return;
+    }
+    const prevCode = socketToRoom.get(socket.id);
     const userId = socket.userId || socket.pendingUserId;
     const room = createQlashwordRoom();
     const player = joinRoom(room.code, socket.id, playerName, userId || null);
@@ -2530,6 +2400,7 @@ io.on('connection', (socket) => {
       rooms.delete(room.code);
       return cb(player);
     }
+    _leavePreviousRoom(socket, prevCode);
     socket.join(room.code);
     const token = getPlayerBySocket(room, socket.id)?.token;
     cb({
@@ -2715,15 +2586,16 @@ io.on('connection', (socket) => {
 
   // --- Disconnect ---
 
-  socket.on('disconnect', () => {
-    console.log(`[-] ${socket.id}`);
-    quizRuns.delete(socket.id);
+  function leaveAll() {
     _disposeSkipnotRun(socket.id);
     howHighRuns.delete(socket.id);
     mathquizRuns.delete(socket.id);
     centographerRuns.delete(socket.id);
     unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
+    if (room) {
+      socket.leave(room.code);
+    }
     if (room && player) {
       // If game was in progress, notify remaining players and end the game
       if (room.started && room.state) {
@@ -2744,6 +2616,7 @@ io.on('connection', (socket) => {
         });
         if (room.players.length === 1) {
           const winner = room.players[0];
+          unregisterActiveSocket(winner.id);
           if (room.mode === 'qlashique') {
             if (room.qlasTimer) {
               clearTimeout(room.qlasTimer);
@@ -2754,13 +2627,9 @@ io.on('connection', (socket) => {
               room.qlasChoiceTimer = null;
             }
             room.qlasTimerExpired = true;
-            room.state.phase = QLAS_PHASE.GAME_OVER;
-            io.to(room.code).emit('qlashique:game_over', {
-              winnerIdx: winner.index,
-              reason: 'disconnect',
-              history: room.qlasHistory ?? [],
-              stats: room.qlasStats ?? null,
-            });
+            room.players.push(player);
+            _finishQlasGame(io, room.code, room, winner.index, 'disconnect');
+            room.players.pop();
           } else if (room.mode === 'qlashword') {
             if (room.qwTimer) {
               clearTimeout(room.qwTimer);
@@ -2773,6 +2642,14 @@ io.on('connection', (socket) => {
             room.qwTimerExpired = true;
             room.qwTurn = null;
             room.state.phase = QW_PHASE.GAME_OVER;
+            room.players.push(player);
+            _saveDuelResult(room, winner.index, {
+              gameMode: 'qlashword',
+              allowDraw: false,
+              player1Stats: { score: room.state.scores[0] },
+              player2Stats: { score: room.state.scores[1] },
+            });
+            room.players.pop();
             io.to(room.code).emit('qlashword:game_over', {
               winnerIdx: winner.index,
               reason: 'disconnect',
@@ -2804,6 +2681,12 @@ io.on('connection', (socket) => {
         });
       }
     }
+  }
+
+  socket.on('room:leave', leaveAll);
+  socket.on('disconnect', () => {
+    console.log(`[-] ${socket.id}`);
+    leaveAll();
   });
 });
 
@@ -2928,6 +2811,7 @@ function recordGameStats(room) {
 let _testOverride = null;
 let _testStickyQuestion = null;
 let _testHPOverride = null;
+let _testQlasTimerOverride = null;
 let _testBonusQ3Override = null;
 let _testBonusQ6Override = null;
 
@@ -2965,7 +2849,8 @@ function _pickQlasQuestion(room, db) {
 
 // Persist a completed 1v1 game to game_history + played/won in one tx; both players must be logged in. winnerIdx -1 = draw, only when allowDraw.
 function _saveDuelResult(room, winnerIdx, { gameMode, allowDraw, player1Stats, player2Stats }) {
-  const [p0, p1] = room.players;
+  const p0 = room.players.find((p) => p.index === 0);
+  const p1 = room.players.find((p) => p.index === 1);
   const existingUserIds = _getExistingUserIdSet([p0?.userId, p1?.userId]);
   const p0UserId = existingUserIds.has(p0?.userId) ? p0.userId : null;
   const p1UserId = existingUserIds.has(p1?.userId) ? p1.userId : null;
@@ -3007,6 +2892,8 @@ function _initQlasRoomState(room) {
   room.startedAt = Date.now();
   room.state = createQlasGame(_testHPOverride ?? room.qlasHP ?? QLAS_DEFAULT_HP);
   _testHPOverride = null;
+  room.qlasTestTimerS = _testQlasTimerOverride;
+  _testQlasTimerOverride = null;
   room.qlasStats = [
     { answered: 0, correct: 0 },
     { answered: 0, correct: 0 },
@@ -3019,10 +2906,12 @@ function _initQlasRoomState(room) {
 
 function _emitQlasTurnStart(ioServer, code, room) {
   const idx = room.state.currentPlayerIdx;
-  const timerSeconds = calcTimer(room.state.turnNumber);
+  const timerSeconds = room.qlasTestTimerS ?? calcTimer(room.state.turnNumber);
+  const decisionSeconds = room.qlasTestTimerS ?? QLAS_DECISION_S;
   room.questionIdx = 0;
   room.qlasTimerSeconds = timerSeconds;
   room.qlasTimerExpired = false;
+  room.qlasTurnEngaged = false;
   if (room.qlasChoiceTimer) {
     clearTimeout(room.qlasChoiceTimer);
     room.qlasChoiceTimer = null;
@@ -3030,8 +2919,65 @@ function _emitQlasTurnStart(ioServer, code, room) {
   ioServer.to(code).emit('qlashique:turn_start', {
     playerIdx: idx,
     timerSeconds,
+    decisionSeconds,
     maxHp: room.state.maxHp,
   });
+  if (room.qlasTimer) {
+    clearTimeout(room.qlasTimer);
+  }
+  room.qlasTimer = setTimeout(() => {
+    room.qlasTimer = null;
+    try {
+      if (room.state?.phase === QLAS_PHASE.DECISION) {
+        _startQlasGuessing(ioServer, code, room);
+      }
+    } catch (err) {
+      console.error('[qlashique] decision timer error:', err);
+    }
+  }, decisionSeconds * 1000);
+}
+
+function _startQlasGuessing(ioServer, code, room) {
+  if (room.qlasTimer) {
+    clearTimeout(room.qlasTimer);
+    room.qlasTimer = null;
+  }
+  const q = _pickQlasQuestion(room, questionsDb);
+  if (!q) {
+    return { error: 'No questions available' };
+  }
+  room.state.phase = QLAS_PHASE.GUESSING;
+  room.questionIdx = 0;
+  room.currentQuestion = q;
+
+  ioServer.to(code).emit('qlashique:question', {
+    question: { id: q.id, q: q.q, opts: q.opts, category: q.category },
+    questionIdx: 0,
+    activePlayerIdx: room.state.currentPlayerIdx,
+  });
+
+  room.qlasGuessingStartedAt = Date.now();
+  room.qlasTimerExpired = false;
+  const graceS = room.qlasTestTimerS ? 0 : TURN_GRACE_S;
+  const gracedMs = ((room.qlasTimerSeconds || QLAS_DEFAULT_TIMER_S) + graceS) * 1000;
+  room.qlasTimer = setTimeout(() => {
+    room.qlasTimer = null;
+    try {
+      if (!room.state || room.state.phase !== QLAS_PHASE.GUESSING) {
+        return;
+      }
+      room.qlasTimerExpired = true;
+      if (!room.qlasTurnEngaged) {
+        _endQlasTurn(ioServer, code, room);
+        return;
+      }
+      ioServer.to(code).emit('qlashique:timer_expired', { choiceMs: QLAS_CHOICE_S * 1000 });
+      _armQlasChoiceTimer(ioServer, code, room);
+    } catch (err) {
+      console.error('[qlashique] timer callback error:', err);
+    }
+  }, gracedMs);
+  return { ok: true };
 }
 
 // Resolve the active player's turn (score, apply outcome, broadcast HP + game-over or next turn); caller must have validated room/phase. Returns {ok}|{error}.
@@ -3115,6 +3061,12 @@ function _endQlasTurn(ioServer, code, room, choice = 'attack') {
   }
   _flushRunStats(room.qlasTurnUserId, room.qlasTurnTally);
 
+  const forfeitWinnerIdx = recordTurnActivity(room.state, room.qlasTurnEngaged);
+  if (forfeitWinnerIdx >= 0) {
+    _finishQlasGame(ioServer, code, room, forfeitWinnerIdx, 'afk');
+    return { ok: true };
+  }
+
   const scoreBeforeEnd = room.state.currentScore;
   const { outcome, error, actingPlayerIdx } = endTurn(room.state);
   if (error) {
@@ -3144,28 +3096,32 @@ function _endQlasTurn(ioServer, code, room, choice = 'attack') {
 
   const winnerIdx = checkGameOver(room.state, finalActingIdx);
   if (winnerIdx >= 0 && winnerIdx < 2) {
-    room.state.phase = QLAS_PHASE.GAME_OVER;
-    for (const p of room.players) {
-      unregisterActiveSocket(p.id);
-    }
-    const [qs0, qs1] = room.qlasStats ?? [{}, {}];
-    _saveDuelResult(room, winnerIdx, {
-      gameMode: 'qlashique',
-      allowDraw: false,
-      player1Stats: { ...qs0, finalHp: room.state.players[0].hp },
-      player2Stats: { ...qs1, finalHp: room.state.players[1].hp },
-    });
-    ioServer.to(code).emit('qlashique:game_over', {
-      winnerIdx,
-      reason: 'hp',
-      history: room.qlasHistory ?? [],
-      stats: room.qlasStats ?? null,
-    });
+    _finishQlasGame(ioServer, code, room, winnerIdx, 'hp');
     return { ok: true };
   }
 
   _emitQlasTurnStart(ioServer, code, room);
   return { ok: true };
+}
+
+function _finishQlasGame(ioServer, code, room, winnerIdx, reason) {
+  room.state.phase = QLAS_PHASE.GAME_OVER;
+  for (const p of room.players) {
+    unregisterActiveSocket(p.id);
+  }
+  const [qs0, qs1] = room.qlasStats ?? [{}, {}];
+  _saveDuelResult(room, winnerIdx, {
+    gameMode: 'qlashique',
+    allowDraw: false,
+    player1Stats: { ...qs0, finalHp: room.state.players[0].hp },
+    player2Stats: { ...qs1, finalHp: room.state.players[1].hp },
+  });
+  ioServer.to(code).emit('qlashique:game_over', {
+    winnerIdx,
+    reason,
+    history: room.qlasHistory ?? [],
+    stats: room.qlasStats ?? null,
+  });
 }
 
 // Qlashword helpers

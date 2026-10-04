@@ -38,7 +38,6 @@ export const state = {
   // Navigation
   navCursor: { row: 0, col: 0 },
   lastSubmittedPegId: null,
-  lastSubmittedMoveType: null,
 
   // Setup screen
   setupPlayerCount: 2,
@@ -48,6 +47,4 @@ export const state = {
 
   // Current user (from auth)
   currentUser: null,
-
-  // HowHigh
 };

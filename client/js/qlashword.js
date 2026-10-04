@@ -2,6 +2,7 @@
 
 import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
 import { renderQuestion } from './question-render.js';
+import { registerHomeHandler } from './home.js';
 
 // --- mirrored constants (keep in sync with server/game/qlashword.ts) --------
 
@@ -559,7 +560,7 @@ function onQwKeydown(e) {
 // --- actions ----------------------------------------------------------------
 
 function submitTurn() {
-  if (!isMyTurn()) {
+  if (!isMyTurn() || qEl('qw-btn-submit').disabled) {
     return;
   }
   if (qwPending.length === 0) {
@@ -654,13 +655,13 @@ function startBonusQuestion() {
 
 function startBonusTimer(seconds) {
   stopBonusTimer();
-  let left = seconds;
+  const deadline = Date.now() + seconds * 1000;
   const label = qEl('qw-bonus-timer');
   if (label) {
-    label.textContent = Math.ceil(left) + 's';
+    label.textContent = Math.ceil(seconds) + 's';
   }
   qwBonusTimer = setInterval(() => {
-    left = Math.max(0, left - 0.1);
+    const left = Math.max(0, (deadline - Date.now()) / 1000);
     if (label) {
       label.textContent = Math.ceil(left) + 's';
       label.classList.toggle('danger', left <= seconds * 0.25);
@@ -692,11 +693,11 @@ function startTurnClock(seconds) {
   if (!elClock) {
     return;
   }
-  let left = seconds;
-  elClock.textContent = fmtClock(left);
+  const deadline = Date.now() + seconds * 1000;
+  elClock.textContent = fmtClock(seconds);
   elClock.classList.remove('danger', 'urgent');
   qwTurnClockTimer = setInterval(() => {
-    left = Math.max(0, left - 0.25);
+    const left = Math.max(0, (deadline - Date.now()) / 1000);
     elClock.textContent = fmtClock(left);
     elClock.classList.toggle('danger', left <= 15);
     elClock.classList.toggle('urgent', left <= 10); // flashing box for the final 10s
@@ -733,17 +734,16 @@ function createRoom() {
   qwIsHost = true;
   qwCode = null;
   resetMatch();
-  showScreen('screen-qlashword');
-  qwShowPhase('waiting');
-  qEl('qw-waiting-label').textContent = 'Waiting for opponent…';
-  qEl('qw-btn-start').style.display = 'none';
-  qEl('qw-code-row').style.display = 'none';
 
   sock.emit('qlashword:create_room', { playerName }, (res) => {
     if (res?.error) {
       showError(res.error);
       return;
     }
+    showScreen('screen-qlashword');
+    qwShowPhase('waiting');
+    qEl('qw-waiting-label').textContent = 'Waiting for opponent…';
+    qEl('qw-btn-start').style.display = 'none';
     qwCode = res.code;
     qwMyIdx = 0;
     qwPlayers[0].name = playerName;
@@ -765,11 +765,6 @@ function joinRoom() {
   qwIsHost = false;
   qwCode = codeInput;
   resetMatch();
-  showScreen('screen-qlashword');
-  qwShowPhase('waiting');
-  qEl('qw-waiting-label').textContent = 'Waiting for host to start…';
-  qEl('qw-btn-start').style.display = 'none';
-  qEl('qw-code-row').style.display = 'none';
 
   sock.emit('room:join', { code: qwCode, playerName }, (res) => {
     if (res?.error) {
@@ -777,6 +772,11 @@ function joinRoom() {
       qwCode = null;
       return;
     }
+    showScreen('screen-qlashword');
+    qwShowPhase('waiting');
+    qEl('qw-waiting-label').textContent = 'Waiting for host to start…';
+    qEl('qw-btn-start').style.display = 'none';
+    qEl('qw-code-row').style.display = 'none';
     qwMyIdx = res.myIdx;
     qwPlayers[0].name = res.players[0]?.name || '';
     qwPlayers[1].name = res.players[1]?.name || '';
@@ -825,7 +825,15 @@ export function initQlashword(socket) {
   });
   qEl('qw-btn-start').addEventListener('click', startGame);
   qEl('qw-bonus-start-btn').addEventListener('click', startBonusQuestion);
-  qEl('qw-btn-playagain').addEventListener('click', () => location.reload());
+  registerHomeHandler({
+    isLive: () => qwCode !== null && qEl('qw-phase-game').style.display !== 'none',
+    reset: () => {
+      stopBonusTimer();
+      stopTurnClock();
+      qwCode = null;
+      qwShowPhase('waiting');
+    },
+  });
 
   // Action buttons
   qEl('qw-btn-submit').addEventListener('click', submitTurn);

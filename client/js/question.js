@@ -124,7 +124,6 @@ async function onAnswer(chosenIdx, qIdx) {
 
   const isCombat = state.pendingMove?.moveType === 'combat';
   const isFlag = state.pendingMove?.moveType === 'flag';
-  const isLastQuestion = qIdx === state.pendingQuestions.length - 1;
 
   // Disable buttons
   gameModalOptionBtns.forEach((btn) => {
@@ -141,13 +140,7 @@ async function onAnswer(chosenIdx, qIdx) {
   const { submitTurn } = await import('./game.js');
   if (isCombat || isFlag) {
     el('modal-continue-wrap').style.display = 'none';
-    if (!correct) {
-      setTimeout(() => submitTurn(), TIMING.WRONG_ANSWER_DELAY_MS);
-    } else if (!isLastQuestion) {
-      setTimeout(() => submitTurn(), TIMING.ANSWER_DELAY_MS);
-    } else {
-      setTimeout(() => submitTurn(), TIMING.ANSWER_DELAY_MS);
-    }
+    setTimeout(() => submitTurn(), correct ? TIMING.ANSWER_DELAY_MS : TIMING.WRONG_ANSWER_DELAY_MS);
   } else {
     el('modal-continue-wrap').style.display = 'block';
   }
@@ -181,16 +174,16 @@ function startTimer(qIdx) {
   stopTimer();
   const fill = el('timer-fill');
   const text = el('timer-text');
-  let remaining = state.timerDuration;
+  const deadline = Date.now() + state.timerDuration * 1000;
   fill.style.width = '100%';
   fill.className = 'timer-bar-fill safe';
   text.textContent = state.timerDuration + 's';
 
   timerInterval = setInterval(() => {
-    remaining -= 0.1;
+    const remaining = (deadline - Date.now()) / 1000;
     const pct = Math.max(0, (remaining / state.timerDuration) * 100);
     fill.style.width = pct + '%';
-    text.textContent = Math.ceil(remaining) + 's';
+    text.textContent = Math.max(0, Math.ceil(remaining)) + 's';
     if (pct < TIMING.TIMER_DANGER_PCT) {
       fill.className = 'timer-bar-fill danger';
     } else if (pct < TIMING.TIMER_WARNING_PCT) {

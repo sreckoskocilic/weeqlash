@@ -11,8 +11,10 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 ## Getting In
 
 - Open the site. The landing screen shows the mode cards: **Brawl**, **Qlashique**, **Qlashword**, **SkipNoT**, **HowHigh**, **CentoGrapher**, and **MathQ**.
-- **Register** an account (email + password) or **log in** from the top-left tabs. An account is needed to land on leaderboards; anonymous play works for casual rounds.
+- **Register** an account (email + password) or **log in** from the top-left tabs. You need an account to play any mode.
 - To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
+
+- **⌂ HOME** (top-left) takes you back from anywhere. Bailing on a live brawl, duel or Qlashword match counts as a loss; the other side takes the win.
 
 Pick your poison.
 
@@ -73,6 +75,11 @@ You get a batch of questions under a timer that **starts at 5 seconds and grows 
 | `= 1` | **Automatic attack** for 1 damage.                            |
 | `≥ 2` | **Choose**: `attack` (deal `score` damage) or `heal` (+2 HP). |
 
+### Don't go AFK
+
+- You get **10 seconds** to hit ⚔ ATTACK. Sit on it and the turn starts without you.
+- A turn with no answer and no END TURN costs you **2 HP**. Two in a row and you lose.
+
 ---
 
 ## 3. SkipNoT — solo 20-question gauntlet
@@ -101,7 +108,7 @@ A perfect run is **+260**. A worst-case all-wrong run is **−140**. Skipping is
 
 ### Leaderboard
 
-Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Show SkipNoT Leaderboard`. Logged-in accounts get their name on the board; anonymous runs work but don't qualify.
+Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Show SkipNoT Leaderboard`. Your account name goes on the board.
 
 ---
 

@@ -1,10 +1,10 @@
 // SkipNoT solo 20-Q quiz. Server keeps correctIdx and hands out all 20 upfront; only the chosen button is colored (never reveals the correct answer).
 
-import { el, showScreen, sanitize } from './dom.js';
+import { el, showScreen, showError, getPlayerName } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
-import { showView } from './nav.js';
 import { TEST_SPEED } from './constants.js';
+import { registerHomeHandler } from './home.js';
 
 const TIMER_RING_CIRC = 175.93;
 const RESULT_DISPLAY_MS = 800 / TEST_SPEED;
@@ -427,16 +427,17 @@ function _onSubmitScore() {
 }
 
 function _startRun() {
-  _resetRun();
-  _showPhase('game');
-  showScreen('screen-skipnot');
+  if (!getPlayerName()) {
+    return;
+  }
   socketRef?.emit('skipnot:start', (res) => {
     if (res?.error) {
-      console.warn('[skipnot] start failed:', res.error);
-      _qel('skipnot-question').innerHTML =
-        '<div class="qlas-q-text">' + sanitize(res.error) + '</div>';
+      showError(res.error);
       return;
     }
+    _resetRun();
+    _showPhase('game');
+    showScreen('screen-skipnot');
     questions = res.questions || [];
     total = res.total ?? questions.length;
     timerSec = (res.timerMs ?? 12000) / 1000;
@@ -454,16 +455,14 @@ export function initSkipnot(sock) {
   el('btn-skipnot-create').addEventListener('click', _startRun);
   el('btn-skipnot-skip').addEventListener('click', _onSkipClick);
   el('btn-skipnot-submit-score').addEventListener('click', _onSubmitScore);
-  el('btn-skipnot-back').addEventListener('click', () => {
-    ring?.stop();
-    _resetRun();
-    showScreen('screen-connect');
-    showView('play');
-    // Re-fetch /auth/me so auth-aware nav reflects the server session (may have drifted during the run).
-    import('./auth.js').then(({ checkAuth }) => checkAuth());
+  registerHomeHandler({
+    reset: () => {
+      ring?.stop();
+      _resetRun();
+    },
   });
 
-  // Connect-screen leaderboard toggle (mirrors triviandom's btn-show-triv-lb).
+  // Connect-screen leaderboard toggle.
   const lbBtn = el('btn-show-skipnot-lb');
   const lbPanel = el('skipnot-lb-panel');
   if (lbBtn && lbPanel) {

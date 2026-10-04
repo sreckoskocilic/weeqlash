@@ -34,7 +34,7 @@ export function renderQuestion(
   }
 }
 
-// 100ms-tick countdown ring controller; `start(totalSec)` is idempotent and owns its interval handle.
+// Countdown ring controller; `start(totalSec)` is idempotent and owns its interval handle.
 export function makeCountdownRing({
   ringEl,
   labelEl,
@@ -45,10 +45,10 @@ export function makeCountdownRing({
   let interval = null;
   return {
     start(totalSec) {
-      let left = totalSec;
+      const deadline = Date.now() + totalSec * 1000;
       clearInterval(interval);
-      interval = setInterval(() => {
-        left = Math.max(0, left - 0.1);
+      const tick = () => {
+        const left = Math.max(0, (deadline - Date.now()) / 1000);
         const pct = left / totalSec;
         const state = pct < 0.25 ? ' danger' : pct < 0.5 ? ' warn' : '';
         if (ringEl) {
@@ -64,7 +64,9 @@ export function makeCountdownRing({
           clearInterval(interval);
           interval = null;
         }
-      }, 100);
+      };
+      interval = setInterval(tick, 100);
+      tick();
     },
     stop() {
       clearInterval(interval);
