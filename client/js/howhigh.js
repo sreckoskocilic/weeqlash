@@ -1,4 +1,4 @@
-import { el, showScreen, sanitize, showError, getPlayerName } from './dom.js';
+import { el, showScreen, sanitize, showError, getPlayerName, shareInvite } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { QLAS_THEMES } from './qlashique.js';
 import { TEST_SPEED } from './constants.js';
@@ -844,32 +844,14 @@ function _loadChallenges() {
     list.innerHTML = waitingHtml + completedHtml;
 
     list.querySelectorAll('.hh-code').forEach((codeEl) => {
-      codeEl.title = 'Copy code';
-      codeEl.addEventListener('click', () => {
-        navigator.clipboard.writeText(codeEl.dataset.code || '');
-        codeEl.textContent = 'copied!';
-        setTimeout(() => {
-          codeEl.textContent = codeEl.dataset.code || '';
-        }, 1200);
-      });
+      codeEl.title = 'Copy invite link';
+      codeEl.addEventListener('click', () => shareInvite(codeEl.dataset.code, codeEl));
     });
   });
 }
 
-function _onCopyCode() {
-  const code = _qel('howhigh-challenge-code')?.textContent;
-  if (!code) {
-    return;
-  }
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = _qel('btn-howhigh-copy-code');
-    if (btn) {
-      btn.textContent = 'COPIED!';
-      setTimeout(() => {
-        btn.textContent = 'COPY';
-      }, 1500);
-    }
-  });
+function _onCopyCode(e) {
+  shareInvite(_qel('howhigh-challenge-code')?.textContent, e.currentTarget);
 }
 
 // --- Public init ---

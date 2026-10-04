@@ -1,6 +1,15 @@
 // Qlashword: 1v1 Scrabble + trivia-gated bonus squares. Board geometry / letter values mirror server/game/qlashword.ts by hand.
 
-import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
+import {
+  el,
+  qEl,
+  showScreen,
+  showError,
+  sanitize,
+  getPlayerName,
+  shareInvite,
+  alertTab,
+} from './dom.js';
 import { renderQuestion } from './question-render.js';
 import { registerHomeHandler } from './home.js';
 
@@ -820,9 +829,7 @@ export function initQlashword(socket) {
   // Lobby buttons
   el('btn-qlashword-create').addEventListener('click', createRoom);
   el('btn-qlashword-join').addEventListener('click', joinRoom);
-  qEl('qw-btn-copy-code').addEventListener('click', () => {
-    navigator.clipboard.writeText(qEl('qw-code-val').textContent);
-  });
+  qEl('qw-btn-copy-code').addEventListener('click', (e) => shareInvite(qwCode, e.currentTarget));
   qEl('qw-btn-start').addEventListener('click', startGame);
   qEl('qw-bonus-start-btn').addEventListener('click', startBonusQuestion);
   registerHomeHandler({
@@ -911,6 +918,7 @@ export function initQlashword(socket) {
     });
     // Host sees the Start button once the room has 2 players.
     if (qwIsHost && players.length === 2) {
+      alertTab(`${players[1].name} joined`);
       qEl('qw-waiting-label').textContent = players[1].name + ' joined — ready to start.';
       qEl('qw-btn-start').style.display = '';
     }
@@ -956,6 +964,9 @@ export function initQlashword(socket) {
       return;
     }
     startTurnClock(seconds || 90);
+    if (isMyTurn()) {
+      alertTab('Your turn');
+    }
   });
 
   socket.on('qlashword:bonus_prompt', (data) => {

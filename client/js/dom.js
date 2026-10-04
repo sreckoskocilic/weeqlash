@@ -77,3 +77,34 @@ export function getPlayerName() {
   showError('');
   return state.currentUser.username;
 }
+
+const baseTitle = document.title;
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    document.title = baseTitle;
+  }
+});
+
+export function alertTab(msg) {
+  if (document.hidden) {
+    document.title = `● ${msg} — wQ$x`;
+  }
+}
+
+export function shareInvite(code, btn) {
+  if (!code) {
+    return;
+  }
+  const url = `${location.origin}/?join=${encodeURIComponent(code)}`;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    navigator.share({ url }).catch(() => {});
+    return;
+  }
+  btn.dataset.label ??= btn.textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = 'COPIED!';
+    setTimeout(() => {
+      btn.textContent = btn.dataset.label;
+    }, 1500);
+  });
+}

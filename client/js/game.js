@@ -1,4 +1,4 @@
-import { el, showError, showScreen, getPlayerName } from './dom.js';
+import { el, showError, showScreen, getPlayerName, shareInvite, alertTab } from './dom.js';
 import { initBoard, renderAll, renderChangedTiles } from './render.js';
 import { PHASE, COORD_BASE } from './constants.js';
 import { state } from './state.js';
@@ -156,6 +156,9 @@ export function showTurnAnnounce(player, isMe) {
   nameEl.textContent = player.name;
   nameEl.style.color = player.color;
   subEl.textContent = isMe ? 'YOUR TURN' : 'THEIR TURN';
+  if (isMe) {
+    alertTab('Your turn');
+  }
   container.classList.add('visible');
   setTimeout(() => container.classList.remove('visible'), 2000);
 }
@@ -291,6 +294,7 @@ function showGameOver(winnerIdx, gameState) {
 
 export function setupBoardSocketHandlers(sock) {
   sock.on('room:player_joined', ({ players }) => {
+    alertTab(`${players.at(-1).name} joined`);
     renderPlayers(players, state.setupPlayerCount);
     el('lobby-status').textContent = `${players.length} / ${state.setupPlayerCount} players`;
     if (players.length === state.setupPlayerCount && state.isHost) {
@@ -332,6 +336,7 @@ export function setupBoardSocketHandlers(sock) {
   sock.on('game:start', ({ settings, state: gameState }) => {
     state.timerDuration = settings.timer ?? 30;
     state.gameState = gameState;
+    alertTab('Game started');
     initBoard(gameState);
     if (gameState.currentPlayerIdx === state.myPlayerIndex) {
       initNavCursor(gameState);
@@ -471,24 +476,9 @@ export function setupBoardGameHandlers(sock) {
     });
   });
 
-  el('btn-copy-code').addEventListener('click', () => {
-    if (!state.myRoom?.code) {
-      return;
-    }
-    navigator.clipboard
-      .writeText(state.myRoom.code)
-      .then(() => {
-        const btn = el('btn-copy-code');
-        const originalText = btn.textContent;
-        btn.textContent = '✅';
-        setTimeout(() => {
-          btn.textContent = originalText;
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error('Failed to copy code: ', err);
-      });
-  });
+  el('btn-copy-code').addEventListener('click', (e) =>
+    shareInvite(state.myRoom?.code, e.currentTarget),
+  );
 
   el('join-code').addEventListener('input', (e) => {
     e.target.value = e.target.value.toUpperCase();

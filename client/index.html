@@ -4,25 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>wQ$x — trivia brawl</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>wQ$x — trivia games</title>
     <meta
       name="description"
-      content="wQ$x — real-time multiplayer trivia brawls. Duel players head-to-head, answer fast, climb the leaderboard."
+      content="wQ$x — seven trivia games in your browser: board brawls, 1v1 duels, trivia Scrabble and solo runs. Free, no install."
     />
-    <meta name="theme-color" content="#1a1a2e" />
-    <meta property="og:title" content="wQ$x — trivia brawl" />
+    <meta name="theme-color" content="#0e0e1a" />
+    <meta property="og:site_name" content="wQ$x" />
+    <meta property="og:title" content="wQ$x — trivia games" />
     <meta
       property="og:description"
-      content="Real-time multiplayer trivia brawls. Fast questions, sharper opponents."
+      content="Board brawls, 1v1 duels, trivia Scrabble and solo runs. Seven games, free, in the browser."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://brawl.weeqlash.icu" />
-    <meta property="og:image" content="https://brawl.weeqlash.icu/og-image.png?v=2" />
+    <meta property="og:image" content="https://brawl.weeqlash.icu/og-image.png?v=3" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="wQ$x — multiplayer trivia brawls" />
+    <meta property="og:image:alt" content="wQ$x — seven trivia games" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png?v=2" />
+    <meta name="twitter:title" content="wQ$x — trivia games" />
+    <meta
+      name="twitter:description"
+      content="Board brawls, 1v1 duels, trivia Scrabble and solo runs. Seven games, free, in the browser."
+    />
+    <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png?v=3" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1300,11 +1309,11 @@
         <div class="room-code" id="lobby-code" style="margin-bottom: 0"></div>
         <button
           id="btn-copy-code"
-          aria-label="Copy room code"
-          title="Copy Code"
+          aria-label="Copy invite link"
           style="
-            padding: 0.5rem;
-            font-size: 1.2rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            font-family: 'IBM Plex Mono', monospace;
             background: transparent;
             border: 1px solid var(--bg3);
             color: var(--text);
@@ -1314,10 +1323,10 @@
             transition: all 0.2s;
           "
         >
-          📋
+          COPY LINK
         </button>
       </div>
-      <div class="room-code-label">Share this code with other players</div>
+      <div class="room-code-label">Send the link or the code to other players</div>
       <h2>Players</h2>
       <ul class="player-list" id="player-list"></ul>
       <div
@@ -1452,12 +1461,14 @@
               </svg>
               <div class="qlas-waiting-msg" id="qlas-waiting-label">Waiting for opponent…</div>
               <div id="qlas-code-row" style="display: none">
-                <div class="qlas-waiting-msg" style="margin-top: 8px">Share this code</div>
+                <div class="qlas-waiting-msg" style="margin-top: 8px">
+                  Send the link or the code
+                </div>
                 <div style="display: inline-flex; align-items: center; gap: 10px">
                   <div class="qlas-code-display" id="qlas-code-val">—</div>
                   <button
                     id="qlas-btn-copy-code"
-                    aria-label="Copy room code"
+                    aria-label="Copy invite link"
                     style="
                       background: #0d2e0d;
                       border: 1px solid #00ff41;
@@ -1469,7 +1480,7 @@
                       cursor: pointer;
                     "
                   >
-                    COPY
+                    COPY LINK
                   </button>
                 </div>
               </div>
@@ -1637,10 +1648,10 @@
           <p class="qw-subtitle">1v1 Scrabble — unlock bonus squares by answering trivia</p>
           <div id="qw-waiting-label" class="qw-waiting-msg">Waiting for opponent…</div>
           <div id="qw-code-row" style="display: none">
-            <div class="qw-waiting-msg" style="margin-top: 8px">Share this code</div>
+            <div class="qw-waiting-msg" style="margin-top: 8px">Send the link or the code</div>
             <div class="qw-code-line">
               <div class="qw-code-display" id="qw-code-val">—</div>
-              <button id="qw-btn-copy-code" class="qw-btn-small" type="button">COPY</button>
+              <button id="qw-btn-copy-code" class="qw-btn-small" type="button">COPY LINK</button>
             </div>
           </div>
           <button id="qw-btn-start" class="qw-btn-primary" type="button" style="display: none">
@@ -2395,7 +2406,9 @@
               id="howhigh-challenge-code-row"
               style="margin: 1rem auto 0; max-width: 480px; text-align: center"
             >
-              <p style="margin-bottom: 0.5rem; opacity: 0.8">Share this code with your opponent:</p>
+              <p style="margin-bottom: 0.5rem; opacity: 0.8">
+                Send the link (or the code) to your opponent:
+              </p>
               <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center">
                 <span
                   id="howhigh-challenge-code"
@@ -2407,7 +2420,7 @@
                   type="button"
                   style="padding: 4px 12px; font-size: 0.8rem"
                 >
-                  COPY
+                  COPY LINK
                 </button>
               </div>
             </div>

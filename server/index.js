@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -125,6 +125,7 @@ import {
 import { registerAuthRoutes } from './game/auth-routes.ts';
 import adminRoutes from './routes/admin.ts';
 import { rooms, socketToRoom } from './game/rooms.ts';
+import { findInvite, withInviteMeta } from './game/invite.ts';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -208,8 +209,20 @@ app.use((req, res, next) => {
 // Gzip/br responses (index.html, styles.css, and any /api JSON)
 app.use(compression());
 
+const CLIENT_DIR = path.join(__dirname, '../client');
+
+// Invite links (/?join=CODE): Caddy proxies these here so link previews show who invited you to what.
+app.get('/', (req, res, next) => {
+  if (typeof req.query.join !== 'string') {
+    return next();
+  }
+  const html = readFileSync(path.join(CLIENT_DIR, 'index.html'), 'utf8');
+  const invite = findInvite(req.query.join);
+  res.type('html').send(invite ? withInviteMeta(html, invite) : html);
+});
+
 // Serve client files for browser access
-app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(CLIENT_DIR));
 const CORS_ORIGIN = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
   : ['https://brawl.weeqlash.icu'];
@@ -723,6 +736,13 @@ app.get('/healthz', (_req, res) => {
     return res.status(503).json({ status: 'unavailable', redis, db: dbReady });
   }
   res.json({ status: 'ok', redis, db: dbReady });
+});
+
+app.use((req, res) => {
+  if (req.method === 'GET' && req.accepts('html')) {
+    return res.status(404).sendFile(path.join(CLIENT_DIR, '404.html'));
+  }
+  res.status(404).json({ error: 'Not found' });
 });
 
 io.on('connection', (socket) => {

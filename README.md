@@ -12,7 +12,7 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 - Open the site. The landing screen lists the modes on the left: **Brawl**, **Qlashique**, **Qlashword**, **HowHigh**, **SkipNoT**, **MathQ**, and **CentoGrapher**. Click one to see its options, how to play and the create/join buttons.
 - **Register** an account (email + password) or **log in** from the top tabs. You need an account to play any mode.
-- To play with friends: whoever creates the game shares the **5-character room code** — the other side opens the same mode, types the code and hits **JOIN**.
+- To play with friends: whoever creates the game shares the **5-character room code** — send them the invite link (**COPY LINK** next to the code) or the code itself. The link opens the right game with the code filled in; they just hit **JOIN**.
 
 - **⌂ HOME** (top-left) takes you back from anywhere. Bailing on a live brawl, duel or Qlashword match counts as a loss; the other side takes the win.
 

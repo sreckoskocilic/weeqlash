@@ -1,4 +1,5 @@
 import { loadPanelLeaderboard } from './leaderboard.js';
+import { showError } from './dom.js';
 
 const GAME_KEY = 'weeqlash.game';
 
@@ -75,6 +76,28 @@ function initLatest() {
   });
 }
 
+function applyInvite() {
+  const code = new URLSearchParams(location.search).get('join');
+  if (!code) {
+    return;
+  }
+  history.replaceState(null, '', location.pathname);
+  const game = document.querySelector('meta[name="wq-invite-game"]')?.content;
+  if (!game) {
+    showError('That invite has expired or the game already started.');
+    return;
+  }
+  const host = document.querySelector('meta[name="wq-invite-host"]').content;
+  selectGame(game);
+  const panel = document.querySelector(`[data-game-panel="${game}"]`);
+  panel.querySelector('.game-code').value = code.toUpperCase();
+  const note = document.createElement('p');
+  note.className = 'game-invite';
+  note.textContent = `${host} invited you. Hit JOIN.`;
+  panel.querySelector('.game-actions').before(note);
+  panel.querySelector('.game-join').focus();
+}
+
 export function initNav() {
   const nav = document.getElementById('connect-nav');
   if (!nav) {
@@ -95,4 +118,5 @@ export function initNav() {
   });
   initLatest();
   selectGame(rememberedGame());
+  applyInvite();
 }

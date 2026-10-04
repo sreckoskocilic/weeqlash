@@ -33,6 +33,13 @@ brawl.weeqlash.icu {
 	handle /admin/* {
 		reverse_proxy localhost:3000
 	}
+	@invite {
+		path /
+		query join=*
+	}
+	handle @invite {
+		reverse_proxy localhost:3000
+	}
 
 	# tacklebox page
 	handle_path /tacklebox* {
@@ -45,4 +52,13 @@ brawl.weeqlash.icu {
 
 	root * /opt/weeqlash/client
 	file_server
+
+	handle_errors {
+		@notfound expression {err.status_code} == 404
+		handle @notfound {
+			root * /opt/weeqlash/client
+			rewrite * /404.html
+			file_server
+		}
+	}
 }

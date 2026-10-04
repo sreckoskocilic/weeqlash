@@ -1,6 +1,15 @@
 // Qlashique: 1v1 trivia duel.
 
-import { el, qEl, showScreen, showError, sanitize, getPlayerName } from './dom.js';
+import {
+  el,
+  qEl,
+  showScreen,
+  showError,
+  sanitize,
+  getPlayerName,
+  shareInvite,
+  alertTab,
+} from './dom.js';
 import { getSocket } from './socket.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { QLAS_DEFAULT_HP, QLAS_HP_OPTIONS, TEST_SPEED } from './constants.js';
@@ -553,9 +562,9 @@ export function initQlashique(socket) {
     });
   }
 
-  qEl('qlas-btn-copy-code').addEventListener('click', () => {
-    navigator.clipboard.writeText(qEl('qlas-code-val').textContent);
-  });
+  qEl('qlas-btn-copy-code').addEventListener('click', (e) =>
+    shareInvite(qlasCode, e.currentTarget),
+  );
   qEl('qlas-recap-live-btn').addEventListener('click', qlasOpenLiveRecap);
   qEl('btn-qlas-stop').addEventListener('click', qlasStopAttack);
   qEl('btn-qlas-end').addEventListener('click', qlasEndTurn);
@@ -589,6 +598,9 @@ export function initQlashique(socket) {
   });
 
   socket.on('room:full', ({ maxHp }) => {
+    if (qlasCode) {
+      alertTab('Opponent joined');
+    }
     if (maxHp !== undefined) {
       qlasMaxHp = maxHp;
       qlasHp = [maxHp, maxHp];
@@ -649,6 +661,7 @@ export function initQlashique(socket) {
     }
     if (isMyTurn) {
       qEl('qlas-decision-panel').style.display = '';
+      alertTab('Your turn');
     } else {
       qEl('qlas-decision-panel').style.display = 'none';
     }

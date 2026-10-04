@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#0e0e1a" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Empty tile — wQ$x</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Chakra+Petch:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(ellipse at 50% 35%, #161625, #0e0e1a 70%);
+        color: #c8c0c0;
+        font-family: 'Chakra Petch', system-ui, sans-serif;
+        text-align: center;
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(3, 56px);
+        gap: 6px;
+        margin: 0 auto 36px;
+        width: max-content;
+        transform: rotateX(58deg) rotateZ(45deg);
+      }
+      .tiles span {
+        height: 56px;
+        border-radius: 6px;
+        background: #1e1e32;
+        border: 1px solid #2a2a48;
+      }
+      .tiles .hole {
+        background: transparent;
+        border: 2px dashed #e53935;
+        box-shadow: 0 0 24px rgba(229, 57, 53, 0.35);
+      }
+      h1 {
+        font:
+          700 4.5rem 'IBM Plex Mono',
+          monospace;
+        color: #00ff41;
+        letter-spacing: 0.1em;
+        text-shadow: 0 0 24px rgba(0, 255, 65, 0.35);
+      }
+      p {
+        margin: 8px 0 28px;
+        font-size: 1.05rem;
+      }
+      a {
+        display: inline-block;
+        padding: 12px 22px;
+        border-radius: 8px;
+        background: #00ff41;
+        color: #0e0e1a;
+        font:
+          700 0.95rem 'IBM Plex Mono',
+          monospace;
+        letter-spacing: 0.12em;
+        text-decoration: none;
+      }
+      a:hover {
+        box-shadow: 0 0 24px -4px rgba(0, 255, 65, 0.7);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="tiles" aria-hidden="true">
+        <span></span><span></span><span></span> <span></span><span class="hole"></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+      <h1>404</h1>
+      <p>This tile is empty. Nothing to answer here.</p>
+      <a href="/">⌂ HOME</a>
+    </main>
+  </body>
+</html>

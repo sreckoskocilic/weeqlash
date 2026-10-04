@@ -2890,6 +2890,16 @@ body[data-game-theme='pink'] {
 .game-options .setup-section + .setup-section {
   padding-top: 14px;
 }
+.game-invite {
+  padding: 10px 14px;
+  border-left: 3px solid var(--gc);
+  border-radius: 6px;
+  background: rgba(var(--gc-rgb), 0.08);
+  color: var(--gc);
+  font:
+    600 0.9rem 'IBM Plex Mono',
+    monospace;
+}
 .game-actions {
   display: flex;
   gap: 8px;
