@@ -20,9 +20,18 @@ export function showScreen(id) {
   const isHowHigh = id === 'screen-howhigh';
   const isMath = id === 'screen-mathquiz';
   const isCento = id === 'screen-centographer';
+  const isPokedome = id === 'screen-pokedome';
   const isLobby = id === 'screen-lobby';
   const hideHome =
-    isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath || isCento || isLobby;
+    isGame ||
+    isQlas ||
+    isQw ||
+    isSkipnot ||
+    isHowHigh ||
+    isMath ||
+    isCento ||
+    isPokedome ||
+    isLobby;
   // Qlashword fills the viewport — drop the body's home-title top padding.
   document.body.classList.toggle('qw-active', isQw);
   el('main-title').style.display = hideHome ? 'none' : '';
@@ -40,11 +49,12 @@ export function showScreen(id) {
     'screen-howhigh',
     'screen-mathquiz',
     'screen-centographer',
+    'screen-pokedome',
   ].forEach((s) => {
     el(s).style.display = 'none';
     el(s).classList.remove('show');
   });
-  if (isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath || isCento) {
+  if (isGame || isQlas || isQw || isSkipnot || isHowHigh || isMath || isCento || isPokedome) {
     el(id).style.display = 'flex';
   } else if (isConnect) {
     // Clear inline display so the `.main-columns` flex/center CSS applies (an explicit value left-aligns the card).
@@ -100,8 +110,18 @@ export function shareInvite(code, btn) {
     navigator.share({ url }).catch(() => {});
     return;
   }
+  copyWithFeedback(url, btn);
+}
+
+export function copyCode(code, btn) {
+  if (code) {
+    copyWithFeedback(code, btn);
+  }
+}
+
+function copyWithFeedback(text, btn) {
   btn.dataset.label ??= btn.textContent;
-  navigator.clipboard.writeText(url).then(() => {
+  navigator.clipboard.writeText(text).then(() => {
     btn.textContent = 'COPIED!';
     setTimeout(() => {
       btn.textContent = btn.dataset.label;

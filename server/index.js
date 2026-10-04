@@ -64,6 +64,7 @@ import * as skipnot from './game/skipnot.ts';
 import * as mathquiz from './game/mathquiz.ts';
 import { generateSet as mathGenerateSet, toPublic as mathToPublic } from './game/mathgen.ts';
 import * as centographer from './game/centographer.ts';
+import * as pokedome from './game/pokedome.ts';
 import * as howhigh from './game/howhigh.ts';
 import {
   createChallenge,
@@ -343,6 +344,7 @@ const skipnotRuns = new Map();
 const howHighRuns = new Map();
 const mathquizRuns = new Map();
 const centographerRuns = new Map();
+const pokedomeRuns = new Map();
 
 // Periodic cleanup of stale rate limit entries (every 30s)
 const rateLimitMaps = [answerTimestamps, lobbyTimestamps, previewTimestamps, quizTimestamps];
@@ -373,6 +375,11 @@ const cleanupInterval = setInterval(() => {
   for (const [socketId, run] of centographerRuns) {
     if (now - run.startedAt > 10 * 60_000) {
       centographerRuns.delete(socketId);
+    }
+  }
+  for (const [socketId, run] of pokedomeRuns) {
+    if (now - run.startedAt > 10 * 60_000) {
+      pokedomeRuns.delete(socketId);
     }
   }
 }, 30_000);
@@ -1691,6 +1698,126 @@ io.on('connection', (socket) => {
     submitModeScore(centographerRuns, 'centographer', socket, name, cb);
   });
 
+  function _closePokedomePuzzle(run) {
+    if (run.idx < 0 || run.results[run.idx]) {
+      return;
+    }
+    run.results[run.idx] = {
+      solved: false,
+      ms: pokedome.TIMER_MS,
+      wrong: run.puzzles[run.idx].wrong,
+      points: 0,
+    };
+  }
+
+  socket.on('pokedome:start', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    if (!socket.userId) {
+      return cb({ error: 'Login required' });
+    }
+    const now = Date.now();
+    if (quizStartGuard(socket, cb, now)) {
+      return;
+    }
+    pokedomeRuns.set(socket.id, {
+      startedAt: now,
+      puzzles: pokedome.pickWords(pokedome.PUZZLE_COUNT).map((w) => pokedome.createPuzzle(w)),
+      idx: -1,
+      puzzleStartedAt: 0,
+      results: [],
+      finished: false,
+      finalScore: 0,
+      finalTimeMs: 0,
+    });
+    cb({ ok: true, total: pokedome.PUZZLE_COUNT, timerMs: pokedome.TIMER_MS });
+  });
+
+  socket.on('pokedome:next', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = pokedomeRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'POKEDOME not running' });
+    }
+    if (run.idx + 1 >= run.puzzles.length) {
+      return cb({ error: 'Run exhausted' });
+    }
+    _closePokedomePuzzle(run);
+    run.idx += 1;
+    run.puzzleStartedAt = Date.now();
+    const puzzle = run.puzzles[run.idx];
+    cb({ ok: true, index: run.idx, pattern: pokedome.pattern(puzzle), locked: puzzle.locked });
+  });
+
+  socket.on('pokedome:guess', ({ index, letter } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = pokedomeRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'POKEDOME not running' });
+    }
+    if (index !== run.idx || run.results[run.idx]) {
+      return cb({ error: 'Puzzle closed' });
+    }
+    if (typeof letter !== 'string' || !/^[A-Z]$/.test(letter)) {
+      return cb({ error: 'Invalid letter' });
+    }
+    const elapsedMs = Date.now() - run.puzzleStartedAt;
+    if (elapsedMs > pokedome.TIMER_MS + ANSWER_GRACE_MS) {
+      _closePokedomePuzzle(run);
+      return cb({ ok: true, timedOut: true });
+    }
+    const puzzle = run.puzzles[run.idx];
+    const { hit, repeat, positions, solved } = pokedome.guessLetter(puzzle, letter);
+    if (!solved) {
+      return cb({ ok: true, hit, repeat, positions, solved: false });
+    }
+    const ms = Math.min(elapsedMs, pokedome.TIMER_MS);
+    const points = pokedome.scorePuzzle(ms, puzzle.wrong, puzzle.hidden);
+    run.results[run.idx] = { solved: true, ms, wrong: puzzle.wrong, points };
+    cb({ ok: true, hit, repeat, positions, solved: true, ms, points });
+  });
+
+  socket.on('pokedome:finish', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = pokedomeRuns.get(socket.id);
+    if (!run) {
+      return cb({ error: 'POKEDOME not started' });
+    }
+    if (run.finished) {
+      return cb({ error: 'Run already finished' });
+    }
+    _closePokedomePuzzle(run);
+    const results = run.puzzles.map(
+      (p, i) =>
+        run.results[i] ?? { solved: false, ms: pokedome.TIMER_MS, wrong: p.wrong, points: 0 },
+    );
+    run.finished = true;
+    run.finalScore = results.reduce((sum, r) => sum + r.points, 0);
+    run.finalTimeMs = results.reduce((sum, r) => sum + r.ms, 0);
+    const qualifies = checkQualifiesTop10ForMode('pokedome', run.finalScore, run.finalTimeMs);
+    cb({
+      ok: true,
+      score: run.finalScore,
+      timeMs: run.finalTimeMs,
+      qualifies,
+      results: results.map((r, i) => (r.solved ? { ...r, word: run.puzzles[i].word } : r)),
+    });
+  });
+
+  socket.on('pokedome:submit_score', ({ name } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    submitModeScore(pokedomeRuns, 'pokedome', socket, name, cb);
+  });
+
   // --- HowHigh? (async 2P challenge) ---
 
   socket.on('howhigh:start', (cb) => {
@@ -2611,6 +2738,7 @@ io.on('connection', (socket) => {
     howHighRuns.delete(socket.id);
     mathquizRuns.delete(socket.id);
     centographerRuns.delete(socket.id);
+    pokedomeRuns.delete(socket.id);
     unregisterActiveSocket(socket.id);
     const { room, player } = removePlayerFromRoom(socket.id);
     if (room) {

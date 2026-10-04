@@ -8,6 +8,7 @@ import {
   sanitize,
   getPlayerName,
   shareInvite,
+  copyCode,
   alertTab,
 } from './dom.js';
 import { getSocket } from './socket.js';
@@ -562,9 +563,10 @@ export function initQlashique(socket) {
     });
   }
 
-  qEl('qlas-btn-copy-code').addEventListener('click', (e) =>
+  qEl('qlas-btn-copy-link').addEventListener('click', (e) =>
     shareInvite(qlasCode, e.currentTarget),
   );
+  qEl('qlas-btn-copy-code').addEventListener('click', (e) => copyCode(qlasCode, e.currentTarget));
   qEl('qlas-recap-live-btn').addEventListener('click', qlasOpenLiveRecap);
   qEl('btn-qlas-stop').addEventListener('click', qlasStopAttack);
   qEl('btn-qlas-end').addEventListener('click', qlasEndTurn);

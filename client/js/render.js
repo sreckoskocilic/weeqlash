@@ -292,7 +292,6 @@ export function updateTile(r, c, state) {
     hpEl.className = 'peg-hp';
     const heartEl = document.createElement('span');
     heartEl.className = 'peg-hp-heart';
-    heartEl.textContent = '♥';
     const countEl = document.createElement('span');
     countEl.className = 'peg-hp-count';
     countEl.textContent = peg.hp;

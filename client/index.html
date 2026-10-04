@@ -9,33 +9,33 @@
     <title>wQ$x — trivia games</title>
     <meta
       name="description"
-      content="wQ$x — seven trivia games in your browser: board brawls, 1v1 duels, trivia Scrabble and solo runs. Free, no install."
+      content="wQ$x — trivia games in your browser: board brawls, 1v1 duels, trivia Scrabble and solo runs. Free, no install."
     />
     <meta name="theme-color" content="#0e0e1a" />
     <meta property="og:site_name" content="wQ$x" />
     <meta property="og:title" content="wQ$x — trivia games" />
     <meta
       property="og:description"
-      content="Board brawls, 1v1 duels, trivia Scrabble and solo runs. Seven games, free, in the browser."
+      content="Board brawls, 1v1 duels, trivia Scrabble and solo runs. Free, in the browser."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://brawl.weeqlash.icu" />
-    <meta property="og:image" content="https://brawl.weeqlash.icu/og-image.png?v=3" />
+    <meta property="og:image" content="https://brawl.weeqlash.icu/og-image.png?v=5" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="wQ$x — seven trivia games" />
+    <meta property="og:image:alt" content="wQ$x — trivia games" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="wQ$x — trivia games" />
     <meta
       name="twitter:description"
-      content="Board brawls, 1v1 duels, trivia Scrabble and solo runs. Seven games, free, in the browser."
+      content="Board brawls, 1v1 duels, trivia Scrabble and solo runs. Free, in the browser."
     />
-    <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png?v=3" />
+    <meta name="twitter:image" content="https://brawl.weeqlash.icu/og-image.png?v=5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Chakra+Petch:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -82,7 +82,6 @@
     <!-- Connect screen — horizontal nav + content card -->
     <div class="main-columns" id="screen-connect">
       <nav id="connect-nav" class="connect-nav" role="tablist" aria-label="Main navigation">
-        <button class="nav-item active" data-view="play" type="button">Play</button>
         <button
           class="nav-item nav-item-latest"
           id="btn-latest"
@@ -139,7 +138,7 @@
             margin-bottom: 0.75rem;
             padding: 0.5rem;
             border-radius: var(--radius);
-            font-size: 0.85rem;
+            font-size: var(--fs-sm);
             text-align: center;
           "
         ></div>
@@ -401,7 +400,26 @@
                       stroke-width="2"
                       stroke-linecap="round"
                     /></svg></span
-                ><span>CentoGrapher</span>
+                ><span>CentoGrapher</span></button
+              ><button class="game-item game--pokedome" data-game="pokedome" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect
+                      x="12"
+                      y="5"
+                      width="8"
+                      height="11"
+                      rx="1.5"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M 3 25 L 9 25 M 13 25 L 19 25 M 23 25 L 29 25"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    /></svg></span
+                ><span>POKEDOME</span>
               </button>
             </nav>
             <section class="game-panel game--brawl" data-game-panel="brawl" hidden>
@@ -856,8 +874,9 @@
                 <div class="game-actions">
                   <button id="btn-skipnot-create" class="game-create" type="button">START</button>
                 </div>
-              </div>
-              <div class="game-panel-side">
+                <button class="game-lb-toggle" type="button" aria-expanded="true">
+                  HIDE SCORES
+                </button>
                 <div id="skipnot-lb-panel" class="leaderboard-panel lb-skipnot">
                   <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
                   <div class="lb-divider"></div>
@@ -869,7 +888,9 @@
                   </div>
                   <div id="skipnot-lb-rows" class="lb-rows"></div>
                 </div>
-                <details class="game-howto">
+              </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
                   <summary>How to play</summary>
                   <p>
                     Solo gauntlet. 20 questions, 12 seconds each. No opponents, no pauses between
@@ -916,8 +937,9 @@
                 <div class="game-actions">
                   <button id="btn-mathquiz-create" class="game-create" type="button">START</button>
                 </div>
-              </div>
-              <div class="game-panel-side">
+                <button class="game-lb-toggle" type="button" aria-expanded="true">
+                  HIDE SCORES
+                </button>
                 <div id="mathquiz-lb-panel" class="leaderboard-panel lb-mathquiz">
                   <div class="lb-heading">MATH <span>MINDS</span></div>
                   <div class="lb-divider"></div>
@@ -929,7 +951,9 @@
                   </div>
                   <div id="mathquiz-lb-rows" class="lb-rows"></div>
                 </div>
-                <details class="game-howto">
+              </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
                   <summary>How to play</summary>
                   <p>
                     Solo. Ten problems, 45 seconds each, and you type the answer instead of picking
@@ -987,8 +1011,9 @@
                 <div class="game-actions">
                   <button id="btn-cento-create" class="game-create" type="button">START</button>
                 </div>
-              </div>
-              <div class="game-panel-side">
+                <button class="game-lb-toggle" type="button" aria-expanded="true">
+                  HIDE SCORES
+                </button>
                 <div id="cento-lb-panel" class="leaderboard-panel lb-cento">
                   <div class="lb-heading">CARTO <span>MASTERS</span></div>
                   <div class="lb-divider"></div>
@@ -1000,7 +1025,9 @@
                   </div>
                   <div id="cento-lb-rows" class="lb-rows"></div>
                 </div>
-                <details class="game-howto">
+              </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
                   <summary>How to play</summary>
                   <p>
                     Solo geography. We show you a country outline — just the shape, no name on it —
@@ -1019,6 +1046,76 @@
                     drops below zero. You get 60 seconds, and it submits itself when time's up. At
                     the end only the choices you ticked light up green or red; the ones you left
                     alone stay dark, so the game never just shows you the full answer.
+                  </p>
+                </details>
+              </div>
+            </section>
+            <section
+              class="game-panel game--pokedome"
+              data-game-panel="pokedome"
+              data-lb-mode="pokedome"
+              hidden
+            >
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect
+                        x="12"
+                        y="5"
+                        width="8"
+                        height="11"
+                        rx="1.5"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <path
+                        d="M 3 25 L 9 25 M 13 25 L 19 25 M 23 25 L 29 25"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">POKEDOME</h2>
+                    <span class="game-tag">solo</span>
+                  </div>
+                </div>
+                <p class="game-desc">Three Pokémon names, hangman style — fast and clean wins</p>
+
+                <div class="game-actions">
+                  <button id="btn-pokedome-create" class="game-create" type="button">START</button>
+                </div>
+                <button class="game-lb-toggle" type="button" aria-expanded="true">
+                  HIDE SCORES
+                </button>
+                <div id="pokedome-lb-panel" class="leaderboard-panel lb-pokedome">
+                  <div class="lb-heading">DEX <span>MASTERS</span></div>
+                  <div class="lb-divider"></div>
+                  <div class="lb-thead">
+                    <div>#</div>
+                    <div>NAME</div>
+                    <div style="text-align: center">SCORE</div>
+                    <div style="text-align: right">TIME</div>
+                  </div>
+                  <div id="pokedome-lb-rows" class="lb-rows"></div>
+                </div>
+              </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
+                  <summary>How to play</summary>
+                  <p>
+                    Solo. Three puzzles, each one a Pokémon name with a letter or two already filled
+                    in. No type, no generation, no hints. Guess letters with the keys on screen or
+                    your keyboard. A 5-second countdown runs before each puzzle — hit READY to skip
+                    it — then you get 30 seconds.
+                  </p>
+                  <p>
+                    Each puzzle is worth up to 100, long name or short. Solving it gets you 30 for
+                    sure. The other 70 are for accuracy and speed: every wrong letter cuts what's
+                    left by a fifth, and the speed part is full if you average about 3 seconds per
+                    letter you had to find. Run out of time and it's zero — and the name stays
+                    hidden.
                   </p>
                 </details>
               </div>
@@ -1049,13 +1146,13 @@
               <input type="checkbox" id="keep-logged-in" style="width: auto" />
               <label
                 for="keep-logged-in"
-                style="font-size: 0.85rem; color: var(--muted); cursor: pointer"
+                style="font-size: var(--fs-sm); color: var(--muted); cursor: pointer"
                 >Keep me logged in</label
               >
             </div>
             <button id="btn-login" class="auth-submit auth-submit-primary">Login</button>
             <div style="text-align: center; margin-top: 0.5rem">
-              <a href="#" id="link-forgot" style="color: var(--muted); font-size: 0.75rem"
+              <a href="#" id="link-forgot" style="color: var(--muted); font-size: var(--fs-xs)"
                 >Forgot password?</a
               >
             </div>
@@ -1071,7 +1168,7 @@
             />
             <button id="btn-forgot" class="auth-submit">Send reset link</button>
             <div style="text-align: center; margin-top: 0.5rem">
-              <a href="#" id="link-back-login" style="color: var(--muted); font-size: 0.75rem"
+              <a href="#" id="link-back-login" style="color: var(--muted); font-size: var(--fs-xs)"
                 >Back to login</a
               >
             </div>
@@ -1139,7 +1236,7 @@
 
     <!-- Footer -->
     <footer id="site-footer">
-      <span>&copy; 2026 wQ$x <span style="opacity: 0.55">· weeqlash</span></span>
+      <span>&copy; 2026 wQ$x <span style="opacity: 0.8">· weeqlash</span></span>
       <span class="sep">|</span>
       <a href="#" data-legal-open="privacy">Privacy Policy</a>
       <span class="sep">|</span>
@@ -1307,31 +1404,20 @@
         "
       >
         <div class="room-code" id="lobby-code" style="margin-bottom: 0"></div>
-        <button
-          id="btn-copy-code"
-          aria-label="Copy invite link"
-          style="
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8rem;
-            font-family: 'IBM Plex Mono', monospace;
-            background: transparent;
-            border: 1px solid var(--bg3);
-            color: var(--text);
-            width: auto;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-          "
-        >
-          COPY LINK
-        </button>
+        <button id="btn-copy-link" class="copy-btn" type="button">COPY LINK</button>
+        <button id="btn-copy-code" class="copy-btn" type="button">COPY CODE</button>
       </div>
       <div class="room-code-label">Send the link or the code to other players</div>
       <h2>Players</h2>
       <ul class="player-list" id="player-list"></ul>
       <div
         id="lobby-status"
-        style="color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; text-align: center"
+        style="
+          color: var(--muted);
+          font-size: var(--fs-sm);
+          margin-bottom: 1rem;
+          text-align: center;
+        "
       ></div>
       <button id="btn-start" disabled>Waiting for players…</button>
     </div>
@@ -1466,21 +1552,11 @@
                 </div>
                 <div style="display: inline-flex; align-items: center; gap: 10px">
                   <div class="qlas-code-display" id="qlas-code-val">—</div>
-                  <button
-                    id="qlas-btn-copy-code"
-                    aria-label="Copy invite link"
-                    style="
-                      background: #0d2e0d;
-                      border: 1px solid #00ff41;
-                      color: #00ff41;
-                      font-family: 'IBM Plex Mono', monospace;
-                      font-size: 0.75rem;
-                      padding: 4px 10px;
-                      border-radius: 2px;
-                      cursor: pointer;
-                    "
-                  >
+                  <button id="qlas-btn-copy-link" class="qlas-copy-btn" type="button">
                     COPY LINK
+                  </button>
+                  <button id="qlas-btn-copy-code" class="qlas-copy-btn" type="button">
+                    COPY CODE
                   </button>
                 </div>
               </div>
@@ -1586,7 +1662,7 @@
               <button
                 class="qlas-btn qlas-btn--primary"
                 id="btn-qlas-attack"
-                style="font-size: 1.3rem; width: 100%"
+                style="font-size: var(--fs-xl); width: 100%"
               >
                 [ ENGAGE ]
               </button>
@@ -1651,7 +1727,8 @@
             <div class="qw-waiting-msg" style="margin-top: 8px">Send the link or the code</div>
             <div class="qw-code-line">
               <div class="qw-code-display" id="qw-code-val">—</div>
-              <button id="qw-btn-copy-code" class="qw-btn-small" type="button">COPY LINK</button>
+              <button id="qw-btn-copy-link" class="qw-btn-small" type="button">COPY LINK</button>
+              <button id="qw-btn-copy-code" class="qw-btn-small" type="button">COPY CODE</button>
             </div>
           </div>
           <button id="qw-btn-start" class="qw-btn-primary" type="button" style="display: none">
@@ -1863,73 +1940,76 @@
         <div id="skipnot-phase-gameover" style="display: none">
           <div class="qlas-gameover">
             <h2 class="qlas-go-head">&gt; SKIPNOT COMPLETE</h2>
-            <div class="qlas-go-stats">
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">SCORE</span>
-                <span class="qlas-go-v" id="skipnot-go-score">—</span>
+            <div class="go-split">
+              <div>
+                <div class="qlas-go-stats">
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">SCORE</span>
+                    <span class="qlas-go-v" id="skipnot-go-score">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">CORRECT</span>
+                    <span class="qlas-go-v" id="skipnot-go-correct">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">DURATION</span>
+                    <span class="qlas-go-v" id="skipnot-go-duration">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">BEST STREAK</span>
+                    <span class="qlas-go-v" id="skipnot-go-best-streak">—</span>
+                  </div>
+                </div>
+                <!-- Heatmap: 20 cells, one per question, color = result -->
+                <div class="skipnot-heatmap-wrap">
+                  <div class="skipnot-heatmap-label">RESULTS</div>
+                  <div
+                    id="skipnot-heatmap"
+                    class="skipnot-heatmap"
+                    aria-label="Per-question results"
+                  ></div>
+                </div>
+                <div
+                  id="skipnot-qualifies-row"
+                  style="display: none; margin: 1rem auto 0; max-width: 480px"
+                >
+                  <input
+                    id="skipnot-name-input"
+                    aria-label="Your name"
+                    placeholder="your name"
+                    maxlength="16"
+                    style="
+                      width: 100%;
+                      box-sizing: border-box;
+                      background: #1a0d00;
+                      border: 1px solid #ffb000;
+                      color: #ffb000;
+                      padding: 8px 12px;
+                    "
+                  />
+                </div>
+                <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+                  <button
+                    class="qlas-btn qlas-btn--primary"
+                    id="btn-skipnot-submit-score"
+                    type="button"
+                    style="display: none; flex: 1 1 0"
+                  >
+                    [ SUBMIT ]
+                  </button>
+                </div>
               </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">CORRECT</span>
-                <span class="qlas-go-v" id="skipnot-go-correct">—</span>
+              <div class="leaderboard-panel lb-skipnot">
+                <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
+                <div class="lb-divider"></div>
+                <div class="lb-thead">
+                  <div>#</div>
+                  <div>NAME</div>
+                  <div style="text-align: center">SCORE</div>
+                  <div style="text-align: right">TIME</div>
+                </div>
+                <div id="skipnot-go-lb-rows" class="lb-rows"></div>
               </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">DURATION</span>
-                <span class="qlas-go-v" id="skipnot-go-duration">—</span>
-              </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">BEST STREAK</span>
-                <span class="qlas-go-v" id="skipnot-go-best-streak">—</span>
-              </div>
-            </div>
-            <!-- Heatmap: 20 cells, one per question, color = result -->
-            <div class="skipnot-heatmap-wrap">
-              <div class="skipnot-heatmap-label">RESULTS</div>
-              <div
-                id="skipnot-heatmap"
-                class="skipnot-heatmap"
-                aria-label="Per-question results"
-              ></div>
-            </div>
-            <div
-              id="skipnot-qualifies-row"
-              style="display: none; margin: 1rem auto 0; max-width: 480px"
-            >
-              <input
-                id="skipnot-name-input"
-                aria-label="Your name"
-                placeholder="your name"
-                maxlength="16"
-                style="
-                  width: 100%;
-                  box-sizing: border-box;
-                  background: #1a0d00;
-                  border: 1px solid #ffb000;
-                  color: #ffb000;
-                  font-family: 'IBM Plex Mono', monospace;
-                  padding: 8px 12px;
-                "
-              />
-            </div>
-            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
-              <button
-                class="qlas-btn qlas-btn--primary"
-                id="btn-skipnot-submit-score"
-                type="button"
-                style="display: none; flex: 1 1 0"
-              >
-                [ SUBMIT ]
-              </button>
-            </div>
-            <div class="leaderboard-panel lb-skipnot" style="margin-top: 1.2rem">
-              <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
-              <div class="lb-divider"></div>
-              <div class="lb-thead">
-                <div>#</div>
-                <div>NAME</div>
-                <div style="text-align: center">SCORE</div>
-                <div style="text-align: right">TIME</div>
-              </div>
-              <div id="skipnot-go-lb-rows" class="lb-rows"></div>
             </div>
           </div>
         </div>
@@ -2019,68 +2099,71 @@
         <div id="mathquiz-phase-gameover" style="display: none">
           <div class="qlas-gameover">
             <h2 class="qlas-go-head">&gt; MATHQ COMPLETE</h2>
-            <div class="qlas-go-stats">
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">SCORE</span>
-                <span class="qlas-go-v" id="mathquiz-go-score">—</span>
+            <div class="go-split">
+              <div>
+                <div class="qlas-go-stats">
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">SCORE</span>
+                    <span class="qlas-go-v" id="mathquiz-go-score">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">SOLVED</span>
+                    <span class="qlas-go-v" id="mathquiz-go-correct">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">DURATION</span>
+                    <span class="qlas-go-v" id="mathquiz-go-duration">—</span>
+                  </div>
+                </div>
+                <div class="skipnot-heatmap-wrap">
+                  <div class="skipnot-heatmap-label">RESULTS</div>
+                  <div
+                    id="mathquiz-heatmap"
+                    class="skipnot-heatmap"
+                    aria-label="Per-question results"
+                  ></div>
+                </div>
+                <div
+                  id="mathquiz-qualifies-row"
+                  style="display: none; margin: 1rem auto 0; max-width: 480px"
+                >
+                  <input
+                    id="mathquiz-name-input"
+                    aria-label="Your name"
+                    placeholder="your name"
+                    maxlength="16"
+                    style="
+                      width: 100%;
+                      box-sizing: border-box;
+                      background: #0d1326;
+                      border: 1px solid #4fd1c5;
+                      color: #4fd1c5;
+                      padding: 8px 12px;
+                    "
+                  />
+                </div>
+                <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+                  <button
+                    class="qlas-btn qlas-btn--primary"
+                    id="btn-mathquiz-submit-score"
+                    type="button"
+                    style="display: none; flex: 1 1 0"
+                  >
+                    [ SUBMIT ]
+                  </button>
+                </div>
               </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">SOLVED</span>
-                <span class="qlas-go-v" id="mathquiz-go-correct">—</span>
+              <div class="leaderboard-panel lb-mathquiz">
+                <div class="lb-heading">MATH <span>MINDS</span></div>
+                <div class="lb-divider"></div>
+                <div class="lb-thead">
+                  <div>#</div>
+                  <div>NAME</div>
+                  <div style="text-align: center">SCORE</div>
+                  <div style="text-align: right">TIME</div>
+                </div>
+                <div id="mathquiz-go-lb-rows" class="lb-rows"></div>
               </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">DURATION</span>
-                <span class="qlas-go-v" id="mathquiz-go-duration">—</span>
-              </div>
-            </div>
-            <div class="skipnot-heatmap-wrap">
-              <div class="skipnot-heatmap-label">RESULTS</div>
-              <div
-                id="mathquiz-heatmap"
-                class="skipnot-heatmap"
-                aria-label="Per-question results"
-              ></div>
-            </div>
-            <div
-              id="mathquiz-qualifies-row"
-              style="display: none; margin: 1rem auto 0; max-width: 480px"
-            >
-              <input
-                id="mathquiz-name-input"
-                aria-label="Your name"
-                placeholder="your name"
-                maxlength="16"
-                style="
-                  width: 100%;
-                  box-sizing: border-box;
-                  background: #0d1326;
-                  border: 1px solid #4fd1c5;
-                  color: #4fd1c5;
-                  font-family: 'IBM Plex Mono', monospace;
-                  padding: 8px 12px;
-                "
-              />
-            </div>
-            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
-              <button
-                class="qlas-btn qlas-btn--primary"
-                id="btn-mathquiz-submit-score"
-                type="button"
-                style="display: none; flex: 1 1 0"
-              >
-                [ SUBMIT ]
-              </button>
-            </div>
-            <div class="leaderboard-panel lb-mathquiz" style="margin-top: 1.2rem">
-              <div class="lb-heading">MATH <span>MINDS</span></div>
-              <div class="lb-divider"></div>
-              <div class="lb-thead">
-                <div>#</div>
-                <div>NAME</div>
-                <div style="text-align: center">SCORE</div>
-                <div style="text-align: right">TIME</div>
-              </div>
-              <div id="mathquiz-go-lb-rows" class="lb-rows"></div>
             </div>
           </div>
         </div>
@@ -2122,60 +2205,172 @@
         <div id="cento-phase-gameover" style="display: none">
           <div class="qlas-gameover">
             <h2 class="qlas-go-head">&gt; CENTOGRAPHER</h2>
-            <div class="qlas-go-stats">
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">SCORE</span>
-                <span class="qlas-go-v" id="cento-go-score">—</span>
+            <div class="go-split">
+              <div>
+                <div class="qlas-go-stats">
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">SCORE</span>
+                    <span class="qlas-go-v" id="cento-go-score">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">MISSED</span>
+                    <span class="qlas-go-v" id="cento-go-correct">—</span>
+                  </div>
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">WRONG PICKS</span>
+                    <span class="qlas-go-v" id="cento-go-wrong">—</span>
+                  </div>
+                </div>
+                <div
+                  id="cento-qualifies-row"
+                  style="display: none; margin: 1rem auto 0; max-width: 480px"
+                >
+                  <input
+                    id="cento-name-input"
+                    aria-label="Your name"
+                    placeholder="your name"
+                    maxlength="16"
+                    style="
+                      width: 100%;
+                      box-sizing: border-box;
+                      background: #0d1326;
+                      border: 1px solid #4fd1c5;
+                      color: #4fd1c5;
+                      padding: 8px 12px;
+                    "
+                  />
+                </div>
+                <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+                  <button
+                    class="qlas-btn qlas-btn--primary"
+                    id="btn-cento-submit-score"
+                    type="button"
+                    style="display: none; flex: 1 1 0"
+                  >
+                    [ SUBMIT ]
+                  </button>
+                </div>
               </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">MISSED</span>
-                <span class="qlas-go-v" id="cento-go-correct">—</span>
-              </div>
-              <div class="qlas-go-row">
-                <span class="qlas-go-k">WRONG PICKS</span>
-                <span class="qlas-go-v" id="cento-go-wrong">—</span>
+              <div class="leaderboard-panel lb-cento">
+                <div class="lb-heading">CARTO <span>MASTERS</span></div>
+                <div class="lb-divider"></div>
+                <div class="lb-thead">
+                  <div>#</div>
+                  <div>NAME</div>
+                  <div style="text-align: center">SCORE</div>
+                  <div style="text-align: right">TIME</div>
+                </div>
+                <div id="cento-go-lb-rows" class="lb-rows"></div>
               </div>
             </div>
-            <div
-              id="cento-qualifies-row"
-              style="display: none; margin: 1rem auto 0; max-width: 480px"
-            >
-              <input
-                id="cento-name-input"
-                aria-label="Your name"
-                placeholder="your name"
-                maxlength="16"
-                style="
-                  width: 100%;
-                  box-sizing: border-box;
-                  background: #0d1326;
-                  border: 1px solid #4fd1c5;
-                  color: #4fd1c5;
-                  font-family: 'IBM Plex Mono', monospace;
-                  padding: 8px 12px;
-                "
-              />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-pokedome" style="display: none">
+      <div class="qlas-inner">
+        <div id="pokedome-phase-game" class="pokedome-game" style="display: none">
+          <aside class="pokedome-hud">
+            <div class="qlas-timer-ring" id="pokedome-turn-timer">
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle class="ring-track" cx="32" cy="32" r="28"></circle>
+                <circle
+                  class="ring-progress"
+                  id="pokedome-timer-ring-progress"
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  stroke-dasharray="175.93"
+                  stroke-dashoffset="0"
+                ></circle>
+              </svg>
+              <span class="ring-label" id="pokedome-timer-ring-label">—</span>
             </div>
-            <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+            <div class="pokedome-hud-item">
+              <span class="pokedome-hud-k">PUZZLE</span>
+              <span class="pokedome-hud-v" id="pokedome-counter">0/3</span>
+            </div>
+            <div class="pokedome-hud-item">
+              <span class="pokedome-hud-k">SCORE</span>
+              <span class="pokedome-hud-v" id="pokedome-score">0</span>
+              <span class="skipnot-score-delta" id="pokedome-score-delta"></span>
+            </div>
+          </aside>
+          <div class="pokedome-main">
+            <div class="pokedome-stage">
+              <div id="pokedome-countdown" class="pokedome-countdown" aria-live="polite"></div>
               <button
-                class="qlas-btn qlas-btn--primary"
-                id="btn-cento-submit-score"
+                id="btn-pokedome-ready"
+                class="qlas-btn qlas-btn--primary pokedome-ready"
                 type="button"
-                style="display: none; flex: 1 1 0"
+                hidden
               >
-                [ SUBMIT ]
+                [ READY ]
               </button>
+              <div id="pokedome-word" class="pokedome-word" aria-label="Pokémon name"></div>
+              <div id="pokedome-status" class="pokedome-status" aria-live="polite"></div>
             </div>
-            <div class="leaderboard-panel lb-cento" style="margin-top: 1.2rem">
-              <div class="lb-heading">CARTO <span>MASTERS</span></div>
-              <div class="lb-divider"></div>
-              <div class="lb-thead">
-                <div>#</div>
-                <div>NAME</div>
-                <div style="text-align: center">SCORE</div>
-                <div style="text-align: right">TIME</div>
+            <div id="pokedome-keys" class="pokedome-keys"></div>
+          </div>
+        </div>
+
+        <div id="pokedome-phase-gameover" style="display: none">
+          <div class="qlas-gameover">
+            <h2 class="qlas-go-head">&gt; POKEDOME</h2>
+            <div class="go-split">
+              <div>
+                <div class="qlas-go-stats">
+                  <div class="qlas-go-row">
+                    <span class="qlas-go-k">SCORE</span>
+                    <span class="pokedome-go-vals">
+                      <span id="pokedome-go-score">—</span>
+                      <span id="pokedome-go-time" class="pokedome-go-time">—</span>
+                    </span>
+                  </div>
+                </div>
+                <div id="pokedome-go-results" class="pokedome-results"></div>
+                <div
+                  id="pokedome-qualifies-row"
+                  style="display: none; margin: 1rem auto 0; max-width: 480px"
+                >
+                  <input
+                    id="pokedome-name-input"
+                    aria-label="Your name"
+                    placeholder="your name"
+                    maxlength="16"
+                    style="
+                      width: 100%;
+                      box-sizing: border-box;
+                      background: #1f1a05;
+                      border: 1px solid #ffd23f;
+                      color: #ffd23f;
+                      padding: 8px 12px;
+                    "
+                  />
+                </div>
+                <div style="display: flex; gap: 0.5rem; max-width: 480px; margin: 0.6rem auto 0">
+                  <button
+                    class="qlas-btn qlas-btn--primary"
+                    id="btn-pokedome-submit-score"
+                    type="button"
+                    style="display: none; flex: 1 1 0"
+                  >
+                    [ SUBMIT ]
+                  </button>
+                </div>
               </div>
-              <div id="cento-go-lb-rows" class="lb-rows"></div>
+              <div class="leaderboard-panel lb-pokedome">
+                <div class="lb-heading">DEX <span>MASTERS</span></div>
+                <div class="lb-divider"></div>
+                <div class="lb-thead">
+                  <div>#</div>
+                  <div>NAME</div>
+                  <div style="text-align: center">SCORE</div>
+                  <div style="text-align: right">TIME</div>
+                </div>
+                <div id="pokedome-go-lb-rows" class="lb-rows"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2416,11 +2611,19 @@
                 ></span>
                 <button
                   class="qlas-btn qlas-btn--ghost"
-                  id="btn-howhigh-copy-code"
+                  id="btn-howhigh-copy-link"
                   type="button"
-                  style="padding: 4px 12px; font-size: 0.8rem"
+                  style="padding: 4px 12px; font-size: var(--fs-sm)"
                 >
                   COPY LINK
+                </button>
+                <button
+                  class="qlas-btn qlas-btn--ghost"
+                  id="btn-howhigh-copy-code"
+                  type="button"
+                  style="padding: 4px 12px; font-size: var(--fs-sm)"
+                >
+                  COPY CODE
                 </button>
               </div>
             </div>

@@ -8,6 +8,7 @@ import {
   sanitize,
   getPlayerName,
   shareInvite,
+  copyCode,
   alertTab,
 } from './dom.js';
 import { renderQuestion } from './question-render.js';
@@ -829,7 +830,8 @@ export function initQlashword(socket) {
   // Lobby buttons
   el('btn-qlashword-create').addEventListener('click', createRoom);
   el('btn-qlashword-join').addEventListener('click', joinRoom);
-  qEl('qw-btn-copy-code').addEventListener('click', (e) => shareInvite(qwCode, e.currentTarget));
+  qEl('qw-btn-copy-link').addEventListener('click', (e) => shareInvite(qwCode, e.currentTarget));
+  qEl('qw-btn-copy-code').addEventListener('click', (e) => copyCode(qwCode, e.currentTarget));
   qEl('qw-btn-start').addEventListener('click', startGame);
   qEl('qw-bonus-start-btn').addEventListener('click', startBonusQuestion);
   registerHomeHandler({

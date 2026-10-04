@@ -22,6 +22,7 @@ const _MODES: QuizModeInput[] = [
   { id: 'mathquiz', label: 'MathQ', categories: [] },
   // CentoGrapher — single-question geography "select all related to the country".
   { id: 'centographer', label: 'CentoGrapher', categories: [] },
+  { id: 'pokedome', label: 'POKEDOME', categories: [] },
 ];
 
 export const QUIZ_MODES: QuizMode[] = _MODES.map((m) => ({

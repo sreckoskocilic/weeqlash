@@ -13,6 +13,7 @@ import { initGameTheme } from './game-theme.js';
 import { initHowHigh } from './howhigh.js';
 import { initMathquiz } from './mathquiz.js';
 import { initCentographer } from './centographer.js';
+import { initPokedome } from './pokedome.js';
 import { initHome } from './home.js';
 import { initNav } from './nav.js';
 
@@ -57,6 +58,7 @@ async function init() {
 
   // CentoGrapher (single-question geography select-all)
   initCentographer(sock);
+  initPokedome(sock);
 
   // HowHigh? (async 2P challenge)
   initHowHigh(sock);

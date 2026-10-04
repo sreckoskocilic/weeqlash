@@ -16,13 +16,12 @@ export function showStatsModal(statsData) {
         max-height: 90vh; display: flex; flex-direction: column;
         box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
         z-index: 5001;
-        font-family: 'Montserrat', 'Segoe UI', sans-serif;
       ">
         <div style="text-align: center; margin-bottom: 28px;">
-          <h2 style="margin: 0 0 8px 0; color: #fff; font-size: 1.6rem; font-weight: 600; letter-spacing: 0.5px;">
+          <h2 style="margin: 0 0 8px 0; color: #fff; font-size: var(--fs-2xl); font-weight: 600; letter-spacing: 0.5px;">
             Your Statistics
           </h2>
-          <div id="stats-modal-player-label" style="color: #888; font-size: 0.9rem;">
+          <div id="stats-modal-player-label" style="color: #888; font-size: var(--fs-md);">
             Player: ${sanitize(state.currentUser?.username || 'Guest')}
           </div>
         </div>
@@ -34,7 +33,7 @@ export function showStatsModal(statsData) {
           <button id="stats-modal-close" style="
             width: auto; padding: 14px 36px; background: linear-gradient(135deg, #4a4a5a 0%, #3a3a45 100%);
             border: none; color: #ddd;
-            font-size: 0.9rem; font-weight: 500;
+            font-size: var(--fs-md); font-weight: 500;
             cursor: pointer; border-radius: 8px;
             transition: transform 0.15s, box-shadow 0.15s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -87,7 +86,7 @@ export function showStatsModal(statsData) {
           border: 1px solid #2a2a4a;
         ">
           <div style="font-size: 2.2rem; font-weight: 700; color: #fa5e2e; line-height: 1;">${statsData.gamesWon}</div>
-          <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Won</div>
+          <div style="font-size: var(--fs-sm); color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Won</div>
         </div>
         <div style="
           background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -96,7 +95,7 @@ export function showStatsModal(statsData) {
           border: 1px solid #2a2a4a;
         ">
           <div style="font-size: 2.2rem; font-weight: 700; color: #34dfd0; line-height: 1;">${statsData.gamesPlayed}</div>
-          <div style="font-size: 0.8rem; color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Played</div>
+          <div style="font-size: var(--fs-sm); color: #b9d0f8; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Played</div>
         </div>
         <div style="
           background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -105,7 +104,7 @@ export function showStatsModal(statsData) {
           border: 1px solid #2a2a4a;
         ">
           <div style="font-size: 2rem; font-weight: 700; color: ${accuracyColor}; line-height: 1;">${accuracy}%</div>
-          <div style="font-size: 0.95rem; color: #b9d0f8; margin-top: 8px;">${totalCorrect}/${totalAnswered}</div>
+          <div style="font-size: var(--fs-md); color: #b9d0f8; margin-top: 8px;">${totalCorrect}/${totalAnswered}</div>
         </div>
       </div>
 
@@ -114,7 +113,7 @@ export function showStatsModal(statsData) {
         border-radius: 16px; padding: 20px;
         border: 1px solid #3a3a4a;
       ">
-        <h3 style="color: #fff; font-size: 1rem; margin: 0 0 16px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        <h3 style="color: #fff; font-size: var(--fs-md); margin: 0 0 16px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
           By Category
         </h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -132,8 +131,8 @@ export function showStatsModal(statsData) {
     _statsHTML += `
       <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-weight: 600; color: #e5e7eb; font-size: 0.8rem;">${catName}</span>
-          <span style="font-size: 0.75rem; color: #9ca3af;">
+          <span style="font-weight: 400; color: #e5e7eb; font-size: var(--fs-sm);">${catName}</span>
+          <span style="font-size: var(--fs-xs); color: #9ca3af;">
             <span style="color: ${barColor}; font-weight: 600;">${cat.correct}</span> / ${cat.answered}
             <span style="color: ${barColor}; margin-left: 4px;">(${catAccuracy}%)</span>
           </span>

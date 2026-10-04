@@ -11,17 +11,19 @@ function buildLeaderboardRow(entry, rankNum) {
     <div class="lb-rk">${rkText}</div>
     <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${entry ? sanitize(entry.name) : '—'}</div>
     <div style="text-align:center;font-weight:600;font-variant-numeric:tabular-nums">${entry ? entry.answers : '—'}</div>
-    <div style="text-align:right;font-size:0.85rem;color:#5ebb52;font-variant-numeric:tabular-nums">${entry ? Math.round(entry.time_ms / 1000) + 's' : '—'}</div>
+    <div style="text-align:right;font-size:var(--fs-sm);color:#5ebb52;font-variant-numeric:tabular-nums">${entry ? Math.round(entry.time_ms / 1000) + 's' : '—'}</div>
   `;
   return row;
 }
 
-// Always render 10 slots; empty ones get `lb-row-empty` for CSS dimming.
 function renderLeaderboardRows(container, entries) {
   if (!container) {
     return;
   }
   container.innerHTML = '';
+  if (!entries.length) {
+    return;
+  }
   for (let i = 0; i < 10; i++) {
     container.appendChild(buildLeaderboardRow(entries[i], i + 1));
   }

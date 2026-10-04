@@ -90,7 +90,7 @@ export function drawGraph(canvas, spec) {
 
   // axis range labels (corners)
   ctx.fillStyle = COLORS.label;
-  ctx.font = '600 14px system-ui, sans-serif';
+  ctx.font = "600 14px 'Roboto Mono', monospace";
   ctx.fillText(String(xa), PAD, H - PAD + 14);
   ctx.fillText(String(xb), W - PAD - 12, H - PAD + 14);
   ctx.fillText(String(Math.round(yb)), 4, PAD + 4);
@@ -166,7 +166,7 @@ export function drawFigure(canvas, fig) {
   const px = (x) => offX + (x - xmin) * sx;
   const py = (y) => H - (offY + (y - ymin) * sy); // world y up → canvas y down
 
-  ctx.font = '700 19px system-ui, sans-serif';
+  ctx.font = "700 19px 'Roboto Mono', monospace";
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 

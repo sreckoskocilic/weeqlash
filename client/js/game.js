@@ -1,4 +1,12 @@
-import { el, showError, showScreen, getPlayerName, shareInvite, alertTab } from './dom.js';
+import {
+  el,
+  showError,
+  showScreen,
+  getPlayerName,
+  shareInvite,
+  copyCode,
+  alertTab,
+} from './dom.js';
 import { initBoard, renderAll, renderChangedTiles } from './render.js';
 import { PHASE, COORD_BASE } from './constants.js';
 import { state } from './state.js';
@@ -476,8 +484,11 @@ export function setupBoardGameHandlers(sock) {
     });
   });
 
-  el('btn-copy-code').addEventListener('click', (e) =>
+  el('btn-copy-link').addEventListener('click', (e) =>
     shareInvite(state.myRoom?.code, e.currentTarget),
+  );
+  el('btn-copy-code').addEventListener('click', (e) =>
+    copyCode(state.myRoom?.code, e.currentTarget),
   );
 
   el('join-code').addEventListener('input', (e) => {

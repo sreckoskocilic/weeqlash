@@ -1,4 +1,12 @@
-import { el, showScreen, sanitize, showError, getPlayerName, shareInvite } from './dom.js';
+import {
+  el,
+  showScreen,
+  sanitize,
+  showError,
+  getPlayerName,
+  shareInvite,
+  copyCode,
+} from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { QLAS_THEMES } from './qlashique.js';
 import { TEST_SPEED } from './constants.js';
@@ -850,8 +858,12 @@ function _loadChallenges() {
   });
 }
 
-function _onCopyCode(e) {
+function _onCopyLink(e) {
   shareInvite(_qel('howhigh-challenge-code')?.textContent, e.currentTarget);
+}
+
+function _onCopyCode(e) {
+  copyCode(_qel('howhigh-challenge-code')?.textContent, e.currentTarget);
 }
 
 // --- Public init ---
@@ -882,6 +894,7 @@ export function initHowHigh(sock) {
       _resetRun();
     },
   });
+  el('btn-howhigh-copy-link').addEventListener('click', _onCopyLink);
   el('btn-howhigh-copy-code').addEventListener('click', _onCopyCode);
   el('btn-howhigh-dice-accept').addEventListener('click', _onDiceAccept);
   el('btn-howhigh-dice-decline').addEventListener('click', _onDiceDecline);

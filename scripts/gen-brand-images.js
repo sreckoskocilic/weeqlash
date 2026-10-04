@@ -27,7 +27,7 @@ const mark = favicon
   .replace('<svg ', '<svg class="mark" ');
 
 const FONTS =
-  '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@700&family=Chakra+Petch:wght@600&display=swap" rel="stylesheet">';
+  '<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@600;700&display=swap" rel="stylesheet">';
 
 const BASE_CSS = `
   * { margin: 0; box-sizing: border-box; }
@@ -38,9 +38,9 @@ const BASE_CSS = `
   .wash { position: absolute; inset: 0;
     background: radial-gradient(ellipse 260px 180px at 36% 40%, rgba(229,57,53,.07), transparent),
                 radial-gradient(ellipse 260px 180px at 64% 52%, rgba(0,240,255,.06), transparent); }
-  .logo { font: 700 170px/1 'IBM Plex Mono', monospace; color: #00ff41; letter-spacing: 6px;
+  .logo { font: 700 170px/1 'Roboto Mono', monospace; color: #00ff41; letter-spacing: 6px;
     text-shadow: 0 0 28px rgba(0,255,65,.45); }
-  .tag { font: 600 30px 'Chakra Petch', sans-serif; color: #ffb000; letter-spacing: 9px; text-transform: uppercase; }
+  .tag { font: 600 30px 'Roboto Mono', monospace; color: #ffb000; letter-spacing: 9px; text-transform: uppercase; }
   .mark { width: 84px; height: 84px; }
 `;
 
@@ -52,7 +52,7 @@ const OG = {
     <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding-top:30px">
       ${mark}
       <div class="logo">wQ$x</div>
-      <div class="tag">7 trivia games · 1v1 &amp; solo</div>
+      <div class="tag">trivia games · 1v1 &amp; solo</div>
     </div>`,
   games: `
     <div class="wash"></div>
@@ -60,7 +60,7 @@ const OG = {
     <div style="position:absolute; left:80px; top:0; bottom:0; width:520px; display:flex; flex-direction:column; justify-content:center; gap:22px">
       ${mark}
       <div class="logo" style="font-size:150px">wQ$x</div>
-      <div class="tag" style="font-size:26px; letter-spacing:7px">7 trivia games<br>1v1 &amp; solo · free</div>
+      <div class="tag" style="font-size:26px; letter-spacing:7px">trivia games<br>1v1 &amp; solo · free</div>
     </div>
     <div style="position:absolute; right:70px; top:70px; bottom:70px; width:500px; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; align-content:center">
       ${GAMES.map(
@@ -68,7 +68,7 @@ const OG = {
           id,
           name,
           c,
-        ]) => `<div style="display:flex; align-items:center; gap:16px; padding:14px 18px; border:1px solid ${c}55; border-left:4px solid ${c}; border-radius:10px; background:#161625cc; color:${c}; font:700 26px 'IBM Plex Mono', monospace">
+        ]) => `<div style="display:flex; align-items:center; gap:16px; padding:14px 18px; border:1px solid ${c}55; border-left:4px solid ${c}; border-radius:10px; background:#161625cc; color:${c}; font:700 26px 'Roboto Mono', monospace">
           <span style="width:38px; height:38px; display:flex; filter: drop-shadow(0 0 8px ${c}88)">${gameIcon(id).replace('<svg ', '<svg width="38" height="38" ')}</span>${name}</div>`,
       ).join('')}
     </div>`,
