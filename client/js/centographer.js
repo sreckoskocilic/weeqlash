@@ -166,17 +166,4 @@ export function initCentographer(sock) {
   el('btn-cento-submit').addEventListener('click', _submit);
   el('btn-cento-submit-score').addEventListener('click', _onSubmitScore);
   registerHomeHandler({ reset: _stopTimer });
-
-  const lbBtn = el('btn-show-cento-lb');
-  const lbPanel = el('cento-lb-panel');
-  if (lbBtn && lbPanel) {
-    lbBtn.addEventListener('click', () => {
-      const visible = lbPanel.style.display !== 'none';
-      lbPanel.style.display = visible ? 'none' : '';
-      lbBtn.textContent = visible ? 'Show CentoGrapher Leaderboard' : 'Hide Leaderboard';
-      if (!visible) {
-        loadPanelLeaderboard('centographer', 'cento-lb-rows');
-      }
-    });
-  }
 }

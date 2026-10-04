@@ -5,6 +5,7 @@ import {
   registerAndLogin,
   setNextQuestion,
   clearStickyQuestion,
+  openGame,
 } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
@@ -36,6 +37,7 @@ test('howhigh: Double or Nothing + Time Crunch accepted, all correct → score 2
     query: 'testSpeed=8',
   });
 
+  await openGame(page, 'howhigh');
   await page.locator('#btn-howhigh-create').click();
   await page.locator('#howhigh-phase-game').waitFor({ state: 'visible', timeout: 5000 });
 

@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { registerAndLogin } from './e2e-helpers.js';
+import { registerAndLogin, openGame } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
 
@@ -15,6 +15,7 @@ test('mathquiz: play 10 questions → gameover + leaderboard', async ({ browser 
     query: 'testSpeed=8',
   });
 
+  await openGame(page, 'mathquiz');
   await page.locator('#btn-mathquiz-create').click();
   await page.locator('#screen-mathquiz').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#mathquiz-phase-game').waitFor({ state: 'visible', timeout: 5000 });

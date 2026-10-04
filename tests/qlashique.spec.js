@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { registerAndLogin as loginPlayer, BASE } from './e2e-helpers.js';
+import { registerAndLogin as loginPlayer, BASE, openGame } from './e2e-helpers.js';
 
 async function playTurn(page, api, qId, answerIdx) {
   await page.locator('#qlas-decision-panel').waitFor({ state: 'visible', timeout: 10000 });
@@ -38,11 +38,13 @@ test('qlashique: 3-HP game with live recap plays to a winner and records stats',
     query: 'testSpeed=8',
   });
 
+  await openGame(p1, 'qlashique');
   await p1.locator('#btn-qlas-create').click();
   await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   await api.post('/test/set-hp', { data: { hp: 3 } });
+  await openGame(p2, 'qlashique');
   await p2.locator('#qlas-join-code').fill(code.trim());
   await p2.locator('#btn-qlas-start').click();
 

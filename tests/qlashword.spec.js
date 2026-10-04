@@ -7,6 +7,7 @@ import {
   TEST_QUESTION,
   setNextQuestion,
   clearStickyQuestion,
+  openGame,
 } from './e2e-helpers.js';
 
 test.afterEach(async () => {
@@ -36,11 +37,13 @@ test('qlashword: lobby → place QUIZ over center DW → unlock bonus → score 
 
   // Host creates a Qlashword room.
   const createdAt = Date.now();
+  await openGame(p1, 'qlashword');
   await p1.locator('#btn-qlashword-create').click();
   await expect(p1.locator('#qw-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = (await p1.locator('#qw-code-val').textContent()).trim();
 
   // Opponent joins by code.
+  await openGame(p2, 'qlashword');
   await p2.locator('#qlashword-join-code').fill(code);
   await p2.locator('#btn-qlashword-join').click();
 
@@ -119,9 +122,11 @@ test('qlashword: a completed game counts toward played/won', async ({ browser })
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
 
   const createdAt = Date.now();
+  await openGame(p1, 'qlashword');
   await p1.locator('#btn-qlashword-create').click();
   await expect(p1.locator('#qw-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = (await p1.locator('#qw-code-val').textContent()).trim();
+  await openGame(p2, 'qlashword');
   await p2.locator('#qlashword-join-code').fill(code);
   await p2.locator('#btn-qlashword-join').click();
   await p1.locator('#qw-btn-start').waitFor({ state: 'visible', timeout: 8000 });

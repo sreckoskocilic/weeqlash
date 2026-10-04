@@ -70,39 +70,22 @@
       <div class="bb-vignette"></div>
     </div>
 
-    <!-- Announcements — edit the <li> items to update -->
-    <section id="announcements">
-      <div class="ann-header">Latest</div>
-      <ul>
-        <li>
-          <strong>CentoGrapher — new mode.</strong> Solo geography. We show you a country outline,
-          no name on it, and a grid of 60 things — cities, rivers, clubs, a few false borders. Tick
-          every one that belongs. You're never told how many are right, and the wrong answers are
-          the close ones you actually have to know to wave off.
-        </li>
-        <li>
-          <strong>MathQ — new mode.</strong> Solo, ten problems, and you type the answer instead of
-          picking from a list. Calculus, geometry, trig, limits. Nothing comes from a bank. Every
-          problem is generated fresh for the run, so there's nothing to memorise. Land near the
-          answer and you still earn most of the points.
-        </li>
-        <li>
-          <strong>Qlashword — new mode.</strong> 1v1 Scrabble with a catch: the double and triple
-          squares start locked. Land tiles on one and you answer a trivia question to switch the
-          multiplier on for that turn. Miss it and you still score, just at face value.
-        </li>
-      </ul>
-    </section>
-
     <!-- Connect screen — horizontal nav + content card -->
     <div class="main-columns" id="screen-connect">
       <nav id="connect-nav" class="connect-nav" role="tablist" aria-label="Main navigation">
         <button class="nav-item active" data-view="play" type="button">Play</button>
+        <button
+          class="nav-item nav-item-latest"
+          id="btn-latest"
+          type="button"
+          aria-expanded="false"
+        >
+          Latest
+        </button>
         <button class="nav-item" data-view="login" data-auth="out" type="button">Login</button>
         <button class="nav-item" data-view="register" data-auth="out" type="button">
           Register
         </button>
-        <button class="nav-item" data-view="settings" type="button">Settings</button>
         <button class="nav-item" id="btn-view-stats" data-auth="in" type="button">Stats</button>
         <button class="nav-item" data-view="challenges" data-auth="in" type="button">
           HowHigh
@@ -110,10 +93,33 @@
         <button class="nav-item" id="btn-help" type="button">Help</button>
         <button class="nav-item" id="btn-hc" type="button">High contrast</button>
         <button class="nav-item" id="btn-admin" data-auth="in" hidden type="button">Admin</button>
+        <span class="nav-user" id="nav-user" data-auth="in" hidden></span>
         <button class="nav-item nav-item-danger" id="btn-logout" data-auth="in" type="button">
           Sign out
         </button>
       </nav>
+      <!-- Latest announcements — edit the <li> items to update -->
+      <div id="latest-pop" class="latest-pop" hidden>
+        <ul>
+          <li>
+            <strong>CentoGrapher — new mode.</strong> Solo geography. We show you a country outline,
+            no name on it, and a grid of 60 things — cities, rivers, clubs, a few false borders.
+            Tick every one that belongs. You're never told how many are right, and the wrong answers
+            are the close ones you actually have to know to wave off.
+          </li>
+          <li>
+            <strong>MathQ — new mode.</strong> Solo, ten problems, and you type the answer instead
+            of picking from a list. Calculus, geometry, trig, limits. Nothing comes from a bank.
+            Every problem is generated fresh for the run, so there's nothing to memorise. Land near
+            the answer and you still earn most of the points.
+          </li>
+          <li>
+            <strong>Qlashword — new mode.</strong> 1v1 Scrabble with a catch: the double and triple
+            squares start locked. Land tiles on one and you answer a trivia question to switch the
+            multiplier on for that turn. Miss it and you still score, just at face value.
+          </li>
+        </ul>
+      </div>
 
       <div class="card connect-card">
         <!-- Shared auth notification (sticky above all views) -->
@@ -132,12 +138,12 @@
         <!-- Play view (default) -->
         <div class="view" data-view-name="play">
           <div id="connect-error" class="error" style="display: none"></div>
-
-          <div class="setup-section mode-cards" style="margin-bottom: 0.5rem">
-            <div class="mode-card-wrap mode-card-wrap--brawl">
-              <button id="btn-create" class="mode-card mode-card--brawl" type="button">
-                <span class="mode-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div class="game-picker">
+            <nav class="game-menu" aria-label="Games">
+              <h3 class="game-group">Play with friends</h3>
+              <button class="game-item game--brawl" data-game="brawl" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect
                       x="3"
                       y="3"
@@ -210,31 +216,11 @@
                       stroke="currentColor"
                       stroke-width="1.5"
                       fill="none"
-                    />
-                  </svg>
-                </span>
-                <span class="mode-text">
-                  <span class="mode-name">Weeqlash Brawl</span>
-                  <span class="mode-desc">Multiplayer board · pegs, combat, capture flags</span>
-                </span>
-              </button>
-              <div class="card-join-row card-join-row--brawl">
-                <input
-                  id="join-code"
-                  aria-label="Brawl room code"
-                  class="card-join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="btn-join" class="card-join-go" type="button">JOIN</button>
-              </div>
-            </div>
-            <div class="mode-card-wrap mode-card-wrap--qlas">
-              <button id="btn-qlas-create" class="mode-card mode-card--qlas" type="button">
-                <span class="mode-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    /></svg></span
+                ><span>Weeqlash Brawl</span></button
+              ><button class="game-item game--qlashique" data-game="qlashique" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                       d="M 6 6 L 22 22"
                       stroke="currentColor"
@@ -274,36 +260,11 @@
                       stroke="currentColor"
                       stroke-width="1.5"
                       fill="none"
-                    />
-                  </svg>
-                </span>
-                <span class="mode-text">
-                  <span class="mode-name">Qlashique</span>
-                  <span class="mode-desc">1v1 trivia duel · attack, heal, KO at 0 HP</span>
-                </span>
-              </button>
-              <div class="qlas-hp-selector" id="qlas-hp-selector"></div>
-              <div class="card-join-row card-join-row--qlas">
-                <input
-                  id="qlas-join-code"
-                  aria-label="Qlashique room code"
-                  class="card-join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="btn-qlas-start" class="card-join-go" type="button">JOIN</button>
-              </div>
-            </div>
-            <div class="mode-card-wrap mode-card-wrap--qlashword">
-              <button
-                id="btn-qlashword-create"
-                class="mode-card mode-card--qlashword"
-                type="button"
-              >
-                <span class="mode-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    /></svg></span
+                ><span>Qlashique</span></button
+              ><button class="game-item game--qlashword" data-game="qlashword" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect
                       x="4"
                       y="4"
@@ -317,111 +278,18 @@
                     <path d="M 20 4 L 20 28" stroke="currentColor" stroke-width="1.5" />
                     <path d="M 4 12 L 28 12" stroke="currentColor" stroke-width="1.5" />
                     <path d="M 4 20 L 28 20" stroke="currentColor" stroke-width="1.5" />
-                    <rect x="13" y="13" width="6" height="6" rx="1" fill="currentColor" />
-                  </svg>
-                </span>
-                <span class="mode-text">
-                  <span class="mode-name">Qlashword</span>
-                  <span class="mode-desc">1v1 Scrabble · unlock 2×/3× squares with trivia</span>
-                </span>
-              </button>
-              <div class="card-join-row card-join-row--qlashword">
-                <input
-                  id="qlashword-join-code"
-                  aria-label="Qlashword room code"
-                  class="card-join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="btn-qlashword-join" class="card-join-go" type="button">JOIN</button>
-              </div>
-            </div>
-            <button id="btn-skipnot-create" class="mode-card mode-card--skipnot" type="button">
-              <span class="mode-icon" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle
-                    cx="16"
-                    cy="18"
-                    r="11"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    fill="none"
-                  />
-                  <path
-                    d="M 12 4 L 20 4"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M 16 4 L 16 8"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M 16 12 L 16 18 L 21 21"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    fill="none"
-                  />
-                </svg>
-              </span>
-              <span class="mode-text">
-                <span class="mode-name">SkipNoT</span>
-                <span class="mode-desc">Solo · 20 questions, 12s each, climb DEM SLEEPLESS</span>
-              </span>
-            </button>
-            <button id="btn-mathquiz-create" class="mode-card mode-card--mathquiz" type="button">
-              <span class="mode-icon" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M 5 6 L 14 6 M 9.5 6 L 9.5 26 M 5 26 L 14 26"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                  <path
-                    d="M 19 11 L 27 21 M 27 11 L 19 21"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-              <span class="mode-text">
-                <span class="mode-name">MathQ</span>
-                <span class="mode-desc">Solo · numeric math &amp; calculus, type the answer</span>
-              </span>
-            </button>
-            <button id="btn-cento-create" class="mode-card mode-card--cento" type="button">
-              <span class="mode-icon" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="2" />
-                  <ellipse cx="16" cy="16" rx="5" ry="12" stroke="currentColor" stroke-width="2" />
-                  <path
-                    d="M 4 16 L 28 16 M 5.5 10 L 26.5 10 M 5.5 22 L 26.5 22"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-              <span class="mode-text">
-                <span class="mode-name">CentoGrapher</span>
-                <span class="mode-desc"
-                  >Solo · one map, 60 answers — pick all that fit, up to 100 pts</span
-                >
-              </span>
-            </button>
-            <div class="mode-card-wrap mode-card-wrap--howhigh">
-              <button id="btn-howhigh-create" class="mode-card mode-card--howhigh" type="button">
-                <span class="mode-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect
+                      x="13"
+                      y="13"
+                      width="6"
+                      height="6"
+                      rx="1"
+                      fill="currentColor"
+                    /></svg></span
+                ><span>Qlashword</span></button
+              ><button class="game-item game--howhigh" data-game="howhigh" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect
                       x="4"
                       y="8"
@@ -454,94 +322,698 @@
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       fill="none"
-                    />
-                  </svg>
-                </span>
-                <span class="mode-text">
-                  <span class="mode-name">HowHigh?</span>
-                  <span class="mode-desc">Async 2P · 4 bonus types · challenge a friend</span>
-                </span>
+                    /></svg></span
+                ><span>HowHigh?</span>
               </button>
-              <div class="card-join-row card-join-row--howhigh">
-                <input
-                  id="howhigh-join-code"
-                  aria-label="HowHigh room code"
-                  class="card-join-input"
-                  type="text"
-                  maxlength="5"
-                  placeholder="CODE"
-                  autocomplete="one-time-code"
-                />
-                <button id="btn-howhigh-join" class="card-join-go" type="button">JOIN</button>
+              <h3 class="game-group">Solo</h3>
+              <button class="game-item game--skipnot" data-game="skipnot" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle
+                      cx="16"
+                      cy="18"
+                      r="11"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      fill="none"
+                    />
+                    <path
+                      d="M 12 4 L 20 4"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M 16 4 L 16 8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M 16 12 L 16 18 L 21 21"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      fill="none"
+                    /></svg></span
+                ><span>SkipNoT</span></button
+              ><button class="game-item game--mathquiz" data-game="mathquiz" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M 5 6 L 14 6 M 9.5 6 L 9.5 26 M 5 26 L 14 26"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M 19 11 L 27 21 M 27 11 L 19 21"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    /></svg></span
+                ><span>MathQ</span></button
+              ><button class="game-item game--cento" data-game="cento" type="button">
+                <span class="game-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="2" />
+                    <ellipse
+                      cx="16"
+                      cy="16"
+                      rx="5"
+                      ry="12"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M 4 16 L 28 16 M 5.5 10 L 26.5 10 M 5.5 22 L 26.5 22"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    /></svg></span
+                ><span>CentoGrapher</span>
+              </button>
+            </nav>
+            <section class="game-panel game--brawl" data-game-panel="brawl" hidden>
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect
+                        x="3"
+                        y="3"
+                        width="8"
+                        height="8"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect
+                        x="13"
+                        y="3"
+                        width="8"
+                        height="8"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect
+                        x="23"
+                        y="3"
+                        width="6"
+                        height="8"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect
+                        x="3"
+                        y="13"
+                        width="8"
+                        height="8"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect x="13" y="13" width="8" height="8" fill="currentColor" />
+                      <rect
+                        x="23"
+                        y="13"
+                        width="6"
+                        height="8"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect
+                        x="3"
+                        y="23"
+                        width="8"
+                        height="6"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect
+                        x="13"
+                        y="23"
+                        width="8"
+                        height="6"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <rect
+                        x="23"
+                        y="23"
+                        width="6"
+                        height="6"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">Weeqlash Brawl</h2>
+                    <span class="game-tag">2–4 players</span>
+                  </div>
+                </div>
+                <p class="game-desc">Multiplayer board · pegs, combat, capture flags</p>
+                <div class="game-options">
+                  <div class="setup-section">
+                    <h3>Board Size</h3>
+                    <div class="opt-btn-group" id="board-size-btns">
+                      <button class="opt-btn active" data-val="4">4×4</button>
+                      <button class="opt-btn" data-val="5">5×5</button>
+                      <button class="opt-btn" data-val="6">6×6</button>
+                      <button class="opt-btn" data-val="7">7×7</button>
+                      <button class="opt-btn" data-val="8">8×8</button>
+                      <button class="opt-btn" data-val="10">10×10</button>
+                    </div>
+                  </div>
+                  <div class="setup-section">
+                    <h3>Question Timer</h3>
+                    <div class="opt-btn-group" id="timer-btns">
+                      <button class="opt-btn" data-val="15">15s</button>
+                      <button class="opt-btn active" data-val="30">30s</button>
+                      <button class="opt-btn" data-val="45">45s</button>
+                    </div>
+                  </div>
+                  <div class="setup-section">
+                    <h3>Categories</h3>
+                    <div class="cat-toggle-btns" id="cat-toggle-btns"></div>
+                    <div class="setup-actions">
+                      <button id="btn-cats-all" class="active">All</button>
+                      <button id="btn-cats-none">None</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="game-actions">
+                  <button id="btn-create" class="game-create" type="button">CREATE GAME</button
+                  ><input
+                    id="join-code"
+                    aria-label="Brawl room code"
+                    class="game-code"
+                    type="text"
+                    maxlength="5"
+                    placeholder="CODE"
+                    autocomplete="one-time-code"
+                  /><button id="btn-join" class="game-join" type="button">JOIN</button>
+                </div>
               </div>
-            </div>
-          </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
+                  <summary>How to play</summary>
+                  <p>
+                    Multiplayer board game. Pick a board size (4×4 up to 10×10), deploy pegs, move
+                    them across tiles. Every tile has a trivia category — land on it, answer a
+                    question. Get it right and you hold the tile. Get it wrong and you wasted a
+                    move.
+                  </p>
+                  <p>
+                    Each turn you get 3 moves. Spend them however you want — advance, flank, pick
+                    fights. Walk a peg onto an enemy-occupied tile and combat starts: up to 3
+                    questions, each correct answer deals 1 HP to the defender. Miss once and the
+                    fight is over. Pegs have 3 HP and never heal.
+                  </p>
+                  <p>
+                    On boards 5×5 and larger, each player's starting corner is their flag. Reach an
+                    opponent's flag and answer 3 questions correctly to capture it and win
+                    instantly.
+                  </p>
+                </details>
+              </div>
+            </section>
+            <section class="game-panel game--qlashique" data-game-panel="qlashique" hidden>
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M 6 6 L 22 22"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M 26 6 L 10 22"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M 4 4 L 8 8"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M 28 4 L 24 8"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                      <circle
+                        cx="22"
+                        cy="24"
+                        r="2"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      />
+                      <circle
+                        cx="10"
+                        cy="24"
+                        r="2"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">Qlashique</h2>
+                    <span class="game-tag">1v1 live</span>
+                  </div>
+                </div>
+                <p class="game-desc">1v1 trivia duel · attack, heal, KO at 0 HP</p>
+                <div class="game-options">
+                  <div class="qlas-hp-selector" id="qlas-hp-selector"></div>
+                </div>
+                <div class="game-actions">
+                  <button id="btn-qlas-create" class="game-create" type="button">CREATE GAME</button
+                  ><input
+                    id="qlas-join-code"
+                    aria-label="Qlashique room code"
+                    class="game-code"
+                    type="text"
+                    maxlength="5"
+                    placeholder="CODE"
+                    autocomplete="one-time-code"
+                  /><button id="btn-qlas-start" class="game-join" type="button">JOIN</button>
+                </div>
+              </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
+                  <summary>How to play</summary>
+                  <p>
+                    1v1 trivia duel. Both players start with 15 HP (configurable: 10/15/20/30) and
+                    take turns. One player clicks CREATE GAME and shares the 5-letter code. The
+                    other types the code and clicks JOIN.
+                  </p>
+                  <p>
+                    When it's your turn, click ⚔ ATTACK to start the timer. You get 10 s to click
+                    it, then it starts on its own. Questions appear one by one — correct: +1, wrong:
+                    −1. Keep answering until the timer runs out or you click END TURN. Timer starts
+                    at 5 s and grows +3 s each round (max 25 s).
+                  </p>
+                  <p>
+                    Don't go AFK. A turn with no answer and no END TURN costs you 2 HP. Do it twice
+                    in a row and you lose.
+                  </p>
+                  <p>Your final score determines what happens:</p>
+                  <ul>
+                    <li>Negative — you deal that much damage to yourself.</li>
+                    <li>0 — nothing happens.</li>
+                    <li>1 — attacks the opponent for 1 HP.</li>
+                    <li>2 or more — choose: attack for full score damage, or heal +2 HP.</li>
+                  </ul>
+                  <p>
+                    The 💊 HEAL button appears during your turn (disabled if score &lt; 2). Clicking
+                    it heals +2 HP and ends your turn.
+                  </p>
+                </details>
+              </div>
+            </section>
+            <section class="game-panel game--qlashword" data-game-panel="qlashword" hidden>
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect
+                        x="4"
+                        y="4"
+                        width="24"
+                        height="24"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <path d="M 12 4 L 12 28" stroke="currentColor" stroke-width="1.5" />
+                      <path d="M 20 4 L 20 28" stroke="currentColor" stroke-width="1.5" />
+                      <path d="M 4 12 L 28 12" stroke="currentColor" stroke-width="1.5" />
+                      <path d="M 4 20 L 28 20" stroke="currentColor" stroke-width="1.5" />
+                      <rect x="13" y="13" width="6" height="6" rx="1" fill="currentColor" /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">Qlashword</h2>
+                    <span class="game-tag">1v1 live</span>
+                  </div>
+                </div>
+                <p class="game-desc">1v1 Scrabble · unlock 2×/3× squares with trivia</p>
 
-          <div style="margin-top: 0.8rem">
-            <button id="btn-show-skipnot-lb" class="btn-qlashique" type="button">
-              Show SkipNoT Leaderboard
-            </button>
-            <div
-              id="skipnot-lb-panel"
-              class="leaderboard-panel lb-skipnot"
-              style="display: none; margin-top: 1.2rem"
-            >
-              <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
-              <div class="lb-divider"></div>
-              <div class="lb-thead">
-                <div>#</div>
-                <div>NAME</div>
-                <div style="text-align: center">SCORE</div>
-                <div style="text-align: right">TIME</div>
+                <div class="game-actions">
+                  <button id="btn-qlashword-create" class="game-create" type="button">
+                    CREATE GAME</button
+                  ><input
+                    id="qlashword-join-code"
+                    aria-label="Qlashword room code"
+                    class="game-code"
+                    type="text"
+                    maxlength="5"
+                    placeholder="CODE"
+                    autocomplete="one-time-code"
+                  /><button id="btn-qlashword-join" class="game-join" type="button">JOIN</button>
+                </div>
               </div>
-              <div id="skipnot-lb-rows" class="lb-rows"></div>
-            </div>
-            <button
-              id="btn-show-mathquiz-lb"
-              class="btn-qlashique"
-              type="button"
-              style="margin-top: 0.8rem"
-            >
-              Show MathQ Leaderboard
-            </button>
-            <div
-              id="mathquiz-lb-panel"
-              class="leaderboard-panel lb-mathquiz"
-              style="display: none; margin-top: 1.2rem"
-            >
-              <div class="lb-heading">MATH <span>MINDS</span></div>
-              <div class="lb-divider"></div>
-              <div class="lb-thead">
-                <div>#</div>
-                <div>NAME</div>
-                <div style="text-align: center">SCORE</div>
-                <div style="text-align: right">TIME</div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
+                  <summary>How to play</summary>
+                  <p>
+                    1v1 Scrabble with a trivia catch. One player makes a room and shares the
+                    5-letter code; the other joins and the host starts. Normal 15×15 board, 100
+                    tiles, standard letter values.
+                  </p>
+                  <p>
+                    Drag or tap tiles from your rack to spell a word. Your first word has to cross
+                    the centre. Everything has to be a real word, crossing words included. Hit
+                    SUBMIT when you're done.
+                  </p>
+                  <p>
+                    The catch: the 2×/3× letter and word squares are locked. For every one your new
+                    tiles cover, you get a trivia question. Answer right and the multiplier counts
+                    this turn. Miss it or run out of time and you keep the base points — no bonus.
+                  </p>
+                  <p>
+                    You get 90 seconds a turn. Stuck? PASS, or SWAP tiles back into the bag (you
+                    lose the turn). SHUFFLE just reorders your rack. Play all 7 tiles at once for a
+                    +50 bingo. When the bag's empty and someone empties their rack, highest score
+                    wins.
+                  </p>
+                </details>
               </div>
-              <div id="mathquiz-lb-rows" class="lb-rows"></div>
-            </div>
-            <button
-              id="btn-show-cento-lb"
-              class="btn-qlashique"
-              type="button"
-              style="margin-top: 0.8rem"
-            >
-              Show CentoGrapher Leaderboard
-            </button>
-            <div
-              id="cento-lb-panel"
-              class="leaderboard-panel lb-cento"
-              style="display: none; margin-top: 1.2rem"
-            >
-              <div class="lb-heading">CARTO <span>MASTERS</span></div>
-              <div class="lb-divider"></div>
-              <div class="lb-thead">
-                <div>#</div>
-                <div>NAME</div>
-                <div style="text-align: center">SCORE</div>
-                <div style="text-align: right">TIME</div>
+            </section>
+            <section class="game-panel game--howhigh" data-game-panel="howhigh" hidden>
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect
+                        x="4"
+                        y="8"
+                        width="10"
+                        height="10"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        fill="none"
+                      />
+                      <rect
+                        x="18"
+                        y="8"
+                        width="10"
+                        height="10"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        fill="none"
+                      />
+                      <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                      <circle cx="21" cy="11" r="1.5" fill="currentColor" />
+                      <circle cx="25" cy="11" r="1.5" fill="currentColor" />
+                      <circle cx="21" cy="15" r="1.5" fill="currentColor" />
+                      <circle cx="25" cy="15" r="1.5" fill="currentColor" />
+                      <path
+                        d="M10 22 L16 26 L22 22"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">HowHigh?</h2>
+                    <span class="game-tag">async 1v1</span>
+                  </div>
+                </div>
+                <p class="game-desc">Async 2P · 4 bonus types · challenge a friend</p>
+
+                <div class="game-actions">
+                  <button id="btn-howhigh-create" class="game-create" type="button">START</button
+                  ><input
+                    id="howhigh-join-code"
+                    aria-label="HowHigh room code"
+                    class="game-code"
+                    type="text"
+                    maxlength="5"
+                    placeholder="CODE"
+                    autocomplete="one-time-code"
+                  /><button id="btn-howhigh-join" class="game-join" type="button">JOIN</button>
+                </div>
               </div>
-              <div id="cento-lb-rows" class="lb-rows"></div>
-            </div>
+              <div class="game-panel-side">
+                <details class="game-howto" open>
+                  <summary>How to play</summary>
+                  <p>
+                    Solo trivia challenge you can send to a friend. Answer 10 questions (13 s each).
+                    Correct: +2, wrong: −2, timeout: 0.
+                  </p>
+                  <p>
+                    After question 3 the game offers one of two bonuses. Dice: roll two dice,
+                    question 4 is worth die1 + die2 if correct (half that, rounded up, if wrong).
+                    Double or Nothing: questions 4 and 5 pay double (+4/−4). You can decline either
+                    one.
+                  </p>
+                  <p>
+                    After question 6, another bonus. Go Wild: 2 extra questions added (12 total) but
+                    timer drops to 10 s for the rest. Time Crunch: questions 7 and 8 get a 7-second
+                    timer with +3/−3 stakes. Again, you can decline.
+                  </p>
+                  <p>
+                    When finished you get a 5-letter code. Share it with a friend — they play the
+                    same questions with the same dice roll. Highest score wins; ties broken by
+                    speed.
+                  </p>
+                </details>
+              </div>
+            </section>
+            <section
+              class="game-panel game--skipnot"
+              data-game-panel="skipnot"
+              data-lb-mode="skipnot"
+              hidden
+            >
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle
+                        cx="16"
+                        cy="18"
+                        r="11"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        fill="none"
+                      />
+                      <path
+                        d="M 12 4 L 20 4"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M 16 4 L 16 8"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M 16 12 L 16 18 L 21 21"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">SkipNoT</h2>
+                    <span class="game-tag">solo</span>
+                  </div>
+                </div>
+                <p class="game-desc">20 questions, 12s each, climb DEM SLEEPLESS</p>
+
+                <div class="game-actions">
+                  <button id="btn-skipnot-create" class="game-create" type="button">START</button>
+                </div>
+              </div>
+              <div class="game-panel-side">
+                <div id="skipnot-lb-panel" class="leaderboard-panel lb-skipnot">
+                  <div class="lb-heading">DEM <span>SLEEPLESS</span></div>
+                  <div class="lb-divider"></div>
+                  <div class="lb-thead">
+                    <div>#</div>
+                    <div>NAME</div>
+                    <div style="text-align: center">SCORE</div>
+                    <div style="text-align: right">TIME</div>
+                  </div>
+                  <div id="skipnot-lb-rows" class="lb-rows"></div>
+                </div>
+                <details class="game-howto">
+                  <summary>How to play</summary>
+                  <p>
+                    Solo gauntlet. 20 questions, 12 seconds each. No opponents, no pauses between
+                    questions. Correct: +13, wrong: −7, skip or timeout: 0. Perfect run is +260.
+                    Skipping is free — use it when you don't know.
+                  </p>
+                  <p>
+                    Top scores land on DEM SLEEPLESS (the leaderboard). You need an account for your
+                    name to show up.
+                  </p>
+                </details>
+              </div>
+            </section>
+            <section
+              class="game-panel game--mathquiz"
+              data-game-panel="mathquiz"
+              data-lb-mode="mathquiz"
+              hidden
+            >
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M 5 6 L 14 6 M 9.5 6 L 9.5 26 M 5 26 L 14 26"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M 19 11 L 27 21 M 27 11 L 19 21"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">MathQ</h2>
+                    <span class="game-tag">solo</span>
+                  </div>
+                </div>
+                <p class="game-desc">Numeric math &amp; calculus, type the answer</p>
+
+                <div class="game-actions">
+                  <button id="btn-mathquiz-create" class="game-create" type="button">START</button>
+                </div>
+              </div>
+              <div class="game-panel-side">
+                <div id="mathquiz-lb-panel" class="leaderboard-panel lb-mathquiz">
+                  <div class="lb-heading">MATH <span>MINDS</span></div>
+                  <div class="lb-divider"></div>
+                  <div class="lb-thead">
+                    <div>#</div>
+                    <div>NAME</div>
+                    <div style="text-align: center">SCORE</div>
+                    <div style="text-align: right">TIME</div>
+                  </div>
+                  <div id="mathquiz-lb-rows" class="lb-rows"></div>
+                </div>
+                <details class="game-howto">
+                  <summary>How to play</summary>
+                  <p>
+                    Solo. Ten problems, 45 seconds each, and you type the answer instead of picking
+                    from a list. Calculus, geometry, trig, limits, the odd graph to read off. None
+                    of it comes from a question bank — every problem is generated fresh for the run,
+                    so memorising won't save you.
+                  </p>
+                  <p>
+                    You don't have to nail it exactly. Land inside the tolerance and you get full
+                    marks; drift further out and the points fall off bit by bit; miss by a mile and
+                    it's zero. A few problems hand out a small bonus when you get really close. Each
+                    question is worth 10 to start.
+                  </p>
+                  <p>
+                    The answer never shows up — not mid-round, not on the review screen at the end.
+                    All you get back is whether each one was right, partial, or wrong, and what it
+                    earned you.
+                  </p>
+                </details>
+              </div>
+            </section>
+            <section
+              class="game-panel game--cento"
+              data-game-panel="cento"
+              data-lb-mode="centographer"
+              hidden
+            >
+              <div class="game-panel-main">
+                <div class="game-head">
+                  <span class="game-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="2" />
+                      <ellipse
+                        cx="16"
+                        cy="16"
+                        rx="5"
+                        ry="12"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <path
+                        d="M 4 16 L 28 16 M 5.5 10 L 26.5 10 M 5.5 22 L 26.5 22"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      /></svg
+                  ></span>
+                  <div>
+                    <h2 class="game-title">CentoGrapher</h2>
+                    <span class="game-tag">solo</span>
+                  </div>
+                </div>
+                <p class="game-desc">One map, 60 answers — pick all that fit, up to 100 pts</p>
+
+                <div class="game-actions">
+                  <button id="btn-cento-create" class="game-create" type="button">START</button>
+                </div>
+              </div>
+              <div class="game-panel-side">
+                <div id="cento-lb-panel" class="leaderboard-panel lb-cento">
+                  <div class="lb-heading">CARTO <span>MASTERS</span></div>
+                  <div class="lb-divider"></div>
+                  <div class="lb-thead">
+                    <div>#</div>
+                    <div>NAME</div>
+                    <div style="text-align: center">SCORE</div>
+                    <div style="text-align: right">TIME</div>
+                  </div>
+                  <div id="cento-lb-rows" class="lb-rows"></div>
+                </div>
+                <details class="game-howto">
+                  <summary>How to play</summary>
+                  <p>
+                    Solo geography. We show you a country outline — just the shape, no name on it —
+                    and a grid of 60 things: cities, rivers, mountains, clubs, famous people, border
+                    claims, a few bare numbers. Some belong to that country, most don't. Tick every
+                    one that fits.
+                  </p>
+                  <p>
+                    You're never told how many are right. Could be eight, could be twenty-five, and
+                    it shifts every run, so there's no pattern to lean on. The wrong answers aren't
+                    filler either — next to Germany you'll find Austrian towns, Polish clubs and
+                    false borders you actually have to know to wave off.
+                  </p>
+                  <p>
+                    Correct pick: +5, wrong pick: −8. Capped at +100, no floor — a trigger-happy run
+                    drops below zero. You get 60 seconds, and it submits itself when time's up. At
+                    the end only the choices you ticked light up green or red; the ones you left
+                    alone stay dark, so the game never just shows you the full answer.
+                  </p>
+                </details>
+              </div>
+            </section>
           </div>
         </div>
 
@@ -651,40 +1123,6 @@
             >
               No games yet. Start one from the Play tab!
             </p>
-          </div>
-        </div>
-
-        <!-- Settings view -->
-        <div class="view" data-view-name="settings" hidden>
-          <div class="setup-section">
-            <h3>
-              Board Size
-              <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 6px">Brawl only</span>
-            </h3>
-            <div class="opt-btn-group" id="board-size-btns">
-              <button class="opt-btn active" data-val="4">4×4</button>
-              <button class="opt-btn" data-val="5">5×5</button>
-              <button class="opt-btn" data-val="6">6×6</button>
-              <button class="opt-btn" data-val="7">7×7</button>
-              <button class="opt-btn" data-val="8">8×8</button>
-              <button class="opt-btn" data-val="10">10×10</button>
-            </div>
-          </div>
-          <div class="setup-section">
-            <h3>Question Timer</h3>
-            <div class="opt-btn-group" id="timer-btns">
-              <button class="opt-btn" data-val="15">15s</button>
-              <button class="opt-btn active" data-val="30">30s</button>
-              <button class="opt-btn" data-val="45">45s</button>
-            </div>
-          </div>
-          <div class="setup-section">
-            <h3>Categories</h3>
-            <div class="cat-toggle-btns" id="cat-toggle-btns"></div>
-            <div class="setup-actions">
-              <button id="btn-cats-all" class="active">All</button>
-              <button id="btn-cats-none">None</button>
-            </div>
           </div>
         </div>
       </div>
@@ -837,134 +1275,6 @@
         <p>
           ⌂ HOME (top-left) gets you out of any game. Bail on a live brawl, duel or Qlashword match
           and it counts as a loss; the other side takes the win.
-        </p>
-        <h2>HOW TO PLAY — WEEQLASH BRAWL</h2>
-        <p>
-          Multiplayer board game. Pick a board size (4×4 up to 10×10), deploy pegs, move them across
-          tiles. Every tile has a trivia category — land on it, answer a question. Get it right and
-          you hold the tile. Get it wrong and you wasted a move.
-        </p>
-        <p>
-          Each turn you get 3 moves. Spend them however you want — advance, flank, pick fights. Walk
-          a peg onto an enemy-occupied tile and combat starts: up to 3 questions, each correct
-          answer deals 1 HP to the defender. Miss once and the fight is over. Pegs have 3 HP and
-          never heal.
-        </p>
-        <p>
-          On boards 5×5 and larger, each player's starting corner is their flag. Reach an opponent's
-          flag and answer 3 questions correctly to capture it and win instantly.
-        </p>
-        <h2>HOW TO PLAY — SKIPNOT</h2>
-        <p>
-          Solo gauntlet. 20 questions, 12 seconds each. No opponents, no pauses between questions.
-          Correct: +13, wrong: −7, skip or timeout: 0. Perfect run is +260. Skipping is free — use
-          it when you don't know.
-        </p>
-        <p>
-          Top scores land on DEM SLEEPLESS (the leaderboard). You need an account for your name to
-          show up.
-        </p>
-        <h2>HOW TO PLAY — QLASHIQUE</h2>
-        <p>
-          1v1 trivia duel. Both players start with 15 HP (configurable: 10/15/20/30) and take turns.
-          To start: one player leaves the code field blank and clicks the green QLASHIQUE button to
-          create a room, then shares the 5-letter code. The other enters the code and clicks the
-          same button to join.
-        </p>
-        <p>
-          When it's your turn, click ⚔ ATTACK to start the timer. You get 10 s to click it, then it
-          starts on its own. Questions appear one by one — correct: +1, wrong: −1. Keep answering
-          until the timer runs out or you click END TURN. Timer starts at 5 s and grows +3 s each
-          round (max 25 s).
-        </p>
-        <p>
-          Don't go AFK. A turn with no answer and no END TURN costs you 2 HP. Do it twice in a row
-          and you lose.
-        </p>
-        <p>Your final score determines what happens:</p>
-        <ul>
-          <li>Negative — you deal that much damage to yourself.</li>
-          <li>0 — nothing happens.</li>
-          <li>1 — attacks the opponent for 1 HP.</li>
-          <li>2 or more — choose: attack for full score damage, or heal +2 HP.</li>
-        </ul>
-        <p>
-          The 💊 HEAL button appears during your turn (disabled if score &lt; 2). Clicking it heals
-          +2 HP and ends your turn.
-        </p>
-        <h2>HOW TO PLAY — HOWHIGH?</h2>
-        <p>
-          Solo trivia challenge you can send to a friend. Answer 10 questions (13 s each). Correct:
-          +2, wrong: −2, timeout: 0.
-        </p>
-        <p>
-          After question 3 the game offers one of two bonuses. Dice: roll two dice, question 4 is
-          worth die1 + die2 if correct (half that, rounded up, if wrong). Double or Nothing:
-          questions 4 and 5 pay double (+4/−4). You can decline either one.
-        </p>
-        <p>
-          After question 6, another bonus. Go Wild: 2 extra questions added (12 total) but timer
-          drops to 10 s for the rest. Time Crunch: questions 7 and 8 get a 7-second timer with +3/−3
-          stakes. Again, you can decline.
-        </p>
-        <p>
-          When finished you get a 5-letter code. Share it with a friend — they play the same
-          questions with the same dice roll. Highest score wins; ties broken by speed.
-        </p>
-        <h2>HOW TO PLAY — QLASHWORD</h2>
-        <p>
-          1v1 Scrabble with a trivia catch. One player makes a room and shares the 5-letter code;
-          the other joins and the host starts. Normal 15×15 board, 100 tiles, standard letter
-          values.
-        </p>
-        <p>
-          Drag or tap tiles from your rack to spell a word. Your first word has to cross the centre.
-          Everything has to be a real word, crossing words included. Hit SUBMIT when you're done.
-        </p>
-        <p>
-          The catch: the 2×/3× letter and word squares are locked. For every one your new tiles
-          cover, you get a trivia question. Answer right and the multiplier counts this turn. Miss
-          it or run out of time and you keep the base points — no bonus.
-        </p>
-        <p>
-          You get 90 seconds a turn. Stuck? PASS, or SWAP tiles back into the bag (you lose the
-          turn). SHUFFLE just reorders your rack. Play all 7 tiles at once for a +50 bingo. When the
-          bag's empty and someone empties their rack, highest score wins.
-        </p>
-        <h2>HOW TO PLAY — CENTOGRAPHER</h2>
-        <p>
-          Solo geography. We show you a country outline — just the shape, no name on it — and a grid
-          of 60 things: cities, rivers, mountains, clubs, famous people, border claims, a few bare
-          numbers. Some belong to that country, most don't. Tick every one that fits.
-        </p>
-        <p>
-          You're never told how many are right. Could be eight, could be twenty-five, and it shifts
-          every run, so there's no pattern to lean on. The wrong answers aren't filler either — next
-          to Germany you'll find Austrian towns, Polish clubs and false borders you actually have to
-          know to wave off.
-        </p>
-        <p>
-          Correct pick: +5, wrong pick: −8. Capped at +100, no floor — a trigger-happy run drops
-          below zero. You get 60 seconds, and it submits itself when time's up. At the end only the
-          choices you ticked light up green or red; the ones you left alone stay dark, so the game
-          never just shows you the full answer.
-        </p>
-        <h2>HOW TO PLAY — MATHQ</h2>
-        <p>
-          Solo. Ten problems, 45 seconds each, and you type the answer instead of picking from a
-          list. Calculus, geometry, trig, limits, the odd graph to read off. None of it comes from a
-          question bank — every problem is generated fresh for the run, so memorising won't save
-          you.
-        </p>
-        <p>
-          You don't have to nail it exactly. Land inside the tolerance and you get full marks; drift
-          further out and the points fall off bit by bit; miss by a mile and it's zero. A few
-          problems hand out a small bonus when you get really close. Each question is worth 10 to
-          start.
-        </p>
-        <p>
-          The answer never shows up — not mid-round, not on the review screen at the end. All you
-          get back is whether each one was right, partial, or wrong, and what it earned you.
         </p>
         <h2>STATS</h2>
         <p>

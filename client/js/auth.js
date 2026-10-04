@@ -47,6 +47,7 @@ export function showAuthMessage(msg, isError) {
 
 export function showUserBar(user) {
   state.currentUser = user;
+  $('nav-user').textContent = user.username;
   applyAuthState(true);
   // applyAuthState shows the admin button (data-auth="in"); hide it again for non-admins.
   const isAdmin = user.is_admin === 1 || user.is_admin === true;

@@ -166,7 +166,6 @@ function initUI() {
       }
     });
   });
-
 }
 
 function initOptBtnGroup(groupId, setter) {

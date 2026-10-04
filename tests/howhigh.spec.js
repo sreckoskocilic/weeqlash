@@ -5,6 +5,7 @@ import {
   registerAndLogin,
   setNextQuestion,
   clearStickyQuestion,
+  openGame,
 } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
@@ -61,6 +62,7 @@ test('howhigh: P1 run → challenge code → P2 head-to-head → challenges list
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_quiz_player', {
     query: 'testSpeed=8',
   });
+  await openGame(p1, 'howhigh');
   await p1.locator('#btn-howhigh-create').click();
   await p1.locator('#howhigh-phase-game').waitFor({ state: 'visible', timeout: 5000 });
   await playAllQuestions(p1, 10, TEST_QUESTION.correctIdx, ['dice', 'gowild']);
@@ -74,6 +76,7 @@ test('howhigh: P1 run → challenge code → P2 head-to-head → challenges list
     query: 'testSpeed=8',
   });
   await setBonus('double_or_nothing', 'time_crunch');
+  await openGame(p2, 'howhigh');
   await p2.locator('#howhigh-join-code').fill(code);
   await p2.locator('#btn-howhigh-join').click();
   await p2.locator('#howhigh-phase-game').waitFor({ state: 'visible', timeout: 5000 });

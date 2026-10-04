@@ -47,6 +47,10 @@ export async function clearStickyQuestion() {
   }
 }
 
+export async function openGame(page, game) {
+  await page.locator(`[data-game="${game}"]`).click();
+}
+
 export async function startBoardGame(browser) {
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_normal_p1', {
     query: 'testSpeed=8',
@@ -55,14 +59,14 @@ export async function startBoardGame(browser) {
     query: 'testSpeed=8',
   });
 
-  await p1.locator('[data-view="settings"]').click();
+  await openGame(p1, 'brawl');
   await p1.locator('[data-val="4"]').click();
-  await p1.locator('[data-view="play"]').click();
   const createdAt = Date.now();
   await p1.locator('#btn-create').click();
   await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
   const code = await p1.locator('#lobby-code').innerText();
 
+  await openGame(p2, 'brawl');
   await p2.locator('#join-code').fill(code);
   await p2.locator('#btn-join').click();
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });

@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { registerAndLogin, BASE } from './e2e-helpers.js';
+import { registerAndLogin, BASE, openGame } from './e2e-helpers.js';
 
 test('qlashique: HP selector defaults to 15 and the picked HP reaches both players', async ({
   browser,
@@ -12,6 +12,7 @@ test('qlashique: HP selector defaults to 15 and the picked HP reaches both playe
   const { ctx: ctx1, page: p1 } = await registerAndLogin(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await registerAndLogin(browser, 'e2e_qlas_p2');
 
+  await openGame(p1, 'qlashique');
   await expect(p1.locator('.qlas-hp-opt')).toHaveCount(4);
   await expect(p1.locator('.qlas-hp-opt.selected')).toHaveAttribute('data-hp', '15');
 
@@ -22,6 +23,7 @@ test('qlashique: HP selector defaults to 15 and the picked HP reaches both playe
   await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
+  await openGame(p2, 'qlashique');
   await p2.locator('#qlas-join-code').fill(code.trim());
   await p2.locator('#btn-qlas-start').click();
 

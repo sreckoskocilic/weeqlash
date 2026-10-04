@@ -5,6 +5,7 @@
 import { test, devices, request as playwrightRequest } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { openGame } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
 const OUT_DIR = path.join(process.cwd(), 'screenshots', 'iphone13');
@@ -109,13 +110,13 @@ test('iphone13: board game in progress', async ({ browser }) => {
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_normal_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_normal_p2');
 
-  await p1.locator('[data-view="settings"]').click();
+  await openGame(p1, 'brawl');
   await p1.locator('[data-val="4"]').click();
-  await p1.locator('[data-view="play"]').click();
   await p1.locator('#btn-create').click();
   await p1.locator('#screen-lobby').waitFor({ timeout: 5000 });
   const code = await p1.locator('#lobby-code').innerText();
 
+  await openGame(p2, 'brawl');
   await p2.locator('#join-code').fill(code);
   await p2.locator('#btn-join').click();
   await p2.locator('#screen-lobby').waitFor({ timeout: 5000 });
@@ -165,6 +166,7 @@ test('iphone13: qlashique decision panel + question panel', async ({ browser }) 
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
+  await openGame(p1, 'qlashique');
   await p1.locator('#btn-qlas-create').click();
   await p1.waitForFunction(
     // eslint-disable-next-line no-undef
@@ -174,6 +176,7 @@ test('iphone13: qlashique decision panel + question panel', async ({ browser }) 
   const code = (await p1.locator('#qlas-code-val').textContent())?.trim();
 
   await api.post('/test/set-hp', { data: { hp: 10 } });
+  await openGame(p2, 'qlashique');
   await p2.locator('#qlas-join-code').fill(code);
   await p2.locator('#btn-qlas-start').click();
 

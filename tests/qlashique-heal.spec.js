@@ -6,6 +6,7 @@ import {
   registerAndLogin,
   setNextQuestion,
   clearStickyQuestion,
+  openGame,
 } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
@@ -31,12 +32,14 @@ test('qlashique: score >= 2 heal restores HP, opponent untouched', async ({ brow
     query: 'testSpeed=8',
   });
 
+  await openGame(p1, 'qlashique');
   await p1.locator('#btn-qlas-create').click();
   await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
 
   await api.post('/test/set-hp', { data: { hp: 20 } });
 
+  await openGame(p2, 'qlashique');
   await p2.locator('#qlas-join-code').fill(code.trim());
   await p2.locator('#btn-qlas-start').click();
 

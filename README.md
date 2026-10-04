@@ -10,9 +10,9 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen shows the mode cards: **Brawl**, **Qlashique**, **Qlashword**, **SkipNoT**, **HowHigh**, **CentoGrapher**, and **MathQ**.
-- **Register** an account (email + password) or **log in** from the top-left tabs. You need an account to play any mode.
-- To play with friends: whoever creates the game shares the **5-character room code** — the other side pastes it into the matching `Join game` box for that mode.
+- Open the site. The landing screen lists the modes on the left: **Brawl**, **Qlashique**, **Qlashword**, **HowHigh**, **SkipNoT**, **MathQ**, and **CentoGrapher**. Click one to see its options, how to play and the create/join buttons.
+- **Register** an account (email + password) or **log in** from the top tabs. You need an account to play any mode.
+- To play with friends: whoever creates the game shares the **5-character room code** — the other side opens the same mode, types the code and hits **JOIN**.
 
 - **⌂ HOME** (top-left) takes you back from anywhere. Bailing on a live brawl, duel or Qlashword match counts as a loss; the other side takes the win.
 
@@ -27,8 +27,8 @@ Deploy your pegs across a board of knowledge tiles. Answer trivia. Crush your op
 ### Setup
 
 - **Board size**: 4×4 (default), 5×5, 6×6, 7×7, 8×8 or 10×10.
-- **Question timer** (under `Settings`): 15 / 30 / 45 seconds per question.
-- **Categories** (under `Settings`): toggle any subset of categories on or off before creating the room.
+- **Question timer**: 15 / 30 / 45 seconds per question.
+- **Categories**: toggle any subset of categories on or off before creating the room.
 - Hit **Create game** → a 5-char room code appears in the lobby. Share it. Wait for humans.
 
 ### Turn Structure
@@ -108,7 +108,7 @@ A perfect run is **+260**. A worst-case all-wrong run is **−140**. Skipping is
 
 ### Leaderboard
 
-Top scores land under **DEM SLEEPLESS**. Visible from the landing screen via `Show SkipNoT Leaderboard`. Your account name goes on the board.
+Top scores land under **DEM SLEEPLESS**. Shown next to SkipNoT on the landing screen. Your account name goes on the board.
 
 ---
 

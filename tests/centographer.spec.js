@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { registerAndLogin } from './e2e-helpers.js';
+import { registerAndLogin, openGame } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
 
@@ -14,6 +14,7 @@ test('centographer: start → pick → submit → gameover + leaderboard', async
     query: 'testSpeed=8',
   });
 
+  await openGame(page, 'cento');
   await page.locator('#btn-cento-create').click();
   await page.locator('#screen-centographer').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#cento-phase-game').waitFor({ state: 'visible', timeout: 5000 });

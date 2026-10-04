@@ -5,6 +5,7 @@ import {
   registerAndLogin,
   setNextQuestion,
   clearStickyQuestion,
+  openGame,
 } from './e2e-helpers.js';
 
 const BASE = 'http://localhost:3000';
@@ -26,6 +27,7 @@ test('skipnot: mixed run with skips → heatmap, qualifies, lands on leaderboard
     query: 'testSpeed=8',
   });
 
+  await openGame(page, 'skipnot');
   await page.locator('#btn-skipnot-create').click();
   await page.locator('#skipnot-phase-game').waitFor({ state: 'visible', timeout: 5000 });
 

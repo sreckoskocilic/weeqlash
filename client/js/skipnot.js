@@ -461,18 +461,4 @@ export function initSkipnot(sock) {
       _resetRun();
     },
   });
-
-  // Connect-screen leaderboard toggle.
-  const lbBtn = el('btn-show-skipnot-lb');
-  const lbPanel = el('skipnot-lb-panel');
-  if (lbBtn && lbPanel) {
-    lbBtn.addEventListener('click', () => {
-      const visible = lbPanel.style.display !== 'none';
-      lbPanel.style.display = visible ? 'none' : '';
-      lbBtn.textContent = visible ? 'Show SkipNoT Leaderboard' : 'Hide Leaderboard';
-      if (!visible) {
-        loadPanelLeaderboard('skipnot', 'skipnot-lb-rows');
-      }
-    });
-  }
 }

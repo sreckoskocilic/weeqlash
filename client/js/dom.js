@@ -28,7 +28,6 @@ export function showScreen(id) {
   el('main-title').style.display = hideHome ? 'none' : '';
   el('board-banner').style.display = hideHome ? 'none' : '';
   el('site-footer').style.display = isConnect ? '' : 'none';
-  el('announcements').style.display = hideHome ? 'none' : '';
   el('btn-home').hidden = isConnect;
   [
     'screen-connect',

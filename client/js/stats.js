@@ -1,11 +1,8 @@
-import { showAuthMessage } from './auth.js';
 import { CAT_NAMES } from './constants.js';
 import { sanitize } from './dom.js';
 import { state } from './state.js';
 
 export function showStatsModal(statsData) {
-  showAuthMessage('Loading stats...', false);
-
   let modalOverlay = document.getElementById('stats-modal-overlay');
   if (!modalOverlay) {
     modalOverlay = document.createElement('div');

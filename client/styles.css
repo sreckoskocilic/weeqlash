@@ -126,47 +126,6 @@ h1 {
 }
 
 /* ===== ANNOUNCEMENTS ===== */
-#announcements {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 680px;
-  margin-bottom: 0.75rem;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  background: rgba(22, 22, 37, 0.5);
-  border-radius: 8px;
-  padding: 14px 20px;
-  font-size: 0.78rem;
-  font-family: 'IBM Plex Mono', monospace;
-  line-height: 1.6;
-}
-#announcements .ann-header {
-  color: var(--accent);
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 0.6rem;
-}
-#announcements ul {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-#announcements li::before {
-  content: '— ';
-  color: var(--muted);
-  margin-right: 2px;
-}
-#announcements a {
-  color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-#announcements a:hover {
-  color: var(--text);
-}
 
 /* ===== CARDS (connect / lobby) ===== */
 .card {
@@ -186,7 +145,7 @@ h1 {
   z-index: 1;
 }
 .main-columns .card {
-  max-width: 680px;
+  max-width: 1180px;
 }
 .connect-card {
   width: 100%;
@@ -354,7 +313,7 @@ h1 {
   justify-content: center;
   gap: 6px;
   width: 100%;
-  max-width: 680px;
+  max-width: 1180px;
   margin-bottom: 1.5rem;
   position: relative;
   z-index: 1;
@@ -387,6 +346,68 @@ h1 {
   background: rgba(229, 57, 53, 0.08);
 }
 .nav-item[hidden] {
+  display: none;
+}
+.nav-item-latest {
+  color: #fff;
+  background: rgba(229, 57, 53, 0.85);
+  border-color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.nav-item-latest:hover {
+  color: #fff;
+  background: var(--accent);
+}
+.latest-pop {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(580px, 92vw);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 20px;
+  font:
+    0.8rem/1.6 'IBM Plex Mono',
+    monospace;
+  box-shadow: 0 18px 48px -12px rgba(0, 0, 0, 0.8);
+}
+.latest-pop[hidden] {
+  display: none;
+}
+.latest-pop ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.latest-pop strong {
+  color: var(--accent);
+}
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 10px;
+  color: var(--green);
+  font:
+    600 0.82rem 'IBM Plex Mono',
+    monospace;
+}
+.nav-user::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+.nav-user[hidden] {
   display: none;
 }
 .nav-item-danger:hover {
@@ -499,17 +520,6 @@ button:disabled {
   font-weight: 500;
   background: linear-gradient(45deg, black, transparent);
 }
-/* Settings sections — scoped to settings view to avoid affecting mode-cards */
-[data-view-name='settings'] .setup-section {
-  margin-bottom: 0;
-  background: rgba(255, 255, 255, 0.015);
-  padding: 12px 16px 14px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-}
-[data-view-name='settings'] .setup-section + .setup-section {
-  margin-top: 8px;
-}
 .setup-section {
   margin-bottom: 0;
 }
@@ -517,29 +527,16 @@ button:disabled {
   border-top: 1px solid #1e2d4a;
   margin-top: 4px;
 }
-[data-view-name='settings'] .setup-section + .setup-section {
-  padding-top: 12px;
-  border-top: none;
-}
+
 .setup-section h3 {
   font-size: 0.7rem;
   letter-spacing: 2px;
   color: var(--muted);
   text-transform: uppercase;
   margin-bottom: 8px;
-  margin-top: 30px;
   font-weight: 700;
 }
-[data-view-name='settings'] .setup-section h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(229, 57, 53, 0.15);
-  color: var(--accent);
-  font-size: 0.72rem;
-  letter-spacing: 2.5px;
-  font-family: 'Chakra Petch', sans-serif;
-}
+
 .opt-btn-group {
   display: flex;
   flex-wrap: wrap;
@@ -566,10 +563,10 @@ button:disabled {
   letter-spacing: 0.04em;
 }
 .opt-btn.active {
-  border-color: var(--accent);
-  background: rgba(229, 57, 53, 0.08);
-  color: var(--accent);
-  box-shadow: 0 0 8px rgba(229, 57, 53, 0.15);
+  border-color: var(--gc);
+  background: rgba(var(--gc-rgb), 0.08);
+  color: var(--gc);
+  box-shadow: 0 0 8px rgba(var(--gc-rgb), 0.15);
 }
 .opt-btn:hover:not(.active) {
   background: #0d2040;
@@ -598,8 +595,8 @@ button:disabled {
 }
 .setup-actions button:hover,
 .setup-actions button.active {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--gc);
+  color: var(--gc);
 }
 .cat-toggle-btns {
   display: grid;
@@ -626,10 +623,10 @@ button:disabled {
   font-family: 'Chakra Petch', system-ui, sans-serif;
 }
 .cat-toggle-btn.active {
-  border-color: var(--accent);
-  background: rgba(229, 57, 53, 0.1);
-  color: #ff6b5e;
-  box-shadow: 0 0 8px rgba(229, 57, 53, 0.15);
+  border-color: var(--gc);
+  background: rgba(var(--gc-rgb), 0.1);
+  color: var(--gc);
+  box-shadow: 0 0 8px rgba(var(--gc-rgb), 0.15);
 }
 .cat-toggle-btn:hover:not(.active) {
   background: #0d2040;
@@ -2690,247 +2687,27 @@ body[data-game-theme='pink'] {
     animation: none;
   }
 }
-/* Qlashique buttons in right column */
-.btn-qlashique {
-  width: 100%;
-  background: rgba(var(--game-accent-rgb), 0.1);
-  border: 1px solid rgba(var(--game-accent-rgb), 0.4);
-  color: var(--game-accent);
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 1rem;
-}
-.btn-qlashique:hover {
-  background: rgba(var(--game-accent-rgb), 0.2);
-  border-color: var(--game-accent);
-}
-/* SkipNoT amber variant — landing leaderboard toggle (start button is a .mode-card below) */
-#btn-show-skipnot-lb.btn-qlashique {
-  background: rgba(255, 176, 0, 0.06);
-  border: 1px solid rgba(255, 176, 0, 0.3);
-  border-radius: 8px;
-  color: var(--amber);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 1rem;
-}
-#btn-show-skipnot-lb.btn-qlashique:hover {
-  background: rgba(255, 176, 0, 0.12);
-  border-color: var(--amber);
-}
 
-/* Join buttons — color-match the mode cards above (Brawl=green, Qlashique=yellow) */
-#btn-join {
-  background: rgba(var(--game-accent-rgb), 0.12);
-  border: 1px solid rgba(var(--game-accent-rgb), 0.5);
-  color: var(--game-accent);
-}
-#btn-join:hover {
-  background: rgba(var(--game-accent-rgb), 0.22);
-  border-color: var(--game-accent);
-}
-#btn-qlas-start.btn-qlashique {
-  background: rgba(255, 230, 0, 0.1);
-  border-color: rgba(255, 230, 0, 0.5);
-  color: var(--game-key);
-}
-#btn-qlas-start.btn-qlashique:hover {
-  background: rgba(255, 230, 0, 0.22);
-  border-color: var(--game-key);
-}
-
-/* Mode cards — 3 visual cards (Brawl / Qlashique / SkipNoT) on the home page */
-/* ===== MODE CARDS — concept dashboard card grid ===== */
-.mode-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-.mode-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 22px 22px;
-  height: auto;
-  min-height: 0;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(22, 22, 37, 0.5);
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  text-align: left;
-  transition:
-    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.28s ease,
-    box-shadow 0.28s ease;
-  width: 100%;
-  margin: 0;
-  position: relative;
-  overflow: hidden;
-}
-.mode-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 12px 12px 0 0;
-}
-.mode-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-}
-.mode-card .mode-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.mode-card .mode-icon svg {
-  width: 100%;
-  height: 100%;
-}
-.mode-card .mode-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.mode-card .mode-name {
-  font-size: 1.06rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-}
-.mode-card .mode-desc {
-  font-family: 'Chakra Petch', system-ui, sans-serif;
-  font-size: 0.76rem;
-  color: var(--muted);
-  letter-spacing: 0.01em;
-  line-height: 1.65;
-}
-/* Entrance animations */
-.mode-card,
-.mode-card-wrap--brawl,
-.mode-card-wrap--qlas,
-.mode-card-wrap--howhigh {
-  animation: cardIn 0.4s ease-out backwards;
-}
-.mode-cards > :nth-child(1) {
-  animation-delay: 0.05s;
-}
-.mode-cards > :nth-child(2) {
-  animation-delay: 0.1s;
-}
-.mode-cards > :nth-child(3) {
-  animation-delay: 0.15s;
-}
-.mode-cards > :nth-child(4) {
-  animation-delay: 0.2s;
-}
-@keyframes cardIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.mode-card--brawl {
-  color: var(--green);
-}
-.mode-card--brawl .mode-name {
-  color: var(--green);
-}
-.mode-card--brawl::before {
-  background: linear-gradient(90deg, var(--green), transparent);
-}
-.mode-card--brawl:hover {
-  border-color: rgba(0, 255, 65, 0.3);
-  box-shadow:
-    0 12px 36px -8px rgba(0, 255, 65, 0.15),
-    0 0 0 1px rgba(0, 255, 65, 0.06);
-}
-.mode-card--qlas {
-  color: var(--yellow);
-}
-.mode-card--qlas .mode-name {
-  color: var(--yellow);
-}
-.mode-card--qlas:hover {
-}
-.mode-card-wrap--qlas {
-  display: flex;
-  flex-direction: column;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(22, 22, 37, 0.5);
-  overflow: hidden;
-  transition:
-    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.28s ease,
-    box-shadow 0.28s ease;
-  position: relative;
-}
-.mode-card-wrap--qlas::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(90deg, var(--yellow), transparent);
-  z-index: 1;
-}
-.mode-card-wrap--qlas:hover {
-  border-color: rgba(255, 230, 0, 0.3);
-  transform: translateY(-3px);
-  box-shadow:
-    0 12px 36px -8px rgba(255, 230, 0, 0.12),
-    0 0 0 1px rgba(255, 230, 0, 0.06);
-}
-.mode-card-wrap--qlas .mode-card--qlas:hover {
-  transform: none;
-  box-shadow: none;
-}
-.mode-card-wrap--qlas .mode-card--qlas {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-}
-.mode-card-wrap--qlas .mode-card--qlas::before {
-  display: none;
-}
 .qlas-hp-selector {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 18px 8px;
-  background: transparent;
-  border-top: 1px solid rgba(255, 230, 0, 0.15);
+  gap: 6px;
 }
 .qlas-hp-label {
-  font-size: 0.62rem;
+  font:
+    700 0.7rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 2px;
   color: var(--muted);
-  letter-spacing: 0.06em;
-  margin-right: 2px;
+  margin-right: 6px;
 }
 .qlas-hp-opt {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   width: auto;
   height: auto;
-  padding: 2px 8px;
-  border-radius: 3px;
+  padding: 8px 16px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 230, 0, 0.25);
   background: transparent;
   color: rgba(255, 230, 0, 0.6);
@@ -2951,215 +2728,297 @@ body[data-game-theme='pink'] {
   color: var(--yellow);
   background: rgba(255, 230, 0, 0.1);
 }
-.mode-card--skipnot {
-  color: var(--amber);
+
+/* ===== HOME GAME PICKER ===== menu on the left, selected game's panel on the right */
+.game--brawl {
+  --gc: var(--green);
+  --gc-rgb: 0, 255, 65;
 }
-.mode-card--skipnot .mode-name {
-  color: var(--amber);
+.game--qlashique {
+  --gc: var(--yellow);
+  --gc-rgb: 255, 230, 0;
 }
-.mode-card--skipnot::before {
-  background: linear-gradient(90deg, var(--amber), transparent);
+.game--qlashword {
+  --gc: #5efbef;
+  --gc-rgb: 94, 251, 239;
 }
-.mode-card--skipnot:hover {
-  border-color: rgba(255, 176, 0, 0.3);
-  box-shadow:
-    0 12px 36px -8px rgba(255, 176, 0, 0.15),
-    0 0 0 1px rgba(255, 176, 0, 0.06);
+.game--howhigh {
+  --gc: #e040fb;
+  --gc-rgb: 224, 64, 251;
 }
-.mode-card--howhigh {
-  color: #e040fb;
+.game--skipnot {
+  --gc: var(--amber);
+  --gc-rgb: 255, 176, 0;
 }
-.mode-card--howhigh .mode-name {
-  color: #e040fb;
+.game--mathquiz {
+  --gc: #4fd1c5;
+  --gc-rgb: 79, 209, 197;
 }
-.mode-card--howhigh::before {
-  background: linear-gradient(90deg, #e040fb, transparent);
+.game--cento {
+  --gc: #34d399;
+  --gc-rgb: 52, 211, 153;
 }
-.mode-card--howhigh:hover {
-  border-color: rgba(224, 64, 251, 0.3);
-  box-shadow:
-    0 12px 36px -8px rgba(224, 64, 251, 0.15),
-    0 0 0 1px rgba(224, 64, 251, 0.06);
+.game-picker {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  text-align: left;
 }
-/* --- Card-inline join rows (inside each mode-card-wrap) --- */
-.card-join-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: stretch;
-  padding: 6px 18px 10px;
-  border-top: 1px solid var(--border);
-  margin-top: auto;
-}
-.card-join-input {
-  flex: 1;
-  padding: 6px 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.82rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  text-align: center;
-  border-radius: 5px;
-  outline: none;
-  margin: 0;
-  height: auto;
-}
-.card-join-input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.card-join-input:focus {
-  border-color: var(--cyan);
-}
-.card-join-input::placeholder {
-  color: var(--muted);
-  letter-spacing: 0.15em;
-  font-size: 0.72rem;
-}
-.card-join-go {
-  padding: 6px 0;
-  width: 56px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  border-radius: 5px;
-  height: auto;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.card-join-row--brawl .card-join-input:focus {
-  border-color: var(--green);
-}
-.card-join-row--brawl .card-join-go {
-  border-color: rgba(0, 255, 65, 0.3);
-  color: var(--green);
-  background: rgba(0, 255, 65, 0.06);
-}
-.card-join-row--brawl .card-join-go:hover {
-  background: rgba(0, 255, 65, 0.15);
-  border-color: var(--green);
-}
-.card-join-row--qlas .card-join-input:focus {
-  border-color: var(--yellow);
-}
-.card-join-row--qlas .card-join-go {
-  border-color: rgba(255, 230, 0, 0.3);
-  color: var(--yellow);
-  background: rgba(255, 230, 0, 0.06);
-}
-.card-join-row--qlas .card-join-go:hover {
-  background: rgba(255, 230, 0, 0.15);
-  border-color: var(--yellow);
-}
-.card-join-row--howhigh .card-join-input:focus {
-  border-color: #e040fb;
-}
-.card-join-row--howhigh .card-join-go {
-  border-color: rgba(224, 64, 251, 0.3);
-  color: #e040fb;
-  background: rgba(224, 64, 251, 0.06);
-}
-.card-join-row--howhigh .card-join-go:hover {
-  background: rgba(224, 64, 251, 0.15);
-  border-color: #e040fb;
-}
-/* --- mode-card-wrap shared (Brawl + HowHigh, Qlas already defined) --- */
-.mode-card-wrap--brawl,
-.mode-card-wrap--howhigh {
+.game-menu {
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  gap: 6px;
+}
+.game-group {
+  font:
+    600 0.72rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 4px 2px;
+}
+.game-group:not(:first-child) {
+  margin-top: 14px;
+}
+.game-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--gc);
+}
+.game-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.game-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 13px 16px;
+  background: rgba(22, 22, 37, 0.55);
   border: 1px solid var(--border);
-  background: rgba(22, 22, 37, 0.5);
-  overflow: hidden;
+  border-left: 3px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  font:
+    600 0.98rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
   transition:
-    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.28s ease,
-    box-shadow 0.28s ease;
-  position: relative;
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
 }
-.mode-card-wrap--brawl::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(90deg, var(--green), transparent);
-  z-index: 1;
+.game-item:hover {
+  color: var(--gc);
+  border-left-color: var(--gc);
 }
-.mode-card-wrap--brawl:hover {
-  border-color: rgba(0, 255, 65, 0.3);
-  transform: translateY(-3px);
-  box-shadow:
-    0 12px 36px -8px rgba(0, 255, 65, 0.15),
-    0 0 0 1px rgba(0, 255, 65, 0.06);
+.game-item.active {
+  color: var(--gc);
+  border-color: rgba(var(--gc-rgb), 0.5);
+  border-left-color: var(--gc);
+  background: rgba(var(--gc-rgb), 0.09);
+  box-shadow: 0 0 26px -8px rgba(var(--gc-rgb), 0.55);
 }
-.mode-card-wrap--brawl .mode-card--brawl {
-  border: none;
-  border-radius: 0;
-  background: transparent;
+.game-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 32px;
+  min-height: 520px;
+  padding: 26px 30px;
+  border: 1px solid rgba(var(--gc-rgb), 0.35);
+  border-top: 3px solid var(--gc);
+  border-radius: 12px;
+  background: rgba(22, 22, 37, 0.65);
 }
-.mode-card-wrap--brawl .mode-card--brawl::before {
+.game-panel[hidden] {
   display: none;
 }
-.mode-card-wrap--brawl .mode-card--brawl:hover {
-  transform: none;
-  box-shadow: none;
+.game-panel-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
-.mode-card-wrap--howhigh::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(90deg, #e040fb, transparent);
-  z-index: 1;
+.game-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
-.mode-card-wrap--howhigh:hover {
-  border-color: rgba(224, 64, 251, 0.3);
-  transform: translateY(-3px);
-  box-shadow:
-    0 12px 36px -8px rgba(224, 64, 251, 0.15),
-    0 0 0 1px rgba(224, 64, 251, 0.06);
+.game-head .game-icon {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 0 10px rgba(var(--gc-rgb), 0.55));
 }
-.mode-card-wrap--howhigh .mode-card--howhigh {
+.game-head .game-title {
+  font:
+    700 1.8rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.06em;
+  color: var(--gc);
+  margin: 0 0 4px;
+}
+.game-tag {
+  display: inline-block;
+  font:
+    600 0.62rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gc);
+  border: 1px solid rgba(var(--gc-rgb), 0.35);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+.game-desc {
+  font-size: 0.95rem;
+}
+.game-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.game-options .setup-section + .setup-section {
+  padding-top: 14px;
+}
+.game-actions {
+  display: flex;
+  gap: 8px;
+}
+.game-create {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 14px 20px;
+  background: var(--gc);
+  color: var(--bg);
   border: none;
-  border-radius: 0;
+  border-radius: 8px;
+  font:
+    700 1rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.game-create:hover {
+  box-shadow: 0 0 24px -4px rgba(var(--gc-rgb), 0.7);
+}
+.game-code {
+  width: 120px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font:
+    600 1rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.game-code:focus {
+  outline: none;
+  border-color: var(--gc);
+}
+.game-join {
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 12px 18px;
   background: transparent;
+  border: 1px solid var(--gc);
+  border-radius: 8px;
+  color: var(--gc);
+  font:
+    700 0.9rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.1em;
+  cursor: pointer;
 }
-.mode-card-wrap--howhigh .mode-card--howhigh::before {
-  display: none;
+.game-join:hover {
+  background: rgba(var(--gc-rgb), 0.12);
 }
-.mode-card-wrap--howhigh .mode-card--howhigh:hover {
-  transform: none;
-  box-shadow: none;
+.game-panel-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
-#btn-howhigh-join {
-  background: rgba(224, 64, 251, 0.1);
-  border-color: rgba(224, 64, 251, 0.4);
-  color: #e040fb;
+.game-panel-side .leaderboard-panel {
+  max-width: none;
 }
-#btn-howhigh-join:hover {
-  background: rgba(224, 64, 251, 0.2);
-  border-color: #e040fb;
+.game-howto {
+  background: rgba(14, 14, 26, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 0.85rem;
+  line-height: 1.6;
 }
-@media (max-width: 520px) {
-  .mode-cards {
-    grid-template-columns: 1fr;
+.game-howto summary {
+  cursor: pointer;
+  color: var(--gc);
+  font:
+    600 0.78rem 'IBM Plex Mono',
+    monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.game-howto p,
+.game-howto ul {
+  margin-top: 0.6rem;
+}
+.game-howto ul {
+  padding-left: 1.2rem;
+}
+@media (max-width: 760px) {
+  .game-picker,
+  .game-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .game-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .game-group {
+    display: none;
+  }
+  .game-item {
+    width: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .game-panel {
+    min-height: 0;
+    padding: 20px;
+  }
+  .game-actions {
+    flex-wrap: wrap;
+  }
+  .game-create {
+    flex-basis: 100%;
+  }
+  .game-code {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }
+
 @media (max-width: 600px) {
   .qlas-combat-layout {
     grid-template-columns: 1fr;
@@ -3629,9 +3488,7 @@ body[data-game-theme='pink'] {
 #screen-qlashique .qlas-recap-card,
 #screen-qlashique .qlas-recap-modal-head,
 #screen-qlashique .qlas-recap-toggle,
-#screen-qlashique .qlas-recap-modal-close,
-#screen-qlashique .qlas-hp-opt,
-#screen-qlashique .btn-qlashique {
+#screen-qlashique .qlas-recap-modal-close {
   font-family: 'Martian Mono', monospace;
 }
 
@@ -4087,12 +3944,6 @@ body[data-game-theme='pink'] {
 /* ===== QLASHWORD (1v1 Scrabble + trivia-gated bonus squares) ===== */
 
 /* Home mode card */
-.mode-card--qlashword {
-  color: #5efbef;
-}
-.mode-card--qlashword .mode-name {
-  color: #5efbef;
-}
 
 /* Screen — provides the --game-* vars the reused qlas question styles need */
 /* Qlashword fills the viewport — drop the home-screen title's big top padding. */
@@ -4708,10 +4559,6 @@ body.qw-active {
   --game-border-2: #2c5a60;
 }
 
-.mode-card--mathquiz {
-  color: #4fd1c5;
-}
-
 .mathquiz-prompt {
   font-family: 'Chakra Petch', 'IBM Plex Mono', monospace;
   font-size: 1.05rem;
@@ -4746,7 +4593,6 @@ body.qw-active {
   align-items: stretch;
 }
 
-/* Same field as .card-join-input (--bg/--border/--fg, centered mono), just larger for answer entry */
 .mathquiz-input {
   flex: 1 1 auto;
   width: auto; /* override global input { width: 100% } so flex can size it */
@@ -4868,10 +4714,6 @@ body.qw-active {
   --game-text: #9fd4ba;
   --game-border: #143226;
   --game-border-2: #1f4d3a;
-}
-
-.mode-card--cento {
-  color: #34d399;
 }
 
 .cento-head {

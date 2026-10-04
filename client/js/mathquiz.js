@@ -493,17 +493,4 @@ export function initMathquiz(sock) {
       _resetRun();
     },
   });
-
-  const lbBtn = el('btn-show-mathquiz-lb');
-  const lbPanel = el('mathquiz-lb-panel');
-  if (lbBtn && lbPanel) {
-    lbBtn.addEventListener('click', () => {
-      const visible = lbPanel.style.display !== 'none';
-      lbPanel.style.display = visible ? 'none' : '';
-      lbBtn.textContent = visible ? 'Show MathQ Leaderboard' : 'Hide Leaderboard';
-      if (!visible) {
-        loadPanelLeaderboard('mathquiz', 'mathquiz-lb-rows');
-      }
-    });
-  }
 }

@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { registerAndLogin as loginPlayer, BASE } from './e2e-helpers.js';
+import { registerAndLogin as loginPlayer, BASE, openGame } from './e2e-helpers.js';
 
 test('qlashique: idle turns auto-start, cost 2 HP, second in a row forfeits', async ({
   browser,
@@ -10,6 +10,7 @@ test('qlashique: idle turns auto-start, cost 2 HP, second in a row forfeits', as
   const { ctx: ctx1, page: p1 } = await loginPlayer(browser, 'e2e_qlas_p1');
   const { ctx: ctx2, page: p2 } = await loginPlayer(browser, 'e2e_qlas_p2');
 
+  await openGame(p1, 'qlashique');
   await p1.locator('#btn-qlas-create').click();
   await expect(p1.locator('#qlas-code-val')).toHaveText(/^[A-Z0-9]{5}$/, { timeout: 8000 });
   const code = await p1.locator('#qlas-code-val').textContent();
@@ -17,6 +18,7 @@ test('qlashique: idle turns auto-start, cost 2 HP, second in a row forfeits', as
   await api.post('/test/set-hp', { data: { hp: 15 } });
   await api.post('/test/set-qlas-timers', { data: { seconds: 2 } });
 
+  await openGame(p2, 'qlashique');
   await p2.locator('#qlas-join-code').fill(code.trim());
   await p2.locator('#btn-qlas-start').click();
 
