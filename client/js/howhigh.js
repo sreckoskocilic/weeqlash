@@ -10,7 +10,7 @@ import {
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { QLAS_THEMES } from './qlashique.js';
 import { TEST_SPEED } from './constants.js';
-import { registerHomeHandler } from './home.js';
+import { registerHomeHandler, showRunEnded } from './home.js';
 
 const HH_THEME_KEY = 'weeqlash.hhTheme';
 
@@ -60,7 +60,7 @@ function _timeAgo(dateStr) {
 
 let socketRef = null;
 let ring = null;
-let questions = [];
+let currentQ = null;
 let total = 10;
 let timerSec = 7;
 let currentIdx = 0;
@@ -69,7 +69,6 @@ let optionBtns = [];
 let resolvedThisQ = false;
 let questionTimeout = null;
 let diceRollInterval = null;
-let runStartedAt = 0;
 let outcomes = [];
 let scoreAnimRaf = null;
 let diceValues = null;
@@ -80,6 +79,7 @@ let donAccepted = null;
 let timeCrunchAccepted = null;
 let offerResponded = false;
 let runGen = 0;
+let isPlayer2 = false;
 
 function _qel(id) {
   return document.getElementById(id);
@@ -99,8 +99,9 @@ function _showPhase(name) {
 
 function _resetRun() {
   runGen++;
+  isPlayer2 = false;
   offerResponded = false;
-  questions = [];
+  currentQ = null;
   currentIdx = 0;
   score = 0;
   total = 10;
@@ -126,7 +127,6 @@ function _resetRun() {
     cancelAnimationFrame(scoreAnimRaf);
     scoreAnimRaf = null;
   }
-  runStartedAt = Date.now();
   _qel('howhigh-score').textContent = '0';
   _qel('howhigh-counter').textContent = '0/' + total;
   const d = _qel('howhigh-score-delta');
@@ -269,7 +269,7 @@ function _calcDelta(correct) {
 
 function _renderCurrentQ() {
   resolvedThisQ = false;
-  const q = questions[currentIdx];
+  const q = currentQ;
   if (!q) {
     return;
   }
@@ -298,9 +298,26 @@ function _advanceAfterDelay() {
     if (currentIdx >= total) {
       _finishRun();
     } else {
-      _renderCurrentQ();
+      _nextQ();
     }
   }, RESULT_DISPLAY_MS);
+}
+
+function _nextQ() {
+  const gen = runGen;
+  socketRef?.emit('howhigh:next', (res) => {
+    if (gen !== runGen) {
+      return;
+    }
+    if (res?.error) {
+      console.warn('[howhigh] next failed:', res.error);
+      showRunEnded();
+      return;
+    }
+    currentQ = res.question;
+    _showPhase('game');
+    _renderCurrentQ();
+  });
 }
 
 function _checkNextEvent(nextEvent, res) {
@@ -367,7 +384,7 @@ function _onOptionClick(idx) {
     questionTimeout = null;
   }
   _disableAllOptions();
-  const q = questions[currentIdx];
+  const q = currentQ;
   const gen = runGen;
   socketRef?.emit('howhigh:answer', { id: q.id, optionIdx: idx }, (res) => {
     if (gen !== runGen) {
@@ -375,25 +392,21 @@ function _onOptionClick(idx) {
     }
     if (res?.error) {
       console.warn('[howhigh] answer rejected:', res.error);
-      resolvedThisQ = false;
-      optionBtns.forEach((b) => {
-        b.disabled = false;
-      });
-      _ensureRing().start(timerSec);
-      questionTimeout = setTimeout(_onTimeout, timerSec * 1000);
+      showRunEnded();
       return;
     }
-    const correct = !!res.correct;
+    const timedOut = !!res.timedOut;
+    const correct = !timedOut && !!res.correct;
     const delta = _calcDelta(correct);
     const prevScore = score;
     score += delta;
     _animateScore(prevScore, score);
-    if (optionBtns[idx]) {
+    if (optionBtns[idx] && !timedOut) {
       optionBtns[idx].classList.add(correct ? 'correct' : 'wrong');
     }
     outcomes.push(correct ? 'ok' : 'bad');
     _updateProgressDot(currentIdx, correct ? 'ok' : 'bad');
-    _flash(correct ? 'correct' : 'wrong', delta);
+    _flash(timedOut ? 'timeout' : correct ? 'correct' : 'wrong', delta);
 
     if (!_checkNextEvent(res.nextEvent, res)) {
       _advanceAfterDelay();
@@ -409,7 +422,7 @@ function _onTimeout() {
   ring?.stop();
   questionTimeout = null;
   _disableAllOptions();
-  const q = questions[currentIdx];
+  const q = currentQ;
   const gen = runGen;
   socketRef?.emit('howhigh:timeout', { id: q.id }, (res) => {
     if (gen !== runGen) {
@@ -417,6 +430,8 @@ function _onTimeout() {
     }
     if (res?.error) {
       console.warn('[howhigh] timeout rejected:', res.error);
+      showRunEnded();
+      return;
     }
     const delta = _calcDelta(false);
     const prevScore = score;
@@ -482,13 +497,13 @@ function _onDiceAccept() {
   socketRef?.emit('howhigh:dice_respond', { accept: true }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] dice_respond error:', res.error);
+      showRunEnded();
       return;
     }
     if (res.dice) {
       diceValues = res.dice;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -501,10 +516,10 @@ function _onDiceDecline() {
   socketRef?.emit('howhigh:dice_respond', { accept: false }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] dice_respond error:', res.error);
+      showRunEnded();
       return;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -523,10 +538,10 @@ function _onDoNAccept() {
   socketRef?.emit('howhigh:don_respond', { accept: true }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] don_respond error:', res.error);
+      showRunEnded();
       return;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -539,10 +554,10 @@ function _onDoNDecline() {
   socketRef?.emit('howhigh:don_respond', { accept: false }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] don_respond error:', res.error);
+      showRunEnded();
       return;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -560,17 +575,14 @@ function _onGoWildAccept() {
   socketRef?.emit('howhigh:gowild_respond', { accept: true }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] gowild_respond error:', res.error);
+      showRunEnded();
       return;
-    }
-    if (res.extraQuestions) {
-      questions.push(...res.extraQuestions);
     }
     total = res.totalQuestions || 12;
     timerSec = (res.timerMs || 5000) / 1000;
     _qel('howhigh-counter').textContent = currentIdx + 1 + '/' + total;
     _rebuildProgressDots();
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -582,10 +594,10 @@ function _onGoWildDecline() {
   socketRef?.emit('howhigh:gowild_respond', { accept: false }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] gowild_respond error:', res.error);
+      showRunEnded();
       return;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -604,13 +616,13 @@ function _onTCAccept() {
   socketRef?.emit('howhigh:time_crunch_respond', { accept: true }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] time_crunch_respond error:', res.error);
+      showRunEnded();
       return;
     }
     if (res.timerMs) {
       timerSec = res.timerMs / 1000;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -623,10 +635,10 @@ function _onTCDecline() {
   socketRef?.emit('howhigh:time_crunch_respond', { accept: false }, (res) => {
     if (res?.error) {
       console.warn('[howhigh] time_crunch_respond error:', res.error);
+      showRunEnded();
       return;
     }
-    _showPhase('game');
-    _renderCurrentQ();
+    _nextQ();
   });
 }
 
@@ -661,10 +673,10 @@ function _finishRun() {
     questionTimeout = null;
   }
   ring?.stop();
-  const totalMs = Date.now() - runStartedAt;
-  socketRef?.emit('howhigh:finish', { totalMs }, (res) => {
+  socketRef?.emit('howhigh:finish', (res) => {
     if (res?.error) {
       console.warn('[howhigh] finish failed:', res.error);
+      showRunEnded();
       return;
     }
     _qel('howhigh-go-score').textContent = String(res.score);
@@ -711,8 +723,8 @@ function _startRun() {
     _resetRun();
     _showPhase('game');
     showScreen('screen-howhigh');
-    questions = res.questions || [];
-    total = res.total ?? questions.length;
+    currentQ = res.question;
+    total = res.total ?? 10;
     timerSec = (res.timerMs ?? 13000) / 1000;
 
     if (res.dice) {
@@ -724,7 +736,6 @@ function _startRun() {
     if (res.bonusQ6) {
       bonusQ6 = res.bonusQ6;
     }
-    runStartedAt = Date.now();
     _resetProgressDots();
     _renderCurrentQ();
   });
@@ -746,10 +757,11 @@ function _joinRun() {
       return;
     }
     _resetRun();
+    isPlayer2 = true;
     _showPhase('game');
     showScreen('screen-howhigh');
-    questions = res.questions || [];
-    total = res.total ?? questions.length;
+    currentQ = res.question;
+    total = res.total ?? 10;
     timerSec = (res.timerMs ?? 13000) / 1000;
 
     if (res.dice) {
@@ -761,7 +773,6 @@ function _joinRun() {
     if (res.bonusQ6) {
       bonusQ6 = res.bonusQ6;
     }
-    runStartedAt = Date.now();
     _resetProgressDots();
     _renderCurrentQ();
   });
@@ -889,6 +900,11 @@ export function initHowHigh(sock) {
   el('btn-howhigh-create').addEventListener('click', _startRun);
   el('btn-howhigh-join').addEventListener('click', _joinRun);
   registerHomeHandler({
+    // Only a joined head-to-head counts as a loss when quit.
+    isLive: () =>
+      isPlayer2 &&
+      _qel('screen-howhigh').style.display !== 'none' &&
+      _qel('howhigh-phase-gameover').style.display === 'none',
     reset: () => {
       ring?.stop();
       _resetRun();

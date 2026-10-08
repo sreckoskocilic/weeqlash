@@ -1,11 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import {
-  createRoom,
-  joinRoom,
-  getRoom,
-  removePlayerFromRoom,
-  reattachSocket,
-} from '../server/game/rooms.ts';
+import { createRoom, joinRoom, getRoom, removePlayerFromRoom } from '../server/game/rooms.ts';
 
 describe('Rooms: createRoom', () => {
   afterEach(() => {
@@ -72,7 +66,6 @@ describe('Rooms: joinRoom', () => {
     expect(player.name).toBe('Alice');
     expect(player.color).toBe('#FF4444');
     expect(player.isHost).toBe(true);
-    expect(player.token).toBeDefined();
   });
 
   it('assigns different colors to consecutive players', () => {
@@ -197,17 +190,5 @@ describe('Rooms: removePlayerFromRoom', () => {
     // After p0 disconnects, p1 keeps index=1 despite moving to array[0]; .index lookups must still work (recordGameStats relies on it)
     expect(room.players.find((p) => p.index === 0)).toBeUndefined();
     expect(room.players.find((p) => p.index === 1)?.name).toBe('Bob');
-  });
-});
-
-describe('Rooms: reattachSocket', () => {
-  it('updates socket to room mapping', () => {
-    const room = createRoom({});
-    const player = joinRoom(room.code, 'socket-1', 'Alice');
-    // Simulate how server/index.js handles reconnection: update player.id first
-    player.id = 'new-socket-id';
-    reattachSocket('socket-1', 'new-socket-id', room.code);
-    const result = removePlayerFromRoom('new-socket-id');
-    expect(result.player.name).toBe('Alice');
   });
 });

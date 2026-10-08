@@ -1,6 +1,6 @@
 // Pure SkipNoT logic: solo 20-Q quiz, 12s each. Scoring +13/-7/0/0 (correct/wrong/skip/timeout).
 
-export const POINTS = {
+const POINTS = {
   CORRECT: 13,
   WRONG: -7,
   SKIP: 0,

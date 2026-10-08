@@ -3,7 +3,7 @@
 import { BASE_POINTS } from './mathquiz.ts';
 
 // Graph sent as sampled points, not a closed form, so the formula never leaves the server.
-export interface GraphSpec {
+interface GraphSpec {
   points: [number, number][];
   xRange: [number, number];
   yRange: [number, number];
@@ -12,7 +12,7 @@ export interface GraphSpec {
 }
 
 // A geometric figure drawn on the client canvas; only given quantities are labeled, the asked value is never drawn.
-export interface FigureItem {
+interface FigureItem {
   t: 'poly' | 'seg' | 'point' | 'label' | 'angle' | 'right' | 'circle';
   pts?: number[][]; // poly
   a?: number[]; // seg endpoints
@@ -32,7 +32,7 @@ export interface FigureItem {
   away?: number[]; // label: reference point; offset goes away from it
   off?: number; // label: pixel offset distance
 }
-export interface FigureSpec {
+interface FigureSpec {
   view: number[]; // [xmin, xmax, ymin, ymax]
   items: FigureItem[];
   uniform?: boolean; // true = preserve aspect (circles); default stretches to fill

@@ -7,10 +7,10 @@ export const PHASE = {
   GAME_OVER: 'gameOver',
 } as const;
 
-export type Phase = (typeof PHASE)[keyof typeof PHASE];
+type Phase = (typeof PHASE)[keyof typeof PHASE];
 
 // Single source of truth for categories; client mirrors this in constants.js (keep in sync). defaultOff = shown unchecked.
-export const CATEGORIES = {
+const CATEGORIES = {
   arts: { label: 'Arts', color: '#C62828' },
   music: { label: 'Music', color: '#6A1B9A' },
   death_metal: { label: 'Death Metal', color: '#37474F', defaultOff: true },
@@ -30,7 +30,7 @@ export const CATS = Object.keys(CATEGORIES) as readonly Category[];
 
 export const CATS_SET = new Set<string>(CATS);
 
-export const DEFAULT_CATS = (Object.entries(CATEGORIES) as [Category, { defaultOff?: boolean }][])
+const DEFAULT_CATS = (Object.entries(CATEGORIES) as [Category, { defaultOff?: boolean }][])
   .filter(([, c]) => !c.defaultOff)
   .map(([id]) => id) as readonly Category[];
 
@@ -113,7 +113,7 @@ export interface Question {
   // other fields like question, options, etc. are ignored by engine
 }
 
-export type QuestionsDbCategories = {
+type QuestionsDbCategories = {
   [category in Category]: Question[];
 };
 export type QuestionsDb = QuestionsDbCategories & {
@@ -129,7 +129,7 @@ export interface Submission {
 }
 
 // Turn result from applyTurn
-export interface TurnResult {
+interface TurnResult {
   ok: true;
   events: GameEvent[];
   gameOver: boolean;
@@ -727,6 +727,38 @@ export function applyTurn(
 // ---------------------------------------------------------------------------
 // Turn management
 // ---------------------------------------------------------------------------
+
+// A player who leaves is out for good: drop their pegs and move play past them.
+// `interrupted` means the current turn was cancelled (their turn, or a move aimed at their peg).
+export function removePlayer(
+  state: GameState,
+  playerIdx: number,
+): { gameOver: boolean; winner: number; interrupted: boolean } {
+  const pending = state.pendingTurn;
+  const targetPegId = pending ? state.board[pending.targetR]?.[pending.targetC]?.pegId : null;
+  const targetsLeaver = !!targetPegId && state.pegs[targetPegId]?.playerId === playerIdx;
+
+  for (const pegId of [...state.players[playerIdx].pegIds]) {
+    eliminatePeg(state, pegId);
+  }
+
+  const winner = checkWinCondition(state);
+  if (winner >= 0) {
+    checkAndHandleGameOver(state, winner, []);
+    return { gameOver: true, winner, interrupted: true };
+  }
+  if (state.currentPlayerIdx === playerIdx) {
+    advanceTurn(state);
+    return { gameOver: false, winner: -1, interrupted: true };
+  }
+  if (targetsLeaver) {
+    state.pendingTurn = null;
+    state.selectedPegId = null;
+    state.phase = PHASE.SELECT_PEG;
+    return { gameOver: false, winner: -1, interrupted: true };
+  }
+  return { gameOver: false, winner: -1, interrupted: false };
+}
 
 // Reset per-turn flags on turn end; usedQ/wrongQ deliberately persist across the game to prevent repeats.
 function resetTurnState(state: GameState): void {

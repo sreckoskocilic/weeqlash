@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { CATS } from './engine.ts';
 import type { Category, GameState, Question } from './engine.ts';
 import type { QlashiqueState } from './qlashique.ts';
@@ -8,7 +7,7 @@ import type { QlashwordState, BonusSquare, FormedWord, PlacedTile } from './qlas
 export const rooms = new Map<string, RoomState>(); // code -> room
 export const socketToRoom = new Map<string, string>(); // socketId -> roomCode
 // O(1) lookup for sockets in active games (avoids iterating all rooms on quiz start)
-export const socketsInActiveGames = new Set<string>();
+const socketsInActiveGames = new Set<string>();
 
 export interface RoomState {
   code: string;
@@ -44,7 +43,7 @@ export interface RoomState {
 }
 
 // A validated placement waiting on its gated bonus questions to resolve.
-export interface QlashwordTurnInProgress {
+interface QlashwordTurnInProgress {
   playerIdx: 0 | 1;
   placement: PlacedTile[];
   words: FormedWord[];
@@ -55,11 +54,11 @@ export interface QlashwordTurnInProgress {
   answered?: boolean; // one-shot guard: current bonus already answered
 }
 
-export interface QlashwordPendingBonus extends BonusSquare {
+interface QlashwordPendingBonus extends BonusSquare {
   questionId: string;
 }
 
-export interface QlashiqueHistoryEntry {
+interface QlashiqueHistoryEntry {
   turn: number;
   playerIdx: number;
   questionId: string;
@@ -73,7 +72,7 @@ export interface QlashiqueHistoryEntry {
   p1hp: number;
 }
 
-export interface RoomSettings {
+interface RoomSettings {
   playerCount: number;
   boardSize: number;
   timer: number;
@@ -86,7 +85,6 @@ export interface PlayerInRoom {
   color: string;
   index: number;
   isHost: boolean;
-  token: string; // reconnect token, sent only to this player
   userId: number | null;
 }
 
@@ -205,7 +203,6 @@ export function joinRoom(
     color: COLORS[room.players.length % COLORS.length],
     index: room.players.length,
     isHost: room.players.length === 0,
-    token: randomUUID(), // reconnect token, sent only to this player
     userId, // linked user account (null for guest)
   };
   room.players.push(player);
@@ -273,21 +270,6 @@ export function removePlayerFromRoom(
   }
 
   return { room, player };
-}
-
-export function reattachSocket(oldSocketId: string, newSocketId: string, code: string): void {
-  socketToRoom.delete(oldSocketId);
-  socketToRoom.set(newSocketId, code);
-  // Also update the player lookups
-  const room = rooms.get(code);
-  if (room) {
-    const player = room.playersBySocket.get(oldSocketId);
-    if (player) {
-      room.playersBySocket.delete(oldSocketId);
-      player.id = newSocketId;
-      room.playersBySocket.set(newSocketId, player);
-    }
-  }
 }
 
 // Periodic cleanup of orphaned rooms (empty lobbies, abandoned games); returns count removed.

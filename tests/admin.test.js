@@ -89,6 +89,11 @@ describe('Admin auth', () => {
     const res = await a.get('/admin/').set('x-admin-key', 'wrong').set('x-forwarded-for', ip);
     expect(res.status).toBe(429);
     expect(res.text).toContain('Too Many Requests');
+    const right = await agent()
+      .get('/admin/')
+      .set('x-admin-key', ADMIN_SECRET)
+      .set('x-forwarded-for', ip);
+    expect(right.status).toBe(429);
   });
 });
 

@@ -22,12 +22,6 @@ export interface LeaderboardEntry {
   created_at: number;
 }
 
-export interface QuizMode {
-  id: string;
-  label: string;
-  categories: string[] | null;
-}
-
 export function getDb(): Database.Database | null {
   return db;
 }

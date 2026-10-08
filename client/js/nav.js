@@ -46,8 +46,9 @@ function toggleScores() {
 }
 
 function selectGame(id) {
+  const usable = !document.querySelector(`.game-item[data-game="${id}"]`)?.hidden;
   const panel =
-    document.querySelector(`[data-game-panel="${id}"]`) ||
+    (usable && document.querySelector(`[data-game-panel="${id}"]`)) ||
     document.querySelector('[data-game-panel]');
   document.querySelectorAll('[data-game-panel]').forEach((p) => {
     p.hidden = p !== panel;

@@ -1,8 +1,8 @@
 // Pure HowHigh? logic: async 2-player, 10 Qs (13s), dice bonus after Q3, GoWild after Q6 (extends to 12 Qs at 10s).
 
-export const POINTS = { CORRECT: 2, WRONG: -2 } as const;
-export const DON_MULTIPLIER = 2;
-export const TIME_CRUNCH_POINTS = { CORRECT: 3, WRONG: -3 } as const;
+const POINTS = { CORRECT: 2, WRONG: -2 } as const;
+const DON_MULTIPLIER = 2;
+const TIME_CRUNCH_POINTS = { CORRECT: 3, WRONG: -3 } as const;
 export const TIME_CRUNCH_TIMER_MS = 7000;
 export const TIME_CRUNCH_Q_COUNT = 2;
 export const BASE_TIMER_MS = 13000;
@@ -12,7 +12,7 @@ export const GOWILD_Q_COUNT = 12;
 export const DICE_AFTER_Q = 3;
 export const GOWILD_AFTER_Q = 6;
 export const DON_AFTER_Q = 3;
-export const DON_Q_COUNT = 2;
+const DON_Q_COUNT = 2;
 export const OPTIONS_PER_Q = 4;
 
 export type BonusQ3 = 'dice' | 'double_or_nothing';

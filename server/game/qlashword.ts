@@ -8,7 +8,7 @@ export const BOARD_SIZE = 15;
 export const RACK_SIZE = 7;
 export const BINGO_BONUS = 50; // all 7 tiles used in one turn (free, not gated)
 export const CENTER = 7; // first move must cover (7,7)
-export const END_PASS_STREAK = 4; // both players pass twice in a row → game over
+const END_PASS_STREAK = 4; // both players pass twice in a row → game over
 
 export const PHASE = {
   PLACE: 'place', // current player is placing tiles
@@ -16,7 +16,7 @@ export const PHASE = {
   GAME_OVER: 'game_over',
 } as const;
 
-export type Phase = (typeof PHASE)[keyof typeof PHASE];
+type Phase = (typeof PHASE)[keyof typeof PHASE];
 
 export type BonusType = 'DL' | 'TL' | 'DW' | 'TW';
 export type Orientation = 'H' | 'V';
@@ -53,7 +53,7 @@ export const LETTER_VALUES: Record<string, number> = {
 };
 
 // Standard English Scrabble tile distribution (100 tiles total).
-export const LETTER_DISTRIBUTION: Record<string, number> = {
+const LETTER_DISTRIBUTION: Record<string, number> = {
   A: 9,
   B: 2,
   C: 2,
@@ -120,7 +120,7 @@ export const BOARD_BONUS: (BonusType | null)[][] = BONUS_LAYOUT.map((row) =>
 // ---------------------------------------------------------------------------
 
 // A settled board cell. `blank` marks a tile that came from a blank (value 0).
-export interface Cell {
+interface Cell {
   letter: string; // 'A'..'Z'
   blank: boolean;
 }
@@ -136,7 +136,7 @@ export interface PlacedTile {
 }
 
 // A tile as it participates in a formed word (includes pre-existing tiles).
-export interface WordTile {
+interface WordTile {
   row: number;
   col: number;
   letter: string;
@@ -175,7 +175,7 @@ export function coordKey(row: number, col: number): string {
   return `${row},${col}`;
 }
 
-export function letterValue(letter: string, blank: boolean): number {
+function letterValue(letter: string, blank: boolean): number {
   if (blank) {
     return 0;
   }
@@ -206,7 +206,7 @@ export function createBag(): string[] {
 }
 
 // Fisher–Yates in place. `rng` defaults to Math.random; inject for deterministic tests.
-export function shuffleBag(bag: string[], rng: () => number = Math.random): string[] {
+function shuffleBag(bag: string[], rng: () => number = Math.random): string[] {
   for (let i = bag.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [bag[i], bag[j]] = [bag[j], bag[i]];

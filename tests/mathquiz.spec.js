@@ -15,6 +15,7 @@ test('mathquiz: play 10 questions → gameover + leaderboard', async ({ browser 
     query: 'testSpeed=8',
   });
 
+  await page.locator('[data-game="mathquiz"]').evaluate((el) => (el.hidden = false));
   await openGame(page, 'mathquiz');
   await page.locator('#btn-mathquiz-create').click();
   await page.locator('#screen-mathquiz').waitFor({ state: 'visible', timeout: 5000 });

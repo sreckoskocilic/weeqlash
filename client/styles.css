@@ -2883,7 +2883,8 @@ body[data-game-theme='pink'] {
   border-radius: 12px;
   background: rgba(22, 22, 37, 0.65);
 }
-.game-panel[hidden] {
+.game-panel[hidden],
+.game-item[hidden] {
   display: none;
 }
 .game-panel-main {
@@ -5271,6 +5272,28 @@ body.qw-active {
 }
 .home-btn[hidden] {
   display: none;
+}
+.run-ended {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.run-ended[hidden] {
+  display: none;
+}
+.run-ended-box {
+  max-width: 360px;
+  padding: 24px;
+  background: rgba(14, 14, 26, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  text-align: center;
 }
 @media (max-width: 640px) {
   #screen-skipnot .qlas-pb-grid,

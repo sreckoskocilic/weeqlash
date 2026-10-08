@@ -110,32 +110,36 @@ async function onAnswer(chosenIdx, qIdx) {
     console.error('Question not found at index:', qIdx);
     return;
   }
-  const correct = chosenIdx === q.correctIdx;
   state.pendingAnswers.push({ questionId: q.id, answerIdx: chosenIdx });
   state.pendingAnswers = [...state.pendingAnswers];
 
-  const { getSocket } = await import('./socket.js');
-  const socket = getSocket();
-  socket.emit('turn:answer_preview', {
-    code: state.myRoom?.code,
-    questionIdx: qIdx,
-    answerIdx: chosenIdx,
-  });
-
-  const isCombat = state.pendingMove?.moveType === 'combat';
-  const isFlag = state.pendingMove?.moveType === 'flag';
-
-  // Disable buttons
   gameModalOptionBtns.forEach((btn) => {
     btn.disabled = true;
   });
 
-  // Highlight outcome
-  gameModalOptionBtns.forEach((btn, i) => {
-    if (i === chosenIdx) {
-      btn.classList.add(correct ? 'answer-correct' : 'answer-wrong');
-    }
-  });
+  // The server grades the answer; the client never knows the right option.
+  const { getSocket } = await import('./socket.js');
+  let res = null;
+  try {
+    res = await getSocket().timeout(5000).emitWithAck('turn:answer_preview', {
+      code: state.myRoom?.code,
+      questionIdx: qIdx,
+      answerIdx: chosenIdx,
+    });
+  } catch {
+    console.warn('answer_preview: no response');
+  }
+  if (res?.error) {
+    console.warn('answer_preview:', res.error);
+  }
+  const correct = res?.correct === true;
+
+  const isCombat = state.pendingMove?.moveType === 'combat';
+  const isFlag = state.pendingMove?.moveType === 'flag';
+
+  if (typeof res?.correct === 'boolean') {
+    gameModalOptionBtns[chosenIdx]?.classList.add(correct ? 'answer-correct' : 'answer-wrong');
+  }
 
   const { submitTurn } = await import('./game.js');
   if (isCombat || isFlag) {

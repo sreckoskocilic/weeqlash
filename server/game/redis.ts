@@ -30,6 +30,11 @@ export function initRedis(): RedisClientType {
     console.log(`[redis] ready (prefix=${SESSION_PREFIX})`);
   });
 
+  // A dropped connection emits 'reconnecting', not 'end'.
+  client.on('reconnecting', () => {
+    ready = false;
+  });
+
   client.on('end', () => {
     ready = false;
   });

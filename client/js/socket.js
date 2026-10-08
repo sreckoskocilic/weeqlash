@@ -1,7 +1,5 @@
-import { showError, el } from './dom.js';
-import { renderAll } from './render.js';
-import { stopTimer } from './question.js';
-import { state } from './state.js';
+import { showError } from './dom.js';
+import { soloRunLive, showRunEnded } from './home.js';
 
 let socket = null;
 
@@ -20,6 +18,12 @@ export function initSocketEvents() {
     showError('Connection error. Please refresh the page.');
   });
 
+  socket.on('disconnect', () => {
+    if (soloRunLive()) {
+      showRunEnded('Connection lost. This run has ended.');
+    }
+  });
+
   socket.io.on('reconnect_attempt', (attempt) => {
     console.warn(`Reconnecting... attempt ${attempt}`);
   });
@@ -27,27 +31,6 @@ export function initSocketEvents() {
   socket.io.on('reconnect', () => {
     console.warn('Reconnected');
     showError('');
-    if (state.myToken && state.myRoom?.code) {
-      socket.emit('session:resume', { token: state.myToken, code: state.myRoom.code }, (res) => {
-        if (res.error) {
-          console.warn('Session resume failed:', res.error);
-          return;
-        }
-        if (res.state) {
-          state.spectateGen++;
-          state.pendingQuestions = [];
-          state.pendingAnswers = [];
-          state.localPhase = null;
-          state.localSelectedPegId = null;
-          state.validMovesSet = new Set();
-          state.pendingMove = null;
-          stopTimer();
-          el('modal-overlay').classList.remove('visible');
-          state.gameState = res.state;
-          renderAll(res.state);
-        }
-      });
-    }
     // Re-check authentication status after reconnect
     import('./auth.js').then(({ checkAuth }) => checkAuth());
   });

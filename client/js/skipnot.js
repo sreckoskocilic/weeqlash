@@ -1,10 +1,10 @@
-// SkipNoT solo 20-Q quiz. Server keeps correctIdx and hands out all 20 upfront; only the chosen button is colored (never reveals the correct answer).
+// SkipNoT solo 20-Q quiz. Server keeps correctIdx and serves one question at a time (skipnot:next) and times it; only the chosen button is colored (never reveals the correct answer).
 
 import { el, showScreen, showError, getPlayerName } from './dom.js';
 import { renderQuestion, makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
 import { TEST_SPEED } from './constants.js';
-import { registerHomeHandler } from './home.js';
+import { registerHomeHandler, showRunEnded } from './home.js';
 
 const TIMER_RING_CIRC = 175.93;
 const RESULT_DISPLAY_MS = 800 / TEST_SPEED;
@@ -14,7 +14,7 @@ const POINT_WRONG = -7;
 // Per-run UI state. Cleared by `_resetRun` on every fresh start.
 let socketRef = null;
 let ring = null;
-let questions = []; // { id, q, opts, category }[] from skipnot:start
+let currentQ = null;
 let total = 20;
 let timerSec = 12;
 let currentIdx = 0;
@@ -22,7 +22,7 @@ let score = 0;
 let optionBtns = [];
 let resolvedThisQ = false; // true between local resolve and next-q render
 let questionTimeout = null; // local 12s timeout handle
-let runStartedAt = 0;
+let advanceTimeout = null;
 
 // Per-Q outcomes ('ok' | 'bad' | 'skip'), current streak, best streak.
 let outcomes = [];
@@ -40,7 +40,7 @@ function _showPhase(name) {
 }
 
 function _resetRun() {
-  questions = [];
+  currentQ = null;
   currentIdx = 0;
   score = 0;
   optionBtns = [];
@@ -52,11 +52,14 @@ function _resetRun() {
     clearTimeout(questionTimeout);
     questionTimeout = null;
   }
+  if (advanceTimeout) {
+    clearTimeout(advanceTimeout);
+    advanceTimeout = null;
+  }
   if (scoreAnimRaf) {
     cancelAnimationFrame(scoreAnimRaf);
     scoreAnimRaf = null;
   }
-  runStartedAt = Date.now();
   _qel('skipnot-score').textContent = '0';
   _qel('skipnot-counter').textContent = `0/${total}`;
   const d = _qel('skipnot-score-delta');
@@ -203,7 +206,7 @@ function _flash(outcome, delta) {
 
 function _renderCurrentQ() {
   resolvedThisQ = false;
-  const q = questions[currentIdx];
+  const q = currentQ;
   if (!q) {
     return;
   }
@@ -227,14 +230,34 @@ function _renderCurrentQ() {
 }
 
 function _advanceAfterDelay() {
-  setTimeout(() => {
+  advanceTimeout = setTimeout(() => {
+    advanceTimeout = null;
     currentIdx += 1;
-    if (currentIdx >= questions.length) {
+    if (currentIdx >= total) {
       _finishRun();
-    } else {
-      _renderCurrentQ();
+      return;
     }
+    socketRef?.emit('skipnot:next', (res) => {
+      if (res?.error) {
+        console.warn('[skipnot] next failed:', res.error);
+        showRunEnded();
+        return;
+      }
+      currentQ = res.question;
+      _renderCurrentQ();
+    });
   }, RESULT_DISPLAY_MS);
+}
+
+function _markTimedOut() {
+  outcomes.push('skip');
+  _updateProgressDot(currentIdx, 'skip');
+  if (streak >= 3) {
+    _breakStreak();
+  }
+  streak = 0;
+  _flash('timeout', 0);
+  _advanceAfterDelay();
 }
 
 function _disableAllOptions() {
@@ -254,17 +277,15 @@ function _onOptionClick(idx) {
     questionTimeout = null;
   }
   _disableAllOptions();
-  const q = questions[currentIdx];
+  const q = currentQ;
   socketRef?.emit('skipnot:answer', { id: q.id, optionIdx: idx }, (res) => {
     if (res?.error) {
       console.warn('[skipnot] answer rejected:', res.error);
-      // server-side rejection (rare) — re-arm so user can retry within timer
-      resolvedThisQ = false;
-      optionBtns.forEach((b) => {
-        b.disabled = false;
-      });
-      _ensureRing().start(timerSec); // approximate; small fairness loss
-      questionTimeout = setTimeout(_onTimeout, timerSec * 1000);
+      showRunEnded();
+      return;
+    }
+    if (res.timedOut) {
+      _markTimedOut();
       return;
     }
     const correct = !!res.correct;
@@ -307,10 +328,12 @@ function _onSkipClick() {
     questionTimeout = null;
   }
   _disableAllOptions();
-  const q = questions[currentIdx];
+  const q = currentQ;
   socketRef?.emit('skipnot:skip', { id: q.id }, (res) => {
     if (res?.error) {
       console.warn('[skipnot] skip rejected:', res.error);
+      showRunEnded();
+      return;
     }
     // skip = 0 score; nothing colored.
     outcomes.push('skip');
@@ -333,7 +356,7 @@ function _onTimeout() {
   questionTimeout = null;
   _disableAllOptions();
   // Tell the server we abandoned this Q so its cursor advances in lockstep (timeout = skip, both score 0).
-  const q = questions[currentIdx];
+  const q = currentQ;
   socketRef?.emit('skipnot:skip', { id: q.id }, (res) => {
     if (res?.error) {
       console.warn('[skipnot] timeout-skip rejected:', res.error);
@@ -381,10 +404,10 @@ function _finishRun() {
     questionTimeout = null;
   }
   ring?.stop();
-  const totalMs = Date.now() - runStartedAt;
-  socketRef?.emit('skipnot:finish', { totalMs }, (res) => {
+  socketRef?.emit('skipnot:finish', (res) => {
     if (res?.error) {
       console.warn('[skipnot] finish failed:', res.error);
+      showRunEnded();
       return;
     }
     _qel('skipnot-go-score').textContent = String(res.score);
@@ -438,11 +461,10 @@ function _startRun() {
     _resetRun();
     _showPhase('game');
     showScreen('screen-skipnot');
-    questions = res.questions || [];
-    total = res.total ?? questions.length;
+    currentQ = res.question;
+    total = res.total ?? 20;
     timerSec = (res.timerMs ?? 12000) / 1000;
     currentIdx = 0;
-    runStartedAt = Date.now();
     _renderCurrentQ();
   });
 }

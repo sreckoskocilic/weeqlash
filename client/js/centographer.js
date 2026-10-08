@@ -3,7 +3,7 @@
 import { el, showScreen, sanitize, showError, getPlayerName } from './dom.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
 import { TEST_SPEED } from './constants.js';
-import { registerHomeHandler } from './home.js';
+import { registerHomeHandler, showRunEnded } from './home.js';
 
 const RESULT_FLASH_MS = 1100 / TEST_SPEED;
 
@@ -92,6 +92,7 @@ function _submit() {
   socketRef?.emit('centographer:submit', { selected: [...selected] }, (res) => {
     if (res?.error) {
       console.warn('[cento] submit failed:', res.error);
+      showRunEnded();
       return;
     }
     // Color the player's own picks only; unchecked stay neutral (answer hidden).

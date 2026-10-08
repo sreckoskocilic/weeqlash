@@ -7,6 +7,7 @@ import {
   advancePendingQuestion,
   checkWinCondition,
   getValidMoves,
+  removePlayer,
   PHASE,
 } from '../server/game/engine.ts';
 import { createQuestionsDb, createSparseQuestionsDb } from './test-utils.js';
@@ -931,5 +932,68 @@ describe('Engine: Flag Capture', () => {
     expect(third.events.some((e) => e.type === 'flag_captured')).toBe(true);
     expect(state.phase).toBe(PHASE.GAME_OVER);
     expect(state.board[flag.r][flag.c].pegId).toBe(p1PegId);
+  });
+});
+
+describe('Engine: Player Leaves', () => {
+  const three = [
+    { name: 'P1', color: '#f00' },
+    { name: 'P2', color: '#00f' },
+    { name: 'P3', color: '#0f0' },
+  ];
+
+  it('drops the leaver on their own turn and passes play on', () => {
+    const state = createGame(three, { boardSize: 7 });
+    const res = removePlayer(state, 0);
+    expect(res).toEqual({ gameOver: false, winner: -1, interrupted: true });
+    expect(state.players[0].pegIds).toHaveLength(0);
+    expect(Object.values(state.pegs).some((p) => p.playerId === 0)).toBe(false);
+    expect(state.currentPlayerIdx).toBe(1);
+    expect(state.phase).toBe(PHASE.SELECT_PEG);
+  });
+
+  it('leaves the current turn alone when someone else leaves', () => {
+    const state = createGame(three, { boardSize: 7 });
+    const pegId = state.players[0].pegIds[0];
+    selectPeg(state, 0, pegId);
+    const res = removePlayer(state, 2);
+    expect(res.interrupted).toBe(false);
+    expect(state.currentPlayerIdx).toBe(0);
+    expect(state.selectedPegId).toBe(pegId);
+    expect(state.phase).toBe(PHASE.SELECT_TILE);
+  });
+
+  it('cancels a move aimed at the leaver but keeps the moves left', () => {
+    const state = createGame(three, { boardSize: 7 });
+    const attackerId = state.players[0].pegIds[0];
+    const defender = state.pegs[state.players[1].pegIds[0]];
+    state.pendingTurn = {
+      pegId: attackerId,
+      targetR: defender.row,
+      targetC: defender.col,
+      moveType: 'combat',
+      questionId: 'q1',
+      questionsRemaining: 3,
+      questionsTotal: 3,
+    };
+    state.movesRemaining = 2;
+    const res = removePlayer(state, 1);
+    expect(res.interrupted).toBe(true);
+    expect(state.pendingTurn).toBeNull();
+    expect(state.currentPlayerIdx).toBe(0);
+    expect(state.movesRemaining).toBe(2);
+    expect(state.phase).toBe(PHASE.SELECT_PEG);
+  });
+
+  it('ends the game when only one player has pegs left', () => {
+    const state = createGame(three, { boardSize: 7 });
+    for (const pegId of [...state.players[2].pegIds]) {
+      delete state.pegs[pegId];
+    }
+    state.players[2].pegIds = [];
+    const res = removePlayer(state, 1);
+    expect(res).toEqual({ gameOver: true, winner: 0, interrupted: true });
+    expect(state.phase).toBe(PHASE.GAME_OVER);
+    expect(state.winner).toBe(0);
   });
 });

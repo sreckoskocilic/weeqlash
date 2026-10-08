@@ -3,7 +3,6 @@
 export const state = {
   // Identity / room
   myId: null,
-  myToken: null,
   myRoom: null,
   isHost: false,
   myPlayerIndex: null,

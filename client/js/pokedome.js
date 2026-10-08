@@ -2,7 +2,7 @@ import { el, showScreen, showError, getPlayerName } from './dom.js';
 import { makeCountdownRing } from './question-render.js';
 import { loadPanelLeaderboard } from './leaderboard.js';
 import { TEST_SPEED } from './constants.js';
-import { registerHomeHandler } from './home.js';
+import { registerHomeHandler, showRunEnded } from './home.js';
 
 const TIMER_RING_CIRC = 175.93;
 const COUNTDOWN = ['5', '4', '3', '2', '1', 'GO'];
@@ -207,6 +207,7 @@ function _skip() {
     pending = false;
     if (res?.error) {
       console.warn('[pokedome] skip rejected:', res.error);
+      showRunEnded();
       return;
     }
     if (res.timedOut) {
@@ -273,6 +274,7 @@ function _loadPuzzle() {
     }
     if (res?.error) {
       console.warn('[pokedome] next failed:', res.error);
+      showRunEnded();
       return;
     }
     index = res.index;
@@ -390,6 +392,7 @@ function _finish() {
     }
     if (res?.error) {
       console.warn('[pokedome] finish failed:', res.error);
+      showRunEnded();
       return;
     }
     _qel('pokedome-go-score').textContent = String(res.score);

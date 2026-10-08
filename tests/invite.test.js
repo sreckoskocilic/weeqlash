@@ -12,7 +12,6 @@ const host = (name) => ({
   color: '#fff',
   index: 0,
   isHost: true,
-  token: 't',
   userId: null,
 });
 
@@ -96,5 +95,16 @@ describe('withInviteMeta', () => {
       '<meta name="wq-invite-host" content="&lt;b&gt;&quot;x&quot;&lt;/b&gt;" />',
     );
     expect(out).not.toContain('<b>');
+  });
+
+  it('keeps `$` in a host name literal instead of a replacement pattern', () => {
+    const out = withInviteMeta(html, {
+      game: 'brawl',
+      host: "$'$`$&",
+      title: "$'$`$& invites you to Weeqlash Brawl",
+      description: 'Room ABCDE is waiting',
+    });
+    expect(out).toContain('content="$&#39;$`$&amp; invites you to Weeqlash Brawl"');
+    expect(out).toContain('<meta name="wq-invite-host" content="$&#39;$`$&amp;" />');
   });
 });

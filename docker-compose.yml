@@ -31,7 +31,7 @@ services:
       --save ""
       --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD required}
       --maxmemory 128mb
-      --maxmemory-policy volatile-lru
+      --maxmemory-policy noeviction
     volumes:
       - ./data/redis:/data
     healthcheck:

@@ -40,7 +40,6 @@ import {
   joinRoom,
   getRoom,
   removePlayerFromRoom,
-  reattachSocket,
   cleanupStaleRooms,
   isInActiveGame,
   registerActiveSocket,
@@ -53,6 +52,7 @@ import {
   planTurnQuestions,
   advancePendingQuestion,
   applyTurn,
+  removePlayer,
   getValidMoves,
   PHASE,
   COORD_BASE,
@@ -195,8 +195,21 @@ function createSessionMiddleware() {
   });
 }
 
-// Initialize session middleware BEFORE static files
-const sessionMiddleware = createSessionMiddleware();
+// Readiness probe: 503 when Redis or DB is down ('/' stays 200 since it serves static HTML).
+app.get('/healthz', (_req, res) => {
+  const redis = isRedisReady();
+  const dbReady = getDb() !== null;
+  if (!redis || !dbReady) {
+    return res.status(503).json({ status: 'unavailable', redis, db: dbReady });
+  }
+  res.json({ status: 'ok', redis, db: dbReady });
+});
+
+// Initialize session middleware BEFORE static files.
+// With Redis down, skip the session (it would hang); the 503 gates below then reject auth and sockets.
+const redisSession = createSessionMiddleware();
+const sessionMiddleware = (req, res, next) =>
+  isRedisReady() ? redisSession(req, res, next) : next();
 app.use(sessionMiddleware);
 
 // Force a session write on first request so Set-Cookie lands before the socket handshake; don't remove.
@@ -272,7 +285,12 @@ function clampRunMs(totalMs, startedAt, minMs, maxMs) {
   return Math.min(Math.max(reportedMs, minMs), maxMs);
 }
 
-// Finish-and-submit for solo runs with { finished, finalScore, finalTimeMs } (quiz/triviandom has its own handler).
+function _answerLocked(room) {
+  const qId = room.state?.pendingTurn?.questionId;
+  return !!qId && room.answerLock?.questionId === qId;
+}
+
+// Finish-and-submit for solo runs with { finished, finalScore, finalTimeMs }.
 function submitModeScore(runMap, mode, socket, name, cb) {
   const run = runMap.get(socket.id);
   if (!run) {
@@ -746,16 +764,6 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
   });
 }
 
-// Readiness probe: 503 when Redis or DB is down ('/' stays 200 since it serves static HTML).
-app.get('/healthz', (_req, res) => {
-  const redis = isRedisReady();
-  const dbReady = getDb() !== null;
-  if (!redis || !dbReady) {
-    return res.status(503).json({ status: 'unavailable', redis, db: dbReady });
-  }
-  res.json({ status: 'ok', redis, db: dbReady });
-});
-
 app.use((req, res) => {
   if (req.method === 'GET' && req.accepts('html')) {
     return res.status(404).sendFile(path.join(CLIENT_DIR, '404.html'));
@@ -876,13 +884,11 @@ io.on('connection', (socket) => {
     _leavePreviousRoom(socket, prevCode);
     socket.join(room.code);
     console.log(`[room] ${room.code} created by ${playerName}`);
-    const token = getPlayerBySocket(room, socket.id)?.token;
     cb({
       ok: true,
       code: room.code,
       playerId: socket.id,
       players: room.players.map(publicPlayer),
-      token,
     });
   });
 
@@ -917,7 +923,6 @@ io.on('connection', (socket) => {
       myIdx: joiningPlayer?.index,
       players: room.players.map(publicPlayer),
       settings: room.settings,
-      token: joiningPlayer?.token,
       qlasHP: room.qlasHP || undefined,
     });
     if (room.players.length === room.settings.playerCount) {
@@ -1010,76 +1015,6 @@ io.on('connection', (socket) => {
 
   // --- Reconnect ---
 
-  socket.on('session:resume', ({ token, code }, cb) => {
-    if (typeof cb !== 'function') {
-      return;
-    }
-    if (checkLobbyRateLimit(socket.id, cb)) {
-      return;
-    }
-    const room = getRoom(code);
-    if (!room || !room.started) {
-      return cb({ error: 'Room not found or not started' });
-    }
-    const player = room.players.find((p) => p.token === token);
-    if (!player) {
-      return cb({ error: 'Invalid session token' });
-    }
-
-    // Clean up any lingering skipnot session on reconnect
-    _disposeSkipnotRun(socket.id);
-
-    const oldSocketId = player.id;
-    unregisterActiveSocket(oldSocketId);
-    reattachSocket(oldSocketId, socket.id, code);
-    registerActiveSocket(socket.id);
-    socket.join(code);
-    console.log(`[reconnect] ${player.name} re-joined ${code}`);
-    if (room.mode === 'qlashique') {
-      const qstate = room.state;
-      const timerElapsed = room.qlasGuessingStartedAt
-        ? Math.max(0, Math.floor((Date.now() - room.qlasGuessingStartedAt) / 1000))
-        : 0;
-      const reconnectData = {
-        ok: true,
-        mode: 'qlashique',
-        playerId: socket.id,
-        token: player.token,
-        myIdx: player.index,
-        code: room.code,
-        players: room.players.map(publicPlayer),
-        phase: qstate.phase,
-        hp: [qstate.players[0].hp, qstate.players[1].hp],
-        currentPlayerIdx: qstate.currentPlayerIdx,
-        turnNumber: qstate.turnNumber,
-        currentScore: qstate.currentScore,
-        timerSeconds: room.qlasTimerSeconds || QLAS_DEFAULT_TIMER_S,
-        timerElapsed,
-      };
-      if (
-        qstate.phase === QLAS_PHASE.GUESSING &&
-        player.index === qstate.currentPlayerIdx &&
-        room.currentQuestion
-      ) {
-        const q = room.currentQuestion;
-        reconnectData.currentQuestion = {
-          id: q.id,
-          q: q.q,
-          opts: q.opts,
-          category: q.category,
-        };
-      }
-      return cb(reconnectData);
-    }
-
-    cb({
-      ok: true,
-      playerId: socket.id,
-      state: publicState(room.state),
-      players: room.players.map(publicPlayer),
-    });
-  });
-
   // --- Game actions ---
 
   socket.on('action:select_peg', ({ code, pegId }, cb) => {
@@ -1094,6 +1029,11 @@ io.on('connection', (socket) => {
     const player = getPlayerBySocket(room, socket.id);
     if (!player) {
       return cb({ error: 'Not in this room' });
+    }
+
+    // Re-picking after answering would swap a wrong answer for a new question.
+    if (_answerLocked(room)) {
+      return cb({ error: 'Already answered' });
     }
 
     const pegResult = selectPeg(room.state, player.index, pegId);
@@ -1123,6 +1063,9 @@ io.on('connection', (socket) => {
     if (pegId !== room.state.selectedPegId) {
       return cb({ error: 'Peg not selected' });
     }
+    if (_answerLocked(room)) {
+      return cb({ error: 'Already answered' });
+    }
 
     const validMoves = getValidMoves(room.state, pegId).map((m) => m.r * COORD_BASE + m.c);
     if (!validMoves.includes(r * COORD_BASE + c)) {
@@ -1142,16 +1085,9 @@ io.on('connection', (socket) => {
       }
     }
 
+    // Never send the answer — the server grades via turn:answer_preview.
     const q = questionsDb._byId?.[questionId];
-    const question = q
-      ? {
-          id: q.id,
-          q: q.q,
-          opts: q.opts,
-          category: q.category,
-          correctIdx: q.a,
-        }
-      : null;
+    const question = q ? { id: q.id, q: q.q, opts: q.opts, category: q.category } : null;
 
     const gamePlayer = room.state.players[player.index];
     const defPegId = room.state.board[r]?.[c]?.pegId;
@@ -1161,12 +1097,11 @@ io.on('connection', (socket) => {
         : null;
     const { questionsTotal } = room.state.pendingTurn;
 
-    const { correctIdx, ...questionPublic } = question ?? {};
     socket.to(code).emit('game:question_start', {
       playerIdx: player.index,
       playerColor: gamePlayer?.color,
       moveType,
-      question: questionPublic,
+      question,
       questionsTotal,
       defenderPlayerIdx,
     });
@@ -1198,15 +1133,22 @@ io.on('connection', (socket) => {
     }
     previewTimestamps.set(socket.id, now);
 
-    const pending = room.state.pendingTurn;
-    const qId = pending?.questionId;
-    const isCorrect = qId ? questionsDb._byId?.[qId]?.a === answerIdx : null;
-    if (isCorrect) {
-      socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correct: true });
-    } else {
-      socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx });
+    const qId = room.state.pendingTurn?.questionId;
+    if (!qId) {
+      return cb?.({ error: 'No pending question' });
     }
-    cb?.({ ok: true });
+    // First answer per question is final, so a client can't probe options one by one.
+    if (_answerLocked(room)) {
+      const { answerIdx: locked, correct } = room.answerLock;
+      return cb?.(locked === answerIdx ? { ok: true, correct } : { error: 'Already answered' });
+    }
+    if (now - (room.lastQuestionStart || 0) > MAX_ANSWER_TIME_MS) {
+      return cb?.({ error: 'Answer expired. Time ran out.' });
+    }
+    const correct = questionsDb._byId?.[qId]?.a === answerIdx;
+    room.answerLock = { questionId: qId, answerIdx, correct };
+    socket.to(code).emit('game:answer_preview', { questionIdx, answerIdx, correct });
+    cb?.({ ok: true, correct });
   });
 
   socket.on('turn:submit', ({ code, submission }, cb) => {
@@ -1226,13 +1168,15 @@ io.on('connection', (socket) => {
       return cb({ error: 'Not in this room' });
     }
 
+    // A locked answer was already timed at preview; a late CONTINUE click must not expire it.
+    const locked = _answerLocked(room) ? room.answerLock : null;
     const timeSinceQuestionStart = Date.now() - (room.lastQuestionStart || 0);
-    if (timeSinceQuestionStart < MIN_ANSWER_DELAY_MS) {
+    if (!locked && timeSinceQuestionStart < MIN_ANSWER_DELAY_MS) {
       return cb({
         error: 'Answering too quickly. Wait for other players to see the question.',
       });
     }
-    if (timeSinceQuestionStart > MAX_ANSWER_TIME_MS) {
+    if (!locked && timeSinceQuestionStart > MAX_ANSWER_TIME_MS) {
       return cb({ error: 'Answer expired. Time ran out.' });
     }
 
@@ -1261,12 +1205,16 @@ io.on('connection', (socket) => {
     ) {
       return cb({ error: 'Invalid answer index' });
     }
+    if (locked && submission.answerIdx !== locked.answerIdx) {
+      return cb({ error: 'Already answered' });
+    }
 
     const result = applyTurn(room.state, player.index, submission, questionsDb);
     if (result.error) {
       console.warn(`[game] ${code} applyTurn rejected p${player.index}: ${result.error}`);
       return cb(result);
     }
+    room.answerLock = null;
 
     // If combat/flag continues: advance to next question, notify attacker and spectators
     if (result.combatContinues) {
@@ -1279,27 +1227,13 @@ io.on('connection', (socket) => {
         }
       }
       const nq = questionsDb._byId?.[nextId];
-      const nextQuestion = nq
-        ? {
-            id: nq.id,
-            q: nq.q,
-            opts: nq.opts,
-            category: nq.category,
-            correctIdx: nq.a,
-          }
-        : null;
-      const { correctIdx, ...nextPublic } = nextQuestion ?? {};
+      const nextQuestion = nq ? { id: nq.id, q: nq.q, opts: nq.opts, category: nq.category } : null;
       const qIdx = pending.questionsTotal - room.state.pendingTurn.questionsRemaining;
 
       room.lastQuestionStart = Date.now();
 
-      socket.emit('game:next_question', {
+      io.to(code).emit('game:next_question', {
         question: nextQuestion,
-        questionIdx: qIdx,
-        correct: result.correct,
-      });
-      socket.to(code).emit('game:next_question', {
-        question: nextPublic,
         questionIdx: qIdx,
         correct: result.correct,
       });
@@ -1335,10 +1269,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('quiz:leaderboard', ({ mode = 'triviandom' } = {}, cb) => {
-    if (typeof cb !== 'function') {
-      ((cb = mode), (mode = 'triviandom'));
-    } // backward compat
+  socket.on('quiz:leaderboard', ({ mode } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
     }
@@ -1397,24 +1328,55 @@ io.on('connection', (socket) => {
       // `picks` aligns to `questions` by position, not questionId (sticky overrides reuse one id across all slots).
       picks: new Array(skipnot.QUESTION_COUNT).fill(undefined),
       currentIdx: 0,
+      servedIdx: -1,
+      qStartedAt: 0,
+      elapsedMs: 0,
       finished: false,
       finalScore: 0,
       finalTimeMs: 0,
     };
     skipnotRuns.set(socket.id, run);
 
-    // Never send correctIdx — client gets only public fields; per-Q feedback comes via the skipnot:answer cb boolean.
     cb({
       ok: true,
       total: skipnot.QUESTION_COUNT,
       timerMs: skipnot.TIMER_MS,
-      questions: questions.map((q) => ({
-        id: q.id,
-        q: q.q,
-        opts: q.opts,
-        category: q.category,
-      })),
+      question: _serveSkipnotQ(run),
     });
+  });
+
+  function _serveSkipnotQ(run) {
+    run.servedIdx = run.currentIdx;
+    run.qStartedAt = Date.now();
+    const q = run.questions[run.currentIdx];
+    return { index: run.currentIdx, id: q.id, q: q.q, opts: q.opts, category: q.category };
+  }
+
+  function _closeSkipnotQ(run) {
+    const ms = Date.now() - run.qStartedAt;
+    run.elapsedMs += Math.min(ms, skipnot.TIMER_MS);
+    return ms > skipnot.TIMER_MS + ANSWER_GRACE_MS;
+  }
+
+  socket.on('skipnot:next', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = skipnotRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'SkipNoT not running' });
+    }
+    if (run.currentIdx >= run.questions.length) {
+      return cb({ error: 'Run exhausted' });
+    }
+    if (run.servedIdx === run.currentIdx) {
+      const q = run.questions[run.currentIdx];
+      return cb({
+        ok: true,
+        question: { index: run.currentIdx, id: q.id, q: q.q, opts: q.opts, category: q.category },
+      });
+    }
+    cb({ ok: true, question: _serveSkipnotQ(run) });
   });
 
   // Per-question check against the run cursor; returns ONLY a boolean. Never send the true answer.
@@ -1433,8 +1395,13 @@ io.on('connection', (socket) => {
       return cb({ error: 'Run exhausted' });
     }
     const currentQ = run.questions[run.currentIdx];
-    if (currentQ.id !== id) {
+    if (currentQ.id !== id || run.servedIdx !== run.currentIdx) {
       return cb({ error: 'Out of sequence' });
+    }
+    if (_closeSkipnotQ(run)) {
+      run.picks[run.currentIdx] = null;
+      run.currentIdx += 1;
+      return cb({ ok: true, timedOut: true });
     }
     const correct = optionIdx === currentQ.a;
     run.picks[run.currentIdx] = optionIdx;
@@ -1459,15 +1426,16 @@ io.on('connection', (socket) => {
       return cb({ error: 'Run exhausted' });
     }
     const currentQ = run.questions[run.currentIdx];
-    if (currentQ.id !== id) {
+    if (currentQ.id !== id || run.servedIdx !== run.currentIdx) {
       return cb({ error: 'Out of sequence' });
     }
+    _closeSkipnotQ(run);
     run.picks[run.currentIdx] = null; // null = skipped/timed-out (no score change)
     run.currentIdx += 1;
     cb({ ok: true });
   });
 
-  socket.on('skipnot:finish', ({ totalMs } = {}, cb) => {
+  socket.on('skipnot:finish', (cb) => {
     if (typeof cb !== 'function') {
       return;
     }
@@ -1481,12 +1449,7 @@ io.on('connection', (socket) => {
     _flushRunStats(socket.userId, run.tally);
     // Score from server-stored picks, not the client; a missing slot = timeout/unanswered, scores like skip.
     const picks = run.picks.map((p) => (p === undefined ? null : p));
-    const elapsedMs = clampRunMs(
-      totalMs,
-      run.startedAt,
-      run.questions.length * 100,
-      run.questions.length * (skipnot.TIMER_MS + ANSWER_GRACE_MS),
-    );
+    const elapsedMs = run.elapsedMs + (run.questions.length - run.currentIdx) * skipnot.TIMER_MS;
 
     const { score } = skipnot.scorePicks(run.questions, picks);
     run.finished = true;
@@ -1509,6 +1472,10 @@ io.on('connection', (socket) => {
   socket.on('mathquiz:start', (cb) => {
     if (typeof cb !== 'function') {
       return;
+    }
+    // MathQ is hidden; dev/e2e only.
+    if (process.env.NODE_ENV === 'production') {
+      return cb({ error: 'MathQ is not available' });
     }
     if (!socket.userId) {
       return cb({ error: 'Login required' });
@@ -1941,6 +1908,10 @@ io.on('connection', (socket) => {
       bonusQ6,
       totalQuestions: howhigh.BASE_Q_COUNT,
       timerMs: howhigh.BASE_TIMER_MS,
+      servedIdx: -1,
+      qStartedAt: 0,
+      qTimerMs: 0,
+      elapsedMs: 0,
       finished: false,
       isPlayer2: false,
     };
@@ -1953,12 +1924,7 @@ io.on('connection', (socket) => {
       dice,
       bonusQ3,
       bonusQ6,
-      questions: baseQuestions.map((q) => ({
-        id: q.id,
-        q: q.q,
-        opts: q.opts,
-        category: q.category,
-      })),
+      question: _serveHowhighQ(run),
     });
   });
 
@@ -1978,8 +1944,15 @@ io.on('connection', (socket) => {
     }
 
     const currentQ = run.questions[run.currentIdx];
-    if (!currentQ || currentQ.id !== id) {
+    if (!currentQ || currentQ.id !== id || run.servedIdx !== run.currentIdx) {
       return cb({ error: 'Out of sequence' });
+    }
+
+    if (_closeHowhighQ(run)) {
+      run.picks[run.currentIdx] = null;
+      run.currentIdx += 1;
+      const { nextEvent, timerMs } = _howhighPhaseTransition(run);
+      return cb({ ok: true, timedOut: true, nextEvent, ...(timerMs ? { timerMs } : {}) });
     }
 
     const correct = optionIdx === currentQ.a;
@@ -2013,10 +1986,11 @@ io.on('connection', (socket) => {
     }
 
     const currentQ = run.questions[run.currentIdx];
-    if (!currentQ || currentQ.id !== id) {
+    if (!currentQ || currentQ.id !== id || run.servedIdx !== run.currentIdx) {
       return cb({ error: 'Out of sequence' });
     }
 
+    _closeHowhighQ(run);
     run.picks[run.currentIdx] = null;
     run.currentIdx += 1;
 
@@ -2027,6 +2001,27 @@ io.on('connection', (socket) => {
       resp.timerMs = timerMs;
     }
     cb(resp);
+  });
+
+  socket.on('howhigh:next', (cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = howHighRuns.get(socket.id);
+    if (!run || run.finished) {
+      return cb({ error: 'HowHigh not running' });
+    }
+    if (run.currentIdx >= run.totalQuestions) {
+      return cb({ error: 'Run exhausted' });
+    }
+    // The bonus decision comes first, so it is never made with the next question in hand.
+    if (_howhighOfferPending(run)) {
+      return cb({ error: 'Decide the bonus first' });
+    }
+    if (run.servedIdx === run.currentIdx) {
+      return cb({ ok: true, question: _publicHowhighQ(run) });
+    }
+    cb({ ok: true, question: _serveHowhighQ(run) });
   });
 
   socket.on('howhigh:dice_respond', ({ accept } = {}, cb) => {
@@ -2103,12 +2098,6 @@ io.on('connection', (socket) => {
         accepted: true,
         timerMs: howhigh.GOWILD_TIMER_MS,
         totalQuestions: howhigh.GOWILD_Q_COUNT,
-        extraQuestions: run.extraQuestions.map((q) => ({
-          id: q.id,
-          q: q.q,
-          opts: q.opts,
-          category: q.category,
-        })),
       });
     } else {
       cb({ ok: true, accepted: false });
@@ -2143,7 +2132,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('howhigh:finish', ({ totalMs } = {}, cb) => {
+  socket.on('howhigh:finish', (cb) => {
     if (typeof cb !== 'function') {
       return;
     }
@@ -2157,15 +2146,7 @@ io.on('connection', (socket) => {
     _flushRunStats(socket.userId, run.tally);
 
     const picks = run.picks.map((p) => (p === undefined ? null : p));
-    const baseTimerMs = run.goWildAccepted ? howhigh.GOWILD_TIMER_MS : howhigh.BASE_TIMER_MS;
-    const tcQs = run.timeCrunchAccepted ? howhigh.TIME_CRUNCH_Q_COUNT : 0;
-    const elapsedMs = clampRunMs(
-      totalMs,
-      run.startedAt,
-      run.totalQuestions * 100,
-      (run.totalQuestions - tcQs) * (baseTimerMs + ANSWER_GRACE_MS) +
-        tcQs * (howhigh.TIME_CRUNCH_TIMER_MS + ANSWER_GRACE_MS),
-    );
+    const elapsedMs = run.elapsedMs + (run.totalQuestions - run.currentIdx) * run.timerMs;
 
     const { score } = howhigh.scorePicks(run.questions, picks, {
       dice: { die1: run.dice.die1, die2: run.dice.die2, accepted: !!run.diceAccepted },
@@ -2315,6 +2296,10 @@ io.on('connection', (socket) => {
       bonusQ6,
       totalQuestions: howhigh.BASE_Q_COUNT,
       timerMs: howhigh.BASE_TIMER_MS,
+      servedIdx: -1,
+      qStartedAt: 0,
+      qTimerMs: 0,
+      elapsedMs: 0,
       finished: false,
       isPlayer2: true,
     };
@@ -2327,12 +2312,7 @@ io.on('connection', (socket) => {
       dice,
       bonusQ3,
       bonusQ6,
-      questions: baseQuestions.map((q) => ({
-        id: q.id,
-        q: q.q,
-        opts: q.opts,
-        category: q.category,
-      })),
+      question: _serveHowhighQ(run),
     });
   });
 
@@ -2391,13 +2371,11 @@ io.on('connection', (socket) => {
     }
     _leavePreviousRoom(socket, prevCode);
     socket.join(room.code);
-    const token = getPlayerBySocket(room, socket.id)?.token;
     cb({
       ok: true,
       code: room.code,
       playerId: socket.id,
       players: room.players.map(publicPlayer),
-      token,
     });
   });
 
@@ -2611,13 +2589,11 @@ io.on('connection', (socket) => {
     }
     _leavePreviousRoom(socket, prevCode);
     socket.join(room.code);
-    const token = getPlayerBySocket(room, socket.id)?.token;
     cb({
       ok: true,
       code: room.code,
       playerId: socket.id,
       players: room.players.map(publicPlayer),
-      token,
     });
   });
 
@@ -2820,6 +2796,10 @@ io.on('connection', (socket) => {
         if (alreadyOver) {
           return;
         }
+        if (!room.mode && room.players.length > 1) {
+          _boardPlayerLeft(room, player);
+          return;
+        }
         io.to(room.code).emit('game:player_disconnected', {
           playerId: socket.id,
           playerName: player.name,
@@ -2900,8 +2880,35 @@ io.on('connection', (socket) => {
   });
 });
 
-// Strip server-only fields (token, socket id) before broadcasting player list
-function publicPlayer({ id: _id, token: _token, ...rest }) {
+function _boardPlayerLeft(room, player) {
+  const { gameOver, winner, interrupted } = removePlayer(room.state, player.index);
+  if (gameOver) {
+    for (const p of room.players) {
+      unregisterActiveSocket(p.id);
+    }
+    room.players.push(player);
+    recordGameStats(room);
+    room.players.pop();
+    io.to(room.code).emit('state:update', {
+      events: [{ type: 'player_disconnected', playerId: player.id }],
+      state: publicState(room.state),
+      gameOver: true,
+      winner,
+    });
+    console.log(`[game] ${room.code} ended — ${player.name} left, p${winner} wins`);
+    return;
+  }
+  io.to(room.code).emit('game:player_disconnected', {
+    playerId: player.id,
+    playerName: player.name,
+    state: publicState(room.state),
+    interrupted,
+  });
+  console.log(`[game] ${room.code} ${player.name} left, game continues`);
+}
+
+// Strip the socket id before broadcasting the player list
+function publicPlayer({ id: _id, ...rest }) {
   return rest;
 }
 
@@ -3206,6 +3213,41 @@ function _armQlasChoiceTimer(ioServer, code, room) {
       console.error('[qlashique] choice timer error:', err);
     }
   }, QLAS_CHOICE_S * 1000);
+}
+
+function _publicHowhighQ(run) {
+  const q = run.questions[run.currentIdx];
+  return { index: run.currentIdx, id: q.id, q: q.q, opts: q.opts, category: q.category };
+}
+
+function _serveHowhighQ(run) {
+  run.servedIdx = run.currentIdx;
+  run.qStartedAt = Date.now();
+  run.qTimerMs = run.timerMs;
+  return _publicHowhighQ(run);
+}
+
+// True when the answer came in past the deadline.
+function _closeHowhighQ(run) {
+  const ms = Date.now() - run.qStartedAt;
+  run.elapsedMs += Math.min(ms, run.qTimerMs);
+  return ms > run.qTimerMs + ANSWER_GRACE_MS;
+}
+
+function _howhighOfferPending(run) {
+  if (run.currentIdx === howhigh.DICE_AFTER_Q) {
+    return (
+      (run.bonusQ3 === 'dice' && run.diceAccepted === null) ||
+      (run.bonusQ3 === 'double_or_nothing' && run.donAccepted === null)
+    );
+  }
+  if (run.currentIdx === howhigh.GOWILD_AFTER_Q) {
+    return (
+      (run.bonusQ6 === 'gowild' && run.goWildAccepted === null) ||
+      (run.bonusQ6 === 'time_crunch' && run.timeCrunchAccepted === null)
+    );
+  }
+  return false;
 }
 
 function _howhighPhaseTransition(run) {

@@ -53,7 +53,8 @@ const escapeHtml = (s: string) =>
 
 function setMeta(html: string, attr: string, key: string, value: string): string {
   const re = new RegExp(`(<meta\\s+${attr}="${key}"\\s+content=")[^"]*(")`);
-  return html.replace(re, `$1${escapeHtml(value)}$2`);
+  // Replacer function: a `$` in a player name must not act as a replacement pattern.
+  return html.replace(re, (_m, open: string, close: string) => open + escapeHtml(value) + close);
 }
 
 export function withInviteMeta(html: string, inv: Invite): string {
@@ -64,5 +65,5 @@ export function withInviteMeta(html: string, inv: Invite): string {
   const tags =
     `<meta name="wq-invite-game" content="${inv.game}" />\n` +
     `    <meta name="wq-invite-host" content="${escapeHtml(inv.host)}" />\n  </head>`;
-  return out.replace('</head>', tags);
+  return out.replace('</head>', () => tags);
 }

@@ -6,7 +6,6 @@
       "ignoreDependencies": ["dotenv"]
     },
     "server": {
-      "entry": ["game/*.ts", "routes/*.ts"],
       "project": ["**/*.{js,ts}"]
     },
     "client": {

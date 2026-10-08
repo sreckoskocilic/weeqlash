@@ -215,6 +215,23 @@ setInterval(() => {
   }
 }, 10 * 60_000).unref();
 
+function blockedRetryAfter(ip: string): number | null {
+  const until = adminAttempts.get(ip)?.blockedUntil ?? 0;
+  const now = Date.now();
+  return now < until ? Math.ceil((until - now) / 1000) : null;
+}
+
+function sendTooMany(res: express.Response, retryAfter: number | undefined): void {
+  res
+    .status(429)
+    .send(
+      renderHTML(
+        'Too Many Requests',
+        `<h1>Too Many Requests</h1><p>Try again in ${retryAfter} seconds.</p>`,
+      ),
+    );
+}
+
 function getClientIp(req: express.Request): string {
   return req.ip || req.socket.remoteAddress || 'unknown';
 }
@@ -243,6 +260,14 @@ function requireAdmin(
     return;
   }
 
+  // Checked before the key, so a locked-out IP can't keep guessing.
+  const ip = getClientIp(req);
+  const retryAfter = blockedRetryAfter(ip);
+  if (retryAfter !== null) {
+    sendTooMany(res, retryAfter);
+    return;
+  }
+
   const key = req.headers['x-admin-key'] as string;
   if (
     typeof key === 'string' &&
@@ -260,18 +285,9 @@ function requireAdmin(
     return;
   }
 
-  const ip = getClientIp(req);
   const result = recordFailedAttempt(ip);
-
   if (result.blocked) {
-    res
-      .status(429)
-      .send(
-        renderHTML(
-          'Too Many Requests',
-          `<h1>Too Many Requests</h1><p>Try again in ${result.retryAfter} seconds.</p>`,
-        ),
-      );
+    sendTooMany(res, result.retryAfter);
     return;
   }
 

@@ -355,7 +355,7 @@
                       fill="none"
                     /></svg></span
                 ><span>SkipNoT</span></button
-              ><button class="game-item game--mathquiz" data-game="mathquiz" type="button">
+              ><button class="game-item game--mathquiz" data-game="mathquiz" type="button" hidden>
                 <span class="game-icon" aria-hidden="true"
                   ><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -1405,7 +1405,7 @@
           <dd class="help-modes">
             <span><strong>Live</strong> — Brawl (2–4 players), Qlashique and Qlashword (1v1)</span>
             <span><strong>Async</strong> — HowHigh?, you play now and your opponent later</span>
-            <span><strong>Solo</strong> — SkipNoT, MathQ, CentoGrapher, Pokedome</span>
+            <span><strong>Solo</strong> — SkipNoT, CentoGrapher, Pokedome</span>
           </dd>
           <dt>⌂ Home</dt>
           <dd>
@@ -1513,6 +1513,15 @@
     </div>
 
     <button id="btn-home" class="home-btn" type="button" hidden>⌂ HOME</button>
+
+    <div id="run-ended" class="run-ended" role="alertdialog" aria-labelledby="run-ended-msg" hidden>
+      <div class="run-ended-box">
+        <p id="run-ended-msg"></p>
+        <button id="btn-run-ended-home" class="qlas-btn qlas-btn--primary" type="button">
+          ⌂ HOME
+        </button>
+      </div>
+    </div>
 
     <script type="module" src="./js/main.js"></script>
 

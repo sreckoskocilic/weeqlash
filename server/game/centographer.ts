@@ -7,9 +7,9 @@ import { CULTURE } from './centographer-culture.ts';
 
 export const CHOICE_COUNT = 60;
 export const TIMER_MS = 60000;
-export const POINTS_CORRECT = 5;
-export const POINTS_WRONG = -8;
-export const MAX_SCORE = 100;
+const POINTS_CORRECT = 5;
+const POINTS_WRONG = -8;
+const MAX_SCORE = 100;
 export const MAX_PER_CAT = 5;
 
 export type Cat =

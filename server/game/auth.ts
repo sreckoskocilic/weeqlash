@@ -441,11 +441,6 @@ export function listDeletionRequests(): {
     .all() as { user_id: number; username: string; email: string; requested_at: number }[];
 }
 
-export function countDeletionRequests(): number {
-  return (requireDb().prepare('SELECT COUNT(*) AS n FROM deletion_requests').get() as { n: number })
-    .n;
-}
-
 // Removes the user and everything keyed to their id. Leaderboard names are free-text, not tied to accounts.
 // Returns the deleted username, or null if the user didn't exist.
 export function purgeUser(userId: number): string | null {

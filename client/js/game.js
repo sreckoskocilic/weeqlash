@@ -311,8 +311,18 @@ export function setupBoardSocketHandlers(sock) {
     }
   });
 
-  sock.on('game:player_disconnected', ({ playerName }) => {
-    showError(`${playerName} disconnected.`);
+  sock.on('game:player_disconnected', ({ playerName, state: newState, interrupted }) => {
+    showError(`${playerName} left the game.`);
+    if (newState && !interrupted) {
+      const oldState = state.gameState;
+      state.gameState = newState;
+      if (oldState?.board) {
+        renderChangedTiles(oldState, newState, []);
+      } else {
+        renderAll(newState);
+      }
+      return;
+    }
     state.localPhase = null;
     state.localSelectedPegId = null;
     state.validMovesSet.clear();
@@ -322,6 +332,9 @@ export function setupBoardSocketHandlers(sock) {
     state.spectatingQuestion = false;
     stopTimer();
     el('modal-overlay').classList.remove('visible');
+    if (newState) {
+      handleStateUpdate({ state: newState, events: [] });
+    }
   });
 
   sock.on('room:player_left', ({ playerName, players }) => {
@@ -429,11 +442,10 @@ export function setupBoardGameHandlers(sock) {
         timer: state.setupTimer,
         enabledCats: state.setupEnabledCats,
       },
-      ({ error, code, players, token }) => {
+      ({ error, code, players }) => {
         if (error) {
           return showError(error);
         }
-        state.myToken = token;
         state.myPlayerIndex = 0;
         state.myRoom = {
           code,
@@ -461,11 +473,10 @@ export function setupBoardGameHandlers(sock) {
     if (code.length !== 5) {
       return showError('Room code must be 5 characters.');
     }
-    sock.emit('room:join', { code, playerName }, ({ error, players, settings, token }) => {
+    sock.emit('room:join', { code, playerName }, ({ error, players, settings }) => {
       if (error) {
         return showError(error);
       }
-      state.myToken = token;
       state.myPlayerIndex = players.length - 1;
       state.myRoom = { code, settings };
       state.isHost = false;

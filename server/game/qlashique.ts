@@ -7,13 +7,13 @@ export const PHASE = {
   GAME_OVER: 'game_over',
 } as const;
 
-export type Phase = (typeof PHASE)[keyof typeof PHASE];
+type Phase = (typeof PHASE)[keyof typeof PHASE];
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export interface PlayerState {
+interface PlayerState {
   hp: number;
 }
 
@@ -35,7 +35,7 @@ export const QLAS_DEFAULT_HP = 15;
 export const QLAS_HP_OPTIONS = [10, 15, 20, 30] as const;
 export const QLAS_MAX_ANSWERS_PER_TURN = 20;
 export const QLAS_IDLE_DAMAGE = 2;
-export const QLAS_IDLE_TURNS_TO_LOSE = 2;
+const QLAS_IDLE_TURNS_TO_LOSE = 2;
 
 export function createQlasGame(hp: number = QLAS_DEFAULT_HP): QlashiqueState {
   return {
