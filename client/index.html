@@ -110,21 +110,10 @@
       <div id="latest-pop" class="latest-pop" hidden>
         <ul>
           <li>
-            <strong>CentoGrapher — new mode.</strong> Solo geography. We show you a country outline,
-            no name on it, and a grid of 60 things — cities, rivers, clubs, a few false borders.
-            Tick every one that belongs. You're never told how many are right, and the wrong answers
-            are the close ones you actually have to know to wave off.
-          </li>
-          <li>
-            <strong>MathQ — new mode.</strong> Solo, ten problems, and you type the answer instead
-            of picking from a list. Calculus, geometry, trig, limits. Nothing comes from a bank.
-            Every problem is generated fresh for the run, so there's nothing to memorise. Land near
-            the answer and you still earn most of the points.
-          </li>
-          <li>
-            <strong>Qlashword — new mode.</strong> 1v1 Scrabble with a catch: the double and triple
-            squares start locked. Land tiles on one and you answer a trivia question to switch the
-            multiplier on for that turn. Miss it and you still score, just at face value.
+            <strong>Pokedome — new mode.</strong> Solo, six Pokémon puzzles, 30 seconds each. Guess
+            two names hangman-style with an ability as your clue, pick a Pokémon's types, call every
+            type that hits it super-effectively, and line up four by a base stat. Wrong picks cost
+            you; clean, fast solves top the board.
           </li>
         </ul>
       </div>
@@ -1081,7 +1070,7 @@
                     <span class="game-tag">solo</span>
                   </div>
                 </div>
-                <p class="game-desc">Three Pokémon names, hangman style — fast and clean wins</p>
+                <p class="game-desc">Six Pokémon puzzles — names, types, weaknesses, base stats</p>
 
                 <div class="game-actions">
                   <button id="btn-pokedome-create" class="game-create" type="button">START</button>
@@ -1249,44 +1238,59 @@
     <div class="legal-modal" id="modal-privacy">
       <div class="legal-content">
         <h2>Privacy Policy</h2>
-        <p>Last updated: May 2026</p>
+        <p>Last updated: October 2026</p>
         <h3>What we collect</h3>
         <p>When you use Weeqlash, we collect only what is needed to run the game:</p>
         <ul>
           <li>
             Account information — username, email address, and a hashed password (bcrypt). Used for
-            login, password reset, and leaderboard attribution.
+            login, email confirmation, password reset, and showing your name to opponents in
+            multiplayer games.
           </li>
           <li>
-            Game history — scores, win/loss records, and match metadata. Stored per account for
-            stats and leaderboards.
+            Game history — win/loss records, answer accuracy, and match metadata. Stored per account
+            for your stats.
           </li>
           <li>
-            Session cookie — a server-side session identifier stored in Redis. Expires when you log
-            out or after inactivity.
+            Session data — a session identifier stored in Redis, linked to a cookie in your browser.
+            Every visitor gets one; it lasts 30 minutes if you are not logged in and 7 days once you
+            are, and is removed when you sign out.
+          </li>
+          <li>
+            IP address — held in memory for a few minutes to rate-limit login and registration
+            attempts. It is never stored in the database; it appears in server logs only when an
+            address hits the rate limit.
           </li>
         </ul>
         <h3>What we do NOT collect</h3>
         <ul>
-          <li>
-            IP addresses or device identifiers beyond what is technically required for a WebSocket
-            connection
-          </li>
+          <li>Device fingerprints or identifiers beyond the session cookie</li>
           <li>Behavioural tracking or analytics data</li>
           <li>Any data from minors knowingly</li>
         </ul>
         <h3>Data sharing</h3>
         <p>
-          We do not sell, rent, or share your data with third parties. Leaderboard scores are public
-          by design — do not use your real name if you prefer anonymity.
+          We do not sell or rent your data. It is passed to a third party only where needed to run
+          the service: our email provider delivers confirmation and password-reset emails to your
+          address, and Google Fonts receives your IP address when your browser loads the site's
+          font. Leaderboard entries are public and show whatever nickname you type in; your username
+          is visible to opponents in multiplayer games — do not use your real name if you prefer
+          anonymity.
         </p>
         <h3>Data retention</h3>
         <p>
-          Account data is kept until you request deletion. Game history and leaderboard entries
-          persist until reset. Session data expires automatically.
+          Account data is kept until you request deletion. You can do that yourself under Stats →
+          Delete my account; once an admin approves, the account is removed together with its stats
+          and game history. Leaderboard entries use a nickname you type in, are not linked to your
+          account, and persist until reset. Session data expires automatically.
         </p>
         <h3>Contact</h3>
-        <p>Questions? Reach out via the project repository.</p>
+        <p>
+          Questions? Ask the site admin directly, or open an issue on the
+          <a href="https://github.com/sreckoskocilic/weeqlash" target="_blank" rel="noopener"
+            >project repository</a
+          >.
+        </p>
         <button class="legal-close" data-legal-close="privacy">[ close ]</button>
       </div>
     </div>
@@ -1295,17 +1299,19 @@
     <div class="legal-modal" id="modal-cookies">
       <div class="legal-content">
         <h2>Cookie Policy</h2>
-        <p>Last updated: May 2026</p>
+        <p>Last updated: October 2026</p>
         <h3>Cookies used</h3>
         <p>Weeqlash uses only the minimum browser storage required to function:</p>
         <ul>
           <li>
-            Session cookie — an HTTP-only cookie (connect.sid) that identifies your login session.
-            It contains no personal data, just a session ID. Cleared on logout or expiry.
+            Session cookie — a strictly necessary, HTTP-only cookie (connect.sid) set for every
+            visitor so games and logins work. It contains no personal data, just a random session
+            ID, and expires after 7 days at most.
           </li>
           <li>
-            localStorage — UI preferences (board size, timer, categories, high-contrast mode, theme
-            choices) are saved locally in your browser. This data never leaves your device.
+            localStorage — UI preferences (the last game you opened, whether scores are shown, and
+            your board and duel theme choices) are saved locally in your browser. This data never
+            leaves your device.
           </li>
         </ul>
         <h3>No tracking cookies</h3>
@@ -1316,8 +1322,8 @@
         </p>
         <h3>Third-party content</h3>
         <p>
-          Fonts are loaded from Google Fonts (fonts.googleapis.com). Google may set its own cookies
-          in accordance with their
+          The site font is loaded from Google Fonts (fonts.googleapis.com), so your browser sends
+          your IP address to Google when it fetches it. Google handles that data under its
           <a href="https://policies.google.com/privacy" target="_blank" rel="noopener"
             >privacy policy</a
           >.
@@ -1335,16 +1341,19 @@
     <div class="legal-modal" id="modal-terms">
       <div class="legal-content">
         <h2>Terms of Service</h2>
-        <p>Last updated: May 2026</p>
+        <p>Last updated: October 2026</p>
         <h3>Acceptance</h3>
         <p>
           By playing Weeqlash you agree to these terms. If you do not agree, please do not use the
           service.
         </p>
         <h3>Use of the service</h3>
-        <p>Weeqlash is a free multiplayer trivia game provided for entertainment. You may:</p>
+        <p>
+          Weeqlash is a free collection of trivia and puzzle games — multiplayer and solo — provided
+          for entertainment. You may:
+        </p>
         <ul>
-          <li>Play games with other users</li>
+          <li>Play games with other users or on your own</li>
           <li>Submit scores to the public leaderboard using a display name of your choosing</li>
         </ul>
         <p>You must not:</p>
@@ -1366,6 +1375,13 @@
           damages arising from use of the service. Trivia questions are for entertainment — answers
           may occasionally be imperfect.
         </p>
+        <h3>Trademarks and data</h3>
+        <p>
+          Weeqlash is an independent fan project, not affiliated with or endorsed by any trademark
+          holder. Pokémon and Pokémon names are trademarks of Nintendo, Creatures Inc. and GAME
+          FREAK inc.; Scrabble is a trademark of Hasbro, Inc. and Mattel, Inc. Pokémon data comes
+          from PokeAPI, and CentoGrapher data comes from Wikidata.
+        </p>
         <h3>Changes</h3>
         <p>
           We may update these terms at any time. Continued use of the service constitutes acceptance
@@ -1377,17 +1393,38 @@
 
     <!-- Help modal -->
     <div id="help-modal">
-      <div class="help-content">
-        <p>
-          ⌂ HOME (top-left) gets you out of any game. Bail on a live brawl, duel or Qlashword match
-          and it counts as a loss; the other side takes the win.
-        </p>
-        <h2>STATS</h2>
-        <p>
-          The Stats button shows your played games, wins, and the correct answers percentage for
-          each question category.
-        </p>
-        <button id="btn-help-close">GOT IT</button>
+      <div class="help-content" role="dialog" aria-labelledby="help-title">
+        <h2 id="help-title">How it works</h2>
+        <dl class="help-list">
+          <dt>Play</dt>
+          <dd>
+            Log in, pick a game from the list and hit START. Multiplayer games give you a room link
+            and code to send to friends.
+          </dd>
+          <dt>Modes</dt>
+          <dd class="help-modes">
+            <span><strong>Live</strong> — Brawl (2–4 players), Qlashique and Qlashword (1v1)</span>
+            <span><strong>Async</strong> — HowHigh?, you play now and your opponent later</span>
+            <span><strong>Solo</strong> — SkipNoT, MathQ, CentoGrapher, Pokedome</span>
+          </dd>
+          <dt>⌂ Home</dt>
+          <dd>
+            Top-left, gets you out of any game. Leaving a live brawl, duel or Qlashword match counts
+            as a loss.
+          </dd>
+          <dt>Stats</dt>
+          <dd>
+            Games played, wins and your accuracy per question category. Account deletion lives there
+            too.
+          </dd>
+          <dt>HowHigh</dt>
+          <dd>Your open and finished HowHigh? challenges.</dd>
+          <dt>Latest</dt>
+          <dd>What's new on the site.</dd>
+          <dt>Contrast</dt>
+          <dd>High contrast boosts colours for readability.</dd>
+        </dl>
+        <button id="btn-help-close" class="help-close" type="button">[ close ]</button>
       </div>
     </div>
 

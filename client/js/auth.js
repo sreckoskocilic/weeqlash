@@ -220,9 +220,64 @@ export function initViewStats() {
       // Import dynamically to avoid circular dependency
       const { showStatsModal } = await import('./stats.js');
       showStatsModal(data);
+      renderAccountDeletion();
     } catch {
       showAuthMessage('Network error: Unable to reach server', true);
     }
+  });
+}
+
+// Account deletion, shown under the stats in the Stats modal. The request waits for admin approval.
+async function renderAccountDeletion() {
+  const box = $('stats-account');
+  if (!box) {
+    return;
+  }
+  let pending;
+  try {
+    const res = await fetch(`${serverUrl}/auth/me`, { credentials: 'include' });
+    pending = !!(await res.json()).user?.deletion_requested;
+  } catch {
+    return;
+  }
+
+  if (pending) {
+    box.innerHTML = `
+      <p class="stats-account-note">Deletion requested. An admin will remove your account and all its data.</p>
+      <button type="button" class="stats-account-link" data-act="cancel">Cancel request</button>`;
+  } else {
+    box.innerHTML = `
+      <button type="button" class="stats-account-link" data-act="open">Delete my account…</button>
+      <form class="stats-account-form" hidden>
+        <p class="stats-account-note">Your account, stats and game history will be permanently deleted once an admin approves.</p>
+        <input type="password" name="password" placeholder="Password" autocomplete="current-password" required />
+        <button type="submit" class="stats-account-danger">Request deletion</button>
+        <p class="stats-account-error" hidden></p>
+      </form>`;
+  }
+
+  box.querySelector('[data-act="open"]')?.addEventListener('click', (e) => {
+    e.currentTarget.hidden = true;
+    const form = box.querySelector('form');
+    form.hidden = false;
+    form.elements.password.focus();
+  });
+  box.querySelector('[data-act="cancel"]')?.addEventListener('click', async () => {
+    await postAuth('/auth/delete-request/cancel', {});
+    renderAccountDeletion();
+  });
+  box.querySelector('form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = await postAuth('/auth/delete-request', {
+      password: e.target.elements.password.value,
+    });
+    if (data.error) {
+      const err = box.querySelector('.stats-account-error');
+      err.textContent = data.error;
+      err.hidden = false;
+      return;
+    }
+    renderAccountDeletion();
   });
 }
 

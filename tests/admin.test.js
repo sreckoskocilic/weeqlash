@@ -347,3 +347,58 @@ describe('Admin export', () => {
     expect(res.status).toBe(404);
   });
 });
+
+// ========== ACCOUNT DELETION REQUESTS ==========
+
+describe('Account deletion requests', () => {
+  async function loggedInUser() {
+    const unique = Math.random().toString(36).slice(2, 8);
+    const username = `adm_dr_${unique}`;
+    await createTestUser(username, `${username}@test.invalid`);
+    const a = agent();
+    await a.post('/auth/login').send({ username, password: 'testpass123' }).expect(200);
+    const id = getDb().prepare('SELECT id FROM users WHERE username = ?').get(username).id;
+    return { a, username, id };
+  }
+
+  it('rejects a request with the wrong password', async () => {
+    const { a } = await loggedInUser();
+    const res = await a.post('/auth/delete-request').send({ password: 'nope' });
+    expect(res.status).toBe(400);
+    expect((await a.get('/auth/me')).body.user.deletion_requested).toBe(false);
+  });
+
+  it('lists a request on the dashboard and purges on approve', async () => {
+    const { a, username, id } = await loggedInUser();
+    await a.post('/auth/delete-request').send({ password: 'testpass123' }).expect(200);
+    expect((await a.get('/auth/me')).body.user.deletion_requested).toBe(true);
+
+    const db = getDb();
+
+    const admin = await adminAgent();
+    const dash = await admin.get('/admin/');
+    expect(dash.text).toContain('Deletion Requests');
+    expect(dash.text).toContain(username);
+
+    const res = await admin.post('/admin/deletions/approve').type('form').send({ id });
+    expect(res.status).toBe(302);
+    expect(db.prepare('SELECT id FROM users WHERE id = ?').get(id)).toBeUndefined();
+    expect(db.prepare('SELECT 1 FROM deletion_requests WHERE user_id = ?').get(id)).toBeUndefined();
+    expect((await a.get('/auth/me')).body.user).toBeNull();
+  });
+
+  it('keeps the account on reject and lets the user cancel', async () => {
+    const { a, id } = await loggedInUser();
+    await a.post('/auth/delete-request').send({ password: 'testpass123' }).expect(200);
+
+    const admin = await adminAgent();
+    await admin.post('/admin/deletions/reject').type('form').send({ id }).expect(302);
+    const db = getDb();
+    expect(db.prepare('SELECT id FROM users WHERE id = ?').get(id)).toBeDefined();
+    expect((await a.get('/auth/me')).body.user.deletion_requested).toBe(false);
+
+    await a.post('/auth/delete-request').send({ password: 'testpass123' }).expect(200);
+    await a.post('/auth/delete-request/cancel').expect(200);
+    expect((await a.get('/auth/me')).body.user.deletion_requested).toBe(false);
+  });
+});

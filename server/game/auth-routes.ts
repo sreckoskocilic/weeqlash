@@ -7,6 +7,10 @@ import {
   resendConfirmation,
   getUserById,
   getUserStats,
+  verifyPassword,
+  requestDeletion,
+  cancelDeletion,
+  hasDeletionRequest,
 } from './auth.ts';
 import { sendEmail } from './email.ts';
 import type { Request, Response, Express } from 'express';
@@ -92,6 +96,15 @@ function deauthSocketsForSid(io: IoServer, sid: string): void {
   for (const [, socket] of Array.from(io.of('/').sockets)) {
     const socketSid = (socket.request as { sessionID?: string }).sessionID;
     if (socketSid === sid) {
+      (socket as { userId?: number }).userId = undefined;
+    }
+  }
+}
+
+// Strip auth from every live socket of a user (used when the account is purged).
+export function deauthSocketsForUser(io: IoServer, userId: number): void {
+  for (const [, socket] of Array.from(io.of('/').sockets)) {
+    if ((socket as { userId?: number }).userId === userId) {
       (socket as { userId?: number }).userId = undefined;
     }
   }
@@ -245,8 +258,41 @@ export function registerAuthRoutes(app: Express, io: IoServer): void {
       return res.json({ user: null });
     }
     res.json({
-      user: { id: user.id, username: user.username, email: user.email, is_admin: user.is_admin },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        is_admin: user.is_admin,
+        deletion_requested: hasDeletionRequest(user.id),
+      },
     });
+  });
+
+  // Request account deletion (password re-check); an admin approves it from the panel.
+  app.post('/auth/delete-request', async (req: Request, res: Response) => {
+    if (!applyAuthRateLimit(req, res)) {
+      return;
+    }
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not logged in' });
+    }
+    const { password } = req.body;
+    if (typeof password !== 'string' || !(await verifyPassword(userId, password))) {
+      return res.status(400).json({ error: 'Wrong password' });
+    }
+    requestDeletion(userId);
+    console.log(`[auth] deletion requested userId=${userId}`);
+    res.json({ ok: true });
+  });
+
+  app.post('/auth/delete-request/cancel', (req: Request, res: Response) => {
+    const userId = req.session.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not logged in' });
+    }
+    cancelDeletion(userId);
+    res.json({ ok: true });
   });
 
   // Get user stats

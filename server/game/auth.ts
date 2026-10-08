@@ -53,6 +53,11 @@ export function initAuthDb() {
       created_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS deletion_requests (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id),
+      requested_at INTEGER NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_confirmation_token ON users(confirmation_token);
@@ -389,6 +394,81 @@ export function resendConfirmation(userId: number) {
     'UPDATE users SET confirmation_token = ?, confirmation_token_expires = ? WHERE id = ?',
   ).run(confirmToken, confirmTokenExpires, userId);
   return { ok: true, confirmToken };
+}
+
+// --- Account deletion (player requests, admin approves) ---
+
+function requireDb(): Database.Database {
+  const db: Database.Database | null = getDb();
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  return db;
+}
+
+export async function verifyPassword(userId: number, password: string): Promise<boolean> {
+  const row = requireDb().prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as
+    { password_hash: string } | undefined;
+  return !!row && (await bcrypt.compare(password, row.password_hash));
+}
+
+export function requestDeletion(userId: number): void {
+  requireDb()
+    .prepare('INSERT OR IGNORE INTO deletion_requests (user_id, requested_at) VALUES (?, ?)')
+    .run(userId, Date.now());
+}
+
+export function cancelDeletion(userId: number): void {
+  requireDb().prepare('DELETE FROM deletion_requests WHERE user_id = ?').run(userId);
+}
+
+export function hasDeletionRequest(userId: number): boolean {
+  return !!requireDb().prepare('SELECT 1 FROM deletion_requests WHERE user_id = ?').get(userId);
+}
+
+export function listDeletionRequests(): {
+  user_id: number;
+  username: string;
+  email: string;
+  requested_at: number;
+}[] {
+  return requireDb()
+    .prepare(
+      `SELECT d.user_id, u.username, u.email, d.requested_at
+       FROM deletion_requests d JOIN users u ON u.id = d.user_id
+       ORDER BY d.requested_at ASC`,
+    )
+    .all() as { user_id: number; username: string; email: string; requested_at: number }[];
+}
+
+export function countDeletionRequests(): number {
+  return (requireDb().prepare('SELECT COUNT(*) AS n FROM deletion_requests').get() as { n: number })
+    .n;
+}
+
+// Removes the user and everything keyed to their id. Leaderboard names are free-text, not tied to accounts.
+// Returns the deleted username, or null if the user didn't exist.
+export function purgeUser(userId: number): string | null {
+  const db = requireDb();
+  const user = db.prepare('SELECT username FROM users WHERE id = ?').get(userId) as
+    { username: string } | undefined;
+  if (!user) {
+    return null;
+  }
+  db.transaction(() => {
+    db.prepare('DELETE FROM deletion_requests WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?').run(
+      userId,
+      userId,
+    );
+    db.prepare('DELETE FROM howhigh_challenges WHERE player1_id = ? OR player2_id = ?').run(
+      userId,
+      userId,
+    );
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  })();
+  return user.username;
 }
 
 // --- Stats ---

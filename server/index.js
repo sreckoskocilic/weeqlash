@@ -500,6 +500,8 @@ app.use(['/auth', '/admin'], (req, res, next) => {
 });
 
 registerAuthRoutes(app, io);
+// Admin purges need io to drop a deleted user's live sockets.
+app.set('io', io);
 app.use('/admin', adminRoutes);
 
 // Share session with Socket.IO

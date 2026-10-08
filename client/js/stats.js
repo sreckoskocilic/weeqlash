@@ -29,6 +29,8 @@ export function showStatsModal(statsData) {
         <div id="stats-modal-content" style="margin-bottom: 24px; flex: 1; overflow-y: auto; min-height: 0;">
         </div>
 
+        <div id="stats-account" class="stats-account"></div>
+
         <div style="text-align: center;">
           <button id="stats-modal-close" style="
             width: auto; padding: 14px 36px; background: linear-gradient(135deg, #4a4a5a 0%, #3a3a45 100%);

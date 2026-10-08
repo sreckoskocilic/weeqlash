@@ -30,3 +30,12 @@ export async function destroySession(sid: string): Promise<void> {
   const client = getRedisClient();
   await client.del(sessionKey(sid));
 }
+
+// Log a user out everywhere: drop their active session record and the index pointing at it.
+export async function endUserSession(userId: number): Promise<void> {
+  const sid = await getActiveSid(userId);
+  if (sid) {
+    await destroySession(sid);
+  }
+  await clearActiveSid(userId);
+}

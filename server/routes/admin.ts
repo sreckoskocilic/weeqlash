@@ -1,7 +1,15 @@
 import express from 'express';
 import crypto from 'crypto';
 import { getDb } from '../game/leaderboard.ts';
-import { resendConfirmation, getUserById } from '../game/auth.ts';
+import {
+  resendConfirmation,
+  getUserById,
+  listDeletionRequests,
+  cancelDeletion,
+  purgeUser,
+} from '../game/auth.ts';
+import { endUserSession } from '../game/auth-sessions.ts';
+import { deauthSocketsForUser } from '../game/auth-routes.ts';
 
 const router = express.Router();
 
@@ -279,6 +287,22 @@ function requireAdmin(
 
 router.use(requireAdmin);
 
+// Purge a user and cut every live session/socket they still hold.
+async function purgeAndLogout(req: express.Request, userId: number): Promise<string | null> {
+  const username = purgeUser(userId);
+  if (username === null) {
+    return null;
+  }
+  deauthSocketsForUser(req.app.get('io'), userId);
+  try {
+    await endUserSession(userId);
+  } catch (err) {
+    // Session expires on its own; /auth/me also drops sessions whose user no longer exists.
+    console.error('[admin] endUserSession failed:', (err as Error).message);
+  }
+  return username;
+}
+
 // ========== DASHBOARD ==========
 router.get('/', (_req: express.Request, res: express.Response) => {
   const db = getDb();
@@ -298,6 +322,27 @@ router.get('/', (_req: express.Request, res: express.Response) => {
     const quizCount = (
       db.prepare('SELECT COUNT(*) as count FROM leaderboard').get() as { count: number }
     ).count;
+    const deletions = listDeletionRequests();
+    const deletionRows = deletions
+      .map(
+        (d) => `
+        <tr>
+          <td><a href="/admin/users/${d.user_id}" style="color:#d93939">${esc(d.username)}</a></td>
+          <td>${esc(d.email)}</td>
+          <td>${esc(new Date(d.requested_at).toISOString().slice(0, 16).replace('T', ' '))}</td>
+          <td style="white-space:nowrap">
+            <form method="POST" action="/admin/deletions/approve" style="display:inline">
+              <input type="hidden" name="id" value="${d.user_id}">
+              <button class="btn btn-primary" data-confirm="Permanently delete ${esc(d.username)} and all their data?">Approve &amp; purge</button>
+            </form>
+            <form method="POST" action="/admin/deletions/reject" style="display:inline">
+              <input type="hidden" name="id" value="${d.user_id}">
+              <button class="btn btn-secondary">Reject</button>
+            </form>
+          </td>
+        </tr>`,
+      )
+      .join('');
 
     res.send(
       renderHTML(
@@ -317,8 +362,22 @@ router.get('/', (_req: express.Request, res: express.Response) => {
           <div class="stat-value">${quizCount}</div>
           <div class="stat-label">Quiz Scores</div>
         </div>
+        <div class="stat-card"${deletions.length ? ' style="border-color:#e53935"' : ''}>
+          <div class="stat-value">${deletions.length}</div>
+          <div class="stat-label">Deletion Requests</div>
+        </div>
       </div>
+      ${
+        deletions.length
+          ? `<h2 style="margin-top:28px">Deletion requests</h2>
+      <table>
+        <tr><th>User</th><th>Email</th><th>Requested (UTC)</th><th></th></tr>
+        ${deletionRows}
+      </table>`
+          : ''
+      }
     `,
+        '<script src="/js/admin-confirm.js"></script>',
       ),
     );
   } catch (error) {
@@ -741,7 +800,7 @@ router.post(
 router.post(
   '/users/delete',
   express.urlencoded({ extended: true, limit: '1mb' }),
-  (req: express.Request, res: express.Response) => {
+  async (req: express.Request, res: express.Response) => {
     const userId = parseId(req.body.id);
     if (userId === null) {
       return badRequest(res, 'Invalid user id.');
@@ -756,27 +815,43 @@ router.post(
           ),
         );
     }
-    const db = getDb();
-    if (!db) {
-      return badRequest(res, 'Database unavailable.');
+    const username = await purgeAndLogout(req, userId);
+    if (username !== null) {
+      console.log(`[admin] Cascade-deleted user id=${userId} username=${username}`);
     }
-    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(userId) as
-      { id: number; username: string } | undefined;
-    if (!user) {
-      return res.redirect('/admin/users');
-    }
-    const cascade = db.transaction((uid: number) => {
-      db.prepare('DELETE FROM user_stats WHERE user_id = ?').run(uid);
-      db.prepare('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?').run(uid, uid);
-      db.prepare('DELETE FROM howhigh_challenges WHERE player1_id = ? OR player2_id = ?').run(
-        uid,
-        uid,
-      );
-      db.prepare('DELETE FROM users WHERE id = ?').run(uid);
-    });
-    cascade(userId);
-    console.log(`[admin] Cascade-deleted user id=${userId} username=${user.username}`);
     res.redirect('/admin/users');
+  },
+);
+
+router.post(
+  '/deletions/approve',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  async (req: express.Request, res: express.Response) => {
+    const userId = parseId(req.body.id);
+    if (userId === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    if ((req.session as any).userId === userId) {
+      return badRequest(res, 'You cannot delete the account you are signed in as.');
+    }
+    const username = await purgeAndLogout(req, userId);
+    if (username !== null) {
+      console.log(`[admin] Approved deletion: purged user id=${userId} username=${username}`);
+    }
+    res.redirect('/admin/');
+  },
+);
+
+router.post(
+  '/deletions/reject',
+  express.urlencoded({ extended: true, limit: '1mb' }),
+  (req: express.Request, res: express.Response) => {
+    const userId = parseId(req.body.id);
+    if (userId === null) {
+      return badRequest(res, 'Invalid user id.');
+    }
+    cancelDeletion(userId);
+    res.redirect('/admin/');
   },
 );
 
