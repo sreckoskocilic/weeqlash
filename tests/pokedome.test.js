@@ -11,6 +11,14 @@ import {
   guessLetter,
   scorePuzzle,
   leaksName,
+  effectiveness,
+  createRun,
+  createWeakPuzzle,
+  createTypesPuzzle,
+  createOrderPuzzle,
+  submitPicks,
+  toPublic,
+  TYPE_OPTIONS,
 } from '../server/game/pokedome.ts';
 
 describe('pokedome: pool', () => {
@@ -85,28 +93,101 @@ describe('pokedome: puzzle', () => {
 });
 
 describe('pokedome: scoring', () => {
-  it('perfect and on par is 100, whatever the name length', () => {
-    expect(scorePuzzle(4000, 0, 2)).toBe(100);
-    expect(scorePuzzle(12000, 0, 4)).toBe(100);
-    expect(scorePuzzle(20000, 0, 7)).toBe(100);
+  it('perfect and on par is 100, whatever the puzzle', () => {
+    expect(scorePuzzle(6000, 0, 6000)).toBe(100);
+    expect(scorePuzzle(12000, 0, 12000)).toBe(100);
+    expect(scorePuzzle(21000, 0, 21000)).toBe(100);
   });
 
-  it('wrong letters shrink the bonus by a fifth each', () => {
-    expect(scorePuzzle(12000, 1, 4)).toBe(86);
-    expect(scorePuzzle(12000, 2, 4)).toBe(75);
+  it('wrong attempts shrink the bonus by a fifth each', () => {
+    expect(scorePuzzle(12000, 1, 12000)).toBe(86);
+    expect(scorePuzzle(12000, 2, 12000)).toBe(75);
   });
 
   it('speed bonus fades to zero at three times par', () => {
-    expect(scorePuzzle(24000, 0, 4)).toBe(90);
-    expect(scorePuzzle(36000, 0, 4)).toBe(80);
+    expect(scorePuzzle(24000, 0, 12000)).toBe(90);
+    expect(scorePuzzle(36000, 0, 12000)).toBe(80);
   });
 
   it('a solve never drops below the guaranteed points', () => {
-    expect(scorePuzzle(TIMER_MS, 22, 4)).toBe(SOLVE_POINTS);
+    expect(scorePuzzle(TIMER_MS, 22, 12000)).toBe(SOLVE_POINTS);
   });
 
-  it('counts only hidden distinct letters as work', () => {
+  it('par counts only hidden distinct letters', () => {
     const p = createPuzzle('TYRANITAR', () => 0);
-    expect(p.hidden).toBe(new Set('TYRANITAR').size - p.locked.length);
+    expect(p.parMs).toBe((new Set('TYRANITAR').size - p.locked.length) * 3000);
+  });
+});
+
+const GYARADOS = { name: 'Gyarados', types: ['water', 'flying'] };
+const SCIZOR = { name: 'Scizor', types: ['bug', 'steel'] };
+
+describe('pokedome: select all', () => {
+  it('multiplies dual-type factors; zero is immunity', () => {
+    expect(effectiveness('electric', GYARADOS.types)).toBe(4);
+    expect(effectiveness('ground', GYARADOS.types)).toBe(0);
+    expect(effectiveness('fire', SCIZOR.types)).toBe(4);
+  });
+
+  it('super-effective vs GYARADOS is exactly Electric + Rock', () => {
+    const p = createWeakPuzzle(GYARADOS);
+    expect(p.prompt).toContain('GYARADOS');
+    expect(p.options).toEqual(TYPE_OPTIONS);
+    expect(p.answer.sort()).toEqual(['Electric', 'Rock']);
+  });
+
+  it('accepts the set in any order; a wrong set costs once, repeats are free', () => {
+    const p = createTypesPuzzle(SCIZOR);
+    expect(submitPicks(p, ['Bug'])).toEqual({ correct: false, repeat: false });
+    expect(submitPicks(p, ['Bug'])).toEqual({ correct: false, repeat: true });
+    expect(p.wrong).toBe(1);
+    expect(submitPicks(p, ['Steel', 'Bug'])).toEqual({ correct: true, repeat: false });
+  });
+
+  it('rejects malformed picks without a penalty', () => {
+    const p = createTypesPuzzle(SCIZOR);
+    for (const bad of [null, [], ['Bug', 'Bug'], ['Shadow'], 'Bug']) {
+      expect(submitPicks(p, bad)).toBeNull();
+    }
+    expect(p.wrong).toBe(0);
+  });
+});
+
+describe('pokedome: order', () => {
+  it('four close but distinct values, answer sorted ascending', () => {
+    for (let i = 0; i < 50; i++) {
+      const p = createOrderPuzzle();
+      expect(p.options).toHaveLength(4);
+      expect(new Set(p.options).size).toBe(4);
+      expect([...p.answer].sort()).toEqual([...p.options].sort());
+    }
+  });
+
+  it('needs the full order; partial picks are malformed', () => {
+    const p = createOrderPuzzle();
+    expect(submitPicks(p, p.answer.slice(0, 3))).toBeNull();
+    expect(submitPicks(p, [...p.answer].reverse()).correct).toBe(false);
+    expect(submitPicks(p, p.answer).correct).toBe(true);
+  });
+});
+
+describe('pokedome: run', () => {
+  it('two of each kind, two distinct hangman words', () => {
+    const run = createRun();
+    expect(run).toHaveLength(PUZZLE_COUNT);
+    const kinds = run.map((p) => p.kind).sort();
+    expect(kinds).toEqual(['hangman', 'hangman', 'order', 'order', 'select', 'select']);
+    const words = run.filter((p) => p.kind === 'hangman').map((p) => p.word);
+    expect(new Set(words).size).toBe(2);
+  });
+
+  it('public view never carries the answer', () => {
+    for (const p of createRun()) {
+      const pub = JSON.stringify(toPublic(p));
+      expect(pub).not.toContain('answer');
+      if (p.kind === 'hangman') {
+        expect(pub).not.toContain(p.word);
+      }
+    }
   });
 });

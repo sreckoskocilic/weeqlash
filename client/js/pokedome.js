@@ -10,10 +10,11 @@ const COUNTDOWN_STEP_MS = 1000 / TEST_SPEED;
 const RESULT_DISPLAY_MS = 1600 / TEST_SPEED;
 const DELTA_DISPLAY_MS = 800 / TEST_SPEED;
 const KEY_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+const KIND_LABEL = { select: 'SELECT ALL', order: 'ORDER' };
 
 let socketRef = null;
 let ring = null;
-let total = 3;
+let total = 6;
 let timerSec = 30;
 let index = -1;
 let score = 0;
@@ -24,7 +25,10 @@ let stepTimer = null;
 let capTimer = null;
 let deltaTimer = null;
 let slots = [];
+let kind = null;
+let picks = [];
 const keyBtns = new Map();
+const chipBtns = new Map();
 
 function _qel(id) {
   return document.getElementById(id);
@@ -80,12 +84,8 @@ function _setDelta(text) {
 function _setStatus(text, cls) {
   const s = _qel('pokedome-status');
   s.textContent = text;
-  s.className = 'pokedome-status';
-  if (cls === 'solved') {
-    s.classList.add('solved');
-  } else if (cls === 'timedout') {
-    s.classList.add('timedout');
-  }
+  s.classList.toggle('solved', cls === 'solved');
+  s.classList.toggle('failed', cls === 'failed');
 }
 
 function _renderKeys(locked) {
@@ -127,10 +127,103 @@ function _renderWord(pattern) {
   });
 }
 
-function _disableKeys() {
-  keyBtns.forEach((b) => {
-    b.disabled = true;
+function _renderChips(options) {
+  const wrap = _qel('pokedome-chips');
+  wrap.innerHTML = '';
+  chipBtns.clear();
+  picks = [];
+  for (const opt of options) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pokedome-key pokedome-chip';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => _togglePick(opt));
+    chipBtns.set(opt, btn);
+    wrap.appendChild(btn);
+  }
+  _qel('btn-pokedome-confirm').hidden = false;
+  _paintChips();
+}
+
+function _paintChips() {
+  chipBtns.forEach((btn, opt) => {
+    const i = picks.indexOf(opt);
+    btn.classList.toggle('picked', i >= 0);
+    btn.textContent = kind === 'order' && i >= 0 ? `${i + 1} · ${opt}` : opt;
   });
+  _qel('btn-pokedome-confirm').disabled =
+    kind === 'order' ? picks.length !== chipBtns.size : !picks.length;
+}
+
+function _togglePick(opt) {
+  if (!live || pending) {
+    return;
+  }
+  const i = picks.indexOf(opt);
+  if (i >= 0) {
+    picks.splice(i, 1);
+  } else {
+    picks.push(opt);
+  }
+  _setStatus('', '');
+  _paintChips();
+}
+
+function _confirm() {
+  if (!live || pending || _qel('btn-pokedome-confirm').disabled) {
+    return;
+  }
+  pending = true;
+  const token = runToken;
+  socketRef?.emit('pokedome:submit', { index, picks: [...picks] }, (res) => {
+    if (token !== runToken) {
+      return;
+    }
+    pending = false;
+    if (res?.error) {
+      console.warn('[pokedome] submit rejected:', res.error);
+      return;
+    }
+    if (res.timedOut) {
+      _timedOut();
+    } else if (res.solved) {
+      _solved(res.points);
+    } else {
+      _setStatus('WRONG', 'failed');
+    }
+  });
+}
+
+function _skip() {
+  if (!live || pending) {
+    return;
+  }
+  pending = true;
+  const token = runToken;
+  socketRef?.emit('pokedome:skip', { index }, (res) => {
+    if (token !== runToken) {
+      return;
+    }
+    pending = false;
+    if (res?.error) {
+      console.warn('[pokedome] skip rejected:', res.error);
+      return;
+    }
+    if (res.timedOut) {
+      _timedOut();
+      return;
+    }
+    _setDelta('');
+    _setStatus('SKIPPED', 'failed');
+    _endPuzzle();
+  });
+}
+
+function _disableKeys() {
+  const actions = [_qel('btn-pokedome-confirm'), _qel('btn-pokedome-skip')];
+  for (const b of [...keyBtns.values(), ...chipBtns.values(), ...actions]) {
+    b.disabled = true;
+  }
 }
 
 function _schedule(fn, ms) {
@@ -162,8 +255,12 @@ function _startPuzzle() {
 function _nextPuzzle() {
   _qel('pokedome-counter').textContent = `${index + 2}/${total}`;
   _qel('pokedome-hint').textContent = '';
+  _qel('pokedome-prompt').textContent = '';
   _qel('pokedome-word').innerHTML = '';
   _qel('pokedome-keys').innerHTML = '';
+  _qel('pokedome-chips').innerHTML = '';
+  _qel('pokedome-actions').hidden = true;
+  _qel('btn-pokedome-confirm').hidden = true;
   _setStatus('', '');
   _countdown();
 }
@@ -180,10 +277,18 @@ function _loadPuzzle() {
     }
     index = res.index;
     _qel('pokedome-counter').textContent = `${index + 1}/${total}`;
-    _qel('pokedome-hint').textContent = res.hint ? `HINT: ${res.hint}` : '';
-    _renderWord(res.pattern);
-    _renderKeys(res.locked);
+    kind = res.kind;
     live = true;
+    _qel('pokedome-actions').hidden = false;
+    _qel('btn-pokedome-skip').disabled = false;
+    if (kind === 'hangman') {
+      _qel('pokedome-hint').textContent = res.hint ? `HINT: ${res.hint}` : '';
+      _renderWord(res.pattern);
+      _renderKeys(res.locked);
+    } else {
+      _qel('pokedome-prompt').textContent = res.prompt;
+      _renderChips(res.options);
+    }
     _ensureRing().start(timerSec);
     capTimer = setTimeout(_timedOut, timerSec * 1000);
   });
@@ -248,7 +353,7 @@ function _timedOut() {
     return;
   }
   _setDelta('');
-  _setStatus('TIMED OUT', 'timedout');
+  _setStatus('TIMED OUT', 'failed');
   _endPuzzle();
 }
 
@@ -260,7 +365,7 @@ function _renderResults(results) {
     row.className = 'pokedome-result';
     const cells = [
       String(i + 1),
-      r.solved ? r.word : 'TIMED OUT',
+      r.solved ? (r.word ?? KIND_LABEL[r.kind]) : r.skipped ? 'SKIPPED' : 'TIMED OUT',
       r.solved ? (r.ms / 1000).toFixed(1) + 's' : '—',
       r.wrong + ' wrong',
       String(r.points),
@@ -318,7 +423,14 @@ function _onSubmitScore() {
 }
 
 function _onKeydown(e) {
-  if (!live || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement) {
+  if (
+    !live ||
+    kind !== 'hangman' ||
+    e.ctrlKey ||
+    e.metaKey ||
+    e.altKey ||
+    e.target instanceof HTMLInputElement
+  ) {
     return;
   }
   const letter = e.key.toUpperCase();
@@ -350,6 +462,8 @@ export function initPokedome(sock) {
   el('btn-pokedome-create').addEventListener('click', _startRun);
   el('btn-pokedome-submit-score').addEventListener('click', _onSubmitScore);
   el('btn-pokedome-ready').addEventListener('click', _startPuzzle);
+  el('btn-pokedome-confirm').addEventListener('click', _confirm);
+  el('btn-pokedome-skip').addEventListener('click', _skip);
   document.addEventListener('keydown', _onKeydown);
   registerHomeHandler({ reset: _reset });
 }

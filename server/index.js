@@ -627,6 +627,15 @@ if (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TEST_ROUTES === 
     res.json({ ok: true, bonusQ3: _testBonusQ3Override, bonusQ6: _testBonusQ6Override });
   });
 
+  app.get('/test/pokedome-answer', (_req, res) => {
+    const run = [...pokedomeRuns.values()].at(-1);
+    const puzzle = run?.puzzles[run.idx];
+    if (!puzzle || puzzle.kind === 'hangman') {
+      return res.status(404).json({ error: 'No pick puzzle open' });
+    }
+    res.json({ kind: puzzle.kind, answer: puzzle.answer });
+  });
+
   // Test-only: force a Qlashword player's rack to known tiles, then re-send it so the client renders the override.
   app.post('/test/qw-set-rack', (req, res) => {
     const { code, playerIdx, rack } = req.body;
@@ -1698,12 +1707,13 @@ io.on('connection', (socket) => {
     submitModeScore(centographerRuns, 'centographer', socket, name, cb);
   });
 
-  function _closePokedomePuzzle(run) {
+  function _closePokedomePuzzle(run, skipped = false) {
     if (run.idx < 0 || run.results[run.idx]) {
       return;
     }
     run.results[run.idx] = {
       solved: false,
+      skipped,
       ms: pokedome.TIMER_MS,
       wrong: run.puzzles[run.idx].wrong,
       points: 0,
@@ -1723,7 +1733,7 @@ io.on('connection', (socket) => {
     }
     pokedomeRuns.set(socket.id, {
       startedAt: now,
-      puzzles: pokedome.pickWords(pokedome.PUZZLE_COUNT).map((w) => pokedome.createPuzzle(w)),
+      puzzles: pokedome.createRun(),
       idx: -1,
       puzzleStartedAt: 0,
       results: [],
@@ -1748,44 +1758,83 @@ io.on('connection', (socket) => {
     _closePokedomePuzzle(run);
     run.idx += 1;
     run.puzzleStartedAt = Date.now();
-    const puzzle = run.puzzles[run.idx];
-    cb({
-      ok: true,
-      index: run.idx,
-      pattern: pokedome.pattern(puzzle),
-      locked: puzzle.locked,
-      hint: puzzle.hint,
-    });
+    cb({ ok: true, index: run.idx, ...pokedome.toPublic(run.puzzles[run.idx]) });
   });
+
+  function _openPokedomePuzzle(run, index, kinds, cb) {
+    if (!run || run.finished) {
+      cb({ error: 'POKEDOME not running' });
+      return null;
+    }
+    const puzzle = run.puzzles[run.idx];
+    if (!puzzle || index !== run.idx || run.results[run.idx] || !kinds.includes(puzzle.kind)) {
+      cb({ error: 'Puzzle closed' });
+      return null;
+    }
+    const elapsedMs = Date.now() - run.puzzleStartedAt;
+    if (elapsedMs > pokedome.TIMER_MS + ANSWER_GRACE_MS) {
+      _closePokedomePuzzle(run);
+      cb({ ok: true, timedOut: true });
+      return null;
+    }
+    return { puzzle, ms: Math.min(elapsedMs, pokedome.TIMER_MS) };
+  }
+
+  function _solvePokedomePuzzle(run, puzzle, ms) {
+    const points = pokedome.scorePuzzle(ms, puzzle.wrong, puzzle.parMs);
+    run.results[run.idx] = { solved: true, ms, wrong: puzzle.wrong, points };
+    return points;
+  }
 
   socket.on('pokedome:guess', ({ index, letter } = {}, cb) => {
     if (typeof cb !== 'function') {
       return;
     }
-    const run = pokedomeRuns.get(socket.id);
-    if (!run || run.finished) {
-      return cb({ error: 'POKEDOME not running' });
-    }
-    if (index !== run.idx || run.results[run.idx]) {
-      return cb({ error: 'Puzzle closed' });
-    }
     if (typeof letter !== 'string' || !/^[A-Z]$/.test(letter)) {
       return cb({ error: 'Invalid letter' });
     }
-    const elapsedMs = Date.now() - run.puzzleStartedAt;
-    if (elapsedMs > pokedome.TIMER_MS + ANSWER_GRACE_MS) {
-      _closePokedomePuzzle(run);
-      return cb({ ok: true, timedOut: true });
+    const run = pokedomeRuns.get(socket.id);
+    const open = _openPokedomePuzzle(run, index, ['hangman'], cb);
+    if (!open) {
+      return;
     }
-    const puzzle = run.puzzles[run.idx];
-    const { hit, repeat, positions, solved } = pokedome.guessLetter(puzzle, letter);
+    const { hit, repeat, positions, solved } = pokedome.guessLetter(open.puzzle, letter);
     if (!solved) {
       return cb({ ok: true, hit, repeat, positions, solved: false });
     }
-    const ms = Math.min(elapsedMs, pokedome.TIMER_MS);
-    const points = pokedome.scorePuzzle(ms, puzzle.wrong, puzzle.hidden);
-    run.results[run.idx] = { solved: true, ms, wrong: puzzle.wrong, points };
-    cb({ ok: true, hit, repeat, positions, solved: true, ms, points });
+    const points = _solvePokedomePuzzle(run, open.puzzle, open.ms);
+    cb({ ok: true, hit, repeat, positions, solved: true, ms: open.ms, points });
+  });
+
+  socket.on('pokedome:submit', ({ index, picks } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = pokedomeRuns.get(socket.id);
+    const open = _openPokedomePuzzle(run, index, ['select', 'order'], cb);
+    if (!open) {
+      return;
+    }
+    const verdict = pokedome.submitPicks(open.puzzle, picks);
+    if (!verdict) {
+      return cb({ error: 'Invalid picks' });
+    }
+    if (!verdict.correct) {
+      return cb({ ok: true, solved: false, repeat: verdict.repeat });
+    }
+    const points = _solvePokedomePuzzle(run, open.puzzle, open.ms);
+    cb({ ok: true, solved: true, ms: open.ms, points });
+  });
+
+  socket.on('pokedome:skip', ({ index } = {}, cb) => {
+    if (typeof cb !== 'function') {
+      return;
+    }
+    const run = pokedomeRuns.get(socket.id);
+    if (_openPokedomePuzzle(run, index, ['hangman', 'select', 'order'], cb)) {
+      _closePokedomePuzzle(run, true);
+      cb({ ok: true });
+    }
   });
 
   socket.on('pokedome:finish', (cb) => {
@@ -1813,7 +1862,12 @@ io.on('connection', (socket) => {
       score: run.finalScore,
       timeMs: run.finalTimeMs,
       qualifies,
-      results: results.map((r, i) => (r.solved ? { ...r, word: run.puzzles[i].word } : r)),
+      results: results.map((r, i) => {
+        const p = run.puzzles[i];
+        return r.solved && p.kind === 'hangman'
+          ? { ...r, kind: p.kind, word: p.word }
+          : { ...r, kind: p.kind };
+      }),
     });
   });
 

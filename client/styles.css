@@ -5011,6 +5011,22 @@ body.qw-active {
 .pokedome-ready {
   padding: 10px 28px;
 }
+.pokedome-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+.pokedome-actions[hidden] {
+  display: none;
+}
+.pokedome-actions .qlas-btn {
+  flex: 1 1 0;
+  height: 44px;
+}
+.pokedome-actions .qlas-btn[hidden] {
+  display: none;
+}
 .pokedome-hint {
   font-size: var(--fs-lg);
   font-weight: 700;
@@ -5018,6 +5034,26 @@ body.qw-active {
   color: var(--game-accent);
 }
 .pokedome-hint:empty {
+  display: none;
+}
+.pokedome-prompt {
+  max-width: 720px;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  text-align: center;
+  color: var(--game-text);
+}
+.pokedome-prompt:empty {
+  display: none;
+}
+.pokedome-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 757px;
+}
+.pokedome-chips:empty {
   display: none;
 }
 .pokedome-word {
@@ -5051,7 +5087,7 @@ body.qw-active {
 .pokedome-status.solved {
   color: #3ad07a;
 }
-.pokedome-status.timedout {
+.pokedome-status.failed {
   color: #ff5a5a;
 }
 .pokedome-keys {
@@ -5086,6 +5122,18 @@ body.qw-active {
 .pokedome-key:disabled {
   cursor: default;
   opacity: 0.45;
+}
+.pokedome-key.pokedome-chip {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 48px;
+  padding: 0 16px;
+  font-size: var(--fs-lg);
+}
+.pokedome-key.picked {
+  border-color: var(--game-accent);
+  background: rgba(var(--game-accent-rgb), 0.18);
+  color: var(--game-accent);
 }
 .pokedome-key.locked {
   opacity: 0.2;
