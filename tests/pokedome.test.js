@@ -10,6 +10,7 @@ import {
   pattern,
   guessLetter,
   scorePuzzle,
+  leaksName,
 } from '../server/game/pokedome.ts';
 
 describe('pokedome: pool', () => {
@@ -51,6 +52,18 @@ describe('pokedome: puzzle', () => {
   it('never exposes the word in the public pattern', () => {
     const p = createPuzzle('PIKACHU');
     expect(pattern(p).filter(Boolean).length).toBeLessThan('PIKACHU'.length);
+  });
+
+  it('hints a regular ability, never a hidden one', () => {
+    expect(['Static']).toContain(createPuzzle('PIKACHU').hint);
+    expect(['Synchronize', 'Inner Focus']).toContain(createPuzzle('ABRA').hint);
+  });
+
+  it('drops abilities that spell out part of the name', () => {
+    expect(leaksName('SANDSHREW', 'Sand Veil')).toBe(true);
+    expect(leaksName('MAGNEMITE', 'Sturdy')).toBe(false);
+    expect(createPuzzle('MAGNEMITE').hint).toBe('Sturdy');
+    expect(createPuzzle('PLUSLE').hint).toBeNull();
   });
 
   it('returns hit positions, counts misses, ignores repeats, detects solve', () => {

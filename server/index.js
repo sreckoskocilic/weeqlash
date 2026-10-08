@@ -1749,7 +1749,13 @@ io.on('connection', (socket) => {
     run.idx += 1;
     run.puzzleStartedAt = Date.now();
     const puzzle = run.puzzles[run.idx];
-    cb({ ok: true, index: run.idx, pattern: pokedome.pattern(puzzle), locked: puzzle.locked });
+    cb({
+      ok: true,
+      index: run.idx,
+      pattern: pokedome.pattern(puzzle),
+      locked: puzzle.locked,
+      hint: puzzle.hint,
+    });
   });
 
   socket.on('pokedome:guess', ({ index, letter } = {}, cb) => {

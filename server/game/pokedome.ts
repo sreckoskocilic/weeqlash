@@ -9,9 +9,11 @@ const ACCURACY_POINTS = 50;
 const SPEED_POINTS = 20;
 const WRONG_DECAY = 0.8;
 const PAR_MS_PER_LETTER = 3000;
+const HINT_LEAK_RUN = 4;
 
 interface Species {
   hangman: string | null;
+  abilities: { name: string; hidden: boolean }[];
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,8 +25,31 @@ export const HANGMAN_POOL: string[] = dex.species
   .map((s) => s.hangman)
   .filter((w): w is string => !!w);
 
+// An ability sharing a 4-letter run with the name gives it away (Sand Veil → SANDSHREW).
+export function leaksName(word: string, ability: string): boolean {
+  const letters = ability.toUpperCase().replace(/[^A-Z]/g, '');
+  for (let i = 0; i + HINT_LEAK_RUN <= letters.length; i++) {
+    if (word.includes(letters.slice(i, i + HINT_LEAK_RUN))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const HINTS = new Map(
+  dex.species
+    .filter((s) => s.hangman)
+    .map((s) => [
+      s.hangman as string,
+      s.abilities
+        .filter((a) => !a.hidden && !leaksName(s.hangman as string, a.name))
+        .map((a) => a.name),
+    ]),
+);
+
 export interface Puzzle {
   word: string;
+  hint: string | null;
   locked: string[];
   hidden: number;
   known: Set<string>;
@@ -60,8 +85,10 @@ export function createPuzzle(word: string, rand: () => number = Math.random): Pu
   const distinct = [...new Set(word)];
   const n = Math.max(0, Math.min(prefillCount(word.length), distinct.length - 2));
   const locked = shuffle(distinct, rand).slice(0, n);
+  const hints = HINTS.get(word) ?? [];
   return {
     word,
+    hint: hints.length ? hints[Math.floor(rand() * hints.length)] : null,
     locked,
     hidden: distinct.length - locked.length,
     known: new Set(locked),

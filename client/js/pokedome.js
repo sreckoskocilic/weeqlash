@@ -161,6 +161,7 @@ function _startPuzzle() {
 
 function _nextPuzzle() {
   _qel('pokedome-counter').textContent = `${index + 2}/${total}`;
+  _qel('pokedome-hint').textContent = '';
   _qel('pokedome-word').innerHTML = '';
   _qel('pokedome-keys').innerHTML = '';
   _setStatus('', '');
@@ -179,6 +180,7 @@ function _loadPuzzle() {
     }
     index = res.index;
     _qel('pokedome-counter').textContent = `${index + 1}/${total}`;
+    _qel('pokedome-hint').textContent = res.hint ? `HINT: ${res.hint}` : '';
     _renderWord(res.pattern);
     _renderKeys(res.locked);
     live = true;

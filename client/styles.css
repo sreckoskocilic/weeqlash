@@ -5011,6 +5011,15 @@ body.qw-active {
 .pokedome-ready {
   padding: 10px 28px;
 }
+.pokedome-hint {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--game-accent);
+}
+.pokedome-hint:empty {
+  display: none;
+}
 .pokedome-word {
   display: flex;
   flex-wrap: wrap;
