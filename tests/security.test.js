@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterAll } from 'vitest';
+import { describe, it, expect, vi, afterAll, beforeAll } from 'vitest';
 import './helpers/isolate-db.js';
 import request from 'supertest';
 import { app } from '../server/index.js';
@@ -52,7 +52,7 @@ describe('Resend confirmation email error handling', () => {
     db.prepare("DELETE FROM users WHERE username LIKE 'resend_%'").run();
   });
 
-  it('registers and logs in a test user', async () => {
+  beforeAll(async () => {
     const spy = vi.spyOn(emailModule, 'sendEmail').mockResolvedValue(undefined);
     await request(app)
       .post('/auth/register')

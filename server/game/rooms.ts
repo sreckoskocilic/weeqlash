@@ -241,7 +241,7 @@ export function removePlayerFromRoom(
     socketToRoom.delete(socketId);
   }
 
-  // Delete empty rooms after a delay (survives brief reconnects); re-check emptiness at execution time to avoid a race.
+  // Delete empty rooms after a delay; re-check emptiness at execution time to avoid a race.
   if (room.players.length === 0) {
     const codeToCheck = code;
     setTimeout(() => {

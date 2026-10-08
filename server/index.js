@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Try __dirname first (Docker: files copied flat into /app), then parent (local dev: server/index.js)
+// Try __dirname first (.env next to index.js), then the repo root (local dev)
 const envPath = existsSync(path.join(__dirname, '.env'))
   ? path.join(__dirname, '.env')
   : existsSync(path.join(__dirname, '..', '.env'))
@@ -1012,8 +1012,6 @@ io.on('connection', (socket) => {
     });
     cb({ ok: true });
   });
-
-  // --- Reconnect ---
 
   // --- Game actions ---
 
@@ -3723,4 +3721,4 @@ if (process.env.VITEST) {
     });
 }
 
-export { app };
+export { app, httpServer };

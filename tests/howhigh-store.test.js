@@ -7,6 +7,9 @@ import {
   finishP1,
   joinChallenge,
   finishP2,
+  expireStale,
+  forfeitStaleActive,
+  getChallengeByCode,
 } from '../server/game/howhigh-store.ts';
 
 let p1Id;
@@ -116,5 +119,41 @@ describe('howhigh-store: status guards', () => {
     );
     finishP1(code, 10, ['correct'], false, false, 5000); // status 'waiting', never joined
     expect(() => finishP2(code, 20, ['correct'], false, false, 5000)).toThrow();
+  });
+});
+
+describe('howhigh-store: stale sweeps', () => {
+  const HOUR = 60 * 60_000;
+  const age = (code, column, ms) =>
+    getDb()
+      .prepare(`UPDATE howhigh_challenges SET ${column} = ? WHERE code = ?`)
+      .run(Date.now() - ms, code);
+
+  it('expires an old unmatched challenge and leaves a fresh one waiting', () => {
+    const fresh = createChallenge(p1Id, ['q1'], [], { die1: 1, die2: 1 }, 'dice', 'gowild');
+    finishP1(fresh, 10, ['correct'], false, false, 5000);
+    const old = createChallenge(p1Id, ['q1'], [], { die1: 1, die2: 1 }, 'dice', 'gowild');
+    finishP1(old, 10, ['correct'], false, false, 5000);
+    age(old, 'created_at', 2 * HOUR);
+
+    expireStale(HOUR);
+
+    expect(getChallengeByCode(old).status).toBe('expired');
+    expect(getChallengeByCode(fresh).status).toBe('waiting');
+  });
+
+  it('awards P1 the win when P2 joined long ago and never finished', () => {
+    const stale = activeChallenge(10, 5000);
+    age(stale, 'p2_joined_at', 2 * HOUR);
+    const live = activeChallenge(10, 5000);
+
+    const forfeited = forfeitStaleActive(HOUR).map((r) => r.code);
+
+    expect(forfeited).toContain(stale);
+    expect(forfeited).not.toContain(live);
+    const row = getChallengeByCode(stale);
+    expect(row.status).toBe('complete');
+    expect(row.winner_id).toBe(p1Id);
+    expect(getChallengeByCode(live).status).toBe('active');
   });
 });

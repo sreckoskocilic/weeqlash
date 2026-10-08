@@ -10,7 +10,7 @@ Play at **https://brawl.weeqlash.icu** — create an account or banish yourself 
 
 ## Getting In
 
-- Open the site. The landing screen lists the modes on the left: **Brawl**, **Qlashique**, **Qlashword**, **HowHigh**, **SkipNoT**, **MathQ**, and **CentoGrapher**. Click one to see its options, how to play and the create/join buttons.
+- Open the site. The landing screen lists the modes on the left: **Brawl**, **Qlashique**, **Qlashword**, **HowHigh**, **SkipNoT**, **CentoGrapher**, and **POKEDOME**. Click one to see its options, how to play and the create/join buttons.
 - **Register** an account (email + password) or **log in** from the top tabs. You need an account to play any mode.
 - To play with friends: whoever creates the game shares the **5-character room code** — send them the invite link (**COPY LINK** next to the code) or the code itself. The link opens the right game with the code filled in; they just hit **JOIN**.
 
@@ -62,7 +62,7 @@ A head-to-head knife fight over a single question queue. No board, no pegs, no m
 
 ### Before the bell
 
-- Either player clicks **⚔ QLASHIQUE** to open a room and shares the code; the other pastes it into the `Qlashique` join input. Game starts as soon as both players are in.
+- Either player clicks **CREATE GAME** to open a room and shares the code; the other pastes it into the `Qlashique` join input. Game starts as soon as both players are in.
 
 ### How a turn works
 
@@ -77,7 +77,7 @@ You get a batch of questions under a timer that **starts at 5 seconds and grows 
 
 ### Don't go AFK
 
-- You get **10 seconds** to hit ⚔ ATTACK. Sit on it and the turn starts without you.
+- You get **10 seconds** to hit **ENGAGE**. Sit on it and the turn starts without you.
 - A turn with no answer and no END TURN costs you **2 HP**. Two in a row and you lose.
 
 ---
@@ -108,7 +108,7 @@ A perfect run is **+260**. A worst-case all-wrong run is **−140**. Skipping is
 
 ### Leaderboard
 
-Top scores land under **DEM SLEEPLESS**. Shown next to SkipNoT on the landing screen. Your account name goes on the board.
+Top scores land under **DEM SLEEPLESS**. Shown next to SkipNoT on the landing screen. Qualify and you type any name you like, up to 16 characters.
 
 ---
 
@@ -122,15 +122,16 @@ Ten questions, thirteen seconds each. Play solo, get a 5-character challenge cod
 | ------- | ----- |
 | Correct | +2    |
 | Wrong   | −2    |
+| Timeout | −2    |
 
 ### Bonuses
 
 After question 3 the game offers one of these (accept or decline, your funeral either way):
 
-| Bonus             | What happens                                      |
-| ----------------- | ------------------------------------------------- |
-| Dice              | Roll two dice. Q4 is worth die1 + die2 if correct |
-| Double or Nothing | Q4 and Q5 pay double (+4 correct, −4 wrong)       |
+| Bonus             | What happens                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| Dice              | You see the roll, then decide. Q4 pays 2 + the sum if correct, costs 2 + half the sum if not |
+| Double or Nothing | Q4 and Q5 pay double (+4 correct, −4 wrong)                                                  |
 
 After question 6, another offer:
 
@@ -161,7 +162,7 @@ Both players finish, scores get compared. Ties broken by speed. Results show up 
 - Hit **SUBMIT**. For each premium square your new tiles covered, you answer one question (random category, no Death Metal). Right, the multiplier unlocks for the turn. Wrong or timed out, you keep the base points and nothing more.
 - 90 seconds a turn or it auto-passes. **PASS** if you've got nothing, **SWAP** to dump tiles back in the bag (burns your turn), **SHUFFLE** to reorder your rack. All 7 tiles in one play is a +50 bingo.
 
-Bag empties, someone clears their rack, leftover tile values get subtracted, highest score wins.
+Bag empties and someone clears their rack, or both of you pass twice in a row: leftover tile values get subtracted, highest score wins.
 
 ---
 
@@ -182,13 +183,16 @@ Capped at +100. No floor, so a trigger-happy run drops below zero and sits there
 
 ---
 
-## 7. MathQ — solo numbers, no options to hide behind
+## 7. POKEDOME — six puzzles, thirty seconds each
 
-Ten problems, forty-five seconds each, and you type the answer instead of picking from a list. Calculus, geometry, trig, limits, the odd graph to read off. None of it comes from a question bank: every problem is generated fresh for the run, so memorising won't save you.
+Solo, and strictly Pokémon. Six puzzles per run, each on a 30-second clock with a short countdown before it:
 
-You don't have to nail it exactly. Land inside the tolerance and you get full marks; drift further out and the points fall off bit by bit; miss by a mile and it's zero. A few of the problems hand out a small bonus when you get really close, which helps on the estimate-this-square-root kind. Each question is worth 10 to start.
+- **Two hangman names.** A letter or two is already in place, and an ability is your only clue. Guess letters on screen or on your keyboard.
+- **Types.** Pick the Pokémon's types.
+- **Weaknesses.** Call every type that hits it super-effectively.
+- **Two stat line-ups.** Put four Pokémon in order by a base stat, lowest to highest.
 
-The answer never shows up, not mid-round and not on the review screen at the end. All you get back is whether each one was right, partial, or wrong, and what it earned you.
+Each puzzle is worth up to 100. Solving it banks 30; the other 70 are for being right first time and being quick. Every wrong letter or wrong submit shaves a fifth off what's left. Time out and it's zero, and the answer stays hidden.
 
 ---
 
@@ -214,5 +218,3 @@ The **Stats** button shows a logged-in player:
 ![HowHighComplete](screenshots/hh-complete.png)
 ![Qlashword](screenshots/qlashword.png)
 ![Centographer](screenshots/centographer.png)
-![MathQ1](screenshots/mathq1.png)
-![MathQ2](screenshots/mathq2.png)
