@@ -3,6 +3,7 @@ import './helpers/isolate-db.js';
 import request from 'supertest';
 import { app } from '../server/index.js';
 import { getDb } from '../server/game/leaderboard.ts';
+import { waitForRedisReady } from '../server/game/redis.ts';
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
@@ -21,14 +22,7 @@ async function createTestUser(username, email, password = 'testpass123') {
 }
 
 beforeAll(async () => {
-  // Wait for Redis to connect before running admin tests (gate returns 503 otherwise)
-  for (let i = 0; i < 20; i++) {
-    const res = await request(app).get('/');
-    if (res.status !== 503) {
-      break;
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
+  await waitForRedisReady(10_000);
 });
 
 afterAll(() => {

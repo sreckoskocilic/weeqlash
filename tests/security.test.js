@@ -4,8 +4,11 @@ import request from 'supertest';
 import { app } from '../server/index.js';
 import * as emailModule from '../server/game/email.ts';
 import { getDb } from '../server/game/leaderboard.ts';
+import { waitForRedisReady } from '../server/game/redis.ts';
 
-// Security suite: session, DB (parameterized queries/table validation), and client (CSP/XSS) fixes
+beforeAll(async () => {
+  await waitForRedisReady(10_000);
+});
 
 describe('Duel Stats Recording', () => {
   // Duel stats are recorded via recordGameStats (similar to qlashique)
