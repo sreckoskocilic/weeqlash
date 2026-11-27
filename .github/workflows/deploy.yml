@@ -86,8 +86,15 @@ jobs:
             git pull origin main
             docker compose up -d --build
             docker image prune -f
-            if ! diff -q /opt/weeqlash/Caddyfile /etc/caddy/Caddyfile >/dev/null 2>&1; then
-              /usr/bin/caddy validate --config /opt/weeqlash/Caddyfile
-              cp /opt/weeqlash/Caddyfile /etc/caddy/Caddyfile
+            SITE=/etc/caddy/sites/weeqlash.caddy
+            if ! diff -q /opt/weeqlash/Caddyfile "$SITE" >/dev/null 2>&1; then
+              PREV=$(mktemp)
+              cp "$SITE" "$PREV" 2>/dev/null || rm -f "$PREV"
+              cp /opt/weeqlash/Caddyfile "$SITE"
+              if ! /usr/bin/caddy validate --config /etc/caddy/Caddyfile; then
+                if [ -f "$PREV" ]; then mv "$PREV" "$SITE"; else rm -f "$SITE"; fi
+                exit 1
+              fi
+              rm -f "$PREV"
               sudo systemctl restart caddy
             fi

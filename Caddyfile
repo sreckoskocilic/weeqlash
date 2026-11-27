@@ -1,6 +1,3 @@
-{
-	admin off
-}
 brawl.weeqlash.icu {
 	encode zstd gzip
 
