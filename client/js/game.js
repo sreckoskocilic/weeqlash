@@ -154,7 +154,7 @@ export function submitTurn() {
 }
 
 // Turn announcement
-export function showTurnAnnounce(player, isMe) {
+function showTurnAnnounce(player, isMe) {
   const container = el('turn-announce');
   if (!container) {
     return;
@@ -172,7 +172,7 @@ export function showTurnAnnounce(player, isMe) {
 }
 
 // Navigation cursor
-export function initNavCursor(gameState) {
+function initNavCursor(gameState) {
   const cp = gameState.players[gameState.currentPlayerIdx];
   const firstPegId = cp?.pegIds?.[0];
   if (firstPegId) {
@@ -183,7 +183,7 @@ export function initNavCursor(gameState) {
   }
 }
 
-export function setNavCursorToPeg(gameState, pegId) {
+function setNavCursorToPeg(gameState, pegId) {
   const peg = pegId ? gameState.pegs?.[pegId] : null;
   if (!peg) {
     return false;

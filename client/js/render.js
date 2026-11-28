@@ -198,7 +198,7 @@ export function renderChangedTiles(oldState, newState, events) {
 }
 
 // Single tile update
-export function updateTile(r, c, state) {
+function updateTile(r, c, state) {
   const tile = state.board[r][c];
   const tileEl = tileEls[r][c];
   if (!tileEl) {
@@ -303,7 +303,7 @@ export function updateTile(r, c, state) {
 }
 
 // Turn UI update
-export function updateTurnUI(state) {
+function updateTurnUI(state) {
   const cp = state.players[state.currentPlayerIdx];
   el('turn-player-box').style.borderColor = cp?.color ?? '#444';
   el('turn-player-name').textContent = cp?.name ?? '—';

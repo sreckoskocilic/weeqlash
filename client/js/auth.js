@@ -37,7 +37,7 @@ export function initAuth(svrUrl, sock) {
   });
 }
 
-export function showAuthMessage(msg, isError) {
+function showAuthMessage(msg, isError) {
   const msgEl = $('auth-message');
   msgEl.textContent = msg;
   msgEl.style.display = 'block';
@@ -45,7 +45,7 @@ export function showAuthMessage(msg, isError) {
   msgEl.style.color = isError ? '#ff6b6b' : '#66bb6a';
 }
 
-export function showUserBar(user) {
+function showUserBar(user) {
   state.currentUser = user;
   $('nav-user').textContent = user.username;
   applyAuthState(true);
@@ -54,7 +54,7 @@ export function showUserBar(user) {
   $('btn-admin').hidden = !isAdmin;
 }
 
-export function hideUserBar() {
+function hideUserBar() {
   state.currentUser = null;
   applyAuthState(false);
 }
@@ -78,7 +78,7 @@ export async function checkAuth() {
 }
 
 // Login handler
-export function initLogin() {
+function initLogin() {
   $('btn-login').addEventListener('click', async () => {
     const username = $('login-username').value.trim();
     const password = $('login-password').value;
@@ -108,7 +108,7 @@ export function initLogin() {
 }
 
 // Register handler
-export function initRegister() {
+function initRegister() {
   $('btn-register').addEventListener('click', async () => {
     const username = $('reg-username').value.trim();
     const email = $('reg-email').value.trim();
@@ -126,7 +126,7 @@ export function initRegister() {
 }
 
 // Forgot password handlers
-export function initForgotPassword() {
+function initForgotPassword() {
   $('link-forgot').addEventListener('click', (e) => {
     e.preventDefault();
     $('auth-login-form').style.display = 'none';
@@ -158,7 +158,7 @@ export function initForgotPassword() {
 // Reset password handler
 let resetToken = null;
 
-export function initResetPassword() {
+function initResetPassword() {
   $('btn-reset').addEventListener('click', async () => {
     const password = $('reset-password').value;
     if (!password || password.length < 8) {
@@ -176,7 +176,7 @@ export function initResetPassword() {
 }
 
 // Logout handler
-export function initLogout() {
+function initLogout() {
   $('btn-logout').addEventListener('click', async () => {
     await fetch(`${serverUrl}/auth/logout`, {
       method: 'POST',
@@ -187,14 +187,14 @@ export function initLogout() {
 }
 
 // Admin panel handler
-export function initAdmin() {
+function initAdmin() {
   $('btn-admin').addEventListener('click', () => {
     window.open(`${serverUrl}/admin/users`, '_blank');
   });
 }
 
 // View Stats handler
-export function initViewStats() {
+function initViewStats() {
   $('btn-view-stats').addEventListener('click', async () => {
     if (!state.currentUser) {
       showAuthMessage('Please log in to view stats', true);
@@ -282,7 +282,7 @@ async function renderAccountDeletion() {
 }
 
 // Handle URL params (email confirmation, password reset)
-export function handleUrlParams() {
+function handleUrlParams() {
   const urlParams = new URLSearchParams(window.location.search);
 
   if (urlParams.get('confirm')) {
